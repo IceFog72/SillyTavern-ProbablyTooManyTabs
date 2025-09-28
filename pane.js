@@ -18,7 +18,7 @@ export const defaultViewSettings = {
 export function applySplitOrientation(split) {
   if (!split) return;
 
-  const parentColumn = split.closest('.sftnt-body-column');
+  const parentColumn = split.closest('.ptmt-body-column');
   const isParentColumnCollapsed = parentColumn?.dataset.isColumnCollapsed === 'true';
 
   let targetOrientation;
@@ -36,10 +36,10 @@ export function applySplitOrientation(split) {
 }
 
 export function createPane(initialSettings = {}, options = {}) {
-  const pane = el('div', { className: 'sftnt-pane', style: { position: 'relative', display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden' } });
-  const tabStrip = el('div', { className: 'sftnt-tabStrip' });
-  const panelContainer = el('div', { className: 'sftnt-panelContainer' });
-  const grid = el('div', { className: 'sftnt-pane-grid', style: { width: '100%', height: '100%' } });
+  const pane = el('div', { className: 'ptmt-pane', style: { position: 'relative', display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden' } });
+  const tabStrip = el('div', { className: 'ptmt-tabStrip' });
+  const panelContainer = el('div', { className: 'ptmt-panelContainer' });
+  const grid = el('div', { className: 'ptmt-pane-grid', style: { width: '100%', height: '100%' } });
 
   grid.append(tabStrip, panelContainer);
   pane.appendChild(grid);
@@ -71,7 +71,7 @@ export function getPaneLayerCount(pane) {
   while (eln && eln.parentElement && eln.parentElement !== refs.mainBody) {
     eln = eln.parentElement;
     if (!eln) break;
-    if (eln.classList?.contains('sftnt-split')) splitCount++;
+    if (eln.classList?.contains('ptmt-split')) splitCount++;
   }
   return splitCount + 1;
 }
@@ -96,7 +96,7 @@ export function writePaneViewSettings(pane, settings) {
 export function getParentSplitOrientation(pane) {
   if (!pane) return null;
   const parentSplit = pane.parentElement;
-  if (!parentSplit || !parentSplit.classList?.contains('sftnt-split')) {
+  if (!parentSplit || !parentSplit.classList?.contains('ptmt-split')) {
     return null;
   }
   return getSplitOrientation(parentSplit);
@@ -116,11 +116,11 @@ export function applyPaneOrientation(pane) {
       const parentSplit = pane.parentElement;
 
       // Check if the pane is actually inside a split container
-      if (parentSplit?.classList.contains('sftnt-split')) {
+      if (parentSplit?.classList.contains('ptmt-split')) {
 
         // NEW: Check the state of sibling panes
-        const children = Array.from(parentSplit.children).filter(c => c.classList.contains('sftnt-pane') || c.classList.contains('sftnt-split'));
-        const allCollapsed = children.every(child => child.classList.contains('view-collapsed') || child.classList.contains('sftnt-container-collapsed'));
+        const children = Array.from(parentSplit.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+        const allCollapsed = children.every(child => child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed'));
 
         if (allCollapsed) {
           // --- BEHAVIOR WHEN ALL SIBLINGS ARE COLLAPSED ---
@@ -136,7 +136,7 @@ export function applyPaneOrientation(pane) {
 
       } else {
         // Fallback for panes not inside a split (e.g., a single pane in a column)
-        const rect = (pane.closest('.sftnt-body-column') || pane).getBoundingClientRect();
+        const rect = (pane.closest('.ptmt-body-column') || pane).getBoundingClientRect();
         orientation = (rect.width < rect.height) ? 'vertical' : 'horizontal';
       }
     } else {
@@ -169,7 +169,7 @@ export function setPaneCollapsedView(pane, collapsed) {
   if (collapsed) {
     // --- START OF NEW, SMARTER LOGIC ---
     let isLayoutStable = true;
-    if (parentSplit?.classList.contains('sftnt-split')) {
+    if (parentSplit?.classList.contains('ptmt-split')) {
       const siblings = Array.from(parentSplit.children).filter(c => c !== pane);
       if (siblings.some(s => s.classList.contains('view-collapsed'))) {
         isLayoutStable = false;
@@ -199,7 +199,7 @@ export function setPaneCollapsedView(pane, collapsed) {
     } else {
       // Otherwise, calculate an initial size based on the pane's minimum requirements.
       const parentSplit = pane.parentElement;
-      if (parentSplit?.classList.contains('sftnt-split')) {
+      if (parentSplit?.classList.contains('ptmt-split')) {
         const vs = readPaneViewSettings(pane);
         const minSizePx = vs.minimalPanelSize || 250;
 
@@ -221,7 +221,7 @@ export function setPaneCollapsedView(pane, collapsed) {
       }
     }
 
-    if (parentSplit?.classList.contains('sftnt-split')) {
+    if (parentSplit?.classList.contains('ptmt-split')) {
       // Instead of a fragile manual loop, we now tell the parent split
       // to re-balance the sizes of ALL its children. This correctly handles
       // the "uncle" pane that was stuck at 100%.
@@ -231,7 +231,7 @@ export function setPaneCollapsedView(pane, collapsed) {
 
   applyPaneOrientation(pane);
 
-  if (parentSplit?.classList.contains('sftnt-split')) {
+  if (parentSplit?.classList.contains('ptmt-split')) {
     updateSplitCollapsedState(parentSplit);
     recalculateAllSplitsRecursively();
   }
@@ -242,19 +242,19 @@ export function setPaneCollapsedView(pane, collapsed) {
 
 export function removePaneIfEmpty(pane, depth = 0) {
   if (!pane?.parentElement || depth > 10) return;
-  const tabs = pane._tabStrip?.querySelectorAll('.sftnt-tab');
-  const panels = pane._panelContainer?.querySelectorAll('.sftnt-panel');
+  const tabs = pane._tabStrip?.querySelectorAll('.ptmt-tab');
+  const panels = pane._panelContainer?.querySelectorAll('.ptmt-panel');
   if (tabs?.length || panels?.length) return;
 
   const parent = pane.parentElement;
   if (!parent) return;
 
-  const column = pane.closest('.sftnt-body-column');
-  const wasInLeftColumn = column?.id === 'sftnt-leftBody';
-  const wasInRightColumn = column?.id === 'sftnt-rightBody';
+  const column = pane.closest('.ptmt-body-column');
+  const wasInLeftColumn = column?.id === 'ptmt-leftBody';
+  const wasInRightColumn = column?.id === 'ptmt-rightBody';
 
-  if (parent.classList.contains('sftnt-split')) {
-    const structuralChildren = Array.from(parent.children).filter(c => c !== pane && (c.classList.contains('sftnt-pane') || c.classList.contains('sftnt-split')));
+  if (parent.classList.contains('ptmt-split')) {
+    const structuralChildren = Array.from(parent.children).filter(c => c !== pane && (c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')));
     const grand = parent.parentElement;
 
     if (structuralChildren.length === 0) {
@@ -264,7 +264,7 @@ export function removePaneIfEmpty(pane, depth = 0) {
       const remaining = structuralChildren[0];
       if (grand) {
         grand.replaceChild(remaining, parent);
-        if (grand.classList.contains('sftnt-split')) {
+        if (grand.classList.contains('ptmt-split')) {
           recalculateSplitSizes(grand);
         } else {
           normalizeLiftedElement(remaining);
@@ -281,7 +281,7 @@ export function removePaneIfEmpty(pane, depth = 0) {
     pane.remove();
   }
 
-  if ((wasInLeftColumn || wasInRightColumn) && !column.querySelector('.sftnt-pane, .sftnt-split')) {
+  if ((wasInLeftColumn || wasInRightColumn) && !column.querySelector('.ptmt-pane, .ptmt-split')) {
     if (wasInLeftColumn) {
       settings.update({ showLeftPane: false });
     } else {
@@ -290,18 +290,18 @@ export function removePaneIfEmpty(pane, depth = 0) {
   }
 
   const refs = getRefs();
-  if (!refs.centerBody.querySelector('.sftnt-pane')) {
+  if (!refs.centerBody.querySelector('.ptmt-pane')) {
     refs.centerBody.appendChild(createPane());
   }
 
-  try { window.dispatchEvent(new CustomEvent('sftnt:layoutChanged')); } catch { }
+  try { window.dispatchEvent(new CustomEvent('ptmt:layoutChanged')); } catch { }
 }
 
 export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newFirst = true) {
   if (!targetPane || !movingPanel) return;
 
-  const column = targetPane.closest('.sftnt-body-column');
-  const columnKey = column.id.replace('sftnt-', '').replace('Body', '');
+  const column = targetPane.closest('.ptmt-body-column');
+  const columnKey = column.id.replace('ptmt-', '').replace('Body', '');
   const maxLayers = settings.get(`maxLayers${columnKey.charAt(0).toUpperCase() + columnKey.slice(1)}`) || 3;
 
   const layers = getPaneLayerCount(targetPane);
@@ -316,7 +316,7 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
   const srcPane = getPaneForPanel(movingPanel);
   const parent = targetPane.parentElement;
 
-  const split = el('div', { className: 'sftnt-split' });
+  const split = el('div', { className: 'ptmt-split' });
   split.dataset.naturalOrientation = vertical ? 'vertical' : 'horizontal';
   if (!vertical) {
     split.classList.add('horizontal');
@@ -328,7 +328,7 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
 
 
   const existingPanels = Array.from(targetPane._panelContainer.children);
-  const existingTabs = Array.from(targetPane._tabStrip.children).filter(c => c.classList.contains('sftnt-tab'));
+  const existingTabs = Array.from(targetPane._tabStrip.children).filter(c => c.classList.contains('ptmt-tab'));
 
   const destinationPaneForExisting = newFirst ? pane2 : pane1;
   existingPanels.forEach(p => destinationPaneForExisting._panelContainer.appendChild(p));
@@ -336,7 +336,7 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
 
   parent.replaceChild(split, targetPane);
 
-  const resizer = el('splitter', { className: vertical ? 'sftnt-resizer-vertical' : 'sftnt-resizer-horizontal' });
+  const resizer = el('splitter', { className: vertical ? 'ptmt-resizer-vertical' : 'ptmt-resizer-horizontal' });
   split.append(pane1, resizer, pane2);
 
   attachResizer(resizer, vertical ? 'vertical' : 'horizontal');
@@ -351,30 +351,30 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
       removePaneIfEmpty(srcPane);
     }
     recalculateAllSplitsRecursively();
-    window.dispatchEvent(new CustomEvent('sftnt:layoutChanged'));
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
   });
 }
 
 function updateTabsOrientation(pane, vertical) {
-  pane._tabStrip.querySelectorAll('.sftnt-tab').forEach(t => t.classList.toggle('vertical', vertical));
+  pane._tabStrip.querySelectorAll('.ptmt-tab').forEach(t => t.classList.toggle('vertical', vertical));
 }
 
 function normalizeLiftedElement(el) {
   if (!el) return;
   try {
-    if (el.classList.contains('sftnt-pane')) {
+    if (el.classList.contains('ptmt-pane')) {
       el.style.flex = '1 1 0%';
-      el.querySelectorAll('.sftnt-pane').forEach(p => {
+      el.querySelectorAll('.ptmt-pane').forEach(p => {
         p.style.flex = p.style.flex?.indexOf('0 0') === 0 ? '1 1 0%' : p.style.flex;
       });
       return;
     }
 
-    if (el.classList.contains('sftnt-split')) {
+    if (el.classList.contains('ptmt-split')) {
       el.style.flex = '1 1 0%';
       Array.from(el.children).forEach(c => {
         if (!c) return;
-        if (c.classList.contains('sftnt-pane') || c.classList.contains('sftnt-split')) {
+        if (c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')) {
           if (!c.style.flex || c.style.flex.includes('0 0') === false) {
             c.style.flex = '1 1 0%';
           }
@@ -393,7 +393,7 @@ function normalizeLiftedElement(el) {
 export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
   try {
     if (!pane) return;
-    const tabs = Array.from(pane._tabStrip.querySelectorAll('.sftnt-tab'));
+    const tabs = Array.from(pane._tabStrip.querySelectorAll('.ptmt-tab'));
     const allCollapsed = tabs.length > 0 && tabs.every(tab => tab.classList.contains('collapsed'));
 
     const wasCollapsed = pane.classList.contains('view-collapsed');
@@ -401,7 +401,7 @@ export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
 
     setPaneCollapsedView(pane, allCollapsed);
     const parentSplit = pane.parentElement;
-    if (parentSplit?.classList.contains('sftnt-split')) {
+    if (parentSplit?.classList.contains('ptmt-split')) {
       updateSplitCollapsedState(parentSplit);
     }
 
@@ -411,7 +411,7 @@ export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
 
     recalculateColumnSizes();
 
-    window.dispatchEvent(new CustomEvent('sftnt:layoutChanged'));
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
 
   } catch (e) {
     console.warn('checkAndCollapsePaneIfAllTabsCollapsed error:', e);
@@ -419,15 +419,15 @@ export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
 }
 
 function updateSplitCollapsedState(split) {
-  if (!split || !split.classList.contains('sftnt-split')) return;
+  if (!split || !split.classList.contains('ptmt-split')) return;
 
-  const children = Array.from(split.children).filter(c => c.classList.contains('sftnt-pane') || c.classList.contains('sftnt-split'));
+  const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
   if (children.length === 0) return;
 
   const allChildrenCollapsed = children.every(child =>
-    child.classList.contains('view-collapsed') || child.classList.contains('sftnt-container-collapsed')
+    child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')
   );
-  const isCurrentlyCollapsed = split.classList.contains('sftnt-container-collapsed');
+  const isCurrentlyCollapsed = split.classList.contains('ptmt-container-collapsed');
 
   if (allChildrenCollapsed && !isCurrentlyCollapsed) {
 
@@ -435,7 +435,7 @@ function updateSplitCollapsedState(split) {
     if (currentFlex && currentFlex.includes('%')) {
       split.dataset.lastFlex = currentFlex;
     }
-    split.classList.add('sftnt-container-collapsed');
+    split.classList.add('ptmt-container-collapsed');
 
 
     const parent = split.parentElement;
@@ -448,7 +448,7 @@ function updateSplitCollapsedState(split) {
   } else if (!allChildrenCollapsed && isCurrentlyCollapsed) {
 
     split.style.flex = split.dataset.lastFlex || '1 1 100%';
-    split.classList.remove('sftnt-container-collapsed');
+    split.classList.remove('ptmt-container-collapsed');
 
 
     const naturalOrientation = split.dataset.naturalOrientation || 'vertical';
@@ -456,14 +456,14 @@ function updateSplitCollapsedState(split) {
   }
 
   const parentSplit = split.parentElement;
-  if (parentSplit?.classList.contains('sftnt-split')) {
+  if (parentSplit?.classList.contains('ptmt-split')) {
     updateSplitCollapsedState(parentSplit);
   }
 }
 
 export function openViewSettingsDialog(pane) {
   if (!pane) return;
-  const existing = document.getElementById('sftnt-view-settings-dialog');
+  const existing = document.getElementById('ptmt-view-settings-dialog');
   if (existing) existing.remove();
 
   const vs = readPaneViewSettings(pane);
@@ -489,45 +489,45 @@ export function openViewSettingsDialog(pane) {
     background: '#3b4d61', color: '#eee', cursor: 'pointer'
   };
 
-  const dialog = el('div', { id: 'sftnt-view-settings-dialog', style: dialogStyles },
+  const dialog = el('div', { id: 'ptmt-view-settings-dialog', style: dialogStyles },
     el('div', { style: { fontFamily: 'sans-serif' } },
       el('h3', { style: { marginTop: '0', marginBottom: '20px' } }, 'Pane Settings'),
       el('div', { style: { marginBottom: '12px' } },
-        el('label', { for: 'sftnt-vs-minimal-panel' }, 'Min. Panel Size (px): '),
-        el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'sftnt-vs-minimal-panel' })
+        el('label', { for: 'ptmt-vs-minimal-panel' }, 'Min. Panel Size (px): '),
+        el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'ptmt-vs-minimal-panel' })
       ),
       el('div', { style: { marginBottom: '12px' } },
-        el('label', { for: 'sftnt-vs-default' }, 'Default orientation: '),
-        createSelect('sftnt-vs-default', [
+        el('label', { for: 'ptmt-vs-default' }, 'Default orientation: '),
+        createSelect('ptmt-vs-default', [
           { value: 'auto', label: 'Auto' }, { value: 'horizontal', label: 'Horizontal' }, { value: 'vertical', label: 'Vertical' },
         ], vs.defaultOrientation || 'auto')
       ),
       el('div', { style: { marginBottom: '12px' } },
-        el('label', { for: 'sftnt-vs-collapsed' }, 'Collapsed orientation: '),
-        createSelect('sftnt-vs-collapsed', [
+        el('label', { for: 'ptmt-vs-collapsed' }, 'Collapsed orientation: '),
+        createSelect('ptmt-vs-collapsed', [
           { value: 'auto', label: 'Auto' }, { value: 'horizontal', label: 'Horizontal' }, { value: 'vertical', label: 'Vertical' },
         ], vs.collapsedOrientation || 'auto')
       ),
       el('div', { style: { marginBottom: '20px' } },
-        el('label', { for: 'sftnt-vs-flow' }, 'Content Flow: '),
-        createSelect('sftnt-vs-flow', [
+        el('label', { for: 'ptmt-vs-flow' }, 'Content Flow: '),
+        createSelect('ptmt-vs-flow', [
           { value: 'default', label: 'Default (Tabs First)' }, { value: 'reversed', label: 'Reversed (Content First)' },
         ], vs.contentFlow || 'default')
       ),
       el('div', { style: { textAlign: 'right', marginTop: '10px' } },
-        el('button', { id: 'sftnt-vs-save', style: { ...buttonStyles, background: '#3b82f6' } }, 'Save'),
-        el('button', { id: 'sftnt-vs-cancel', style: buttonStyles }, 'Cancel')
+        el('button', { id: 'ptmt-vs-save', style: { ...buttonStyles, background: '#3b82f6' } }, 'Save'),
+        el('button', { id: 'ptmt-vs-cancel', style: buttonStyles }, 'Cancel')
       )
     )
   );
 
   document.body.appendChild(dialog);
-  dialog.querySelector('#sftnt-vs-cancel').addEventListener('click', () => dialog.remove());
-  dialog.querySelector('#sftnt-vs-save').addEventListener('click', () => {
-    const minimal = Number(dialog.querySelector('#sftnt-vs-minimal-panel').value) || defaultViewSettings.minimalPanelSize;
-    const def = dialog.querySelector('#sftnt-vs-default').value || 'auto';
-    const col = dialog.querySelector('#sftnt-vs-collapsed').value || 'auto';
-    const flow = dialog.querySelector('#sftnt-vs-flow').value || 'default';
+  dialog.querySelector('#ptmt-vs-cancel').addEventListener('click', () => dialog.remove());
+  dialog.querySelector('#ptmt-vs-save').addEventListener('click', () => {
+    const minimal = Number(dialog.querySelector('#ptmt-vs-minimal-panel').value) || defaultViewSettings.minimalPanelSize;
+    const def = dialog.querySelector('#ptmt-vs-default').value || 'auto';
+    const col = dialog.querySelector('#ptmt-vs-collapsed').value || 'auto';
+    const flow = dialog.querySelector('#ptmt-vs-flow').value || 'default';
 
     writePaneViewSettings(pane, {
       minimalPanelSize: minimal,
@@ -537,6 +537,6 @@ export function openViewSettingsDialog(pane) {
     });
     applyPaneOrientation(pane);
     dialog.remove();
-    window.dispatchEvent(new CustomEvent('sftnt:layoutChanged'));
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
   });
 }

@@ -9,35 +9,35 @@ let _refs = null;
 
 export function getRefs() {
   if (_refs) {
-    const ok = _refs.main && document.getElementById('sftnt-main') === _refs.main && _refs.centerBody && document.getElementById('sftnt-centerBody') === _refs.centerBody;
+    const ok = _refs.main && document.getElementById('ptmt-main') === _refs.main && _refs.centerBody && document.getElementById('ptmt-centerBody') === _refs.centerBody;
     if (ok) return _refs;
     _refs = null;
   }
   _refs = {
-    main: document.getElementById('sftnt-main'),
-    mainBody: document.getElementById('sftnt-mainBody'),
-    leftBody: document.getElementById('sftnt-leftBody'),
-    centerBody: document.getElementById('sftnt-centerBody'),
-    rightBody: document.getElementById('sftnt-rightBody'),
-    dropIndicator: document.getElementById('sftnt-drop-indicator'),
-    splitOverlay: document.getElementById('sftnt-split-overlay')
+    main: document.getElementById('ptmt-main'),
+    mainBody: document.getElementById('ptmt-mainBody'),
+    leftBody: document.getElementById('ptmt-leftBody'),
+    centerBody: document.getElementById('ptmt-centerBody'),
+    rightBody: document.getElementById('ptmt-rightBody'),
+    dropIndicator: document.getElementById('ptmt-drop-indicator'),
+    splitOverlay: document.getElementById('ptmt-split-overlay')
   };
   return _refs;
 }
 
 export function createLayoutIfMissing() {
-  if (document.getElementById('sftnt-main')) return getRefs();
+  if (document.getElementById('ptmt-main')) return getRefs();
 
-  const main = el('div', { id: 'sftnt-main' });
-  const topBar = el('div', { id: 'sftnt-topBar' });
+  const main = el('div', { id: 'ptmt-main' });
+  const topBar = el('div', { id: 'ptmt-topBar' });
 
-  const mainBody = el('div', { id: 'sftnt-mainBody', style: { display: 'flex', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden', position: 'relative' } });
-  const leftBody = el('div', { id: 'sftnt-leftBody', className: 'sftnt-body-column' });
-  const centerBody = el('div', { id: 'sftnt-centerBody', className: 'sftnt-body-column' });
-  const rightBody = el('div', { id: 'sftnt-rightBody', className: 'sftnt-body-column' });
+  const mainBody = el('div', { id: 'ptmt-mainBody', style: { display: 'flex', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden', position: 'relative' } });
+  const leftBody = el('div', { id: 'ptmt-leftBody', className: 'ptmt-body-column' });
+  const centerBody = el('div', { id: 'ptmt-centerBody', className: 'ptmt-body-column' });
+  const rightBody = el('div', { id: 'ptmt-rightBody', className: 'ptmt-body-column' });
 
-  const resizerLeftCenter = el('splitter', { className: 'sftnt-resizer-vertical sftnt-column-resizer' });
-  const resizerCenterRight = el('splitter', { className: 'sftnt-resizer-vertical sftnt-column-resizer' });
+  const resizerLeftCenter = el('splitter', { className: 'ptmt-resizer-vertical ptmt-column-resizer' });
+  const resizerCenterRight = el('splitter', { className: 'ptmt-resizer-vertical ptmt-column-resizer' });
 
   mainBody.append(leftBody, resizerLeftCenter, centerBody, resizerCenterRight, rightBody);
   main.append(topBar, mainBody);
@@ -52,8 +52,8 @@ export function createLayoutIfMissing() {
   document.body.insertBefore(main, document.body.firstChild);
 
   mainBody.append(
-    el('div', { className: 'sftnt-drop-indicator', id: 'sftnt-drop-indicator', style: { display: 'none' } }),
-    el('div', { className: 'sftnt-split-overlay', id: 'sftnt-split-overlay', style: { display: 'none' } })
+    el('div', { className: 'ptmt-drop-indicator', id: 'ptmt-drop-indicator', style: { display: 'none' } }),
+    el('div', { className: 'ptmt-split-overlay', id: 'ptmt-split-overlay', style: { display: 'none' } })
   );
   return getRefs();
 }
@@ -63,13 +63,13 @@ export function applyColumnVisibility() {
   const showLeft = settings.get('showLeftPane');
   const showRight = settings.get('showRightPane');
 
-  const resizerLeft = refs.mainBody.querySelector('.sftnt-resizer-vertical');
-  const resizerRight = refs.mainBody.querySelectorAll('.sftnt-resizer-vertical')[1];
+  const resizerLeft = refs.mainBody.querySelector('.ptmt-resizer-vertical');
+  const resizerRight = refs.mainBody.querySelectorAll('.ptmt-resizer-vertical')[1];
 
   if (refs.leftBody.style.display !== (showLeft ? 'flex' : 'none')) {
     refs.leftBody.style.display = showLeft ? 'flex' : 'none';
     if (resizerLeft) resizerLeft.style.display = showLeft ? 'flex' : 'none';
-    if (showLeft && !refs.leftBody.querySelector('.sftnt-pane')) {
+    if (showLeft && !refs.leftBody.querySelector('.ptmt-pane')) {
       refs.leftBody.appendChild(createPane());
     }
   }
@@ -77,7 +77,7 @@ export function applyColumnVisibility() {
   if (refs.rightBody.style.display !== (showRight ? 'flex' : 'none')) {
     refs.rightBody.style.display = showRight ? 'flex' : 'none';
     if (resizerRight) resizerRight.style.display = showRight ? 'flex' : 'none';
-    if (showRight && !refs.rightBody.querySelector('.sftnt-pane')) {
+    if (showRight && !refs.rightBody.querySelector('.ptmt-pane')) {
       refs.rightBody.appendChild(createPane());
     }
   }
@@ -97,8 +97,8 @@ export function recalculateColumnSizes() {
   if (visibleColumns.length === 0) return;
 
   const isContentCollapsed = visibleColumns.map(col => {
-    const firstChild = col.querySelector('.sftnt-pane, .sftnt-split');
-    return firstChild && (firstChild.classList.contains('view-collapsed') || firstChild.classList.contains('sftnt-container-collapsed'));
+    const firstChild = col.querySelector('.ptmt-pane, .ptmt-split');
+    return firstChild && (firstChild.classList.contains('view-collapsed') || firstChild.classList.contains('ptmt-container-collapsed'));
   });
 
   visibleColumns.forEach((col, index) => {

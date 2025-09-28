@@ -5,7 +5,7 @@ import { getRefs } from './layout.js';
 import { setPaneCollapsedView, removePaneIfEmpty, checkAndCollapsePaneIfAllTabsCollapsed, splitPaneWithPane } from './pane.js';
 import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
 
-const makeId = (prefix = 'sftnt') => `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
+const makeId = (prefix = 'ptmt') => `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
 
 export const registerPanelDom = (panelEl, title) => {
   const pid = panelEl.dataset.panelId || makeId('panel');
@@ -15,32 +15,32 @@ export const registerPanelDom = (panelEl, title) => {
 };
 
 
-const allTabs = () => Array.from(document.querySelectorAll('.sftnt-tab'));
-const getPaneForTabElement = tabEl => tabEl ? tabEl.closest('.sftnt-pane') : null;
-export const getPaneForPanel = panelEl => panelEl ? panelEl.closest('.sftnt-pane') : null;
+const allTabs = () => Array.from(document.querySelectorAll('.ptmt-tab'));
+const getPaneForTabElement = tabEl => tabEl ? tabEl.closest('.ptmt-pane') : null;
+export const getPaneForPanel = panelEl => panelEl ? panelEl.closest('.ptmt-pane') : null;
 
 export const getActivePane = () => {
-  const activeTab = document.querySelector('.sftnt-tab.active');
+  const activeTab = document.querySelector('.ptmt-tab.active');
   const refs = getRefs();
-  return activeTab ? getPaneForTabElement(activeTab) : refs.centerBody.querySelector('.sftnt-pane');
+  return activeTab ? getPaneForTabElement(activeTab) : refs.centerBody.querySelector('.ptmt-pane');
 };
 
 export function createPanelElement(title) {
-  const panel = el('div', { className: 'sftnt-panel' });
-  panel.appendChild(el('div', { className: 'sftnt-panel-content' }));
-  panel.dataset.sftntType = 'panel';
+  const panel = el('div', { className: 'ptmt-panel' });
+  panel.appendChild(el('div', { className: 'ptmt-panel-content' }));
+  panel.dataset.ptmtType = 'panel';
   if (title) panel.dataset.title = title;
   return panel;
 }
 
 
 export function createTabElement(title, pid, icon = null) {
-  const t = el('div', { className: 'sftnt-tab', draggable: true, tabindex: 0 });
-  const labelEl = el('span', { className: 'sftnt-tab-label' }, title || 'Tab');
+  const t = el('div', { className: 'ptmt-tab', draggable: true, tabindex: 0 });
+  const labelEl = el('span', { className: 'ptmt-tab-label' }, title || 'Tab');
   t.dataset.for = pid;
 
   if (icon) {
-    const iconEl = el('span', { className: 'sftnt-tab-icon' }, icon);
+    const iconEl = el('span', { className: 'ptmt-tab-icon' }, icon);
     t.appendChild(iconEl);
   }
   t.appendChild(labelEl);
@@ -59,7 +59,7 @@ t.addEventListener('click', () => {
       
 
       t.classList.add('active');
-      window.dispatchEvent(new CustomEvent('sftnt:layoutChanged'));
+      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
       return;
     }
 
@@ -68,7 +68,7 @@ t.addEventListener('click', () => {
     }
 
 
-    const allTabsInPane = Array.from(pane._tabStrip.querySelectorAll('.sftnt-tab'));
+    const allTabsInPane = Array.from(pane._tabStrip.querySelectorAll('.ptmt-tab'));
     allTabsInPane.forEach(tab => {
       const isThisTab = (tab === t);
       tab.classList.toggle('active', isThisTab);
@@ -77,20 +77,20 @@ t.addEventListener('click', () => {
     });
 
 
-    const allPanelsInPane = Array.from(pane._panelContainer.querySelectorAll('.sftnt-panel'));
+    const allPanelsInPane = Array.from(pane._panelContainer.querySelectorAll('.ptmt-panel'));
     allPanelsInPane.forEach(panel => {
       const isThisPanel = (panel.dataset.panelId === pid);
       panel.classList.toggle('hidden', !isThisPanel);
     });
 
-    window.dispatchEvent(new CustomEvent('sftnt:layoutChanged'));
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
   });
 
   t.addEventListener('dragstart', ev => {
     t.classList.add('dragging');
     try {
       ev.dataTransfer.setData('text/plain', pid);
-      ev.dataTransfer.setData('application/x-sftnt-tab', pid);
+      ev.dataTransfer.setData('application/x-ptmt-tab', pid);
     } catch { }
     const g = t.cloneNode(true);
     Object.assign(g.style, { position: 'absolute', left: '-9999px', top: '-9999px' });
@@ -114,13 +114,13 @@ export function setActivePanelInPane(pane, pid = null) {
   if (!pane) return false;
   const panelContainer = pane._panelContainer;
   const tabStrip = pane._tabStrip;
-  panelContainer.querySelectorAll('.sftnt-panel').forEach(p => p.classList.add('hidden'));
-  tabStrip.querySelectorAll('.sftnt-tab').forEach(t => t.classList.remove('active'));
+  panelContainer.querySelectorAll('.ptmt-panel').forEach(p => p.classList.add('hidden'));
+  tabStrip.querySelectorAll('.ptmt-tab').forEach(t => t.classList.remove('active'));
 
   let targetPid = pid;
   if (!targetPid) {
-    const firstAvailableTab = tabStrip.querySelector('.sftnt-tab:not(.collapsed)');
-    targetPid = firstAvailableTab?.dataset.for || panelContainer.querySelector('.sftnt-panel')?.dataset.panelId || null;
+    const firstAvailableTab = tabStrip.querySelector('.ptmt-tab:not(.collapsed)');
+    targetPid = firstAvailableTab?.dataset.for || panelContainer.querySelector('.ptmt-panel')?.dataset.panelId || null;
   }
   if (!targetPid) return false;
 
@@ -145,8 +145,8 @@ export function openTab(pid) {
     target.classList.remove('hidden');
   }
 
-  pane._panelContainer.querySelectorAll('.sftnt-panel').forEach(panel => panel.classList.add('hidden'));
-  pane._tabStrip.querySelectorAll('.sftnt-tab').forEach(t => t.classList.remove('active'));
+  pane._panelContainer.querySelectorAll('.ptmt-panel').forEach(panel => panel.classList.add('hidden'));
+  pane._tabStrip.querySelectorAll('.ptmt-tab').forEach(t => t.classList.remove('active'));
   target.classList.remove('hidden');
   if (tab) tab.classList.add('active');
   return true;
@@ -172,7 +172,7 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
     const { title = null, icon = null, makeActive = true, setAsDefault = false } = options;
 
 
-    const stagingArea = document.getElementById('sftnt-staging-area');
+    const stagingArea = document.getElementById('ptmt-staging-area');
     let node = stagingArea?.querySelector(`#${CSS.escape(elementId)}`);
 
 
@@ -191,12 +191,12 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
 
     let targetPane;
     const refs = getRefs();
-    if (isElement(target) && target.classList.contains('sftnt-pane')) {
+    if (isElement(target) && target.classList.contains('ptmt-pane')) {
         targetPane = target;
     } else if (typeof target === 'string' && refs[`${target}Body`]) {
-        targetPane = refs[`${target}Body`].querySelector('.sftnt-pane');
+        targetPane = refs[`${target}Body`].querySelector('.ptmt-pane');
     } else {
-        targetPane = getActivePane() || refs.centerBody.querySelector('.sftnt-pane');
+        targetPane = getActivePane() || refs.centerBody.querySelector('.ptmt-pane');
     }
 
     if (!targetPane) {
@@ -213,7 +213,7 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
     const panel = createPanelElement(panelTitle);
     panel.dataset.sourceId = elementId;
     const pid = registerPanelDom(panel, panelTitle);
-    panel.querySelector('.sftnt-panel-content').appendChild(node);
+    panel.querySelector('.ptmt-panel-content').appendChild(node);
     targetPane._panelContainer.appendChild(panel);
 
     const tab = createTabElement(panelTitle, pid, icon);
@@ -226,7 +226,7 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
 }
 
 export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDefault = true } = {}, targetPane = null) {
-  const toMove = Array.from(document.body.childNodes).filter(n => !(n.nodeType === 1 && n.id === 'sftnt-main'));
+  const toMove = Array.from(document.body.childNodes).filter(n => !(n.nodeType === 1 && n.id === 'ptmt-main'));
   if (toMove.length === 0) return null;
 
 
@@ -238,13 +238,13 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
 
 
   const panel = createPanelElement(title);
-  panel.dataset.sourceId = 'sftnt-main-content'; 
+  panel.dataset.sourceId = 'ptmt-main-content'; 
   const pid = registerPanelDom(panel, title);
-  const content = panel.querySelector('.sftnt-panel-content');
+  const content = panel.querySelector('.ptmt-panel-content');
 
   for (const node of toMove) {
-    if (node.nodeType === 1 && node.id === 'sftnt-main') continue;
-    if (node.tagName === 'SCRIPT' && node.dataset?.sftntIgnore !== 'false') {
+    if (node.nodeType === 1 && node.id === 'ptmt-main') continue;
+    if (node.tagName === 'SCRIPT' && node.dataset?.ptmtIgnore !== 'false') {
       try { document.head.appendChild(node); } catch { }
     } else {
       try { content.appendChild(node); } catch { }
@@ -254,7 +254,7 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
   pane._panelContainer.appendChild(panel);
   const tab = createTabElement(title, pid, icon);
   
-  const settingsBtn = pane._tabStrip.querySelector('.sftnt-view-settings');
+  const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   if (settingsBtn) pane._tabStrip.insertBefore(tab, settingsBtn); else pane._tabStrip.appendChild(tab);
   
   if (setAsDefault) setDefaultPanelById(pid);
@@ -271,7 +271,7 @@ export function moveTabToPane(pid, pane) {
   if (prevPane && prevPane._tabStrip && prevPane._tabStrip !== pane._tabStrip) prevPane._tabStrip.removeChild(tab);
 
   if (pane._tabStrip && !pane._tabStrip.contains(tab)) {
-    const settingsBtn = pane._tabStrip.querySelector('.sftnt-view-settings');
+    const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
     pane._tabStrip[settingsBtn ? 'insertBefore' : 'appendChild'](tab, settingsBtn);
   }
 
@@ -312,8 +312,8 @@ export function moveTabIntoPaneAtIndex(panel, pane, index) {
   }
 
 
-  const tabs = Array.from(pane._tabStrip.querySelectorAll('.sftnt-tab'));
-  const settingsBtn = pane._tabStrip.querySelector('.sftnt-view-settings');
+  const tabs = Array.from(pane._tabStrip.querySelectorAll('.ptmt-tab'));
+  const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   const insertBefore = index >= tabs.length ? settingsBtn : tabs[index];
 
   pane._tabStrip.insertBefore(tab, insertBefore || null);
@@ -332,18 +332,18 @@ export function moveTabIntoPaneAtIndex(panel, pane, index) {
   }
 
 
-  window.dispatchEvent(new CustomEvent('sftnt:layoutChanged'));
+  window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
 }
 
 export function cloneTabIntoPane(panel, pane, index = null) {
   const title = panel.dataset.title || 'Tab';
   const newPanel = createPanelElement(title);
   const newPid = registerPanelDom(newPanel, title);
-  newPanel.querySelector('.sftnt-panel-content').innerHTML = panel.querySelector('.sftnt-panel-content').innerHTML;
-  index ??= pane._tabStrip.querySelectorAll('.sftnt-tab').length;
+  newPanel.querySelector('.ptmt-panel-content').innerHTML = panel.querySelector('.ptmt-panel-content').innerHTML;
+  index ??= pane._tabStrip.querySelectorAll('.ptmt-tab').length;
   pane._panelContainer.appendChild(newPanel);
   const tab = createTabElement(title, newPid);
-  const settingsBtn = pane._tabStrip.querySelector('.sftnt-view-settings');
+  const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   pane._tabStrip[settingsBtn ? 'insertBefore' : 'appendChild'](tab, settingsBtn);
   setActivePanelInPane(pane, newPid);
   return newPanel;
@@ -358,7 +358,7 @@ export function listTabs() {
   return allTabs().map(t => {
     const pid = t.dataset.for;
     const panel = getPanelById(pid);
-    return { id: pid, title: (t.querySelector('.sftnt-tab-label')?.textContent || '').trim(), collapsed: t.classList.contains('collapsed'), panel };
+    return { id: pid, title: (t.querySelector('.ptmt-tab-label')?.textContent || '').trim(), collapsed: t.classList.contains('collapsed'), panel };
   });
 }
 
@@ -367,7 +367,7 @@ export function moveNodeIntoTab(nodeId, targetPanelId) {
   const panel = getPanelById(targetPanelId);
   if (!node || !panel) return false;
 
-  const content = panel.querySelector('.sftnt-panel-content');
+  const content = panel.querySelector('.ptmt-panel-content');
   if (!content) return false;
 
   content.appendChild(node);

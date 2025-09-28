@@ -10,8 +10,8 @@ function getDragContext(ev) {
     if (!pid) return null;
 
     const elUnder = document.elementFromPoint(ev.clientX, ev.clientY) || null;
-    const paneUnder = elUnder?.closest('.sftnt-pane') || getActivePane();
-    const overTabStrip = !!(elUnder?.closest('.sftnt-tabStrip'));
+    const paneUnder = elUnder?.closest('.ptmt-pane') || getActivePane();
+    const overTabStrip = !!(elUnder?.closest('.ptmt-tabStrip'));
     const wantsCopy = ev.ctrlKey || ev.metaKey || ev.altKey;
 
     return { pid, elUnder, paneUnder, overTabStrip, wantsCopy };
@@ -77,7 +77,7 @@ function handlePaneSplitDrop(ctx, ev, performDrop) {
 
 const getDragPidFromEvent = (ev) => {
   try {
-    return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-sftnt-tab') || '';
+    return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-ptmt-tab') || '';
   } catch { return ''; }
 };
 
@@ -94,7 +94,7 @@ function relativePanePos(pane, clientX, clientY) {
 function computeDropIndex(tabStrip, clientX, clientY) {
   const vertical = tabStrip.classList.contains('vertical');
   // Only select actual tabs, not settings buttons or other elements
-  const tabs = Array.from(tabStrip.querySelectorAll('.sftnt-tab:not(.sftnt-view-settings)'));
+  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
   if (!tabs.length) return 0;
   
   for (let i = 0; i < tabs.length; i++) {
@@ -112,7 +112,7 @@ function showDropIndicatorOnTabStrip(tabStrip, index) {
   if (!refs.dropIndicator || !refs.mainBody) return;
 
   const mainBodyRect = refs.mainBody.getBoundingClientRect();
-  const tabs = Array.from(tabStrip.querySelectorAll('.sftnt-tab'));
+  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab'));
   const vertical = tabStrip.classList.contains('vertical');
   const tsRect = tabStrip.getBoundingClientRect();
   const style = { display: 'block', width: '', height: '', left: '', top: '', transform: '' };

@@ -1,13 +1,13 @@
 {
-    "display_name": "SFTNT",
+    "display_name": "PTMT",
     "loading_order": 100,
     "requires": [],
     "optional": [],
     "js": "index.js",
     "css": "style.css",
     "author": "icefog72",
-    "version": "0.0.1",
+    "version": "0.0.2",
     "homePage": "",
-    "auto_update": true,
-    "description": "SFTNT Tab Manager - Refactored into modular structure for better maintainability"
+    "auto_update": false,
+    "description": "PTMT - ProbablyTooManyTabs is UI Tab Manager"
 }

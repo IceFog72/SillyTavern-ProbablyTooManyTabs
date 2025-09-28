@@ -23,26 +23,26 @@ export function generateLayoutSnapshot() {
     const buildNodeTree = (element, parentColumn = null) => {
         if (!element) return null;
 
-        if (element.classList.contains('sftnt-pane')) {
-            const tabElements = Array.from(element.querySelectorAll(':scope > .sftnt-pane-grid > .sftnt-tabStrip > .sftnt-tab'));
-            const panels = Array.from(element.querySelectorAll(':scope > .sftnt-pane-grid > .sftnt-panelContainer > .sftnt-panel'));
+        if (element.classList.contains('ptmt-pane')) {
+            const tabElements = Array.from(element.querySelectorAll(':scope > .ptmt-pane-grid > .ptmt-tabStrip > .ptmt-tab'));
+            const panels = Array.from(element.querySelectorAll(':scope > .ptmt-pane-grid > .ptmt-panelContainer > .ptmt-panel'));
 
             const tabsData = tabElements.map((tabEl, index) => {
                 const pid = tabEl.dataset.for;
                 const panel = getPanelById(pid);
                 const sourceId = panel?.dataset?.sourceId || null;
-                const isCustom = !sourceId && panel?.dataset?.sftntType === 'panel';
+                const isCustom = !sourceId && panel?.dataset?.ptmtType === 'panel';
 
                 return {
                     panelId: pid || null,
                     sourceId: sourceId,
-                    title: tabEl.querySelector('.sftnt-tab-label')?.textContent?.trim() || panel?.dataset?.title || null,
-                    icon: tabEl.querySelector('.sftnt-tab-icon')?.textContent || null,
+                    title: tabEl.querySelector('.ptmt-tab-label')?.textContent?.trim() || panel?.dataset?.title || null,
+                    icon: tabEl.querySelector('.ptmt-tab-icon')?.textContent || null,
                     collapsed: tabEl.classList.contains('collapsed'),
                     active: tabEl.classList.contains('active'),
                     order: index,
                     isDefault: panel?.dataset?.defaultPanel === 'true',
-                    customContent: isCustom ? panel?.querySelector('.sftnt-panel-content')?.innerHTML : null,
+                    customContent: isCustom ? panel?.querySelector('.ptmt-panel-content')?.innerHTML : null,
                     customData: panel?.dataset || {}
                 };
             });
@@ -69,9 +69,9 @@ export function generateLayoutSnapshot() {
             };
         }
 
-        if (element.classList.contains('sftnt-split')) {
+        if (element.classList.contains('ptmt-split')) {
             const structuralChildren = Array.from(element.children).filter(c =>
-                c.classList.contains('sftnt-pane') || c.classList.contains('sftnt-split')
+                c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')
             );
 
             const children = structuralChildren.map(child => buildNodeTree(child, parentColumn));
@@ -82,7 +82,7 @@ export function generateLayoutSnapshot() {
             });
 
             const computedStyle = getComputedStyle(element);
-            const isCollapsed = element.classList.contains('sftnt-container-collapsed');
+            const isCollapsed = element.classList.contains('ptmt-container-collapsed');
 
             return {
                 type: 'split',
@@ -105,12 +105,12 @@ export function generateLayoutSnapshot() {
 
     const captureResizerStates = () => {
         const states = [];
-        document.querySelectorAll('.sftnt-resizer-vertical, .sftnt-resizer-horizontal').forEach(resizer => {
+        document.querySelectorAll('.ptmt-resizer-vertical, .ptmt-resizer-horizontal').forEach(resizer => {
             const prev = resizer.previousElementSibling;
             const next = resizer.nextElementSibling;
             if (prev && next) {
                 states.push({
-                    type: resizer.classList.contains('sftnt-resizer-vertical') ? 'vertical' : 'horizontal',
+                    type: resizer.classList.contains('ptmt-resizer-vertical') ? 'vertical' : 'horizontal',
                     prevFlex: prev.style.flex,
                     nextFlex: next.style.flex,
                     disabled: resizer.classList.contains('disabled')
@@ -139,15 +139,15 @@ export function generateLayoutSnapshot() {
         columns: {
             left: {
                 flex: refs.leftBody.style.flex || null,
-                content: buildNodeTree(refs.leftBody.querySelector('.sftnt-pane, .sftnt-split'), 'left')
+                content: buildNodeTree(refs.leftBody.querySelector('.ptmt-pane, .ptmt-split'), 'left')
             },
             center: {
                 flex: refs.centerBody.style.flex || null,
-                content: buildNodeTree(refs.centerBody.querySelector('.sftnt-pane, .sftnt-split'), 'center')
+                content: buildNodeTree(refs.centerBody.querySelector('.ptmt-pane, .ptmt-split'), 'center')
             },
             right: {
                 flex: refs.rightBody.style.flex || null,
-                content: buildNodeTree(refs.rightBody.querySelector('.sftnt-pane, .sftnt-split'), 'right')
+                content: buildNodeTree(refs.rightBody.querySelector('.ptmt-pane, .ptmt-split'), 'right')
             }
         },
 
@@ -157,7 +157,7 @@ export function generateLayoutSnapshot() {
             const locations = new Map();
             ['left', 'center', 'right'].forEach(col => {
                 const column = refs[`${col}Body`];
-                column.querySelectorAll('.sftnt-panel').forEach((panel, idx) => {
+                column.querySelectorAll('.ptmt-panel').forEach((panel, idx) => {
                     if (panel.dataset.sourceId) {
                         locations.set(panel.dataset.sourceId, {
                             column: col,
@@ -219,7 +219,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         }
     }
 
-    const resizers = Array.from(refs.mainBody.querySelectorAll('.sftnt-resizer-vertical.sftnt-column-resizer'));
+    const resizers = Array.from(refs.mainBody.querySelectorAll('.ptmt-resizer-vertical.ptmt-column-resizer'));
     if (resizers[0]) resizers[0].style.display = snapshot.showLeft ? 'flex' : 'none';
     if (resizers[1]) resizers[1].style.display = snapshot.showRight ? 'flex' : 'none';
 
@@ -289,7 +289,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         }
 
         if (node.type === 'split') {
-            const split = el('div', { className: 'sftnt-split' });
+            const split = el('div', { className: 'ptmt-split' });
 
 
             if (node.isCollapsed) {
@@ -321,7 +321,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             node.children?.forEach((childNode, index) => {
                 if (index > 0) {
                     const resizer = el('splitter', {
-                        className: `sftnt-resizer-${node.orientation}`
+                        className: `ptmt-resizer-${node.orientation}`
                     });
                     split.appendChild(resizer);
                     attachResizer(resizer, node.orientation);
@@ -369,7 +369,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     }
                 } else if (t.customContent) {
                     panel = createPanelElement(t.title || 'Custom');
-                    panel.querySelector('.sftnt-panel-content').innerHTML = t.customContent;
+                    panel.querySelector('.ptmt-panel-content').innerHTML = t.customContent;
 
                     Object.entries(t.customData || {}).forEach(([key, value]) => {
                         if (key !== 'panelId') panel.dataset[key] = value;
@@ -383,7 +383,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 }
 
                 if (pid) {
-                    const tabEl = pane._tabStrip.querySelector(`.sftnt-tab[data-for="${CSS.escape(pid)}"]`);
+                    const tabEl = pane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);
                     if (tabEl) {
                         if (t.collapsed) tabEl.classList.add('collapsed');
                         if (t.active) activePid = pid;
@@ -416,7 +416,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     if (centerHasContent) rebuildNodeTree(snapshot.columns.center.content, refs.centerBody);
     if (rightHasContent) rebuildNodeTree(snapshot.columns.right.content, refs.rightBody);
 
-    if (!refs.centerBody.querySelector('.sftnt-pane')) {
+    if (!refs.centerBody.querySelector('.ptmt-pane')) {
         const fallbackPane = createPane({}, { deferInitialCheck: true });
         refs.centerBody.appendChild(fallbackPane);
         createdPanes.push(fallbackPane);
@@ -435,13 +435,13 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             if (originalLocation) {
                 const column = refs[`${originalLocation.column}Body`];
                 if (column) {
-                    targetPane = column.querySelectorAll('.sftnt-pane')[originalLocation.paneIndex] ||
-                        column.querySelector('.sftnt-pane');
+                    targetPane = column.querySelectorAll('.ptmt-pane')[originalLocation.paneIndex] ||
+                        column.querySelector('.ptmt-pane');
                 }
             }
 
             if (!targetPane) {
-                targetPane = refs.centerBody.querySelector('.sftnt-pane');
+                targetPane = refs.centerBody.querySelector('.ptmt-pane');
             }
 
             if (targetPane) {
@@ -478,22 +478,22 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     item.el.classList.add('view-collapsed');
                 }
             } else if (item.type === 'split') {
-                item.el.classList.add('sftnt-container-collapsed');
+                item.el.classList.add('ptmt-container-collapsed');
             }
         });
 
         createdPanes.forEach(pane => applyPaneOrientation(pane));
 
 
-        const settingsWrapperId = 'sftnt-settings-wrapper-content';
+        const settingsWrapperId = 'ptmt-settings-wrapper-content';
         let settingsWrapper = document.getElementById(settingsWrapperId);
         if (!settingsWrapper) {
             settingsWrapper = el('div', { id: settingsWrapperId });
-            const stagingArea = document.getElementById('sftnt-staging-area') || document.body;
+            const stagingArea = document.getElementById('ptmt-staging-area') || document.body;
             stagingArea.appendChild(settingsWrapper);
         }
 
-        const centerPane = refs.centerBody.querySelector('.sftnt-pane');
+        const centerPane = refs.centerBody.querySelector('.ptmt-pane');
         if (centerPane) {
             const settingsPanel = createTabFromElementId(settingsWrapperId, {
                 title: 'Layout Settings',
@@ -504,7 +504,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             if (settingsPanel) {
                 const layoutManager = new LayoutManager(api, settings);
                 const settingsUI = layoutManager.createSettingsPanel();
-                settingsPanel.querySelector('.sftnt-panel-content').appendChild(settingsUI);
+                settingsPanel.querySelector('.ptmt-panel-content').appendChild(settingsUI);
             }
 
             createTabForBodyContent({
@@ -513,7 +513,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 setAsDefault: true
             }, centerPane);
 
-            const mainPanel = document.querySelector('[data-source-id="sftnt-main-content"]');
+            const mainPanel = document.querySelector('[data-source-id="ptmt-main-content"]');
             if (mainPanel) {
                 openTab(mainPanel.dataset.panelId);
             }
@@ -525,7 +525,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             recalculateColumnSizes();
             updateResizerDisabledStates();
 
-            window.dispatchEvent(new CustomEvent('sftnt:layoutChanged', {
+            window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', {
                 detail: { reason: 'snapshotApplied' }
             }));
         }, 50);

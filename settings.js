@@ -114,12 +114,12 @@ class SettingsManager {
     }
 
     initializeSettings() {
-        if (!extension_settings.SFTNT) {
-            extension_settings.SFTNT = {};
+        if (!extension_settings.PTMT) {
+            extension_settings.PTMT = {};
         }
-        const loadedSettings = extension_settings.SFTNT;
-        extension_settings.SFTNT = { ...this.defaultSettings, ...loadedSettings };
-        return extension_settings.SFTNT;
+        const loadedSettings = extension_settings.PTMT;
+        extension_settings.PTMT = { ...this.defaultSettings, ...loadedSettings };
+        return extension_settings.PTMT;
     }
 
     get(key) {
@@ -139,7 +139,7 @@ class SettingsManager {
             this.save();
             const isOnlyLayoutSave = changedKeys.length === 1 && changedKeys[0] === 'savedLayout';
             if (!isOnlyLayoutSave) {
-                window.dispatchEvent(new CustomEvent('sftnt:settingsChanged', { detail: { changed: changedKeys, allSettings: this.settings } }));
+                window.dispatchEvent(new CustomEvent('ptmt:settingsChanged', { detail: { changed: changedKeys, allSettings: this.settings } }));
             }
         }
     }
@@ -151,8 +151,8 @@ class SettingsManager {
     reset() {
         const defaultSettingsCopy = JSON.parse(JSON.stringify(this.defaultSettings));
 
-        extension_settings.SFTNT = defaultSettingsCopy;
-        this.settings = extension_settings.SFTNT;
+        extension_settings.PTMT = defaultSettingsCopy;
+        this.settings = extension_settings.PTMT;
 
         this.save();
     }

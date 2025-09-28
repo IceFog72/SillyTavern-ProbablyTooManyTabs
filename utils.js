@@ -3,7 +3,7 @@
 export const isElement = (v) => v && (v.nodeType === 1 || v === document);
 
 export const getPanelById = pid => document.querySelector(`[data-panel-id="${CSS.escape(pid)}"]`);
-export const getTabById = pid => document.querySelector(`.sftnt-tab[data-for="${CSS.escape(pid)}"]`);
+export const getTabById = pid => document.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);
 
 export function debounce(func, wait) {
     let timeout;
@@ -70,13 +70,13 @@ export const el = (tag, props = {}, ...children) => {
 };
 
 export const getSplitOrientation = (splitEl) => splitEl?.classList.contains('horizontal') ? 'horizontal' : 'vertical';
-export const getPanelBySourceId = (id) => document.querySelector(`.sftnt-panel[data-source-id="${CSS.escape(id)}"]`);
+export const getPanelBySourceId = (id) => document.querySelector(`.ptmt-panel[data-source-id="${CSS.escape(id)}"]`);
 
 export function getElementDepth(element) {
     let depth = 0;
     let current = element.parentElement;
     while (current) {
-        if (current.classList?.contains('sftnt-split')) {
+        if (current.classList?.contains('ptmt-split')) {
             depth++;
         }
         current = current.parentElement;
@@ -87,8 +87,8 @@ export function getElementDepth(element) {
 export function setFlexBasisPercent(elem, percent) {
     const clampedPercent = Math.max(0, Math.min(100, percent));
 
-    const isResizable = elem?.classList.contains('sftnt-pane') || elem?.classList.contains('sftnt-split') || elem?.classList.contains('sftnt-body-column');
-    const isCollapsed = elem?.classList.contains('view-collapsed') || elem?.classList.contains('sftnt-container-collapsed');
+    const isResizable = elem?.classList.contains('ptmt-pane') || elem?.classList.contains('ptmt-split') || elem?.classList.contains('ptmt-body-column');
+    const isCollapsed = elem?.classList.contains('view-collapsed') || elem?.classList.contains('ptmt-container-collapsed');
 
     if (isResizable && !isCollapsed) {
         try {

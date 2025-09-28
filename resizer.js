@@ -4,7 +4,7 @@ import { readPaneViewSettings, defaultViewSettings } from './pane.js';
 
 /**
  * Checks if a pane has enough space for its tab text. If not, it applies
- * the 'sftnt-pane-icons-only' class to that specific pane. This function is
+ * the 'ptmt-pane-icons-only' class to that specific pane. This function is
  * throttled to ensure performance during drag operations.
  * @param {HTMLElement} pane The pane element to check.
  */
@@ -14,7 +14,7 @@ function checkPaneForIconMode(pane) {
     }
 
     const tabStrip = pane._tabStrip;
-    const tabs = tabStrip.querySelectorAll('.sftnt-tab');
+    const tabs = tabStrip.querySelectorAll('.ptmt-tab');
     if (tabs.length === 0) return;
 
     const isVertical = tabStrip.classList.contains('vertical');
@@ -27,7 +27,7 @@ function checkPaneForIconMode(pane) {
         requiredSize += (isVertical ? tabRect.height : tabRect.width) + 4;
     });
 
-    pane.classList.toggle('sftnt-pane-icons-only', requiredSize > availableSize);
+    pane.classList.toggle('ptmt-pane-icons-only', requiredSize > availableSize);
 }
 
 const throttledCheckPaneForIconMode = throttle(checkPaneForIconMode, 80);
@@ -84,7 +84,7 @@ function createResizer(resizer, orientation, config) {
     window.removeEventListener('pointerup', onPointerUp);
 
     try {
-      window.dispatchEvent(new CustomEvent('sftnt:layoutChanged', { detail: { reason: 'manualResize' } }));
+      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'manualResize' } }));
     } catch { }
   }
 
@@ -103,8 +103,8 @@ export function attachResizer(resizer, orientation = 'vertical') {
       const bElem = resizerEl.nextElementSibling;
       if (!aElem || !bElem) return null;
 
-      const isACollapsed = aElem.classList.contains('view-collapsed') || aElem.classList.contains('sftnt-container-collapsed');
-      const isBCollapsed = bElem.classList.contains('view-collapsed') || bElem.classList.contains('sftnt-container-collapsed');
+      const isACollapsed = aElem.classList.contains('view-collapsed') || aElem.classList.contains('ptmt-container-collapsed');
+      const isBCollapsed = bElem.classList.contains('view-collapsed') || bElem.classList.contains('ptmt-container-collapsed');
       if (isACollapsed || isBCollapsed) return null;
 
       const vsA = readPaneViewSettings(aElem);
@@ -113,7 +113,7 @@ export function attachResizer(resizer, orientation = 'vertical') {
       const minSizeB = Number(vsB.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
 
       const flexSiblings = Array.from(resizerEl.parentElement.children).filter(c =>
-        c.classList.contains('sftnt-pane') || c.classList.contains('sftnt-split')
+        c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')
       );
       const initialSizes = flexSiblings.map(el => el.getBoundingClientRect()[sizeProp]);
       const aElemIndex = flexSiblings.indexOf(aElem);
@@ -132,7 +132,7 @@ export function attachResizer(resizer, orientation = 'vertical') {
       newSizes[state.bElemIndex] = state.initialSizes[state.bElemIndex] - clampedDelta;
 
       const totalResizerSize = Array.from(state.flexSiblings[0].parentElement.children)
-        .filter(c => !c.classList.contains('sftnt-pane') && !c.classList.contains('sftnt-split'))
+        .filter(c => !c.classList.contains('ptmt-pane') && !c.classList.contains('ptmt-split'))
         .reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
 
       const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
@@ -147,8 +147,8 @@ export function attachResizer(resizer, orientation = 'vertical') {
       // Trigger real-time icon mode check for all affected panes.
       const aElem = state.flexSiblings[state.aElemIndex];
       const bElem = state.flexSiblings[state.bElemIndex];
-      aElem.querySelectorAll('.sftnt-pane').forEach(throttledCheckPaneForIconMode);
-      bElem.querySelectorAll('.sftnt-pane').forEach(throttledCheckPaneForIconMode);
+      aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+      bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
     }
   };
 
@@ -166,14 +166,14 @@ export function attachColumnResizer(resizer) {
     onDragStart: (resizerEl, { sizeProp }) => {
       const aElem = resizerEl.previousElementSibling;
       const bElem = resizerEl.nextElementSibling;
-      if (!aElem || !bElem || !aElem.classList.contains('sftnt-body-column') || !bElem.classList.contains('sftnt-body-column')) {
+      if (!aElem || !bElem || !aElem.classList.contains('ptmt-body-column') || !bElem.classList.contains('ptmt-body-column')) {
         return null;
       }
 
       const refs = getRefs();
       const parentRectAtStart = refs.mainBody.getBoundingClientRect();
-      const minWidthA = calculateElementMinWidth(aElem.querySelector('.sftnt-pane, .sftnt-split'));
-      const minWidthB = calculateElementMinWidth(bElem.querySelector('.sftnt-pane, .sftnt-split'));
+      const minWidthA = calculateElementMinWidth(aElem.querySelector('.ptmt-pane, .ptmt-split'));
+      const minWidthB = calculateElementMinWidth(bElem.querySelector('.ptmt-pane, .ptmt-split'));
 
       const initialSizes = {
         left: refs.leftBody.style.display === 'none' ? 0 : refs.leftBody.getBoundingClientRect()[sizeProp],
@@ -181,8 +181,8 @@ export function attachColumnResizer(resizer) {
         right: refs.rightBody.style.display === 'none' ? 0 : refs.rightBody.getBoundingClientRect()[sizeProp],
       };
 
-      const aKey = aElem.id.replace('sftnt-', '').replace('Body', '');
-      const bKey = bElem.id.replace('sftnt-', '').replace('Body', '');
+      const aKey = aElem.id.replace('ptmt-', '').replace('Body', '');
+      const bKey = bElem.id.replace('ptmt-', '').replace('Body', '');
 
       return { refs, initialSizes, minWidthA, minWidthB, aKey, bKey, parentRectAtStart, sizeProp };
     },
@@ -195,7 +195,7 @@ export function attachColumnResizer(resizer) {
       newSizes[state.aKey] = state.initialSizes[state.aKey] + clampedDelta;
       newSizes[state.bKey] = state.initialSizes[state.bKey] - clampedDelta;
 
-      const totalResizerSize = $$('.sftnt-column-resizer', state.refs.mainBody)
+      const totalResizerSize = $$('.ptmt-column-resizer', state.refs.mainBody)
         .reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
       const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
 
@@ -209,8 +209,8 @@ export function attachColumnResizer(resizer) {
       // Trigger real-time icon mode check for all affected panes.
       const aElem = state.refs[`${state.aKey}Body`];
       const bElem = state.refs[`${state.bKey}Body`];
-      aElem.querySelectorAll('.sftnt-pane').forEach(throttledCheckPaneForIconMode);
-      bElem.querySelectorAll('.sftnt-pane').forEach(throttledCheckPaneForIconMode);
+      aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+      bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
     }
   };
 
@@ -225,28 +225,28 @@ export function setSplitOrientation(splitElement, newOrientation) {
 
   splitElement.classList.toggle('horizontal', isHorizontal);
 
-  const resizer = splitElement.querySelector(':scope > .sftnt-resizer-vertical, :scope > .sftnt-resizer-horizontal');
+  const resizer = splitElement.querySelector(':scope > .ptmt-resizer-vertical, :scope > .ptmt-resizer-horizontal');
   if (resizer) {
     if (resizerControllers.has(resizer)) {
       resizerControllers.get(resizer).detach();
       resizerControllers.delete(resizer);
     }
-    resizer.className = `sftnt-resizer-${newOrientation}`;
+    resizer.className = `ptmt-resizer-${newOrientation}`;
     attachResizer(resizer, newOrientation);
   }
 }
 
 export function updateResizerDisabledStates() {
   try {
-    document.querySelectorAll('.sftnt-resizer-vertical, .sftnt-resizer-horizontal').forEach(r => {
+    document.querySelectorAll('.ptmt-resizer-vertical, .ptmt-resizer-horizontal').forEach(r => {
       let a = r.previousElementSibling;
       let b = r.nextElementSibling;
 
-      if (a?.classList.contains('sftnt-resizer-vertical') || a?.classList.contains('sftnt-resizer-horizontal')) a = a.previousElementSibling;
-      if (b?.classList.contains('sftnt-resizer-vertical') || b?.classList.contains('sftnt-resizer-horizontal')) b = b.nextElementSibling;
+      if (a?.classList.contains('ptmt-resizer-vertical') || a?.classList.contains('ptmt-resizer-horizontal')) a = a.previousElementSibling;
+      if (b?.classList.contains('ptmt-resizer-vertical') || b?.classList.contains('ptmt-resizer-horizontal')) b = b.nextElementSibling;
 
-      const isACollapsed = a?.classList.contains('view-collapsed') || a?.classList.contains('sftnt-container-collapsed');
-      const isBCollapsed = b?.classList.contains('view-collapsed') || b?.classList.contains('sftnt-container-collapsed');
+      const isACollapsed = a?.classList.contains('view-collapsed') || a?.classList.contains('ptmt-container-collapsed');
+      const isBCollapsed = b?.classList.contains('view-collapsed') || b?.classList.contains('ptmt-container-collapsed');
       const disabled = !!isACollapsed || !!isBCollapsed;
 
       r.classList.toggle('disabled', disabled);
@@ -257,13 +257,13 @@ export function updateResizerDisabledStates() {
 export function calculateElementMinWidth(element) {
   if (!element) return 0;
 
-  if (element.classList.contains('sftnt-pane')) {
+  if (element.classList.contains('ptmt-pane')) {
     const vs = readPaneViewSettings(element);
     return Number(vs.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
   }
 
-  if (element.classList.contains('sftnt-split')) {
-    const children = Array.from(element.children).filter(c => c.classList.contains('sftnt-pane') || c.classList.contains('sftnt-split'));
+  if (element.classList.contains('ptmt-split')) {
+    const children = Array.from(element.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
     const resizers = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
 
     if (element.classList.contains('horizontal')) {
@@ -289,7 +289,7 @@ export function calculateElementMinWidth(element) {
 export function recalculateAllSplitsRecursively() {
   try {
     const refs = getRefs();
-    const splits = Array.from(refs.mainBody.querySelectorAll('.sftnt-split'));
+    const splits = Array.from(refs.mainBody.querySelectorAll('.ptmt-split'));
     splits.sort((a, b) => getElementDepth(b) - getElementDepth(a));
     for (const split of splits) {
       recalculateSplitSizes(split);
@@ -300,13 +300,13 @@ export function recalculateAllSplitsRecursively() {
 }
 
 export function recalculateSplitSizes(split, protectedChild = null) {
-  if (!split?.classList.contains('sftnt-split')) return;
+  if (!split?.classList.contains('ptmt-split')) return;
 
-  const children = Array.from(split.children).filter(c => c.classList.contains('sftnt-pane') || c.classList.contains('sftnt-split'));
+  const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
   if (children.length === 0) return;
 
-  const activeChildren = children.filter(c => !c.classList.contains('view-collapsed') && !c.classList.contains('sftnt-container-collapsed'));
-  const isContainerCollapsed = split.classList.contains('sftnt-container-collapsed');
+  const activeChildren = children.filter(c => !c.classList.contains('view-collapsed') && !c.classList.contains('ptmt-container-collapsed'));
+  const isContainerCollapsed = split.classList.contains('ptmt-container-collapsed');
 
   if (isContainerCollapsed) {
     // For fully collapsed groups, use simple proportional sizing. The real-time
@@ -328,7 +328,7 @@ export function recalculateSplitSizes(split, protectedChild = null) {
   } else if (activeChildren.length < children.length) {
     // For partially collapsed groups, shrink the collapsed and fill with the active.
     children.forEach(child => {
-      if (child.classList.contains('view-collapsed') || child.classList.contains('sftnt-container-collapsed')) {
+      if (child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')) {
         child.style.flex = `0 0 ${calculateCollapsedSize(child)}px`;
       } else {
         const currentFlex = child.style.flex;
@@ -374,9 +374,9 @@ export function recalculateSplitSizes(split, protectedChild = null) {
 function calculateCollapsedSize(element) {
   if (!element) return 0;
 
-  if (element.classList.contains('sftnt-pane')) {
+  if (element.classList.contains('ptmt-pane')) {
     const parentSplit = element.parentElement;
-    if (parentSplit && parentSplit.classList.contains('sftnt-split')) {
+    if (parentSplit && parentSplit.classList.contains('ptmt-split')) {
       return parentSplit.classList.contains('horizontal') ? 36 : 48;
     }
     const parent = element.parentElement;
@@ -387,7 +387,7 @@ function calculateCollapsedSize(element) {
     return 36;
   }
 
-  if (element.classList.contains('sftnt-split')) {
+  if (element.classList.contains('ptmt-split')) {
     if (element.classList.contains('horizontal')) {
       return 36;
     }

@@ -1,8 +1,8 @@
 :root {
-  --sftnt-accent: #3b82f6;
-  --sftnt-bg: #0f1724;
-  --sftnt-radius: 6px;
-  --sftnt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
+  --ptmt-accent: #3b82f6;
+  --ptmt-bg: #0f1724;
+  --ptmt-radius: 6px;
+  --ptmt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
 }
 
 
@@ -46,14 +46,14 @@
 
 html,
 body,
-#sftnt-main {
+#ptmt-main {
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
 }
 
-#sftnt-main {
+#ptmt-main {
   display: flex;
   flex-direction: column;
   height: 100vh;
@@ -61,11 +61,11 @@ body,
   background: transparent;
 }
 
-#sftnt-topBar {
+#ptmt-topBar {
   display: none;
 }
 
-#sftnt-mainBody {
+#ptmt-mainBody {
   display: flex;
   flex: 1 1 0;
   min-height: 0;
@@ -73,39 +73,39 @@ body,
   position: relative;
 }
 
-.sftnt-body-column {
+.ptmt-body-column {
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
   min-width: 40px;
 }
 
-.sftnt-resizer-vertical {
+.ptmt-resizer-vertical {
   flex: 0 0 8px;
   cursor: col-resize;
   background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.0), transparent);
-  transition: background var(--sftnt-transition);
+  transition: background var(--ptmt-transition);
   touch-action: none;
 }
 
-.sftnt-resizer-vertical:hover {
+.ptmt-resizer-vertical:hover {
   background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.8), transparent);
 }
 
-.sftnt-resizer-horizontal {
+.ptmt-resizer-horizontal {
   flex: 0 0 8px;
   cursor: row-resize;
   background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.00), transparent);
-  transition: background var(--sftnt-transition);
+  transition: background var(--ptmt-transition);
   touch-action: none;
 }
 
-.sftnt-resizer-horizontal:hover {
+.ptmt-resizer-horizontal:hover {
   background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8), transparent);
 }
 
-.sftnt-resizer-vertical.disabled,
-.sftnt-resizer-horizontal.disabled {
+.ptmt-resizer-vertical.disabled,
+.ptmt-resizer-horizontal.disabled {
   cursor: not-allowed;
   opacity: 0.5;
   pointer-events: none;
@@ -113,7 +113,7 @@ body,
 
 
 
-.sftnt-split {
+.ptmt-split {
   display: flex;
   flex: 1 1 0;
 
@@ -123,11 +123,11 @@ body,
   position: relative;
 }
 
-.sftnt-split.horizontal {
+.ptmt-split.horizontal {
   flex-direction: column;
 }
 
-.sftnt-pane {
+.ptmt-pane {
   display: flex;
   flex: 1 1 0;
   flex-direction: column;
@@ -138,71 +138,71 @@ body,
   box-sizing: border-box;
 }
 
-.sftnt-pane-grid {
+.ptmt-pane-grid {
   display: grid;
   width: 100%;
   height: 100%;
 }
 
-.sftnt-pane-grid .sftnt-tabStrip {
+.ptmt-pane-grid .ptmt-tabStrip {
   grid-area: tabs;
 }
 
-.sftnt-pane-grid .sftnt-panelContainer {
+.ptmt-pane-grid .ptmt-panelContainer {
   grid-area: content;
   min-width: 0;
   min-height: 0;
 }
 
 
-.sftnt-pane-grid.grid-horizontal {
+.ptmt-pane-grid.grid-horizontal {
   grid-template-columns: 1fr;
   grid-template-rows: 36px 1fr;
   grid-template-areas: "tabs" "content";
 }
 
-.sftnt-pane-grid.grid-horizontal.flow-reversed {
+.ptmt-pane-grid.grid-horizontal.flow-reversed {
   grid-template-rows: 1fr 36px;
   grid-template-areas: "content" "tabs";
 }
 
 
-.sftnt-pane-grid.grid-vertical {
+.ptmt-pane-grid.grid-vertical {
   grid-template-columns: 48px 1fr;
   grid-template-rows: 1fr;
   grid-template-areas: "tabs content";
 }
 
-.sftnt-pane-grid.grid-vertical.flow-reversed {
+.ptmt-pane-grid.grid-vertical.flow-reversed {
   grid-template-columns: 1fr 48px;
   grid-template-areas: "content tabs";
 }
 
 
-.sftnt-pane.view-collapsed .sftnt-panelContainer {
+.ptmt-pane.view-collapsed .ptmt-panelContainer {
   display: none;
 }
 
-.sftnt-pane.view-collapsed {
+.ptmt-pane.view-collapsed {
   min-width: 0 !important;
   min-height: 0 !important;
-  box-shadow: 0 0 0 2px var(--sftnt-accent) inset;
+  box-shadow: 0 0 0 2px var(--ptmt-accent) inset;
 }
 
 
-.sftnt-tabStrip {
+.ptmt-tabStrip {
   display: flex;
   align-items: center;
   padding: 4px;
   gap: 6px;
-  background: var(--sftnt-bg);
+  background: var(--ptmt-bg);
   color: #fff;
   overflow: auto;
   min-width: 0;
   box-sizing: border-box;
 }
 
-.sftnt-tabStrip.vertical {
+.ptmt-tabStrip.vertical {
   flex-direction: column;
   height: auto;
   width: 48px;
@@ -211,12 +211,12 @@ body,
 }
 
 
-.sftnt-pane.view-collapsed .sftnt-tabStrip {
+.ptmt-pane.view-collapsed .ptmt-tabStrip {
   background: rgba(15, 23, 36, 0.92);
 }
 
 
-.sftnt-tab {
+.ptmt-tab {
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
@@ -226,29 +226,29 @@ body,
   user-select: none;
   gap: 8px;
   white-space: nowrap;
-  transition: background var(--sftnt-transition), opacity var(--sftnt-transition), border-color var(--sftnt-transition);
+  transition: background var(--ptmt-transition), opacity var(--ptmt-transition), border-color var(--ptmt-transition);
 }
 
-.sftnt-tab:focus {
+.ptmt-tab:focus {
   outline: 2px solid rgba(255, 255, 255, 0.08);
   outline-offset: 2px;
 }
 
-.sftnt-tab.active {
+.ptmt-tab.active {
   background: rgba(255, 255, 255, 0.08);
   cursor: default;
 }
 
-.sftnt-tab.dragging {
+.ptmt-tab.dragging {
   opacity: 0.45;
 }
 
-.sftnt-tab.collapsed {
+.ptmt-tab.collapsed {
   opacity: 0.6;
 }
 
 
-.sftnt-tabStrip.vertical .sftnt-tab {
+.ptmt-tabStrip.vertical .ptmt-tab {
   width: 100%;
   justify-content: center;
   padding: 8px 4px;
@@ -263,33 +263,33 @@ body,
   gap: 6px;
 }
 
-.sftnt-tab .sftnt-tab-label {
+.ptmt-tab .ptmt-tab-label {
   line-height: 1;
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.sftnt-tabStrip.vertical .sftnt-tab .sftnt-tab-label {
+.ptmt-tabStrip.vertical .ptmt-tab .ptmt-tab-label {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   font-size: 0.85em;
 }
 
-.sftnt-tabStrip.vertical .sftnt-tab.active {
+.ptmt-tabStrip.vertical .ptmt-tab.active {
   background: rgba(59, 130, 246, 0.1);
-  border-left-color: var(--sftnt-accent);
+  border-left-color: var(--ptmt-accent);
 }
 
 
-.sftnt-panelContainer {
+.ptmt-panelContainer {
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
   overflow: hidden;
 }
 
-.sftnt-panel {
+.ptmt-panel {
   display: flex;
   flex: 1 1 0;
   flex-direction: column;
@@ -298,11 +298,11 @@ body,
   overflow: hidden;
 }
 
-.sftnt-panel.hidden {
+.ptmt-panel.hidden {
   display: none;
 }
 
-.sftnt-panel-content {
+.ptmt-panel-content {
   flex: 1 1 auto;
   overflow: auto;
   min-height: 0;
@@ -311,15 +311,15 @@ body,
 
 
 
-.sftnt-drop-indicator {
+.ptmt-drop-indicator {
   position: absolute;
-  background: var(--sftnt-accent);
+  background: var(--ptmt-accent);
   opacity: 0.95;
   pointer-events: none;
   z-index: 9998;
 }
 
-.sftnt-split-overlay {
+.ptmt-split-overlay {
   position: absolute;
   pointer-events: none;
   background: rgba(59, 130, 246, 0.12);
@@ -328,38 +328,38 @@ body,
   z-index: 9999;
 }
 
-.sftnt-settings-panel fieldset {
+.ptmt-settings-panel fieldset {
   margin-bottom: 20px;
   border: 1px solid #444;
   padding: 10px;
   border-radius: 4px;
 }
 
-.sftnt-settings-panel legend {
+.ptmt-settings-panel legend {
   padding: 0 5px;
 }
 
-#sftnt-unified-editor {
+#ptmt-unified-editor {
   display: flex;
   gap: 15px;
   overflow-x: auto;
   padding-bottom: 10px;
 }
 
-.sftnt-editor-column {
+.ptmt-editor-column {
   flex: 1;
   min-width: 280px;
 }
 
-.sftnt-editor-split,
-.sftnt-editor-pane {
+.ptmt-editor-split,
+.ptmt-editor-pane {
   border: 1px dashed #555;
   padding: 8px;
   margin-top: 8px;
   border-radius: 4px;
 }
 
-.sftnt-editor-title {
+.ptmt-editor-title {
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -369,12 +369,12 @@ body,
   margin-bottom: 8px;
 }
 
-.sftnt-editor-title>span {
+.ptmt-editor-title>span {
   flex-grow: 1;
 }
 
-.sftnt-editor-title select,
-.sftnt-editor-title button {
+.ptmt-editor-title select,
+.ptmt-editor-title button {
   background: #333;
   border: 1px solid #555;
   color: #eee;
@@ -383,23 +383,23 @@ body,
   font-size: 12px;
 }
 
-.sftnt-editor-title button:hover {
+.ptmt-editor-title button:hover {
   background: #444;
   border-color: #777;
   cursor: pointer;
 }
 
-.sftnt-editor-children {
+.ptmt-editor-children {
   padding-left: 15px;
 }
 
-.sftnt-editor-tabs-container .drop-indicator {
+.ptmt-editor-tabs-container .drop-indicator {
   height: 2px;
-  background-color: var(--sftnt-accent);
+  background-color: var(--ptmt-accent);
   margin: 2px 0;
 }
 
-.sftnt-editor-tab {
+.ptmt-editor-tab {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -409,21 +409,21 @@ body,
   border-radius: 4px;
 }
 
-.sftnt-editor-tab.dragging {
+.ptmt-editor-tab.dragging {
   opacity: 0.4;
 }
 
-.sftnt-drag-handle {
+.ptmt-drag-handle {
   cursor: grab;
   color: #888;
   padding: 0 4px;
 }
 
-.sftnt-drag-handle:active {
+.ptmt-drag-handle:active {
   cursor: grabbing;
 }
 
-.sftnt-editor-tab input {
+.ptmt-editor-tab input {
   background: #222;
   border: 1px solid #444;
   color: #ddd;
@@ -433,11 +433,11 @@ body,
   flex: 1;
 }
 
-.sftnt-editor-tab input[data-prop="icon"] {
+.ptmt-editor-tab input[data-prop="icon"] {
   flex: 0 0 40px;
 }
 
-.sftnt-editor-id {
+.ptmt-editor-id {
   font-family: monospace;
   font-size: 11px;
   color: #777;
@@ -449,8 +449,8 @@ body,
 
 
 
-.sftnt-tabStrip::-webkit-scrollbar,
-.sftnt-panel-content::-webkit-scrollbar {
+.ptmt-tabStrip::-webkit-scrollbar,
+.ptmt-panel-content::-webkit-scrollbar {
   height: 10px;
   width: 10px;
 }
@@ -459,20 +459,20 @@ button:focus,
 [tabindex]:focus,
 input:focus,
 select:focus {
-  outline: 2px solid var(--sftnt-accent);
+  outline: 2px solid var(--ptmt-accent);
   outline-offset: 1px;
 }
 
 @media (prefers-reduced-motion: reduce) {
 
-  .sftnt-tab,
-  .sftnt-resizer-vertical,
-  .sftnt-resizer-horizontal {
+  .ptmt-tab,
+  .ptmt-resizer-vertical,
+  .ptmt-resizer-horizontal {
     transition: none;
   }
 }
 
-#sftnt-unified-editor.sftnt-editor-vertical-layout {
+#ptmt-unified-editor.ptmt-editor-vertical-layout {
 
   flex-direction: column;
   overflow-x: hidden;
@@ -480,20 +480,20 @@ select:focus {
   min-width: 0;
 }
 
-#sftnt-main.sftnt-global-icons-only .sftnt-tab .sftnt-tab-label {
+#ptmt-main.ptmt-global-icons-only .ptmt-tab .ptmt-tab-label {
   display: none;
 }
 
-#sftnt-main.sftnt-global-icons-only .sftnt-tab {
+#ptmt-main.ptmt-global-icons-only .ptmt-tab {
   gap: 0;
   justify-content: center;
 }
 
-.sftnt-pane.sftnt-pane-icons-only .sftnt-tab .sftnt-tab-label {
+.ptmt-pane.ptmt-pane-icons-only .ptmt-tab .ptmt-tab-label {
   display: none;
 }
 
-.sftnt-pane.sftnt-pane-icons-only .sftnt-tab {
+.ptmt-pane.ptmt-pane-icons-only .ptmt-tab {
   gap: 0;
   justify-content: center;
 }

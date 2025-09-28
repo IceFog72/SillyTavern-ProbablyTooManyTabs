@@ -13,7 +13,7 @@ export class LayoutManager {
     }
 
     createSettingsPanel() {
-        const panel = el('div', { className: 'sftnt-settings-panel' });
+        const panel = el('div', { className: 'ptmt-settings-panel' });
         this.rootElement = panel;
 
         const globalSettings = el('fieldset', {}, el('legend', {}, 'Global Layout'));
@@ -21,7 +21,7 @@ export class LayoutManager {
 
 
         const createSettingCheckbox = (labelText, settingKey) => {
-            const id = `sftnt-global-${settingKey}`;
+            const id = `ptmt-global-${settingKey}`;
             const wrapper = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' } });
             const checkbox = el('input', { type: 'checkbox', id, checked: this.settings.get(settingKey) });
             const label = el('label', { for: id }, labelText);
@@ -60,16 +60,16 @@ export class LayoutManager {
 
         this.renderUnifiedEditor();
 
-        window.addEventListener('sftnt:layoutChanged', () => this.renderUnifiedEditor());
+        window.addEventListener('ptmt:layoutChanged', () => this.renderUnifiedEditor());
         return panel;
     }
 
     renderUnifiedEditor() {
-        let editorRoot = this.rootElement.querySelector('#sftnt-unified-editor');
+        let editorRoot = this.rootElement.querySelector('#ptmt-unified-editor');
         if (editorRoot) {
             editorRoot.innerHTML = '';
         } else {
-            editorRoot = el('div', { id: 'sftnt-unified-editor' });
+            editorRoot = el('div', { id: 'ptmt-unified-editor' });
             this.rootElement.appendChild(editorRoot);
         }
 
@@ -88,24 +88,24 @@ export class LayoutManager {
     }
 
     renderColumn(name, title, element) {
-        const container = el('fieldset', { className: 'sftnt-editor-column' });
+        const container = el('fieldset', { className: 'ptmt-editor-column' });
         const legend = el('legend', {}, title);
 
         container.appendChild(legend);
 
-        const tree = this.renderTreeElement(element.querySelector('.sftnt-pane, .sftnt-split'));
+        const tree = this.renderTreeElement(element.querySelector('.ptmt-pane, .ptmt-split'));
         if (tree) container.appendChild(tree);
 
         return container;
     }
 
     renderTreeElement(element) {
-        if (!element || element.classList.contains('sftnt-resizer-vertical')) return null;
+        if (!element || element.classList.contains('ptmt-resizer-vertical')) return null;
 
-        if (element.classList.contains('sftnt-split')) {
+        if (element.classList.contains('ptmt-split')) {
             return this.renderSplit(element);
         }
-        if (element.classList.contains('sftnt-pane')) {
+        if (element.classList.contains('ptmt-pane')) {
             return this.renderPane(element);
         }
         return null;
@@ -114,8 +114,8 @@ export class LayoutManager {
 
     renderSplit(element) {
         const orientation = element.classList.contains('horizontal') ? 'Horizontal' : 'Vertical';
-        const container = el('div', { className: 'sftnt-editor-split' });
-        const titleDiv = el('div', { className: 'sftnt-editor-title' });
+        const container = el('div', { className: 'ptmt-editor-split' });
+        const titleDiv = el('div', { className: 'ptmt-editor-title' });
         const titleSpan = el('span', {}, `Split (${orientation})`);
 
         const orientationSelect = el('select', { title: 'Set split orientation' });
@@ -134,7 +134,7 @@ export class LayoutManager {
         titleDiv.append(titleSpan, orientationSelect);
         container.appendChild(titleDiv);
 
-        const childrenWrapper = el('div', { className: 'sftnt-editor-children' });
+        const childrenWrapper = el('div', { className: 'ptmt-editor-children' });
         Array.from(element.children).forEach(child => {
             const childTree = this.renderTreeElement(child);
             if (childTree) childrenWrapper.appendChild(childTree);
@@ -144,13 +144,13 @@ export class LayoutManager {
     }
 
     renderPane(element) {
-        const container = el('div', { className: 'sftnt-editor-pane' });
+        const container = el('div', { className: 'ptmt-editor-pane' });
 
 
-        const titleDiv = el('div', { className: 'sftnt-editor-title' });
+        const titleDiv = el('div', { className: 'ptmt-editor-title' });
         const titleSpan = el('span', {}, 'Pane');
         const settingsBtn = el('button', {
-            className: 'sftnt-pane-config-btn',
+            className: 'ptmt-pane-config-btn',
             title: 'Configure this pane (size, flow, etc.)',
         }, '⚙');
 
@@ -163,12 +163,12 @@ export class LayoutManager {
         container.appendChild(titleDiv);
 
 
-        const tabsContainer = el('div', { className: 'sftnt-editor-tabs-container' });
+        const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container' });
         tabsContainer.addEventListener('dragover', this.handleDragOver.bind(this));
         tabsContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
         tabsContainer.addEventListener('drop', (e) => this.handleDrop(e, element, null));
 
-        const tabs = Array.from(element.querySelectorAll('.sftnt-tab'));
+        const tabs = Array.from(element.querySelectorAll('.ptmt-tab'));
         tabs.forEach(tab => {
             tabsContainer.appendChild(this.renderTab(tab, element));
         });
@@ -183,15 +183,15 @@ export class LayoutManager {
         const mapping = settings.get('panelMappings').find(m => m.id === panel.dataset.sourceId) || {};
 
         const container = el('div', {
-            className: 'sftnt-editor-tab',
+            className: 'ptmt-editor-tab',
             draggable: 'true',
             'data-pid': pid,
         });
 
-        const handle = el('span', { className: 'sftnt-drag-handle', title: 'Drag to reorder' }, '☰');
+        const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder' }, '☰');
         const iconInput = el('input', { type: 'text', value: mapping.icon || '', placeholder: 'Icon', 'data-prop': 'icon' });
-        const titleInput = el('input', { type: 'text', value: tabElement.querySelector('.sftnt-tab-label').textContent, placeholder: 'Title', 'data-prop': 'title' });
-        const idLabel = el('span', { className: 'sftnt-editor-id', title: panel.dataset.sourceId }, panel.dataset.sourceId?.substring(0, 15) + '...' || 'N/A');
+        const titleInput = el('input', { type: 'text', value: tabElement.querySelector('.ptmt-tab-label').textContent, placeholder: 'Title', 'data-prop': 'title' });
+        const idLabel = el('span', { className: 'ptmt-editor-id', title: panel.dataset.sourceId }, panel.dataset.sourceId?.substring(0, 15) + '...' || 'N/A');
 
 
         container.append(handle, iconInput, titleInput, idLabel);
@@ -215,10 +215,10 @@ export class LayoutManager {
                 }
 
                 if (prop === 'title') {
-                    tabElement.querySelector('.sftnt-tab-label').textContent = newVal || panel.dataset.sourceId;
+                    tabElement.querySelector('.ptmt-tab-label').textContent = newVal || panel.dataset.sourceId;
                 }
                 if (prop === 'icon') {
-                    tabElement.querySelector('.sftnt-tab-icon').textContent = newVal || '';
+                    tabElement.querySelector('.ptmt-tab-icon').textContent = newVal || '';
                 }
             });
         });
@@ -243,7 +243,7 @@ export class LayoutManager {
         e.preventDefault();
         e.dataTransfer.dropEffect = 'move';
         const container = e.currentTarget;
-        const target = e.target.closest('.sftnt-editor-tab');
+        const target = e.target.closest('.ptmt-editor-tab');
 
         this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
         const indicator = el('div', { className: 'drop-indicator' });
@@ -265,7 +265,7 @@ export class LayoutManager {
     handleDragLeave(e) {
 
         setTimeout(() => {
-            if (!this.rootElement.querySelector(':hover.sftnt-editor-tabs-container')) {
+            if (!this.rootElement.querySelector(':hover.ptmt-editor-tabs-container')) {
                 this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
             }
         }, 100);

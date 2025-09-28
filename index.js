@@ -22,9 +22,9 @@ import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs } from './mi
     createLayoutIfMissing();
     const refs = getRefs();
 
-    let stagingArea = document.getElementById('sftnt-staging-area');
+    let stagingArea = document.getElementById('ptmt-staging-area');
     if (!stagingArea) {
-      stagingArea = el('div', { id: 'sftnt-staging-area', style: { display: 'none' } });
+      stagingArea = el('div', { id: 'ptmt-staging-area', style: { display: 'none' } });
       document.body.appendChild(stagingArea);
     }
 
@@ -84,9 +84,9 @@ import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs } from './mi
         settings.update({ presets });
       }
     };
-    window.sftntTabs = api;
+    window.ptmtTabs = api;
 
-    window.addEventListener('sftnt:layoutChanged', (event) => {
+    window.addEventListener('ptmt:layoutChanged', (event) => {
       if (event.detail?.reason !== 'snapshotApplied') {
         applyColumnVisibility();
         if (event.detail?.reason !== 'manualResize') {
@@ -95,25 +95,25 @@ import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs } from './mi
       }
 
 
-      document.querySelectorAll('.sftnt-split').forEach(applySplitOrientation);
-      document.querySelectorAll('.sftnt-pane').forEach(applyPaneOrientation);
+      document.querySelectorAll('.ptmt-split').forEach(applySplitOrientation);
+      document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
 
       updateResizerDisabledStates();
       saveCurrentLayoutDebounced();
     });
 
-    window.addEventListener('sftnt:settingsChanged', () => {
+    window.addEventListener('ptmt:settingsChanged', () => {
 
       const showIconsOnly = settings.get('showIconsOnly');
-      getRefs().main.classList.toggle('sftnt-global-icons-only', showIconsOnly);
+      getRefs().main.classList.toggle('ptmt-global-icons-only', showIconsOnly);
 
 
-      window.dispatchEvent(new CustomEvent('sftnt:layoutChanged'));
+      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     });
 
     window.addEventListener('resize', debounce(() => {
-      document.querySelectorAll('.sftnt-pane').forEach(pane => delete pane.dataset.appliedOrientation);
-      window.dispatchEvent(new CustomEvent('sftnt:layoutChanged'));
+      document.querySelectorAll('.ptmt-pane').forEach(pane => delete pane.dataset.appliedOrientation);
+      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     }, 150));
 
     const savedLayout = settings.get('savedLayout');
@@ -137,6 +137,6 @@ import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs } from './mi
     return api;
   }
 
-  document.body.insertAdjacentHTML('beforeend', '<div id="sftnt-settings-wrapper" style="display:none;"></div>');
+  document.body.insertAdjacentHTML('beforeend', '<div id="ptmt-settings-wrapper" style="display:none;"></div>');
   eventSource.on(event_types.APP_READY, () => { initApp(); });
 })();
