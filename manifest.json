@@ -1,0 +1,13 @@
+{
+    "display_name": "SFTNT",
+    "loading_order": 100,
+    "requires": [],
+    "optional": [],
+    "js": "index.js",
+    "css": "style.css",
+    "author": "icefog72",
+    "version": "0.0.1",
+    "homePage": "",
+    "auto_update": true,
+    "description": "SFTNT Tab Manager - Refactored into modular structure for better maintainability"
+}
