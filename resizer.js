@@ -64,7 +64,6 @@ function checkPaneForIconMode(pane) {
 const throttledCheckPaneForIconMode = throttle(checkPaneForIconMode, 80);
 
 export const resizerControllers = new WeakMap();
-const MIN_PIXELS = 40;
 
 const pxToPercent = (px, total) => !Number.isFinite(total) || total <= 0 ? 50 : Math.max(0, Math.min(100, (px / total) * 100));
 
@@ -268,21 +267,32 @@ export function setSplitOrientation(splitElement, newOrientation) {
 }
 
 export function updateResizerDisabledStates() {
-  try {
-    document.querySelectorAll('.ptmt-resizer-vertical, .ptmt-resizer-horizontal').forEach(r => {
-      let a = r.previousElementSibling;
-      let b = r.nextElementSibling;
+    try {
+        document.querySelectorAll('.ptmt-resizer-vertical, .ptmt-resizer-horizontal').forEach(r => {
+            let a = r.previousElementSibling;
+            let b = r.nextElementSibling;
+            if (!a || !b) {
+                r.classList.toggle('disabled', true);
+                return;
+            }
 
-      if (a?.classList.contains('ptmt-resizer-vertical') || a?.classList.contains('ptmt-resizer-horizontal')) a = a.previousElementSibling;
-      if (b?.classList.contains('ptmt-resizer-vertical') || b?.classList.contains('ptmt-resizer-horizontal')) b = b.nextElementSibling;
+            let isACollapsed, isBCollapsed;
 
-      const isACollapsed = a?.classList.contains('view-collapsed') || a?.classList.contains('ptmt-container-collapsed');
-      const isBCollapsed = b?.classList.contains('view-collapsed') || b?.classList.contains('ptmt-container-collapsed');
-      const disabled = !!isACollapsed || !!isBCollapsed;
+            // Check if it's a column resizer by looking at its siblings.
+            if (a.classList.contains('ptmt-body-column') && b.classList.contains('ptmt-body-column')) {
+                isACollapsed = a.dataset.isColumnCollapsed === 'true';
+                isBCollapsed = b.dataset.isColumnCollapsed === 'true';
+            } else { // Otherwise, it's a resizer between panes or splits.
+                isACollapsed = a.classList.contains('view-collapsed') || a.classList.contains('ptmt-container-collapsed');
+                isBCollapsed = b.classList.contains('view-collapsed') || b.classList.contains('ptmt-container-collapsed');
+            }
 
-      r.classList.toggle('disabled', disabled);
-    });
-  } catch { }
+            const disabled = !!isACollapsed || !!isBCollapsed;
+            r.classList.toggle('disabled', disabled);
+        });
+    } catch (e) {
+        console.warn("Error updating resizer states:", e);
+    }
 }
 
 export function calculateElementMinWidth(element) {
@@ -459,7 +469,7 @@ function calculateCollapsedSize(element) {
     if (element.classList.contains('horizontal')) {
       return 36;
     }
-    return 40;
+    return 48;
   }
   return 0;
 }
