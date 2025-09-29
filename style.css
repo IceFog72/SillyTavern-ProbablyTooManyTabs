@@ -250,8 +250,7 @@ body,
 }
 
 .ptmt-tab:focus {
-  outline: 2px solid rgba(255, 255, 255, 0.08);
-  outline-offset: 2px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .ptmt-tab.active {

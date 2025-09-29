@@ -84,7 +84,8 @@ const getDragPidFromEvent = (ev) => {
 const elementUnderPoint = (x, y) => document.elementFromPoint(x, y) || null;
 
 function relativePanePos(pane, clientX, clientY) {
-  const rect = pane.getBoundingClientRect();
+  const container = pane._panelContainer || pane;
+  const rect = container.getBoundingClientRect();
   const x = clientX - rect.left;
   const y = clientY - rect.top;
   return { rect, x, y, rx: x / Math.max(1, rect.width), ry: y / Math.max(1, rect.height) };
@@ -132,10 +133,10 @@ export const hideDropIndicator = () => {
 
 const showSplitOverlayForPane = (pane, vertical, first) => {
   const refs = getRefs();
-  if (!refs.splitOverlay || !pane || !refs.mainBody) return;
+  if (!refs.splitOverlay || !pane || !pane._panelContainer || !refs.mainBody) return;
 
   const mainBodyRect = refs.mainBody.getBoundingClientRect();
-  const r = pane.getBoundingClientRect();
+  const r = pane._panelContainer.getBoundingClientRect();
 
   let x = r.left - mainBodyRect.left;
   let y = r.top - mainBodyRect.top;
