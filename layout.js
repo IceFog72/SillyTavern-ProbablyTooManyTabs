@@ -86,74 +86,104 @@ export function applyColumnVisibility() {
 }
 
 
-export function recalculateColumnSizes() {
-  const refs = getRefs();
-  if (!refs || !refs.mainBody) return;
+function isColumnContentCollapsed(column) {
+    if (!column || column.style.display === 'none') return true;
+    const directChildren = Array.from(column.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+    if (directChildren.length === 0) return true; 
+    return directChildren.every(child => 
+        child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')
+    );
+}
 
-  const MIN_COLLAPSED_PIXELS = 40;
+export function recalculateColumnSizes({ protected: protectedColumn = null, collapsed: collapsedColumn = null } = {}) {
+    const refs = getRefs();
+    if (!refs || !refs.mainBody) return;
 
-  const columns = [refs.leftBody, refs.centerBody, refs.rightBody];
-  const visibleColumns = columns.filter(col => col && col.style.display !== 'none');
-  if (visibleColumns.length === 0) return;
+    const MIN_COLLAPSED_PIXELS = 40;
+    const columns = [refs.leftBody, refs.centerBody, refs.rightBody];
+    const visibleColumns = columns.filter(col => col && col.style.display !== 'none');
+    if (visibleColumns.length === 0) return;
 
-  const isContentCollapsed = visibleColumns.map(col => {
-    const firstChild = col.querySelector('.ptmt-pane, .ptmt-split');
-    return firstChild && (firstChild.classList.contains('view-collapsed') || firstChild.classList.contains('ptmt-container-collapsed'));
-  });
+    // Step 1: Update collapsed state for each column based on its content.
+    visibleColumns.forEach(col => {
+        const isContentFullyCollapsed = isColumnContentCollapsed(col);
+        const wasColumnCollapsed = col.dataset.isColumnCollapsed === 'true';
 
-  visibleColumns.forEach((col, index) => {
-    if (isContentCollapsed[index]) {
-
-      if (!col.dataset.isColumnCollapsed) {
-        const currentFlex = col.style.flex;
-
-        if (currentFlex && currentFlex.includes('%')) {
-          col.dataset.lastFlex = currentFlex;
+        if (isContentFullyCollapsed && !wasColumnCollapsed) {
+            const currentFlex = col.style.flex;
+            if (currentFlex && currentFlex.includes('%')) {
+                col.dataset.lastFlex = currentFlex;
+            }
+            col.dataset.isColumnCollapsed = 'true';
+            col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;
+        } else if (!isContentFullyCollapsed && wasColumnCollapsed) {
+            col.removeAttribute('data-is-column-collapsed');
+            col.style.flex = col.dataset.lastFlex || `1 1 ${100 / visibleColumns.length}%`;
         }
-        col.dataset.isColumnCollapsed = 'true';
-      }
-      col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;
-    } else {
-
-      if (col.dataset.isColumnCollapsed) {
-        col.removeAttribute('data-is-column-collapsed');
-        col.style.flex = col.dataset.lastFlex || '1 1 33.3333%';
-      }
-
-    }
-  });
-
-
-  const activeColumns = visibleColumns.filter(col => !col.dataset.isColumnCollapsed);
-  if (activeColumns.length > 0) {
-    const totalFlexBasis = activeColumns.reduce((sum, col) => {
-      const flexValue = col.style.flex;
-      const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-      return sum + (basisMatch ? parseFloat(basisMatch[1]) : 0);
-    }, 0);
-
-    if (totalFlexBasis <= 0) return;
-
-    const error = totalFlexBasis - 100.0;
-
-
-    if (Math.abs(error) < 0.01) {
-      return;
-    }
-
-
-    activeColumns.forEach(col => {
-      const flexValue = col.style.flex;
-      const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-
-
-      const currentBasis = basisMatch ? parseFloat(basisMatch[1]) : (100.0 / activeColumns.length);
-
-
-      const adjustment = error * (currentBasis / totalFlexBasis);
-      const newBasis = currentBasis - adjustment;
-
-      col.style.flex = `1 1 ${newBasis.toFixed(4)}%`;
     });
-  }
+
+    const activeColumns = visibleColumns.filter(col => col.dataset.isColumnCollapsed !== 'true');
+    if (activeColumns.length === 0) return;
+
+    const getBasis = (col, useLastFlex = false) => {
+        if (!col || col.style.display === 'none') return 0;
+        let flexString = col.style.flex;
+        if (useLastFlex && col.dataset.isColumnCollapsed === 'true') {
+            flexString = col.dataset.lastFlex || flexString;
+        }
+        if (!useLastFlex && col.dataset.isColumnCollapsed === 'true') return 0;
+        const basisMatch = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
+        return basisMatch ? parseFloat(basisMatch[1]) : 0;
+    };
+
+    const { leftBody, centerBody, rightBody } = refs;
+
+    // Specific event-driven logic (collapse or reopen)
+    if (protectedColumn || collapsedColumn) {
+        if (protectedColumn) { // A column was reopened
+            const lBasis = getBasis(leftBody), cBasis = getBasis(centerBody), rBasis = getBasis(rightBody);
+            if (protectedColumn === leftBody) { // L reopens, takes from C
+                centerBody.style.flex = `1 1 ${(cBasis - lBasis).toFixed(4)}%`;
+            } else if (protectedColumn === rightBody) { // R reopens, takes from C
+                centerBody.style.flex = `1 1 ${(cBasis - rBasis).toFixed(4)}%`;
+            } else if (protectedColumn === centerBody) { // C reopens, takes from L & R
+                const spaceToTake = cBasis;
+                const sideTotal = lBasis + rBasis;
+                if (sideTotal > 0) {
+                    leftBody.style.flex = `1 1 ${(lBasis - spaceToTake * (lBasis / sideTotal)).toFixed(4)}%`;
+                    rightBody.style.flex = `1 1 ${(rBasis - spaceToTake * (rBasis / sideTotal)).toFixed(4)}%`;
+                }
+            }
+        } else { // A column was collapsed
+            const spaceFreed = getBasis(collapsedColumn, true);
+            const lBasis = getBasis(leftBody), cBasis = getBasis(centerBody), rBasis = getBasis(rightBody);
+
+            if (collapsedColumn === leftBody) { // L collapses, gives to C
+                if (activeColumns.includes(centerBody)) centerBody.style.flex = `1 1 ${(cBasis + spaceFreed).toFixed(4)}%`;
+            } else if (collapsedColumn === rightBody) { // R collapses, gives to C
+                if (activeColumns.includes(centerBody)) centerBody.style.flex = `1 1 ${(cBasis + spaceFreed).toFixed(4)}%`;
+            } else if (collapsedColumn === centerBody) { // C collapses, gives to L & R
+                const sideTotal = lBasis + rBasis;
+                if (sideTotal > 0) {
+                    if (activeColumns.includes(leftBody)) leftBody.style.flex = `1 1 ${(lBasis + spaceFreed * (lBasis / sideTotal)).toFixed(4)}%`;
+                    if (activeColumns.includes(rightBody)) rightBody.style.flex = `1 1 ${(rBasis + spaceFreed * (rBasis / sideTotal)).toFixed(4)}%`;
+                } else if(activeColumns.length > 0) { // If only L or R is open
+                    const equalShare = 100 / activeColumns.length;
+                    activeColumns.forEach(c => c.style.flex = `1 1 ${equalShare.toFixed(4)}%`);
+                }
+            }
+        }
+    }
+
+    // General normalization pass to correct any floating point errors
+    const finalTotalBasis = activeColumns.reduce((sum, col) => sum + getBasis(col), 0);
+    const finalError = finalTotalBasis - 100.0;
+
+    if (Math.abs(finalError) > 0.01) {
+        const colToAdjust = activeColumns.includes(centerBody) ? centerBody : activeColumns[activeColumns.length-1];
+        if(colToAdjust) {
+            const basis = getBasis(colToAdjust);
+            colToAdjust.style.flex = `1 1 ${(basis - finalError).toFixed(4)}%`;
+        }
+    }
 }

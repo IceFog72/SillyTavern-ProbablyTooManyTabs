@@ -1,8 +1,7 @@
-
-// LayoutManager.js';
+// LayoutManager.js
 
 import { settings } from './settings.js';
-import { el } from './utils.js';
+import { el, debounce } from './utils.js';
 
 export class LayoutManager {
     constructor(appApi, settings) { 
@@ -10,6 +9,9 @@ export class LayoutManager {
         this.settings = settings;
         this.rootElement = null;
         this.draggedTabInfo = null;
+        this.debouncedSettingsUpdate = debounce((updatedMappings) => {
+            settings.update({ panelMappings: updatedMappings });
+        }, 400);
     }
 
     createSettingsPanel() {
@@ -207,18 +209,24 @@ export class LayoutManager {
                 const mapping = mappings.find(m => m.id === panel.dataset.sourceId);
 
                 if (mapping) {
-
                     mapping[prop] = newVal;
-
-
-                    settings.update({ panelMappings: mappings });
+                    this.debouncedSettingsUpdate(mappings);
                 }
 
                 if (prop === 'title') {
                     tabElement.querySelector('.ptmt-tab-label').textContent = newVal || panel.dataset.sourceId;
                 }
                 if (prop === 'icon') {
-                    tabElement.querySelector('.ptmt-tab-icon').textContent = newVal || '';
+                    let iconEl = tabElement.querySelector('.ptmt-tab-icon');
+                    if (newVal) {
+                        if (!iconEl) {
+                            iconEl = el('span', { className: 'ptmt-tab-icon' });
+                            tabElement.prepend(iconEl);
+                        }
+                        iconEl.textContent = newVal;
+                    } else if (iconEl) {
+                        iconEl.remove();
+                    }
                 }
             });
         });

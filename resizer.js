@@ -306,8 +306,6 @@ export function recalculateSplitSizes(split, protectedChild = null) {
   const isContainerCollapsed = split.classList.contains('ptmt-container-collapsed');
 
   if (isContainerCollapsed) {
-    // For fully collapsed groups, use simple proportional sizing. The real-time
-    // resizer check will handle the icons-only logic automatically.
     const totalFlexBasis = children.reduce((sum, col) => {
         const flexValue = col.style.flex;
         const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
@@ -323,7 +321,6 @@ export function recalculateSplitSizes(split, protectedChild = null) {
     });
 
   } else if (activeChildren.length < children.length) {
-    // For partially collapsed groups, shrink the collapsed and fill with the active.
     children.forEach(child => {
       if (child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')) {
         child.style.flex = `0 0 ${calculateCollapsedSize(child)}px`;
@@ -336,17 +333,57 @@ export function recalculateSplitSizes(split, protectedChild = null) {
       }
     });
   } else {
-    // For fully active groups, handle expansion and manual resizing.
-    if (protectedChild && activeChildren.length === 2) {
-      const otherChild = activeChildren.find(c => c !== protectedChild);
-      if (otherChild) {
+    if (protectedChild) {
         const flexValue = protectedChild.style.flex;
         const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        const protectedBasis = basisMatch ? parseFloat(basisMatch[1]) : 50;
-        const newOtherBasis = 100.0 - protectedBasis;
-        setFlexBasisPercent(protectedChild, protectedBasis);
-        setFlexBasisPercent(otherChild, newOtherBasis);
-      }
+        const protectedBasis = basisMatch ? parseFloat(basisMatch[1]) : (100.0 / activeChildren.length);
+        const protectedIndex = children.indexOf(protectedChild);
+
+        let leftNeighbor = null;
+        for (let i = protectedIndex - 1; i >= 0; i--) {
+            if (activeChildren.includes(children[i])) {
+                leftNeighbor = children[i];
+                break;
+            }
+        }
+        let rightNeighbor = null;
+        for (let i = protectedIndex + 1; i < children.length; i++) {
+            if (activeChildren.includes(children[i])) {
+                rightNeighbor = children[i];
+                break;
+            }
+        }
+        
+        const neighborsToResize = [leftNeighbor, rightNeighbor].filter(Boolean);
+        const unaffectedChildren = activeChildren.filter(c => c !== protectedChild && !neighborsToResize.includes(c));
+
+        const unaffectedBasis = unaffectedChildren.reduce((sum, col) => {
+            const flex = col.style.flex;
+            const match = flex.match(/(\d+(?:\.\d+)?)\s*%/);
+            return sum + (match ? parseFloat(match[1]) : 0);
+        }, 0);
+
+        const neighborTotalBasis = neighborsToResize.reduce((sum, col) => {
+            const flex = col.style.flex;
+            const match = flex.match(/(\d+(?:\.\d+)?)\s*%/);
+            return sum + (match ? parseFloat(match[1]) : 0);
+        }, 0);
+
+        const targetNeighborBasis = 100.0 - protectedBasis - unaffectedBasis;
+
+        if (neighborTotalBasis > 0 && targetNeighborBasis >= 0) {
+            neighborsToResize.forEach(child => {
+                const flex = child.style.flex;
+                const match = flex.match(/(\d+(?:\.\d+)?)\s*%/);
+                const currentBasis = match ? parseFloat(match[1]) : (neighborTotalBasis / neighborsToResize.length);
+                const newBasis = (currentBasis / neighborTotalBasis) * targetNeighborBasis;
+                setFlexBasisPercent(child, newBasis);
+            });
+        } else if (targetNeighborBasis >= 0 && neighborsToResize.length > 0) {
+            const equalBasis = targetNeighborBasis / neighborsToResize.length;
+            neighborsToResize.forEach(child => setFlexBasisPercent(child, equalBasis));
+        }
+
     } else {
       const totalFlexBasis = activeChildren.reduce((sum, col) => {
         const flexValue = col.style.flex;
