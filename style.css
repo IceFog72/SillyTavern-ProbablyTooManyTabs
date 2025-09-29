@@ -1,8 +1,13 @@
 :root {
-  --ptmt-accent: #3b82f6;
-  --ptmt-bg: #0f1724;
+
+  --ptmt-accent: var(--SmartThemeQuoteColor);
+  --ptmt-bg: var(--SmartThemeBlurTintColor);
   --ptmt-radius: 6px;
   --ptmt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
+  --ptmt-tab-border-color: var(--SmartThemeBorderColor);
+  --ptmt-panel-bg: var(--SmartThemeChatTintColor);
+  --ptmt-tab-inactive-bg: var(--ptmt-panel-bg);
+  --ptmt-tab-hover-bg: var(--SmartThemeShadowColor);
 }
 
 
@@ -89,7 +94,7 @@ body,
 }
 
 .ptmt-resizer-vertical:hover {
-  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.8), transparent);
+  background: linear-gradient(90deg, transparent, var(--SmartThemeShadowColor), transparent);
 }
 
 .ptmt-resizer-horizontal {
@@ -101,7 +106,7 @@ body,
 }
 
 .ptmt-resizer-horizontal:hover {
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.8), transparent);
+  background: linear-gradient(180deg, transparent, var(--SmartThemeShadowColor), transparent);
 }
 
 .ptmt-resizer-vertical.disabled,
@@ -189,25 +194,27 @@ body,
   box-shadow: 0 0 0 2px var(--ptmt-accent) inset;
 }
 
-
+/* === TAB REFRESH START === */
 .ptmt-tabStrip {
   display: flex;
-  align-items: center;
-  padding: 4px;
-  gap: 6px;
-  background: var(--ptmt-bg);
-  color: #fff;
+  align-items: flex-end; /* Align tabs to the bottom */
+  color: var(--SmartThemeBodyColor);
   overflow: auto;
   min-width: 0;
   box-sizing: border-box;
+  background: var(--ptmt-bg);
+  /* The line that separates tabs from content */
+  border-bottom: 1px solid var(--ptmt-tab-border-color);
 }
 
 .ptmt-tabStrip.vertical {
   flex-direction: column;
+  align-items: stretch; /* Stretch tabs vertically */
   height: auto;
   width: 48px;
-  padding: 6px 0;
-  gap: 0;
+  border-bottom: none;
+  /* The line that separates tabs from content */
+  border-right: 1px solid var(--ptmt-tab-border-color);
 }
 
 
@@ -220,13 +227,25 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 4px 8px;
-  border-radius: 4px;
+  padding: 6px 12px;
   cursor: grab;
   user-select: none;
   gap: 8px;
   white-space: nowrap;
   transition: background var(--ptmt-transition), opacity var(--ptmt-transition), border-color var(--ptmt-transition);
+  
+  /* Style for inactive tabs */
+  background: var(--ptmt-tab-inactive-bg);
+  border: 1px solid var(--ptmt-tab-border-color);
+  border-bottom: none;
+  border-top-left-radius: 4px;
+  border-top-right-radius: 4px;
+  margin-right: -1px; /* Overlap borders for a 1px separator */
+  position: relative;
+}
+
+.ptmt-tab:hover:not(.active) {
+    background: var(--ptmt-tab-hover-bg);
 }
 
 .ptmt-tab:focus {
@@ -235,8 +254,15 @@ body,
 }
 
 .ptmt-tab.active {
-  background: rgba(255, 255, 255, 0.08);
+  background: var(--ptmt-panel-bg); /* Match the panel background */
   cursor: default;
+  /* The magic: pull tab down to cover the strip's border */
+  margin-bottom: -1px; 
+  z-index: 1;
+  padding-bottom: 7px; /* Compensate for the margin */
+  /* VSCode-style accent line on top */
+  border-top: 2px solid var(--ptmt-accent);
+  padding-top: 5px; /* Adjust padding to keep height consistent */
 }
 
 .ptmt-tab.dragging {
@@ -247,21 +273,54 @@ body,
   opacity: 0.6;
 }
 
-
+/* Vertical Tabs Styling (Default: on Left) */
 .ptmt-tabStrip.vertical .ptmt-tab {
-  width: 100%;
+  width: auto; /* Let it fit content + padding */
   justify-content: center;
   padding: 8px 4px;
   white-space: normal;
   border-radius: 0;
-  background: transparent;
-  border-left: 4px solid transparent;
-  margin-left: -4px;
-
+  border-top-left-radius: 4px;
+  border-bottom-left-radius: 4px;
+  background: var(--ptmt-tab-inactive-bg);
+  border: 1px solid var(--ptmt-tab-border-color);
+  border-right: none;
+  margin-bottom: -1px; /* Overlap borders */
   flex-direction: column;
-
   gap: 6px;
 }
+
+.ptmt-tabStrip.vertical .ptmt-tab.active {
+    background: var(--ptmt-panel-bg);
+    margin-right: -1px; /* Overlap border */
+    z-index: 1;
+    /* Accent line on the RIGHT (content side) */
+    border-right: 2px solid var(--ptmt-accent);
+    border-top-color: var(--ptmt-tab-border-color);
+    border-left: 1px solid var(--ptmt-tab-border-color);
+}
+
+/* --- FIX for Reversed Vertical Tabs (Tabs on Right) --- */
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical {
+  border-right: none;
+  border-left: 1px solid var(--ptmt-tab-border-color);
+}
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab {
+  border-right: 1px solid var(--ptmt-tab-border-color);
+  border-left: none;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+  border-top-right-radius: 4px;
+  border-bottom-right-radius: 4px;
+}
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active {
+  margin-left: -1px; /* Overlap border */
+  /* Accent line on the LEFT (content side) */
+  border-left: 2px solid var(--ptmt-accent);
+  border-right: 1px solid var(--ptmt-tab-border-color);
+}
+/* --- END FIX --- */
+
 
 .ptmt-tab .ptmt-tab-label {
   line-height: 1;
@@ -276,17 +335,15 @@ body,
   font-size: 0.85em;
 }
 
-.ptmt-tabStrip.vertical .ptmt-tab.active {
-  background: rgba(59, 130, 246, 0.1);
-  border-left-color: var(--ptmt-accent);
-}
-
+/* === TAB REFRESH END === */
 
 .ptmt-panelContainer {
   display: flex;
   flex-direction: column;
   flex: 1 1 0;
   overflow: hidden;
+  /* Give panel a background so active tab can match it */
+  background: var(--ptmt-panel-bg);
 }
 
 .ptmt-panel {
@@ -322,15 +379,15 @@ body,
 .ptmt-split-overlay {
   position: absolute;
   pointer-events: none;
-  background: rgba(59, 130, 246, 0.12);
-  border: 2px dashed rgba(59, 130, 246, 0.35);
+  background: rgba(59, 118, 195, 0.12); /* Based on --SmartThemeQuoteColor */
+  border: 2px dashed rgba(59, 118, 195, 0.35); /* Based on --SmartThemeQuoteColor */
   border-radius: 4px;
   z-index: 9999;
 }
 
 .ptmt-settings-panel fieldset {
   margin-bottom: 20px;
-  border: 1px solid #444;
+  border: 1px solid var(--SmartThemeBorderColor);
   padding: 10px;
   border-radius: 4px;
 }
@@ -353,7 +410,7 @@ body,
 
 .ptmt-editor-split,
 .ptmt-editor-pane {
-  border: 1px dashed #555;
+  border: 1px dashed var(--SmartThemeShadowColor);
   padding: 8px;
   margin-top: 8px;
   border-radius: 4px;
@@ -365,7 +422,7 @@ body,
   align-items: center;
   gap: 8px;
   font-weight: bold;
-  color: #aaa;
+  color: var(--SmartThemeEmColor);
   margin-bottom: 8px;
 }
 
@@ -375,17 +432,17 @@ body,
 
 .ptmt-editor-title select,
 .ptmt-editor-title button {
-  background: #333;
-  border: 1px solid #555;
-  color: #eee;
+  background: var(--SmartThemeChatTintColor);
+  border: 1px solid var(--SmartThemeBorderColor);
+  color: var(--SmartThemeBodyColor);
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 12px;
 }
 
 .ptmt-editor-title button:hover {
-  background: #444;
-  border-color: #777;
+  background: var(--SmartThemeShadowColor);
+  border-color: var(--SmartThemeEmColor);
   cursor: pointer;
 }
 
@@ -415,7 +472,7 @@ body,
 
 .ptmt-drag-handle {
   cursor: grab;
-  color: #888;
+  color: var(--SmartThemeEmColor);
   padding: 0 4px;
 }
 
@@ -424,9 +481,9 @@ body,
 }
 
 .ptmt-editor-tab input {
-  background: #222;
-  border: 1px solid #444;
-  color: #ddd;
+  background: var(--SmartThemeBlurTintColor);
+  border: 1px solid var(--SmartThemeBorderColor);
+  color: var(--SmartThemeBodyColor);
   padding: 2px 4px;
   border-radius: 3px;
   min-width: 50px;
@@ -440,7 +497,7 @@ body,
 .ptmt-editor-id {
   font-family: monospace;
   font-size: 11px;
-  color: #777;
+  color: var(--SmartThemeEmColor);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -456,7 +513,6 @@ body,
 }
 
 button:focus,
-[tabindex]:focus,
 input:focus,
 select:focus {
   outline: 2px solid var(--ptmt-accent);
