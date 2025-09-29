@@ -90,10 +90,8 @@ function relativePanePos(pane, clientX, clientY) {
   return { rect, x, y, rx: x / Math.max(1, rect.width), ry: y / Math.max(1, rect.height) };
 }
 
-// FIXED: drag-drop.js - computeDropIndex function
 function computeDropIndex(tabStrip, clientX, clientY) {
   const vertical = tabStrip.classList.contains('vertical');
-  // Only select actual tabs, not settings buttons or other elements
   const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
   if (!tabs.length) return 0;
   
@@ -112,7 +110,7 @@ function showDropIndicatorOnTabStrip(tabStrip, index) {
   if (!refs.dropIndicator || !refs.mainBody) return;
 
   const mainBodyRect = refs.mainBody.getBoundingClientRect();
-  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab'));
+  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
   const vertical = tabStrip.classList.contains('vertical');
   const tsRect = tabStrip.getBoundingClientRect();
   const style = { display: 'block', width: '', height: '', left: '', top: '', transform: '' };

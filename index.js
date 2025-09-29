@@ -31,7 +31,7 @@ import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs } from './mi
     const saveCurrentLayoutDebounced = debounce(() => {
       const layout = generateLayoutSnapshot();
       settings.update({ savedLayout: layout });
-      console.log("[SFT Layout] Layout automatically saved.");
+      console.log("[PTMT Layout] Layout automatically saved.");
     }, 750);
 
     const api = {
@@ -120,10 +120,10 @@ import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs } from './mi
     const defaultLayout = settings.get('defaultLayout');
 
     if (savedLayout) {
-      console.log("[SFT Layout] Applying user's saved layout.");
+      console.log("[PTMT Layout] Applying user's saved layout.");
       applyLayoutSnapshot(savedLayout, api, settings);
     } else {
-      console.log("[SFT Layout] No saved layout found, applying default layout.");
+      console.log("[PTMT Layout] No saved layout found, applying default layout.");
       applyLayoutSnapshot(defaultLayout, api, settings);
     }
 

@@ -46,19 +46,20 @@ export function createTabElement(title, pid, icon = null) {
   t.appendChild(labelEl);
 
 
-t.addEventListener('click', () => {
+  t.addEventListener('click', () => {
     const pane = getPaneForTabElement(t);
     if (!pane) return;
-    
-    const isActive = t.classList.contains('active');
-    
-    if (isActive) {
 
+    const isActive = t.classList.contains('active');
+
+    if (isActive) {
       const wasCollapsed = pane.classList.contains('view-collapsed');
       setPaneCollapsedView(pane, !wasCollapsed);
-      
-
-      t.classList.add('active');
+      if (wasCollapsed) {
+        t.classList.remove('collapsed');
+      } else {
+        pane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)').forEach(tab => tab.classList.add('collapsed'));
+      }
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
       return;
     }

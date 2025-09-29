@@ -1,13 +1,10 @@
+//resizer.js
+
 import { $$, getElementDepth, setFlexBasisPercent, throttle } from './utils.js';
 import { getRefs } from './layout.js';
 import { readPaneViewSettings, defaultViewSettings } from './pane.js';
 
-/**
- * Checks if a pane has enough space for its tab text. If not, it applies
- * the 'ptmt-pane-icons-only' class to that specific pane. This function is
- * throttled to ensure performance during drag operations.
- * @param {HTMLElement} pane The pane element to check.
- */
+
 function checkPaneForIconMode(pane) {
     if (!pane || !pane._tabStrip || !pane._panelContainer || pane.classList.contains('view-collapsed')) {
         return;

@@ -175,7 +175,7 @@ export function generateLayoutSnapshot() {
 
 export function applyLayoutSnapshot(snapshot, api, settings) {
     if (!validateSnapshot(snapshot)) {
-        console.error('[SFT] Invalid snapshot, loading default layout');
+        console.error('[PTMT] Invalid snapshot, loading default layout');
         const defaultLayout = settings.get('defaultLayout');
         if (defaultLayout && defaultLayout !== snapshot) {
             applyLayoutSnapshot(defaultLayout, api, settings);
@@ -185,7 +185,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
     const refs = getRefs();
     if (!refs || !refs.mainBody) {
-        console.error('[SFT] Cannot apply snapshot: layout refs not found');
+        console.error('[PTMT] Cannot apply snapshot: layout refs not found');
         return;
     }
 
@@ -395,7 +395,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     }
                 }
             } catch (e) {
-                console.warn('[SFT] Failed to restore tab:', t, e);
+                console.warn('[PTMT] Failed to restore tab:', t, e);
             }
         }
 
@@ -537,7 +537,7 @@ function validateSnapshot(snapshot) {
     if (!snapshot.columns || typeof snapshot.columns !== 'object') return false;
 
     if (snapshot.version && snapshot.version < 3) {
-        console.warn('[SFT] Snapshot version too old:', snapshot.version);
+        console.warn('[PTMT] Snapshot version too old:', snapshot.version);
         return false;
     }
 
@@ -546,7 +546,7 @@ function validateSnapshot(snapshot) {
     );
 
     if (!hasContent) {
-        console.warn('[SFT] Snapshot has no meaningful content');
+        console.warn('[PTMT] Snapshot has no meaningful content');
         return false;
     }
 

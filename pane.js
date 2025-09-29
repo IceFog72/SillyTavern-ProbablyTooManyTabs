@@ -167,7 +167,6 @@ export function setPaneCollapsedView(pane, collapsed) {
   const parentSplit = pane.parentElement;
 
   if (collapsed) {
-    // --- START OF NEW, SMARTER LOGIC ---
     let isLayoutStable = true;
     if (parentSplit?.classList.contains('ptmt-split')) {
       const siblings = Array.from(parentSplit.children).filter(c => c !== pane);
@@ -176,55 +175,42 @@ export function setPaneCollapsedView(pane, collapsed) {
       }
     }
 
-    // Only save the flex value if the layout is stable. This prevents
-    // saving a temporary "100%" size.
     if (isLayoutStable) {
       const currentFlex = pane.style.flex;
       if (currentFlex && currentFlex.includes('%')) {
         pane.dataset.lastFlex = currentFlex;
       }
     }
-    // --- END OF NEW LOGIC ---
 
     pane.classList.add('view-collapsed');
   } else {
     pane.classList.remove('view-collapsed');
-    // Restore the flex of the pane being expanded.
-    pane.classList.remove('view-collapsed');
 
-    // --- NEW INTELLIGENT EXPANSION LOGIC ---
-    if (pane.dataset.lastFlex) {
-      // If we have a saved size, use it.
-      pane.style.flex = pane.dataset.lastFlex;
+    const lastFlex = pane.dataset.lastFlex;
+    const isFlexInvalid = parentSplit?.classList.contains('ptmt-split') && lastFlex && /\s0+(\.0*)?%$/.test(lastFlex);
+
+    if (lastFlex && !isFlexInvalid) {
+      pane.style.flex = lastFlex;
     } else {
-      // Otherwise, calculate an initial size based on the pane's minimum requirements.
-      const parentSplit = pane.parentElement;
       if (parentSplit?.classList.contains('ptmt-split')) {
         const vs = readPaneViewSettings(pane);
         const minSizePx = vs.minimalPanelSize || 250;
-
         const parentRect = parentSplit.getBoundingClientRect();
         const isHorizontal = parentSplit.classList.contains('horizontal');
         const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
 
         if (totalParentSize > 0) {
-          // Convert the pixel min-size to a percentage of the parent container
           const basisPercent = Math.min(100, (minSizePx / totalParentSize) * 100);
           pane.style.flex = `1 1 ${basisPercent.toFixed(4)}%`;
         } else {
-          // Fallback if the parent has no size yet
           pane.style.flex = '1 1 50%';
         }
       } else {
-        // Default for panes not in a split or other edge cases
         pane.style.flex = '1 1 50%';
       }
     }
 
     if (parentSplit?.classList.contains('ptmt-split')) {
-      // Instead of a fragile manual loop, we now tell the parent split
-      // to re-balance the sizes of ALL its children. This correctly handles
-      // the "uncle" pane that was stuck at 100%.
       recalculateSplitSizes(parentSplit, pane);
     }
   }
@@ -393,7 +379,7 @@ function normalizeLiftedElement(el) {
 export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
   try {
     if (!pane) return;
-    const tabs = Array.from(pane._tabStrip.querySelectorAll('.ptmt-tab'));
+    const tabs = Array.from(pane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
     const allCollapsed = tabs.length > 0 && tabs.every(tab => tab.classList.contains('collapsed'));
 
     const wasCollapsed = pane.classList.contains('view-collapsed');
