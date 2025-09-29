@@ -5,6 +5,7 @@
   --ptmt-radius: 6px;
   --ptmt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
   --ptmt-tab-border-color: var(--SmartThemeBorderColor);
+  --ptmt-tab-bg-color: var(--SmartThemeBlurTintColor);
   --ptmt-panel-bg: var(--SmartThemeChatTintColor);
   --ptmt-tab-inactive-bg: var(--ptmt-panel-bg);
   --ptmt-tab-hover-bg: var(--SmartThemeShadowColor);
@@ -219,7 +220,7 @@ body,
 
 
 .ptmt-pane.view-collapsed .ptmt-tabStrip {
-  background: rgba(15, 23, 36, 0.92);
+  background: var(--ptmt-tab-bg-color);
 }
 
 

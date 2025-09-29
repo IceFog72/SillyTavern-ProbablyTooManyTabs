@@ -4,6 +4,7 @@ import { el, isElement, getPanelBySourceId,getPanelById,getTabById } from './uti
 import { getRefs } from './layout.js';
 import { setPaneCollapsedView, removePaneIfEmpty, checkAndCollapsePaneIfAllTabsCollapsed, splitPaneWithPane } from './pane.js';
 import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
+import { invalidatePaneTabSizeCache } from './resizer.js';
 
 const makeId = (prefix = 'ptmt') => `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
 
@@ -220,6 +221,8 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
     const tab = createTabElement(panelTitle, pid, icon);
     targetPane._tabStrip.appendChild(tab);
 
+    invalidatePaneTabSizeCache(targetPane);
+
     if (setAsDefault) setDefaultPanelById(pid);
     if (makeActive) openTab(pid);
 
@@ -258,6 +261,8 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
   const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   if (settingsBtn) pane._tabStrip.insertBefore(tab, settingsBtn); else pane._tabStrip.appendChild(tab);
   
+  invalidatePaneTabSizeCache(pane);
+
   if (setAsDefault) setDefaultPanelById(pid);
   openTab(pid);
   return panel;
@@ -269,11 +274,15 @@ export function moveTabToPane(pid, pane) {
   if (!tab || !pane) return;
 
   const prevPane = getPaneForTabElement(tab);
-  if (prevPane && prevPane._tabStrip && prevPane._tabStrip !== pane._tabStrip) prevPane._tabStrip.removeChild(tab);
+  if (prevPane && prevPane._tabStrip && prevPane._tabStrip !== pane._tabStrip) {
+    prevPane._tabStrip.removeChild(tab);
+    invalidatePaneTabSizeCache(prevPane);
+  }
 
   if (pane._tabStrip && !pane._tabStrip.contains(tab)) {
     const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
     pane._tabStrip[settingsBtn ? 'insertBefore' : 'appendChild'](tab, settingsBtn);
+    invalidatePaneTabSizeCache(pane);
   }
 
   if (panel) {
@@ -292,9 +301,15 @@ export function movePanelToPane(panel, pane) {
   const pid = panel.dataset.panelId;
   if (!pid) return;
   const prevPane = getPaneForPanel(panel);
-  if (prevPane && prevPane._panelContainer && prevPane._panelContainer !== pane._panelContainer) prevPane._panelContainer.removeChild(panel);
-  if (!pane._panelContainer.contains(panel)) pane._panelContainer.appendChild(panel);
-  moveTabToPane(pid, pane);
+  if (prevPane && prevPane._panelContainer && prevPane._panelContainer !== pane._panelContainer) {
+    prevPane._panelContainer.removeChild(panel);
+    invalidatePaneTabSizeCache(prevPane);
+  }
+  if (!pane._panelContainer.contains(panel)) {
+      pane._panelContainer.appendChild(panel);
+      invalidatePaneTabSizeCache(pane);
+  }
+  moveTabToPane(pid, pane); // This will also invalidate
   if (prevPane) {
     setActivePanelInPane(prevPane);
     removePaneIfEmpty(prevPane);
@@ -310,14 +325,15 @@ export function moveTabIntoPaneAtIndex(panel, pane, index) {
 
   if (prevPane && prevPane._tabStrip && prevPane._tabStrip !== pane._tabStrip) {
     prevPane._tabStrip.removeChild(tab);
+    invalidatePaneTabSizeCache(prevPane);
   }
-
 
   const tabs = Array.from(pane._tabStrip.querySelectorAll('.ptmt-tab'));
   const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   const insertBefore = index >= tabs.length ? settingsBtn : tabs[index];
 
   pane._tabStrip.insertBefore(tab, insertBefore || null);
+  invalidatePaneTabSizeCache(pane);
 
 
   if (panel.parentElement && panel.parentElement !== pane._panelContainer) {
@@ -346,6 +362,9 @@ export function cloneTabIntoPane(panel, pane, index = null) {
   const tab = createTabElement(title, newPid);
   const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   pane._tabStrip[settingsBtn ? 'insertBefore' : 'appendChild'](tab, settingsBtn);
+  
+  invalidatePaneTabSizeCache(pane);
+
   setActivePanelInPane(pane, newPid);
   return newPanel;
 }

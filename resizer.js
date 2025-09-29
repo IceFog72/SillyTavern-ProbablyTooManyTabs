@@ -5,6 +5,41 @@ import { getRefs } from './layout.js';
 import { readPaneViewSettings, defaultViewSettings } from './pane.js';
 
 
+export function invalidatePaneTabSizeCache(pane) {
+    if (pane && pane.dataset) {
+        delete pane.dataset.cachedTabSize;
+    }
+}
+
+function getOrCalculateFullTabSize(pane) {
+    if (pane.dataset.cachedTabSize) {
+        return parseFloat(pane.dataset.cachedTabSize);
+    }
+
+    const tabStrip = pane._tabStrip;
+    const tabs = tabStrip.querySelectorAll('.ptmt-tab');
+    if (tabs.length === 0) return 0;
+
+    const wasInIconMode = pane.classList.contains('ptmt-pane-icons-only');
+    if (wasInIconMode) {
+        pane.classList.remove('ptmt-pane-icons-only');
+    }
+
+    const isVertical = tabStrip.classList.contains('vertical');
+    let requiredSize = 0;
+    tabs.forEach(tab => {
+        const tabRect = tab.getBoundingClientRect();
+        requiredSize += (isVertical ? tabRect.height : tabRect.width) + (isVertical ? 0 : 4);
+    });
+
+    if (wasInIconMode) {
+        pane.classList.add('ptmt-pane-icons-only');
+    }
+    
+    pane.dataset.cachedTabSize = requiredSize;
+    return requiredSize;
+}
+
 function checkPaneForIconMode(pane) {
     if (!pane || !pane._tabStrip || !pane._panelContainer || pane.classList.contains('view-collapsed')) {
         return;
@@ -12,17 +47,16 @@ function checkPaneForIconMode(pane) {
 
     const tabStrip = pane._tabStrip;
     const tabs = tabStrip.querySelectorAll('.ptmt-tab');
-    if (tabs.length === 0) return;
-
+    if (tabs.length === 0) {
+        pane.classList.remove('ptmt-pane-icons-only');
+        return;
+    }
+    
+    const requiredSize = getOrCalculateFullTabSize(pane);
+    
     const isVertical = tabStrip.classList.contains('vertical');
-    const containerRect = pane._panelContainer.getBoundingClientRect();
+    const containerRect = tabStrip.getBoundingClientRect();
     const availableSize = isVertical ? containerRect.height : containerRect.width;
-
-    let requiredSize = 0;
-    tabs.forEach(tab => {
-        const tabRect = tab.getBoundingClientRect();
-        requiredSize += (isVertical ? tabRect.height : tabRect.width) + 4;
-    });
 
     pane.classList.toggle('ptmt-pane-icons-only', requiredSize > availableSize);
 }
