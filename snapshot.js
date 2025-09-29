@@ -484,6 +484,12 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
         createdPanes.forEach(pane => applyPaneOrientation(pane));
 
+        createdPanes.forEach(pane => {
+            if (typeof checkAndCollapsePaneIfAllTabsCollapsed === 'function') {
+                checkAndCollapsePaneIfAllTabsCollapsed(pane);
+            }
+        });
+
 
         const settingsWrapperId = 'ptmt-settings-wrapper-content';
         let settingsWrapper = document.getElementById(settingsWrapperId);

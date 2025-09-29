@@ -200,7 +200,7 @@ body,
   display: flex;
   align-items: flex-end; /* Align tabs to the bottom */
   color: var(--SmartThemeBodyColor);
-  overflow: auto;
+  /*overflow: auto; */
   min-width: 0;
   box-sizing: border-box;
   background: var(--ptmt-bg);

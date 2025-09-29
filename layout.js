@@ -140,6 +140,14 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
 
     // Specific event-driven logic (collapse or reopen)
     if (protectedColumn || collapsedColumn) {
+        // Guard: Only act on the instruction if the column's state actually matches.
+        if (collapsedColumn && collapsedColumn.dataset.isColumnCollapsed !== 'true') {
+            collapsedColumn = null; // Ignore instruction, column isn't fully collapsed.
+        }
+        if (protectedColumn && protectedColumn.dataset.isColumnCollapsed === 'true') {
+            protectedColumn = null; // Ignore instruction, column is still collapsed.
+        }
+
         if (protectedColumn) { // A column was reopened
             const lBasis = getBasis(leftBody), cBasis = getBasis(centerBody), rBasis = getBasis(rightBody);
             if (protectedColumn === leftBody) { // L reopens, takes from C
@@ -154,22 +162,44 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
                     rightBody.style.flex = `1 1 ${(rBasis - spaceToTake * (rBasis / sideTotal)).toFixed(4)}%`;
                 }
             }
-        } else { // A column was collapsed
+        } else if (collapsedColumn) { // A column was collapsed
             const spaceFreed = getBasis(collapsedColumn, true);
-            const lBasis = getBasis(leftBody), cBasis = getBasis(centerBody), rBasis = getBasis(rightBody);
+            
+            let receivers = [];
+            // Determine priority for receiving space
+            if (collapsedColumn === leftBody || collapsedColumn === rightBody) {
+                if (activeColumns.includes(centerBody)) {
+                    receivers.push(centerBody);
+                } else {
+                    const otherSide = (collapsedColumn === leftBody) ? rightBody : leftBody;
+                    if (activeColumns.includes(otherSide)) receivers.push(otherSide);
+                }
+            } else if (collapsedColumn === centerBody) {
+                if (activeColumns.includes(leftBody)) receivers.push(leftBody);
+                if (activeColumns.includes(rightBody)) receivers.push(rightBody);
+            }
 
-            if (collapsedColumn === leftBody) { // L collapses, gives to C
-                if (activeColumns.includes(centerBody)) centerBody.style.flex = `1 1 ${(cBasis + spaceFreed).toFixed(4)}%`;
-            } else if (collapsedColumn === rightBody) { // R collapses, gives to C
-                if (activeColumns.includes(centerBody)) centerBody.style.flex = `1 1 ${(cBasis + spaceFreed).toFixed(4)}%`;
-            } else if (collapsedColumn === centerBody) { // C collapses, gives to L & R
-                const sideTotal = lBasis + rBasis;
-                if (sideTotal > 0) {
-                    if (activeColumns.includes(leftBody)) leftBody.style.flex = `1 1 ${(lBasis + spaceFreed * (lBasis / sideTotal)).toFixed(4)}%`;
-                    if (activeColumns.includes(rightBody)) rightBody.style.flex = `1 1 ${(rBasis + spaceFreed * (rBasis / sideTotal)).toFixed(4)}%`;
-                } else if(activeColumns.length > 0) { // If only L or R is open
-                    const equalShare = 100 / activeColumns.length;
-                    activeColumns.forEach(c => c.style.flex = `1 1 ${equalShare.toFixed(4)}%`);
+            // Fallback to any other active column if priority targets are not available
+            if (receivers.length === 0) {
+                receivers = activeColumns;
+            }
+
+            if (receivers.length > 0) {
+                const totalReceiverBasis = receivers.reduce((sum, col) => sum + getBasis(col), 0);
+                if (totalReceiverBasis > 0) {
+                    // Distribute proportionally
+                    receivers.forEach(col => {
+                        const currentBasis = getBasis(col);
+                        const share = spaceFreed * (currentBasis / totalReceiverBasis);
+                        col.style.flex = `1 1 ${(currentBasis + share).toFixed(4)}%`;
+                    });
+                } else {
+                    // Distribute equally
+                    const equalShare = spaceFreed / receivers.length;
+                    receivers.forEach(col => {
+                        const currentBasis = getBasis(col); // is 0
+                        col.style.flex = `1 1 ${(currentBasis + equalShare).toFixed(4)}%`;
+                    });
                 }
             }
         }
