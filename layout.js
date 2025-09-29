@@ -113,6 +113,16 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
             const currentFlex = col.style.flex;
             if (currentFlex && currentFlex.includes('%')) {
                 col.dataset.lastFlex = currentFlex;
+            } else {
+                const parentWidth = col.parentElement.getBoundingClientRect().width;
+                const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
+                    .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+                const availableWidth = parentWidth - totalResizerWidth;
+                const colWidth = col.getBoundingClientRect().width;
+                if (availableWidth > 0 && colWidth > 0) {
+                    const basisPercent = (colWidth / availableWidth) * 100;
+                    col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
+                }
             }
             col.dataset.isColumnCollapsed = 'true';
             col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;

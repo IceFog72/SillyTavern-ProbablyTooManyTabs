@@ -199,7 +199,8 @@ export function setPaneCollapsedView(pane, collapsed) {
           pane.style.flex = '1 1 50%';
         }
       } else {
-        pane.style.flex = '1 1 50%';
+        // If the pane is not in a split, it's the only element in its container (e.g. a column).
+        pane.style.flex = '1 1 100%';
       }
     }
 

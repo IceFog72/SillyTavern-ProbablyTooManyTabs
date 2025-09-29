@@ -40,7 +40,7 @@ function getOrCalculateFullTabSize(pane) {
     return requiredSize;
 }
 
-function checkPaneForIconMode(pane) {
+export function checkPaneForIconMode(pane) {
     if (!pane || !pane._tabStrip || !pane._panelContainer || pane.classList.contains('view-collapsed')) {
         return;
     }
@@ -369,10 +369,9 @@ export function recalculateSplitSizes(split, protectedChild = null) {
       if (child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')) {
         child.style.flex = `0 0 ${calculateCollapsedSize(child)}px`;
       } else {
-        const currentFlex = child.style.flex;
-        if (currentFlex && currentFlex.includes('%')) {
-          child.dataset.lastFlex = currentFlex;
-        }
+        // This is a layout recalculation, not a user-initiated collapse.
+        // Do not overwrite lastFlex here.
+        // Let active children grow equally to fill available space.
         child.style.flex = '1 1 100%';
       }
     });

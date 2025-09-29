@@ -4,7 +4,7 @@ import { getRefs, recalculateColumnSizes, applyColumnVisibility } from './layout
 import { getPanelById, getSplitOrientation, el } from './utils.js';
 import { createPane, writePaneViewSettings, readPaneViewSettings, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
 import { openTab, createTabFromElementId, setActivePanelInPane, createTabForBodyContent, createPanelElement, registerPanelDom, createTabElement } from './tabs.js';
-import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively } from './resizer.js';
+import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively, checkPaneForIconMode } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
 import { settings } from './settings.js';
 
@@ -530,6 +530,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             recalculateAllSplitsRecursively();
             recalculateColumnSizes();
             updateResizerDisabledStates();
+
+            document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
 
             window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', {
                 detail: { reason: 'snapshotApplied' }
