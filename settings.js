@@ -1,6 +1,6 @@
 // settings.js
 
-import { saveSettingsDebounced } from '../../../../script.js';
+import { saveSettingsDebounced, saveSettings } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
 
 class SettingsManager {
@@ -30,7 +30,8 @@ class SettingsManager {
                 { id: 'notebookPanel', title: 'Notebook', icon: '📓' },
                 { id: 'gallery', title: 'Gallery', icon: '🏞️' },
                 { id: 'character_popup', title: 'Adv. Definitions', icon: '👤' },
-                { id: 'user-settings-block', title: 'User Settings', icon: '⚙️' }
+                { id: 'user-settings-block', title: 'User Settings', icon: '⚙️' },
+                { id: 'PersonaManagement', title: 'Persona Management', icon: '👤' }
             ],
 
 
@@ -88,6 +89,7 @@ class SettingsManager {
                                     tabs: [
                                         { sourceId: 'right-nav-panel' },
                                         { sourceId: 'expression-wrapper' },
+                                        { sourceId: 'PersonaManagement' },
                                         { sourceId: 'stqrd--drawer-v2' }
                                     ]
                                 },
@@ -154,7 +156,7 @@ class SettingsManager {
         extension_settings.PTMT = defaultSettingsCopy;
         this.settings = extension_settings.PTMT;
 
-        this.save();
+        saveSettings();
     }
 }
 

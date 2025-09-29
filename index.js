@@ -1,4 +1,3 @@
-
 // index.js 
 
 import { eventSource, event_types } from '../../../../script.js';
@@ -55,9 +54,7 @@ import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs } from './mi
       resetLayout: () => {
         if (confirm("Are you sure you want to reset the layout? This will reload the page.")) {
           settings.reset();
-          setTimeout(() => {
-            window.location.reload();
-          }, 500);
+          window.location.reload();
         }
       },
       savePreset: (name) => {
