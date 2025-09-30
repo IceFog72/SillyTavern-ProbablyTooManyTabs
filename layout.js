@@ -112,10 +112,21 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
         if (isContentFullyCollapsed && !wasColumnCollapsed) {
             const minWidth = calculateElementMinWidth(col.querySelector('.ptmt-pane, .ptmt-split'));
             const currentWidth = col.getBoundingClientRect().width;
-            
-            if (currentWidth >= minWidth) {
-                const currentFlex = col.style.flex;
-                if (currentFlex && currentFlex.includes('%')) {
+            const currentFlex = col.style.flex;
+            const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
+            const basis = basisMatch ? parseFloat(basisMatch[1]) : 0;
+
+            if (currentWidth < minWidth || basis >= 99.9) {
+                const parentWidth = col.parentElement.getBoundingClientRect().width;
+                const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
+                    .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+                const availableWidth = parentWidth - totalResizerWidth;
+                if (availableWidth > 0) {
+                    const minBasisPercent = (minWidth / availableWidth) * 100;
+                    col.dataset.lastFlex = `1 1 ${minBasisPercent.toFixed(4)}%`;
+                }
+            } else {
+                 if (currentFlex && currentFlex.includes('%')) {
                     col.dataset.lastFlex = currentFlex;
                 } else {
                     const parentWidth = col.parentElement.getBoundingClientRect().width;
@@ -125,18 +136,45 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
                     if (availableWidth > 0 && currentWidth > 0) {
                         const basisPercent = (currentWidth / availableWidth) * 100;
                         col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
-                    } else {
-                        delete col.dataset.lastFlex;
                     }
                 }
-            } else {
-                delete col.dataset.lastFlex;
             }
+            
             col.dataset.isColumnCollapsed = 'true';
             col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;
         } else if (!isContentFullyCollapsed && wasColumnCollapsed) {
+            let lastFlex = col.dataset.lastFlex;
+            const minWidth = calculateElementMinWidth(col.querySelector('.ptmt-pane, .ptmt-split'));
+            const parentWidth = col.parentElement.getBoundingClientRect().width;
+            const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
+                .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+            const availableWidth = parentWidth - totalResizerWidth;
+
+            if (availableWidth > 0) {
+                const minBasisPercent = (minWidth / availableWidth) * 100;
+                const lastBasisMatch = lastFlex ? lastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
+                const lastBasisPercent = lastBasisMatch ? parseFloat(lastBasisMatch[1]) : 0;
+
+                if (Math.abs(lastBasisPercent - minBasisPercent) < 0.1) {
+                    const siblings = visibleColumns.filter(c => c !== col);
+                    const totalSiblingLastFlex = siblings.reduce((sum, s) => {
+                         if (s.dataset.lastFlex) {
+                            const match = s.dataset.lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
+                            return sum + (match ? parseFloat(match[1]) : 0);
+                        }
+                        return sum;
+                    }, 0);
+
+                    if (totalSiblingLastFlex > 0 && totalSiblingLastFlex < 100) {
+                        let targetBasis = 100.0 - totalSiblingLastFlex;
+                        targetBasis = Math.max(targetBasis, minBasisPercent);
+                        lastFlex = `1 1 ${targetBasis.toFixed(4)}%`;
+                    }
+                }
+            }
+            
             col.removeAttribute('data-is-column-collapsed');
-            col.style.flex = col.dataset.lastFlex || `1 1 ${100 / visibleColumns.length}%`;
+            col.style.flex = lastFlex || `1 1 ${100 / visibleColumns.length}%`;
         }
     });
 

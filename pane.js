@@ -149,48 +149,80 @@ export function setPaneCollapsedView(pane, collapsed) {
   const action = {};
 
   if (collapsed) {
-    const currentFlex = pane.style.flex;
-    let shouldSaveFlex = true;
+      const currentFlex = pane.style.flex;
+      const vs = readPaneViewSettings(pane);
+      const minSizePx = vs.minimalPanelSize || 250;
+      const rect = pane.getBoundingClientRect();
+      const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
+      const currentBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
+      
+      let shouldResetToMin = false;
+      if (parentSplit?.classList.contains('ptmt-split')) {
+          const isHorizontal = parentSplit.classList.contains('horizontal');
+          const currentSize = isHorizontal ? rect.height : rect.width;
+          if (currentSize < minSizePx || currentBasisPercent >= 99.9) {
+              shouldResetToMin = true;
+          }
+      } else if (currentBasisPercent >= 99.9) { // Is the only pane in a column
+          shouldResetToMin = true;
+      }
+      
+      if (shouldResetToMin && parentSplit?.classList.contains('ptmt-split')) {
+          const isHorizontal = parentSplit.classList.contains('horizontal');
+          const parentRect = parentSplit.getBoundingClientRect();
+          const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
+          if (totalParentSize > 0) {
+              const minBasisPercent = (minSizePx / totalParentSize) * 100;
+              pane.dataset.lastFlex = `1 1 ${Math.min(100, minBasisPercent).toFixed(4)}%`;
+          } else {
+              pane.dataset.lastFlex = '1 1 30%'; // Fallback
+          }
+      } else if (currentFlex) {
+          pane.dataset.lastFlex = currentFlex;
+      }
 
-    if (pane.parentElement?.classList.contains('ptmt-split')) {
-        const vs = readPaneViewSettings(pane);
-        const minSizePx = vs.minimalPanelSize || 250;
-        const rect = pane.getBoundingClientRect();
-        const isHorizontal = pane.parentElement.classList.contains('horizontal');
-        const currentSize = isHorizontal ? rect.height : rect.width;
-        
-        if (currentSize < minSizePx) {
-            shouldSaveFlex = false;
-        }
-    }
-    
-    if (shouldSaveFlex && currentFlex && currentFlex.includes('%')) {
-        pane.dataset.lastFlex = currentFlex;
-    } else {
-        delete pane.dataset.lastFlex;
-    }
-
-    pane.classList.add('view-collapsed');
-    action.collapsed = parentColumn;
+      pane.classList.add('view-collapsed');
+      action.collapsed = parentColumn;
   } else {
     action.protected = parentColumn;
     pane.classList.remove('view-collapsed');
 
-    const lastFlex = pane.dataset.lastFlex;
+    let lastFlex = pane.dataset.lastFlex;
     const isFlexInvalid = parentSplit?.classList.contains('ptmt-split') && lastFlex && /\s0+(\.0*)?%$/.test(lastFlex);
+    const vs = readPaneViewSettings(pane);
+    const minSizePx = vs.minimalPanelSize || 250;
 
     if (parentSplit?.classList.contains('ptmt-split')) {
-        const vs = readPaneViewSettings(pane);
-        const minSizePx = vs.minimalPanelSize || 250;
-        const parentRect = parentSplit.getBoundingClientRect();
         const isHorizontal = parentSplit.classList.contains('horizontal');
+        const parentRect = parentSplit.getBoundingClientRect();
         const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
-
-        let targetBasisPercent;
-
+        
         if (totalParentSize > 0) {
             const minBasisPercent = (minSizePx / totalParentSize) * 100;
-            
+            const lastBasisMatch = lastFlex ? lastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
+            const lastBasisPercent = lastBasisMatch ? parseFloat(lastBasisMatch[1]) : 0;
+
+            if (Math.abs(lastBasisPercent - minBasisPercent) < 0.1) {
+                const siblings = Array.from(parentSplit.children).filter(c => c !== pane && (c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')));
+                const totalSiblingLastFlex = siblings.reduce((sum, s) => {
+                    if (s.dataset.lastFlex) {
+                        const match = s.dataset.lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
+                        return sum + (match ? parseFloat(match[1]) : 0);
+                    }
+                    return sum;
+                }, 0);
+
+                if (totalSiblingLastFlex > 0 && totalSiblingLastFlex < 100) {
+                    let targetBasis = 100.0 - totalSiblingLastFlex;
+                    targetBasis = Math.max(targetBasis, minBasisPercent);
+                    lastFlex = `1 1 ${targetBasis.toFixed(4)}%`;
+                }
+            }
+        }
+        
+        let targetBasisPercent;
+        if (totalParentSize > 0) {
+            const minBasisPercent = (minSizePx / totalParentSize) * 100;
             if (lastFlex && !isFlexInvalid) {
                 const basisMatch = lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
                 const lastBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
@@ -200,11 +232,9 @@ export function setPaneCollapsedView(pane, collapsed) {
             }
             pane.style.flex = `1 1 ${Math.min(100, targetBasisPercent).toFixed(4)}%`;
         } else {
-            // Parent has no size, use last flex if available, otherwise 50%
             pane.style.flex = (lastFlex && !isFlexInvalid) ? lastFlex : '1 1 50%';
         }
     } else {
-      // If the pane is not in a split, it's the only element in its container (e.g. a column).
       pane.style.flex = '1 1 100%';
     }
 
