@@ -1,8 +1,8 @@
 //resizer.js
 
 import { $$, getElementDepth, setFlexBasisPercent, throttle } from './utils.js';
-import { getRefs } from './layout.js';
-import { readPaneViewSettings, defaultViewSettings } from './pane.js';
+import { getRefs, recalculateColumnSizes } from './layout.js';
+import { readPaneViewSettings, defaultViewSettings, applyPaneOrientation } from './pane.js';
 
 
 export function invalidatePaneTabSizeCache(pane) {
@@ -347,31 +347,12 @@ export function recalculateSplitSizes(split, protectedChild = null) {
   if (children.length === 0) return;
 
   const activeChildren = children.filter(c => !c.classList.contains('view-collapsed') && !c.classList.contains('ptmt-container-collapsed'));
-  const isContainerCollapsed = split.classList.contains('ptmt-container-collapsed');
 
-  if (isContainerCollapsed) {
-    const totalFlexBasis = children.reduce((sum, col) => {
-        const flexValue = col.style.flex;
-        const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        return sum + (basisMatch ? parseFloat(basisMatch[1]) : (100.0 / children.length));
-    }, 0);
-    if (totalFlexBasis <= 0) return;
-    children.forEach(child => {
-        const flexValue = child.style.flex;
-        const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        const currentBasis = basisMatch ? parseFloat(basisMatch[1]) : (100.0 / children.length);
-        const newBasis = (currentBasis / totalFlexBasis) * 100;
-        child.style.flex = `1 1 ${newBasis.toFixed(4)}%`;
-    });
-
-  } else if (activeChildren.length < children.length) {
+  if (activeChildren.length < children.length) {
     children.forEach(child => {
       if (child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')) {
-        child.style.flex = `0 0 ${calculateCollapsedSize(child)}px`;
+        child.style.flex = '0 0 auto';
       } else {
-        // This is a layout recalculation, not a user-initiated collapse.
-        // Do not overwrite lastFlex here.
-        // Let active children grow equally to fill available space.
         child.style.flex = '1 1 100%';
       }
     });
@@ -448,27 +429,42 @@ export function recalculateSplitSizes(split, protectedChild = null) {
   }
 }
 
-function calculateCollapsedSize(element) {
-  if (!element) return 0;
+export function validateAndCorrectAllMinSizes() {
+    let needsRecalculation = false;
+    const allPanes = Array.from(document.querySelectorAll('.ptmt-pane:not(.view-collapsed)'));
 
-  if (element.classList.contains('ptmt-pane')) {
-    const parentSplit = element.parentElement;
-    if (parentSplit && parentSplit.classList.contains('ptmt-split')) {
-      return parentSplit.classList.contains('horizontal') ? 36 : 48;
-    }
-    const parent = element.parentElement;
-    if (parent) {
-      const rect = parent.getBoundingClientRect();
-      return rect.height > rect.width ? 36 : 48;
-    }
-    return 36;
-  }
+    for (const pane of allPanes) {
+        const vs = readPaneViewSettings(pane);
+        const minSize = vs.minimalPanelSize || 250;
+        const parent = pane.parentElement;
+        if (!parent) continue;
 
-  if (element.classList.contains('ptmt-split')) {
-    if (element.classList.contains('horizontal')) {
-      return 36;
+        const parentRect = parent.getBoundingClientRect();
+        const paneRect = pane.getBoundingClientRect();
+
+        let orientation = 'vertical'; // Default for columns
+        let parentSize = parentRect.width;
+        let currentSize = paneRect.width;
+
+        if (parent.classList.contains('ptmt-split')) {
+            orientation = parent.classList.contains('horizontal') ? 'horizontal' : 'vertical';
+        }
+
+        if (orientation === 'horizontal') {
+            parentSize = parentRect.height;
+            currentSize = paneRect.height;
+        }
+
+        if (currentSize < minSize && parentSize > 0) {
+            const requiredPercent = (minSize / parentSize) * 100;
+            setFlexBasisPercent(pane, requiredPercent);
+            needsRecalculation = true;
+        }
     }
-    return 48;
-  }
-  return 0;
+
+    if (needsRecalculation) {
+        console.log('[PTMT] Layout corrected to enforce minimum panel sizes.');
+        recalculateAllSplitsRecursively();
+        recalculateColumnSizes();
+    }
 }

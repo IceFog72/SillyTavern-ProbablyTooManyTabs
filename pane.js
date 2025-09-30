@@ -103,61 +103,45 @@ export function getParentSplitOrientation(pane) {
 }
 
 
-export function applyPaneOrientation(pane) {
-  if (!pane) return;
-  const vs = readPaneViewSettings(pane) || {};
-  const isCollapsed = pane.classList.contains('view-collapsed');
-  let orientation;
+function findGoverningOrientation(pane) {
+    let current = pane.parentElement;
 
-  if (isCollapsed) {
-    let collapsedOrientation = vs.collapsedOrientation || 'auto';
-
-    if (collapsedOrientation === 'auto') {
-      const parentSplit = pane.parentElement;
-
-      // Check if the pane is actually inside a split container
-      if (parentSplit?.classList.contains('ptmt-split')) {
-
-        // NEW: Check the state of sibling panes
-        const children = Array.from(parentSplit.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
-        const allCollapsed = children.every(child => child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed'));
-
-        if (allCollapsed) {
-          // --- BEHAVIOR WHEN ALL SIBLINGS ARE COLLAPSED ---
-          // Use the new, dimension-based logic on the parent container.
-          const rect = parentSplit.getBoundingClientRect();
-          // If the container is taller than it is wide, use vertical tabs. Corrected logic.
-          orientation = (rect.width < rect.height) ? 'vertical' : 'horizontal';
-        } else {
-          // --- BEHAVIOR WHEN AT LEAST ONE SIBLING IS OPEN ---
-          // Use the old, reliable logic based on the split's direction.
-          orientation = parentSplit.classList.contains('horizontal') ? 'horizontal' : 'vertical';
+    while (current && !current.classList.contains('ptmt-body-column')) {
+        if (current.classList.contains('ptmt-split') && !current.classList.contains('ptmt-container-collapsed')) {
+            return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
         }
+        current = current.parentElement;
+    }
+    return 'vertical';
+}
 
-      } else {
-        // Fallback for panes not inside a split (e.g., a single pane in a column)
-        const rect = (pane.closest('.ptmt-body-column') || pane).getBoundingClientRect();
-        orientation = (rect.width < rect.height) ? 'vertical' : 'horizontal';
-      }
+export function applyPaneOrientation(pane) {
+    if (!pane) return;
+    const vs = readPaneViewSettings(pane) || {};
+    const isCollapsed = pane.classList.contains('view-collapsed');
+    let orientation;
+
+    if (isCollapsed) {
+        let collapsedOrientation = vs.collapsedOrientation || 'auto';
+        if (collapsedOrientation === 'auto') {
+            orientation = findGoverningOrientation(pane);
+        } else {
+            orientation = collapsedOrientation;
+        }
     } else {
-      orientation = collapsedOrientation;
+        orientation = vs.defaultOrientation || 'auto';
+        if (orientation === 'auto') {
+            const rect = (pane._panelContainer || pane).getBoundingClientRect();
+            orientation = (rect.width >= rect.height) ? 'horizontal' : 'vertical';
+        }
+        pane.dataset.lastExpandedOrientation = orientation;
     }
-  } else {
 
-    orientation = vs.defaultOrientation || 'auto';
-    if (orientation === 'auto') {
-      const rect = (pane._panelContainer || pane).getBoundingClientRect();
-      orientation = (rect.width >= rect.height) ? 'horizontal' : 'vertical';
-    }
-    pane.dataset.lastExpandedOrientation = orientation;
-  }
-
-
-  const gridEl = pane._grid || pane;
-  gridEl.classList.toggle('grid-vertical', orientation === 'vertical');
-  gridEl.classList.toggle('grid-horizontal', orientation === 'horizontal');
-  (pane._tabStrip || pane).classList.toggle('vertical', orientation === 'vertical');
-  gridEl.classList.toggle('flow-reversed', vs.contentFlow === 'reversed');
+    const gridEl = pane._grid || pane;
+    gridEl.classList.toggle('grid-vertical', orientation === 'vertical');
+    gridEl.classList.toggle('grid-horizontal', orientation === 'horizontal');
+    (pane._tabStrip || pane).classList.toggle('vertical', orientation === 'vertical');
+    gridEl.classList.toggle('flow-reversed', vs.contentFlow === 'reversed');
 }
 
 

@@ -13,7 +13,7 @@ class SettingsManager {
         showIconsOnly: false,
         maxLayersLeft: 3,
         maxLayersCenter: 3,
-        maxLayersRight: 3,
+        maxLayersRight:3 ,
         runMoveBgDivs: true,
 
 
@@ -34,12 +34,9 @@ class SettingsManager {
             { id: 'PersonaManagement', title: 'Persona Management', icon: '👤' }
         ],
 
-
         presets: [],
 
-
         savedLayout: null,
-
 
         defaultLayout: {
             version: 4,
