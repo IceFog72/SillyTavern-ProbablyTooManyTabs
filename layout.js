@@ -110,19 +110,37 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
         const wasColumnCollapsed = col.dataset.isColumnCollapsed === 'true';
 
         if (isContentFullyCollapsed && !wasColumnCollapsed) {
-            const currentFlex = col.style.flex;
-            if (currentFlex && currentFlex.includes('%')) {
-                col.dataset.lastFlex = currentFlex;
-            } else {
-                const parentWidth = col.parentElement.getBoundingClientRect().width;
-                const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
-                    .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
-                const availableWidth = parentWidth - totalResizerWidth;
-                const colWidth = col.getBoundingClientRect().width;
-                if (availableWidth > 0 && colWidth > 0) {
-                    const basisPercent = (colWidth / availableWidth) * 100;
-                    col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
+            const minWidth = calculateElementMinWidth(col.querySelector('.ptmt-pane, .ptmt-split'));
+            const currentWidth = col.getBoundingClientRect().width;
+            
+            if (currentWidth >= minWidth) {
+                const currentFlex = col.style.flex;
+                if (currentFlex && currentFlex.includes('%')) {
+                    const basisMatch = currentFlex.match(/(\d+(?:\.\d+)?)\s*%/);
+                    const basis = basisMatch ? parseFloat(basisMatch[1]) : 0;
+                    if (basis < 99.9) {
+                        col.dataset.lastFlex = currentFlex;
+                    } else {
+                        delete col.dataset.lastFlex;
+                    }
+                } else {
+                    const parentWidth = col.parentElement.getBoundingClientRect().width;
+                    const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
+                        .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+                    const availableWidth = parentWidth - totalResizerWidth;
+                    if (availableWidth > 0 && currentWidth > 0) {
+                        const basisPercent = (currentWidth / availableWidth) * 100;
+                        if (basisPercent < 99.9) {
+                            col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
+                        } else {
+                            delete col.dataset.lastFlex;
+                        }
+                    } else {
+                        delete col.dataset.lastFlex;
+                    }
                 }
+            } else {
+                delete col.dataset.lastFlex;
             }
             col.dataset.isColumnCollapsed = 'true';
             col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;

@@ -298,9 +298,8 @@ body,
     margin-right: -1px; /* Overlap border */
     z-index: 1;
     /* Accent line on the RIGHT (content side) */
- 
+    border-right: 2px solid var(--ptmt-accent);
     border-top-color: var(--ptmt-tab-border-color);
-    border-right: 1px solid var(--ptmt-tab-border-color);
 }
 
 /* --- FIX for Reversed Vertical Tabs (Tabs on Right) --- */
