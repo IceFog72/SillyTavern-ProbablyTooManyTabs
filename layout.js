@@ -116,13 +116,7 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
             if (currentWidth >= minWidth) {
                 const currentFlex = col.style.flex;
                 if (currentFlex && currentFlex.includes('%')) {
-                    const basisMatch = currentFlex.match(/(\d+(?:\.\d+)?)\s*%/);
-                    const basis = basisMatch ? parseFloat(basisMatch[1]) : 0;
-                    if (basis < 99.9) {
-                        col.dataset.lastFlex = currentFlex;
-                    } else {
-                        delete col.dataset.lastFlex;
-                    }
+                    col.dataset.lastFlex = currentFlex;
                 } else {
                     const parentWidth = col.parentElement.getBoundingClientRect().width;
                     const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
@@ -130,11 +124,7 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
                     const availableWidth = parentWidth - totalResizerWidth;
                     if (availableWidth > 0 && currentWidth > 0) {
                         const basisPercent = (currentWidth / availableWidth) * 100;
-                        if (basisPercent < 99.9) {
-                            col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
-                        } else {
-                            delete col.dataset.lastFlex;
-                        }
+                        col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
                     } else {
                         delete col.dataset.lastFlex;
                     }

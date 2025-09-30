@@ -2,7 +2,6 @@
 import { el, getSplitOrientation, getPanelById, getTabById } from './utils.js';
 import { settings } from './settings.js';
 import { getRefs, recalculateColumnSizes } from './layout.js';
-import { enablePaneTabDrop, enablePanePanelDrop } from './drag-drop.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
 import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, resizerControllers, setSplitOrientation } from './resizer.js';
 
@@ -47,9 +46,6 @@ export function createPane(initialSettings = {}, options = {}) {
   pane._grid = grid;
   pane._tabStrip = tabStrip;
   pane._panelContainer = panelContainer;
-
-  enablePaneTabDrop(tabStrip, pane);
-  enablePanePanelDrop(panelContainer, pane);
 
   writePaneViewSettings(pane, initialSettings);
 
@@ -169,13 +165,7 @@ export function setPaneCollapsedView(pane, collapsed) {
     }
     
     if (shouldSaveFlex && currentFlex && currentFlex.includes('%')) {
-        const basisMatch = currentFlex.match(/(\d+(?:\.\d+)?)\s*%/);
-        const currentBasis = basisMatch ? parseFloat(basisMatch[1]) : 0;
-        if (currentBasis < 99.9) {
-            pane.dataset.lastFlex = currentFlex;
-        } else {
-            delete pane.dataset.lastFlex;
-        }
+        pane.dataset.lastFlex = currentFlex;
     } else {
         delete pane.dataset.lastFlex;
     }
