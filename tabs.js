@@ -5,6 +5,7 @@ import { getRefs } from './layout.js';
 import { setPaneCollapsedView, removePaneIfEmpty, checkAndCollapsePaneIfAllTabsCollapsed, splitPaneWithPane } from './pane.js';
 import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
 import { invalidatePaneTabSizeCache } from './resizer.js';
+import { runTabAction } from './tab-actions.js';
 
 const makeId = (prefix = 'ptmt') => `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
 
@@ -34,6 +35,19 @@ export function createPanelElement(title) {
   return panel;
 }
 
+function setTabCollapsed(pid, collapsed) {
+    const tab = getTabById(pid);
+    if (!tab) return;
+    const isCurrentlyCollapsed = tab.classList.contains('collapsed');
+    if (isCurrentlyCollapsed === collapsed) return;
+
+    tab.classList.toggle('collapsed', collapsed);
+
+    const panel = getPanelById(pid);
+    const sourceId = panel?.dataset.sourceId;
+    runTabAction(sourceId, collapsed ? 'onCollapse' : 'onOpen', panel);
+}
+
 
 export function createTabElement(title, pid, icon = null) {
   const t = el('div', { className: 'ptmt-tab', draggable: true, tabindex: 0 });
@@ -56,10 +70,13 @@ export function createTabElement(title, pid, icon = null) {
     if (isActive) {
       const wasCollapsed = pane.classList.contains('view-collapsed');
       setPaneCollapsedView(pane, !wasCollapsed);
-      if (wasCollapsed) {
-        t.classList.remove('collapsed');
-      } else {
-        pane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)').forEach(tab => tab.classList.add('collapsed'));
+
+      if (wasCollapsed) { // pane is opening
+        setTabCollapsed(pid, false);
+      } else { // pane is collapsing
+        pane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)').forEach(tab => {
+          setTabCollapsed(tab.dataset.for, true);
+        });
       }
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
       return;
@@ -69,20 +86,10 @@ export function createTabElement(title, pid, icon = null) {
       setPaneCollapsedView(pane, false);
     }
 
+    setActivePanelInPane(pane, pid);
 
-    const allTabsInPane = Array.from(pane._tabStrip.querySelectorAll('.ptmt-tab'));
-    allTabsInPane.forEach(tab => {
-      const isThisTab = (tab === t);
-      tab.classList.toggle('active', isThisTab);
-
-      tab.classList.toggle('collapsed', !isThisTab);
-    });
-
-
-    const allPanelsInPane = Array.from(pane._panelContainer.querySelectorAll('.ptmt-panel'));
-    allPanelsInPane.forEach(panel => {
-      const isThisPanel = (panel.dataset.panelId === pid);
-      panel.classList.toggle('hidden', !isThisPanel);
+    pane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)').forEach(tab => {
+      setTabCollapsed(tab.dataset.for, tab.dataset.for !== pid);
     });
 
     window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
@@ -116,14 +123,20 @@ export function setActivePanelInPane(pane, pid = null) {
   if (!pane) return false;
   const panelContainer = pane._panelContainer;
   const tabStrip = pane._tabStrip;
-  panelContainer.querySelectorAll('.ptmt-panel').forEach(p => p.classList.add('hidden'));
-  tabStrip.querySelectorAll('.ptmt-tab').forEach(t => t.classList.remove('active'));
+
+  const previouslyActiveTab = tabStrip.querySelector('.ptmt-tab.active');
 
   let targetPid = pid;
   if (!targetPid) {
     const firstAvailableTab = tabStrip.querySelector('.ptmt-tab:not(.collapsed)');
     targetPid = firstAvailableTab?.dataset.for || panelContainer.querySelector('.ptmt-panel')?.dataset.panelId || null;
   }
+  
+  if (previouslyActiveTab?.dataset.for === targetPid) return true;
+
+  panelContainer.querySelectorAll('.ptmt-panel').forEach(p => p.classList.add('hidden'));
+  tabStrip.querySelectorAll('.ptmt-tab').forEach(t => t.classList.remove('active'));
+
   if (!targetPid) return false;
 
   const targetPanel = getPanelById(targetPid);
@@ -131,6 +144,10 @@ export function setActivePanelInPane(pane, pid = null) {
 
   if (targetPanel) targetPanel.classList.remove('hidden');
   if (targetTab) targetTab.classList.add('active');
+
+  const sourceId = targetPanel?.dataset.sourceId;
+  runTabAction(sourceId, 'onSelect', targetPanel);
+  
   return true;
 }
 
@@ -143,7 +160,7 @@ export function openTab(pid) {
   if (!pane) return false;
 
   if (tab?.classList.contains('collapsed')) {
-    tab.classList.remove('collapsed');
+    setTabCollapsed(pid, false);
     target.classList.remove('hidden');
   }
 
@@ -161,7 +178,7 @@ export function closeTabById(pid) {
   const pane = getPaneForTabElement(tab) || getPaneForPanel(panel) || getActivePane();
   if (!pane) return true;
 
-  if (tab) tab.classList.add('collapsed');
+  if (tab) setTabCollapsed(pid, true);
   if (panel) panel.classList.add('hidden');
   if (tab?.classList.contains('active')) setActivePanelInPane(pane);
 
@@ -223,6 +240,8 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
 
     invalidatePaneTabSizeCache(targetPane);
 
+    runTabAction(elementId, 'onInit', panel);
+
     if (setAsDefault) setDefaultPanelById(pid);
     if (makeActive) openTab(pid);
 
@@ -242,7 +261,8 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
 
 
   const panel = createPanelElement(title);
-  panel.dataset.sourceId = 'ptmt-main-content'; 
+  const sourceId = 'ptmt-main-content';
+  panel.dataset.sourceId = sourceId; 
   const pid = registerPanelDom(panel, title);
   const content = panel.querySelector('.ptmt-panel-content');
 
@@ -262,6 +282,8 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
   if (settingsBtn) pane._tabStrip.insertBefore(tab, settingsBtn); else pane._tabStrip.appendChild(tab);
   
   invalidatePaneTabSizeCache(pane);
+
+  runTabAction(sourceId, 'onInit', panel);
 
   if (setAsDefault) setDefaultPanelById(pid);
   openTab(pid);

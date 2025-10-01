@@ -1,3 +1,4 @@
+
 // settings.js
 
 import { saveSettingsDebounced, saveSettings } from '../../../../script.js';
@@ -58,6 +59,7 @@ class SettingsManager {
                         tabs: [
                             { sourceId: "left-nav-panel" },
                             { sourceId: "notebookPanel" },
+                            { sourceId: "gallery" },
                             { sourceId: "rm_api_block" }
                         ]
                     }
@@ -82,6 +84,7 @@ class SettingsManager {
                                 flex: '1 1 30%',
                                 isCollapsed: true,
                                 viewSettings: { contentFlow: "reversed" },
+
                                 tabs: [
                                     { sourceId: "WorldInfo" },
                                     { sourceId: "stqrd--drawer-v2" },
