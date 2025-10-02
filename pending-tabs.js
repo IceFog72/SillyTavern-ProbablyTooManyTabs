@@ -16,10 +16,16 @@ const getTabIdentifier = (tabInfo) => {
  
 export function updatePendingTabColumn(tabInfo, newColumn) {
     const identifier = getTabIdentifier(tabInfo);
-    if (identifier && pendingTabsMap.has(identifier)) {
+    if (!identifier) return;
+
+    if (pendingTabsMap.has(identifier)) {
         const existingTab = pendingTabsMap.get(identifier);
         existingTab.column = newColumn;
         console.log(`[PTMT-Pending] Updated live destination for ${identifier} to column '${newColumn}'.`);
+    } else {
+        const newPendingTab = { ...tabInfo, column: newColumn };
+        pendingTabsMap.set(identifier, newPendingTab);
+        console.log(`[PTMT-Pending] Moved and armed listener for ${identifier} in column '${newColumn}'.`);
     }
 }
 
@@ -191,7 +197,7 @@ export function initDemotionObserver(api) {
                     
                     window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'demotion' } }));
                     
-                    return; 
+                    continue; 
                 }
             }
         }

@@ -1,7 +1,7 @@
 // LayoutManager.js
 
 import { settings } from './settings.js';
-import { el, debounce } from './utils.js';
+import { el, debounce, getPanelBySourceId } from './utils.js';
 
 export class LayoutManager {
     constructor(appApi, settings) { 
@@ -393,6 +393,18 @@ export class LayoutManager {
     handlePendingTabDrop(targetContainer, newIndex) {
         const targetColumnName = targetContainer.closest('.ptmt-editor-column').dataset.columnName;
         const { sourceId, searchId, searchClass } = this.draggedTabInfo;
+
+        let liveSourceId = null;
+        if (searchId) liveSourceId = `id:${searchId}`;
+        else if (searchClass) liveSourceId = `class:${searchClass}`;
+
+        if (liveSourceId) {
+            const livePanel = getPanelBySourceId(liveSourceId);
+            if (livePanel) {
+                console.log(`[PTMT-LayoutEditor] A live tab for ${liveSourceId} was found. Destroying it before moving its pending counterpart.`);
+                this.appApi.destroyTabById(livePanel.dataset.panelId);
+            }
+        }
         
         const layout = this.appApi.generateLayoutSnapshot();
         
@@ -406,7 +418,6 @@ export class LayoutManager {
         
         layout.columns[targetColumnName].ghostTabs.splice(newIndex, 0, newTabInfo);
         
-        // --- FIX: Inform the live observer about the change ---
         this.appApi.updatePendingTabColumn(newTabInfo, targetColumnName);
         
         this.settings.update({ savedLayout: layout });
