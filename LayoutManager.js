@@ -40,7 +40,7 @@ export class LayoutManager {
         globalSettings.append(
             createSettingCheckbox('Show Left Column', 'showLeftPane'),
             createSettingCheckbox('Show Right Column', 'showRightPane'),
-            createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly') // <-- ADD THIS LINE
+            createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly')
         );
 
 
@@ -77,9 +77,9 @@ export class LayoutManager {
 
         const refs = this.appApi._refs();
         const columns = [
-            { name: 'left', title: 'Left Pane', element: refs.leftBody },
-            { name: 'center', title: 'Center Pane', element: refs.centerBody },
-            { name: 'right', title: 'Right Pane', element: refs.rightBody },
+            { name: 'left', title: 'Left Column', element: refs.leftBody },
+            { name: 'center', title: 'Center Column', element: refs.centerBody },
+            { name: 'right', title: 'Right Column', element: refs.rightBody },
         ];
 
         columns.forEach(col => {
@@ -90,13 +90,34 @@ export class LayoutManager {
     }
 
     renderColumn(name, title, element) {
-        const container = el('fieldset', { className: 'ptmt-editor-column' });
+        const container = el('fieldset', { className: 'ptmt-editor-column', 'data-column-name': name });
         const legend = el('legend', {}, title);
 
         container.appendChild(legend);
 
         const tree = this.renderTreeElement(element.querySelector('.ptmt-pane, .ptmt-split'));
         if (tree) container.appendChild(tree);
+        
+        const pendingContainer = el('div', { className: 'ptmt-editor-pending' });
+        const pendingTitle = el('div', { className: 'ptmt-editor-title', style:{marginTop:'10px', borderTop:'1px solid var(--SmartThemeShadowColor)', paddingTop:'8px'} }, el('span', {}, 'Pending Tabs'));
+        const pendingTabsList = el('div', { className: 'ptmt-editor-tabs-container' });
+        pendingTabsList.dataset.isPendingList = 'true';
+        pendingTabsList.dataset.columnName = name;
+
+        const currentLayout = this.settings.get('savedLayout') || this.settings.get('defaultLayout');
+        const ghostTabs = currentLayout.columns[name]?.ghostTabs || [];
+
+        ghostTabs.forEach(tabInfo => {
+            pendingTabsList.appendChild(this.renderPendingTab(tabInfo));
+        });
+        
+        pendingTabsList.addEventListener('dragover', this.handleDragOver.bind(this));
+        pendingTabsList.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        pendingTabsList.addEventListener('drop', (e) => this.handleDrop(e));
+
+        pendingContainer.append(pendingTitle, pendingTabsList);
+        container.appendChild(pendingContainer);
+
 
         return container;
     }
@@ -147,6 +168,7 @@ export class LayoutManager {
 
     renderPane(element) {
         const container = el('div', { className: 'ptmt-editor-pane' });
+        container.dataset.paneId = element.dataset.paneId;
 
 
         const titleDiv = el('div', { className: 'ptmt-editor-title' });
@@ -168,7 +190,7 @@ export class LayoutManager {
         const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container' });
         tabsContainer.addEventListener('dragover', this.handleDragOver.bind(this));
         tabsContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        tabsContainer.addEventListener('drop', (e) => this.handleDrop(e, element, null));
+        tabsContainer.addEventListener('drop', (e) => this.handleDrop(e));
 
         const tabs = Array.from(element.querySelectorAll('.ptmt-tab'));
         tabs.forEach(tab => {
@@ -182,18 +204,20 @@ export class LayoutManager {
     renderTab(tabElement, paneElement) {
         const pid = tabElement.dataset.for;
         const panel = this.appApi.getPanelById(pid);
-        const mapping = settings.get('panelMappings').find(m => m.id === panel.dataset.sourceId) || {};
+        const sourceId = panel.dataset.sourceId;
+        const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
 
         const container = el('div', {
             className: 'ptmt-editor-tab',
             draggable: 'true',
             'data-pid': pid,
+            'data-source-id': sourceId,
         });
 
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder' }, '☰');
         const iconInput = el('input', { type: 'text', value: mapping.icon || '', placeholder: 'Icon', 'data-prop': 'icon' });
         const titleInput = el('input', { type: 'text', value: tabElement.querySelector('.ptmt-tab-label').textContent, placeholder: 'Title', 'data-prop': 'title' });
-        const idLabel = el('span', { className: 'ptmt-editor-id', title: panel.dataset.sourceId }, panel.dataset.sourceId?.substring(0, 15) + '...' || 'N/A');
+        const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15) + '...' || 'N/A');
 
 
         container.append(handle, iconInput, titleInput, idLabel);
@@ -206,7 +230,7 @@ export class LayoutManager {
 
 
                 const mappings = settings.get('panelMappings').slice();
-                const mapping = mappings.find(m => m.id === panel.dataset.sourceId);
+                const mapping = mappings.find(m => m.id === sourceId);
 
                 if (mapping) {
                     mapping[prop] = newVal;
@@ -214,7 +238,7 @@ export class LayoutManager {
                 }
 
                 if (prop === 'title') {
-                    tabElement.querySelector('.ptmt-tab-label').textContent = newVal || panel.dataset.sourceId;
+                    tabElement.querySelector('.ptmt-tab-label').textContent = newVal || sourceId;
                 }
                 if (prop === 'icon') {
                     let iconEl = tabElement.querySelector('.ptmt-tab-icon');
@@ -232,25 +256,73 @@ export class LayoutManager {
         });
 
 
-        container.addEventListener('dragstart', (e) => this.handleDragStart(e, pid, paneElement));
-        container.addEventListener('drop', (e) => this.handleDrop(e, paneElement, pid));
+        container.addEventListener('dragstart', (e) => this.handleDragStart(e, pid));
+        container.addEventListener('drop', (e) => this.handleDrop(e));
+
+        return container;
+    }
+    
+    renderPendingTab(tabInfo) {
+        const sourceId = tabInfo.searchId || tabInfo.sourceId;
+        const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
+        const title = mapping.title || sourceId || tabInfo.searchClass;
+        const icon = mapping.icon || '👻';
+
+        const identifier = tabInfo.searchId ? `ID: ${tabInfo.searchId}` : `Class: ${tabInfo.searchClass}`;
+        
+        const container = el('div', {
+            className: 'ptmt-editor-tab',
+            draggable: 'true',
+            'data-is-pending': 'true'
+        });
+        container.dataset.searchId = tabInfo.searchId || '';
+        container.dataset.searchClass = tabInfo.searchClass || '';
+
+
+        const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder or move' }, '☰');
+        const iconSpan = el('span', { className: 'ptmt-tab-icon' }, icon);
+        const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
+        const idLabel = el('span', { className: 'ptmt-editor-id', title: identifier }, identifier);
+
+        container.append(handle, iconSpan, titleSpan, idLabel);
+
+        container.addEventListener('dragstart', (e) => this.handleDragStart(e));
+        container.addEventListener('drop', (e) => this.handleDrop(e));
 
         return container;
     }
 
 
 
-    handleDragStart(e, pid, paneElement) {
+    handleDragStart(e, pid) {
         e.stopPropagation();
-        this.draggedTabInfo = { pid, sourcePane: paneElement };
+        const draggedElement = e.target.closest('.ptmt-editor-tab');
+        this.draggedTabInfo = {
+            pid,
+            sourceId: draggedElement.dataset.sourceId,
+            searchId: draggedElement.dataset.searchId,
+            searchClass: draggedElement.dataset.searchClass,
+            isPending: draggedElement.dataset.isPending === 'true'
+        };
         e.dataTransfer.effectAllowed = 'move';
-        setTimeout(() => e.target.classList.add('dragging'), 0);
+        setTimeout(() => draggedElement.classList.add('dragging'), 0);
     }
 
     handleDragOver(e) {
         e.preventDefault();
-        e.dataTransfer.dropEffect = 'move';
         const container = e.currentTarget;
+        const isTargetPendingList = container.dataset.isPendingList === 'true';
+
+        if (this.draggedTabInfo) {
+            const isSourcePending = this.draggedTabInfo.isPending;
+            if (isSourcePending !== isTargetPendingList) {
+                e.dataTransfer.dropEffect = 'none';
+                this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+                return;
+            }
+        }
+
+        e.dataTransfer.dropEffect = 'move';
         const target = e.target.closest('.ptmt-editor-tab');
 
         this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
@@ -265,13 +337,11 @@ export class LayoutManager {
                 target.before(indicator);
             }
         } else {
-
             container.appendChild(indicator);
         }
     }
 
     handleDragLeave(e) {
-
         setTimeout(() => {
             if (!this.rootElement.querySelector(':hover.ptmt-editor-tabs-container')) {
                 this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
@@ -279,7 +349,7 @@ export class LayoutManager {
         }, 100);
     }
 
-    handleDrop(e, targetPane, targetPid) {
+    handleDrop(e) {
         e.preventDefault();
         e.stopPropagation();
         this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
@@ -290,21 +360,56 @@ export class LayoutManager {
             return;
         }
 
-        const { pid: sourcePid } = this.draggedTabInfo;
-        const sourcePanel = this.appApi.getPanelById(sourcePid);
-        if (!sourcePanel) {
-            indicator.remove();
-            return;
-        }
+        const targetContainer = indicator.parentElement;
+        const isTargetPending = targetContainer.dataset.isPendingList === 'true';
 
-        const siblings = Array.from(indicator.parentElement.children);
-        const newIndex = siblings.indexOf(indicator);
-
+        const children = Array.from(targetContainer.children).filter(c => c.classList.contains('ptmt-editor-tab'));
+        let newIndex = children.indexOf(indicator);
+        if (newIndex === -1) newIndex = children.length;
+        
         indicator.remove();
 
-        this.appApi.moveTabIntoPaneAtIndex(sourcePanel, targetPane, newIndex);
-
+        if (isTargetPending) {
+            this.handlePendingTabDrop(targetContainer, newIndex);
+        } else {
+            this.handleLiveTabDrop(targetContainer, newIndex);
+        }
+        
         this.draggedTabInfo = null;
+    }
 
+    handleLiveTabDrop(targetContainer, newIndex) {
+        const sourcePanel = this.appApi.getPanelById(this.draggedTabInfo.pid);
+        const targetPaneId = targetContainer.closest('.ptmt-editor-pane').dataset.paneId;
+        const targetPane = document.querySelector(`.ptmt-pane[data-pane-id="${targetPaneId}"]`);
+
+        if (sourcePanel && targetPane) {
+            this.appApi.moveTabIntoPaneAtIndex(sourcePanel, targetPane, newIndex);
+        } else {
+            console.warn("[PTMT] Could not execute live tab move: source or target not found.", { sourcePanel, targetPane });
+        }
+    }
+
+    handlePendingTabDrop(targetContainer, newIndex) {
+        const targetColumnName = targetContainer.closest('.ptmt-editor-column').dataset.columnName;
+        const { sourceId, searchId, searchClass } = this.draggedTabInfo;
+        
+        const layout = this.appApi.generateLayoutSnapshot();
+        
+        const newTabInfo = { searchId: searchId || sourceId || '', searchClass: searchClass || '' };
+
+        for (const col of Object.values(layout.columns)) {
+            if (col.ghostTabs) {
+                col.ghostTabs = col.ghostTabs.filter(t => !( (t.searchId === newTabInfo.searchId && t.searchClass === newTabInfo.searchClass) ));
+            }
+        }
+        
+        layout.columns[targetColumnName].ghostTabs.splice(newIndex, 0, newTabInfo);
+        
+        // --- FIX: Inform the live observer about the change ---
+        this.appApi.updatePendingTabColumn(newTabInfo, targetColumnName);
+        
+        this.settings.update({ savedLayout: layout });
+        this.renderUnifiedEditor();
     }
 }

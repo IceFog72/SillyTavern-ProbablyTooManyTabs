@@ -22,15 +22,11 @@ export function applySplitOrientation(split) {
 
   let targetOrientation;
   if (isParentColumnCollapsed) {
-    // Your Logic: If the parent column is a thin vertical bar, the split MUST
-    // become HORIZONTAL to stack its children vertically.
     targetOrientation = 'horizontal';
   } else {
-    // Otherwise, it should use its user-defined "natural" orientation.
     targetOrientation = split.dataset.naturalOrientation || 'vertical';
   }
 
-  // Use our reliable tool to apply the change.
   setSplitOrientation(split, targetOrientation);
 }
 
@@ -39,6 +35,8 @@ export function createPane(initialSettings = {}, options = {}) {
   const tabStrip = el('div', { className: 'ptmt-tabStrip' });
   const panelContainer = el('div', { className: 'ptmt-panelContainer' });
   const grid = el('div', { className: 'ptmt-pane-grid', style: { width: '100%', height: '100%' } });
+  
+  pane.dataset.paneId = `ptmt-pane-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
 
   grid.append(tabStrip, panelContainer);
   pane.appendChild(grid);

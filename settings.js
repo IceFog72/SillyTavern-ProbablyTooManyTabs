@@ -1,4 +1,3 @@
-
 // settings.js
 
 import { saveSettingsDebounced, saveSettings } from '../../../../script.js';
@@ -30,6 +29,7 @@ class SettingsManager {
             { id: 'WorldInfo', title: 'World Info', icon: '🌍' },
             { id: 'notebookPanel', title: 'Notebook', icon: '📓' },
             { id: 'gallery', title: 'Gallery', icon: '🏞️' },
+            { id: 'zoomed_avatar', title: 'Avatar', icon: '🏞️' },
             { id: 'character_popup', title: 'Adv. Definitions', icon: '👤' },
             { id: 'user-settings-block', title: 'User Settings', icon: '⚙️' },
             { id: 'PersonaManagement', title: 'Persona Management', icon: '👤' }
@@ -59,10 +59,10 @@ class SettingsManager {
                         tabs: [
                             { sourceId: "left-nav-panel" },
                             { sourceId: "notebookPanel" },
-                            { sourceId: "gallery" },
                             { sourceId: "rm_api_block" }
                         ]
-                    }
+                    },
+                    ghostTabs: []
                 },
                 center: {
                     content: {
@@ -84,7 +84,6 @@ class SettingsManager {
                                 flex: '1 1 30%',
                                 isCollapsed: true,
                                 viewSettings: { contentFlow: "reversed" },
-
                                 tabs: [
                                     { sourceId: "WorldInfo" },
                                     { sourceId: "stqrd--drawer-v2" },
@@ -92,7 +91,11 @@ class SettingsManager {
                                 ]
                             }
                         ]
-                    }
+                    },
+                    ghostTabs: [
+                        { searchId: "gallery", searchClass: "" },
+                        { searchId: "", searchClass: "zoomed_avatar" }
+                    ]
                 },
                 right: {
                     content: {
@@ -118,7 +121,8 @@ class SettingsManager {
                                 ]
                             }
                         ]
-                    }
+                    },
+                    ghostTabs: []
                 }
             }
         }

@@ -1,12 +1,13 @@
 // snapshot.js 
 
 import { getRefs, recalculateColumnSizes, applyColumnVisibility } from './layout.js';
-import { getPanelById, getSplitOrientation, el } from './utils.js';
+import { getPanelById, getSplitOrientation, el, getPanelBySourceId } from './utils.js';
 import { createPane, writePaneViewSettings, readPaneViewSettings, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
-import { openTab, createTabFromElementId, setActivePanelInPane, createTabForBodyContent, createPanelElement, registerPanelDom, createTabElement } from './tabs.js';
+import { openTab, createTabFromContent, setActivePanelInPane, createTabForBodyContent, createPanelElement, registerPanelDom, createTabElement } from './tabs.js';
 import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
 import { settings } from './settings.js';
+import { initPendingTabsManager } from './pending-tabs.js';
 
 const SNAPSHOT_VERSION = 4;
 
@@ -52,6 +53,7 @@ export function generateLayoutSnapshot() {
 
             return {
                 type: 'pane',
+                paneId: element.dataset.paneId,
                 flex: element.style.flex || null,
                 lastFlex: element.dataset.lastFlex || null,
                 minWidth: element.style.minWidth || null,
@@ -120,6 +122,8 @@ export function generateLayoutSnapshot() {
         return states;
     };
 
+    const currentLayout = settings.get('savedLayout') || settings.get('defaultLayout');
+
     const snapshot = {
         version: SNAPSHOT_VERSION,
         timestamp: Date.now(),
@@ -139,15 +143,18 @@ export function generateLayoutSnapshot() {
         columns: {
             left: {
                 flex: refs.leftBody.style.flex || null,
-                content: buildNodeTree(refs.leftBody.querySelector('.ptmt-pane, .ptmt-split'), 'left')
+                content: buildNodeTree(refs.leftBody.querySelector('.ptmt-pane, .ptmt-split'), 'left'),
+                ghostTabs: currentLayout.columns.left.ghostTabs || []
             },
             center: {
                 flex: refs.centerBody.style.flex || null,
-                content: buildNodeTree(refs.centerBody.querySelector('.ptmt-pane, .ptmt-split'), 'center')
+                content: buildNodeTree(refs.centerBody.querySelector('.ptmt-pane, .ptmt-split'), 'center'),
+                ghostTabs: currentLayout.columns.center.ghostTabs || []
             },
             right: {
                 flex: refs.rightBody.style.flex || null,
-                content: buildNodeTree(refs.rightBody.querySelector('.ptmt-pane, .ptmt-split'), 'right')
+                content: buildNodeTree(refs.rightBody.querySelector('.ptmt-pane, .ptmt-split'), 'right'),
+                ghostTabs: currentLayout.columns.right.ghostTabs || []
             }
         },
 
@@ -227,6 +234,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     const elementsToCollapse = [];
     const placedPanelIds = new Set();
     const panelLocationMap = new Map(snapshot.panelLocations || []);
+    const unhydratedGhostTabs = [];
 
     const rebuildNodeTree = (node, parent) => {
         if (!node || !parent) return null;
@@ -237,6 +245,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
         if (node.type === 'pane') {
             const pane = createPane({}, { deferInitialCheck: true });
+            if (node.paneId) pane.dataset.paneId = node.paneId;
 
 
             if (node.isCollapsed) {
@@ -355,9 +364,9 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 let panel = null;
                 let pid = null;
 
-                if (t.sourceId && !placedPanelIds.has(t.sourceId)) {
+                if (t.sourceId && !getPanelBySourceId(t.sourceId)) {
                     const mapping = (settings.get('panelMappings') || []).find(m => m.id === t.sourceId) || {};
-                    panel = createTabFromElementId(t.sourceId, {
+                    panel = createTabFromContent(t.sourceId, {
                         title: t.title || mapping.title,
                         icon: t.icon || mapping.icon,
                         makeActive: false
@@ -415,17 +424,38 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     if (leftHasContent) rebuildNodeTree(snapshot.columns.left.content, refs.leftBody);
     if (centerHasContent) rebuildNodeTree(snapshot.columns.center.content, refs.centerBody);
     if (rightHasContent) rebuildNodeTree(snapshot.columns.right.content, refs.rightBody);
+    
+    if(refs.leftBody.style.display !== 'none' && !refs.leftBody.querySelector('.ptmt-pane')) refs.leftBody.appendChild(createPane({}, { deferInitialCheck: true }));
+    if(!refs.centerBody.querySelector('.ptmt-pane')) refs.centerBody.appendChild(createPane({}, { deferInitialCheck: true }));
+    if(refs.rightBody.style.display !== 'none' && !refs.rightBody.querySelector('.ptmt-pane')) refs.rightBody.appendChild(createPane({}, { deferInitialCheck: true }));
+    
+    ['left', 'center', 'right'].forEach(colName => {
+        const ghostTabs = snapshot.columns[colName]?.ghostTabs || [];
+        ghostTabs.forEach(tabInfo => {
+            if (placedPanelIds.has(tabInfo.sourceId)) return; 
 
-    if (!refs.centerBody.querySelector('.ptmt-pane')) {
-        const fallbackPane = createPane({}, { deferInitialCheck: true });
-        refs.centerBody.appendChild(fallbackPane);
-        createdPanes.push(fallbackPane);
-    }
+            const elExists = document.getElementById(tabInfo.sourceId);
+            if (elExists) {
+                const targetPane = refs[`${colName}Body`].querySelector('.ptmt-pane');
+                if (targetPane) {
+                    const mappings = settings.get('panelMappings') || [];
+                    const mapping = mappings.find(m => m.id === tabInfo.sourceId) || {};
+                    const panel = createTabFromContent(tabInfo.sourceId, {
+                        title: tabInfo.title || mapping.title, icon: tabInfo.icon || mapping.icon, makeActive: false
+                    }, targetPane);
+                    if (panel) placedPanelIds.add(tabInfo.sourceId);
+                }
+            } else {
+                unhydratedGhostTabs.push({ ...tabInfo, column: colName });
+            }
+        });
+    });
 
     const mappings = settings.get('panelMappings') || [];
+    const allGhostSourceIds = new Set(unhydratedGhostTabs.map(t => t.sourceId));
     const orphanPanelIds = mappings
         .map(m => m.id)
-        .filter(id => !placedPanelIds.has(id));
+        .filter(id => !placedPanelIds.has(id) && !allGhostSourceIds.has(id));
 
     if (orphanPanelIds.length > 0) {
         orphanPanelIds.forEach(id => {
@@ -446,7 +476,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
             if (targetPane) {
                 const mapping = mappings.find(m => m.id === id) || {};
-                createTabFromElementId(id, {
+                createTabFromContent(id, {
                     title: mapping.title,
                     icon: mapping.icon,
                     makeActive: false
@@ -454,7 +484,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             }
         });
     }
-
+    
+    initPendingTabsManager(unhydratedGhostTabs);
 
     requestAnimationFrame(() => {
 
@@ -501,7 +532,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
         const centerPane = refs.centerBody.querySelector('.ptmt-pane');
         if (centerPane) {
-            const settingsPanel = createTabFromElementId(settingsWrapperId, {
+            const settingsPanel = createTabFromContent(settingsWrapperId, {
                 title: 'Layout Settings',
                 icon: '🔧',
                 makeActive: false
@@ -551,7 +582,7 @@ function validateSnapshot(snapshot) {
     }
 
     const hasContent = ['left', 'center', 'right'].some(col =>
-        nodeHasMeaningfulContent(snapshot.columns[col]?.content)
+        nodeHasMeaningfulContent(snapshot.columns[col]?.content) || snapshot.columns[col]?.ghostTabs?.length > 0
     );
 
     if (!hasContent) {

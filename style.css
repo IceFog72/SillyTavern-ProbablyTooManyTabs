@@ -53,6 +53,12 @@
   background-size: cover;
 }
 
+.zoomed_avatar{
+  position: inherit !important;
+}
+
+
+
 
 html,
 body,
@@ -554,4 +560,8 @@ select:focus {
 .ptmt-pane.ptmt-pane-icons-only .ptmt-tab {
   gap: 0;
   justify-content: center;
+}
+
+.ptmt-editor-tabs-container{
+  min-height: 20px;
 }

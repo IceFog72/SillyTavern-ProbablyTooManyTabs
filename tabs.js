@@ -128,7 +128,7 @@ export function setActivePanelInPane(pane, pid = null) {
 
   let targetPid = pid;
   if (!targetPid) {
-    const firstAvailableTab = tabStrip.querySelector('.ptmt-tab:not(.collapsed)');
+    const firstAvailableTab = tabStrip.querySelector('.ptmt-tab:not(.collapsed):not([data-for=""])');
     targetPid = firstAvailableTab?.dataset.for || panelContainer.querySelector('.ptmt-panel')?.dataset.panelId || null;
   }
   
@@ -187,26 +187,55 @@ export function closeTabById(pid) {
   return true;
 }
 
-export function createTabFromElementId(elementId, options = {}, target = null) {
-    const { title = null, icon = null, makeActive = true, setAsDefault = false } = options;
+/**
+ * Physically removes a tab and its panel from the DOM.
+ * @param {string} pid The panelId of the tab to destroy.
+ */
+export function destroyTabById(pid) {
+    const tab = getTabById(pid);
+    const panel = getPanelById(pid);
+    const pane = getPaneForTabElement(tab) || getPaneForPanel(panel);
 
+    if (tab) tab.remove();
+    if (panel) panel.remove();
 
-    const stagingArea = document.getElementById('ptmt-staging-area');
-    let node = stagingArea?.querySelector(`#${CSS.escape(elementId)}`);
-
-
-    if (!node) {
-        node = document.getElementById(elementId);
-
-        if (node) {
-            stagingArea.appendChild(node);
+    if (pane) {
+        invalidatePaneTabSizeCache(pane);
+        // If the destroyed tab was active, find a new one to activate.
+        if (tab && tab.classList.contains('active')) {
+            setActivePanelInPane(pane);
         }
+        removePaneIfEmpty(pane);
+    }
+    return true;
+}
+
+export function createTabFromContent(content, options = {}, target = null) {
+    const { title = null, icon = null, makeActive = true, setAsDefault = false, sourceId = null } = options;
+    
+    let node;
+    if (typeof content === 'string') {
+        node = document.getElementById(content);
+    } else if (isElement(content)) {
+        node = content;
     }
 
+    let stagingArea = document.getElementById('ptmt-staging-area');
+    if (!stagingArea) {
+        console.warn('[PTMT] Staging area not found, creating a new one.');
+        stagingArea = el('div', { id: 'ptmt-staging-area', style: { display: 'none' } });
+        document.body.appendChild(stagingArea);
+    }
+
+    if (node && node.parentElement !== stagingArea) {
+       stagingArea.appendChild(node);
+    }
 
     if (!node) {
         return null;
     }
+
+    const effectiveSourceId = sourceId || node.id;
 
     let targetPane;
     const refs = getRefs();
@@ -219,18 +248,17 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
     }
 
     if (!targetPane) {
-        console.warn(`[SFT] Could not find a target pane for elementId: ${elementId}`);
+        console.warn(`[SFT] Could not find a target pane for content.`);
         return null;
     }
 
-
-    if (getPanelBySourceId(elementId)) {
-        return getPanelBySourceId(elementId);
+    if (effectiveSourceId && getPanelBySourceId(effectiveSourceId)) {
+        return getPanelBySourceId(effectiveSourceId);
     }
 
     const panelTitle = title || node.getAttribute('data-panel-title') || node.id || 'Panel';
     const panel = createPanelElement(panelTitle);
-    panel.dataset.sourceId = elementId;
+    panel.dataset.sourceId = effectiveSourceId;
     const pid = registerPanelDom(panel, panelTitle);
     panel.querySelector('.ptmt-panel-content').appendChild(node);
     targetPane._panelContainer.appendChild(panel);
@@ -240,7 +268,7 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
 
     invalidatePaneTabSizeCache(targetPane);
 
-    runTabAction(elementId, 'onInit', panel);
+    runTabAction(effectiveSourceId, 'onInit', panel);
 
     if (setAsDefault) setDefaultPanelById(pid);
     if (makeActive) openTab(pid);
@@ -249,9 +277,14 @@ export function createTabFromElementId(elementId, options = {}, target = null) {
 }
 
 export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDefault = true } = {}, targetPane = null) {
-  const toMove = Array.from(document.body.childNodes).filter(n => !(n.nodeType === 1 && n.id === 'ptmt-main'));
-  if (toMove.length === 0) return null;
+  const PROTECTED_IDS = new Set(['ptmt-main', 'ptmt-staging-area', 'ptmt-settings-wrapper']);
 
+  const toMove = Array.from(document.body.childNodes).filter(n => {
+      if (n.nodeType !== 1) return true;
+      return !PROTECTED_IDS.has(n.id);
+  });
+  
+  if (toMove.length === 0) return null;
 
   const pane = targetPane || getActivePane();
   if (!pane) {
@@ -259,15 +292,14 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
     return null;
   }
 
-
   const panel = createPanelElement(title);
-  const sourceId = 'ptmt-main-content';
+  const sourceId = 'ptmt-main-content'; 
   panel.dataset.sourceId = sourceId; 
   const pid = registerPanelDom(panel, title);
   const content = panel.querySelector('.ptmt-panel-content');
 
   for (const node of toMove) {
-    if (node.nodeType === 1 && node.id === 'ptmt-main') continue;
+    if (node.nodeType === 1 && PROTECTED_IDS.has(node.id)) continue;
     if (node.tagName === 'SCRIPT' && node.dataset?.ptmtIgnore !== 'false') {
       try { document.head.appendChild(node); } catch { }
     } else {
@@ -331,7 +363,7 @@ export function movePanelToPane(panel, pane) {
       pane._panelContainer.appendChild(panel);
       invalidatePaneTabSizeCache(pane);
   }
-  moveTabToPane(pid, pane); // This will also invalidate
+  moveTabToPane(pid, pane);
   if (prevPane) {
     setActivePanelInPane(prevPane);
     removePaneIfEmpty(prevPane);
