@@ -131,8 +131,6 @@ function createResizer(resizer, orientation, config) {
  * Otherwise, it falls back to standard proportional resizing.
  */
 function applyIntelligentExpansion(element, newTotalSize, childInfo) {
-    // If there's no relevant child info (no nested split, or orientation mismatch),
-    // fall back to the standard proportional resize logic.
     if (!element || !childInfo || !childInfo.element) {
         recalculateAllSplitsRecursively(element);
         return;
@@ -251,8 +249,9 @@ export function attachColumnResizer(resizer) {
 
             const refs = getRefs();
             const parentRectAtStart = refs.mainBody.getBoundingClientRect();
-            const minWidthA = calculateElementMinWidth(aElem);
-            const minWidthB = calculateElementMinWidth(bElem);
+            // CORRECTED: Find the content inside the column to calculate min width
+            const minWidthA = calculateElementMinWidth(aElem.querySelector('.ptmt-pane, .ptmt-split'));
+            const minWidthB = calculateElementMinWidth(bElem.querySelector('.ptmt-pane, .ptmt-split'));
 
             const initialSizes = {
                 left: refs.leftBody.style.display === 'none' ? 0 : refs.leftBody.getBoundingClientRect()[sizeProp],
@@ -369,13 +368,6 @@ export function updateResizerDisabledStates() {
 export function calculateElementMinWidth(element) {
   if (!element) return 0;
   
-  const isCollapsed = element.classList.contains('view-collapsed') || element.classList.contains('ptmt-container-collapsed');
-  if(isCollapsed) {
-      const parentIsHorizontal = element.parentElement?.classList.contains('horizontal');
-      const isHorizontal = element.classList.contains('horizontal') || parentIsHorizontal;
-      return element.getBoundingClientRect()[isHorizontal ? 'height' : 'width'];
-  }
-
   if (element.classList.contains('ptmt-pane')) {
     const vs = readPaneViewSettings(element);
     return Number(vs.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
