@@ -205,17 +205,36 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
         }
 
         if (protectedColumn) { // A column was reopened
-            const lBasis = getBasis(leftBody), cBasis = getBasis(centerBody), rBasis = getBasis(rightBody);
-            if (protectedColumn === leftBody) { // L reopens, takes from C
-                centerBody.style.flex = `1 1 ${(cBasis - lBasis).toFixed(4)}%`;
-            } else if (protectedColumn === rightBody) { // R reopens, takes from C
-                centerBody.style.flex = `1 1 ${(cBasis - rBasis).toFixed(4)}%`;
-            } else if (protectedColumn === centerBody) { // C reopens, takes from L & R
-                const spaceToTake = cBasis;
-                const sideTotal = lBasis + rBasis;
-                if (sideTotal > 0) {
-                    leftBody.style.flex = `1 1 ${(lBasis - spaceToTake * (lBasis / sideTotal)).toFixed(4)}%`;
-                    rightBody.style.flex = `1 1 ${(rBasis - spaceToTake * (rBasis / sideTotal)).toFixed(4)}%`;
+            const spaceToTake = getBasis(protectedColumn);
+            let donors = [];
+
+            // Determine priority for donating space
+            if (protectedColumn === leftBody || protectedColumn === rightBody) {
+                if (activeColumns.includes(centerBody)) {
+                    donors.push(centerBody);
+                } else {
+                    const otherSide = (protectedColumn === leftBody) ? rightBody : leftBody;
+                    if (activeColumns.includes(otherSide)) donors.push(otherSide);
+                }
+            } else if (protectedColumn === centerBody) {
+                if (activeColumns.includes(leftBody)) donors.push(leftBody);
+                if (activeColumns.includes(rightBody)) donors.push(rightBody);
+            }
+
+            // Fallback to any other active column (excluding self)
+            if (donors.length === 0) {
+                donors = activeColumns.filter(c => c !== protectedColumn);
+            }
+
+            if (donors.length > 0) {
+                const totalDonorBasis = donors.reduce((sum, col) => sum + getBasis(col), 0);
+                if (totalDonorBasis > 0) {
+                    // Take space proportionally
+                    donors.forEach(col => {
+                        const currentBasis = getBasis(col);
+                        const reduction = spaceToTake * (currentBasis / totalDonorBasis);
+                        col.style.flex = `1 1 ${(currentBasis - reduction).toFixed(4)}%`;
+                    });
                 }
             }
         } else if (collapsedColumn) { // A column was collapsed

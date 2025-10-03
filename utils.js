@@ -1,5 +1,4 @@
 // utils.js
-
 export const isElement = (v) => v && (v.nodeType === 1 || v === document);
 
 export const getPanelById = pid => document.querySelector(`[data-panel-id="${CSS.escape(pid)}"]`);
@@ -84,7 +83,7 @@ export function getElementDepth(element) {
     return depth;
 }
 
-export function setFlexBasisPercent(elem, percent) {
+export function setFlexBasisPercent(elem, percent, grow = 1, shrink = 1) {
     const clampedPercent = Math.max(0, Math.min(100, percent));
 
     const isResizable = elem?.classList.contains('ptmt-pane') || elem?.classList.contains('ptmt-split') || elem?.classList.contains('ptmt-body-column');
@@ -92,14 +91,12 @@ export function setFlexBasisPercent(elem, percent) {
 
     if (isResizable && !isCollapsed) {
         try {
-            // UNIFIED LOGIC: All resizable elements should be able to grow and shrink from their basis.
-            elem.style.flex = `1 1 ${clampedPercent.toFixed(4)}%`;
+            elem.style.flex = `${grow} ${shrink} ${clampedPercent.toFixed(4)}%`;
         } catch {
-            // Also apply the unified logic to the fallback for older browsers.
             Object.assign(elem.style, {
                 flexBasis: `${clampedPercent.toFixed(4)}%`,
-                flexGrow: '1',
-                flexShrink: '1'
+                flexGrow: `${grow}`,
+                flexShrink: `${shrink}`
             });
         }
     }

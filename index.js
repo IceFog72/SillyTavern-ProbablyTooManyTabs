@@ -15,7 +15,7 @@ import {
   openTab, closeTabById, setDefaultPanelById,
   setActivePanelInPane, moveTabIntoPaneAtIndex, destroyTabById,
 } from './tabs.js';
-import { attachResizer, setSplitOrientation, updateResizerDisabledStates } from './resizer.js';
+import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler } from './misc-helpers.js';
 import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
@@ -115,6 +115,7 @@ import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } 
 
     window.addEventListener('resize', debounce(() => {
       document.querySelectorAll('.ptmt-pane').forEach(pane => delete pane.dataset.appliedOrientation);
+      recalculateAllSplitsRecursively();
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     }, 150));
 

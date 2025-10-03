@@ -1,5 +1,4 @@
-//resizer.js
-
+// resizer.js
 import { $$, getElementDepth, setFlexBasisPercent, throttle } from './utils.js';
 import { getRefs, recalculateColumnSizes } from './layout.js';
 import { readPaneViewSettings, defaultViewSettings, applyPaneOrientation } from './pane.js';
@@ -126,126 +125,198 @@ function createResizer(resizer, orientation, config) {
   };
 }
 
-export function attachResizer(resizer, orientation = 'vertical') {
-  const paneResizeStrategy = {
-    onDragStart: (resizerEl, { sizeProp }) => {
-      const aElem = resizerEl.previousElementSibling;
-      const bElem = resizerEl.nextElementSibling;
-      if (!aElem || !bElem) return null;
-
-      const isACollapsed = aElem.classList.contains('view-collapsed') || aElem.classList.contains('ptmt-container-collapsed');
-      const isBCollapsed = bElem.classList.contains('view-collapsed') || bElem.classList.contains('ptmt-container-collapsed');
-      if (isACollapsed || isBCollapsed) return null;
-
-      const vsA = readPaneViewSettings(aElem);
-      const vsB = readPaneViewSettings(bElem);
-      const minSizeA = Number(vsA.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
-      const minSizeB = Number(vsB.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
-
-      const flexSiblings = Array.from(resizerEl.parentElement.children).filter(c =>
-        c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')
-      );
-      const initialSizes = flexSiblings.map(el => el.getBoundingClientRect()[sizeProp]);
-      const aElemIndex = flexSiblings.indexOf(aElem);
-      const bElemIndex = flexSiblings.indexOf(bElem);
-      const parentRectAtStart = resizerEl.parentElement?.getBoundingClientRect();
-
-      return { flexSiblings, initialSizes, aElemIndex, bElemIndex, minSizeA, minSizeB, parentRectAtStart, sizeProp };
-    },
-
-    onDragMove: (delta, state) => {
-      let clampedDelta = Math.max(delta, state.minSizeA - state.initialSizes[state.aElemIndex]);
-      clampedDelta = Math.min(clampedDelta, state.initialSizes[state.bElemIndex] - state.minSizeB);
-
-      const newSizes = [...state.initialSizes];
-      newSizes[state.aElemIndex] = state.initialSizes[state.aElemIndex] + clampedDelta;
-      newSizes[state.bElemIndex] = state.initialSizes[state.bElemIndex] - clampedDelta;
-
-      const totalResizerSize = Array.from(state.flexSiblings[0].parentElement.children)
-        .filter(c => !c.classList.contains('ptmt-pane') && !c.classList.contains('ptmt-split'))
-        .reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
-
-      const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
-
-      if (totalAvailable > 0) {
-        const newPercentages = newSizes.map(size => pxToPercent(size, totalAvailable));
-        state.flexSiblings.forEach((sibling, index) => {
-          setFlexBasisPercent(sibling, newPercentages[index]);
-        });
-      }
-
-      // Trigger real-time icon mode check for all affected panes.
-      const aElem = state.flexSiblings[state.aElemIndex];
-      const bElem = state.flexSiblings[state.bElemIndex];
-      aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
-      bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+/**
+ * Applies intelligent expansion logic. If the element contains a split matching the drag
+ * orientation, it locks the smallest child's size and lets larger ones grow.
+ * Otherwise, it falls back to standard proportional resizing.
+ */
+function applyIntelligentExpansion(element, newTotalSize, childInfo) {
+    // If there's no relevant child info (no nested split, or orientation mismatch),
+    // fall back to the standard proportional resize logic.
+    if (!element || !childInfo || !childInfo.element) {
+        recalculateAllSplitsRecursively(element);
+        return;
     }
-  };
+    
+    const { sizes: initialChildSizes, smallestIndex, element: splitElement } = childInfo;
+    const children = Array.from(splitElement.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+    const smallestChildInitialSize = initialChildSizes[smallestIndex];
 
-  if (resizerControllers.has(resizer)) {
-    resizerControllers.get(resizer).detach();
-    resizerControllers.delete(resizer);
-  }
-  const controller = createResizer(resizer, orientation, paneResizeStrategy);
-  resizerControllers.set(resizer, controller);
-  return controller;
+    const newSmallestChildBasisPercent = pxToPercent(smallestChildInitialSize, newTotalSize);
+
+    let totalBasisForOthers = 0;
+    initialChildSizes.forEach((size, index) => {
+        if (index !== smallestIndex) {
+            totalBasisForOthers += size;
+        }
+    });
+
+    if (totalBasisForOthers <= 0) {
+        recalculateAllSplitsRecursively(element);
+        return;
+    }
+    
+    const remainingPercent = 100 - newSmallestChildBasisPercent;
+
+    children.forEach((child, index) => {
+        if (index === smallestIndex) {
+            setFlexBasisPercent(child, newSmallestChildBasisPercent, 0, 1); // grow=0 is key
+        } else {
+            const childsProportion = initialChildSizes[index] / totalBasisForOthers;
+            setFlexBasisPercent(child, remainingPercent * childsProportion, 1, 1);
+        }
+    });
 }
+
+export function attachResizer(resizer, orientation = 'vertical') {
+    const paneResizeStrategy = {
+        onDragStart: (resizerEl, { sizeProp }) => {
+            const aElem = resizerEl.previousElementSibling;
+            const bElem = resizerEl.nextElementSibling;
+            if (!aElem || !bElem) return null;
+
+            if (aElem.classList.contains('view-collapsed') || aElem.classList.contains('ptmt-container-collapsed') || bElem.classList.contains('view-collapsed') || bElem.classList.contains('ptmt-container-collapsed')) return null;
+
+            const minSizeA = calculateElementMinWidth(aElem);
+            const minSizeB = calculateElementMinWidth(bElem);
+
+            const flexSiblings = Array.from(resizerEl.parentElement.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+            const initialSizes = flexSiblings.map(el => el.getBoundingClientRect()[sizeProp]);
+            const aElemIndex = flexSiblings.indexOf(aElem);
+            const bElemIndex = flexSiblings.indexOf(bElem);
+            const parentRectAtStart = resizerEl.parentElement?.getBoundingClientRect();
+
+            const getChildInfo = (elem) => {
+                if (!elem.classList.contains('ptmt-split')) return { element: null, sizes: null, smallestIndex: -1 };
+
+                const dragIsVertical = sizeProp === 'width';
+                const splitIsVertical = !elem.classList.contains('horizontal');
+
+                if (dragIsVertical !== splitIsVertical) {
+                    return { element: null, sizes: null, smallestIndex: -1 };
+                }
+
+                const children = Array.from(elem.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+                if (children.length <= 1) return { element: null, sizes: null, smallestIndex: -1 };
+                
+                const sizes = children.map(c => c.getBoundingClientRect()[sizeProp]);
+                let smallestIndex = -1, minSize = Infinity;
+                sizes.forEach((size, index) => {
+                    if (size < minSize) { minSize = size; smallestIndex = index; }
+                });
+                return { element: elem, sizes, smallestIndex };
+            };
+
+            return { flexSiblings, initialSizes, aElemIndex, bElemIndex, minSizeA, minSizeB, parentRectAtStart, sizeProp, aChildInfo: getChildInfo(aElem), bChildInfo: getChildInfo(bElem) };
+        },
+
+        onDragMove: (delta, state) => {
+            let clampedDelta = Math.max(delta, state.minSizeA - state.initialSizes[state.aElemIndex]);
+            clampedDelta = Math.min(clampedDelta, state.initialSizes[state.bElemIndex] - state.minSizeB);
+
+            const aElem = state.flexSiblings[state.aElemIndex];
+            const bElem = state.flexSiblings[state.bElemIndex];
+            
+            const newSizeA = state.initialSizes[state.aElemIndex] + clampedDelta;
+            const newSizeB = state.initialSizes[state.bElemIndex] - clampedDelta;
+
+            const totalResizerSize = Array.from(state.flexSiblings[0].parentElement.children).filter(c => !c.classList.contains('ptmt-pane') && !c.classList.contains('ptmt-split')).reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
+            const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
+
+            if (totalAvailable <= 0) return;
+
+            setFlexBasisPercent(aElem, pxToPercent(newSizeA, totalAvailable));
+            setFlexBasisPercent(bElem, pxToPercent(newSizeB, totalAvailable));
+
+            // Apply logic to both sides to ensure consistency and prevent gaps
+            applyIntelligentExpansion(aElem, newSizeA, state.aChildInfo);
+            applyIntelligentExpansion(bElem, newSizeB, state.bChildInfo);
+
+            aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+            bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+        }
+    };
+
+    if (resizerControllers.has(resizer)) { resizerControllers.get(resizer).detach(); }
+    resizerControllers.set(resizer, createResizer(resizer, orientation, paneResizeStrategy));
+}
+
 
 export function attachColumnResizer(resizer) {
-  const columnResizeStrategy = {
-    onDragStart: (resizerEl, { sizeProp }) => {
-      const aElem = resizerEl.previousElementSibling;
-      const bElem = resizerEl.nextElementSibling;
-      if (!aElem || !bElem || !aElem.classList.contains('ptmt-body-column') || !bElem.classList.contains('ptmt-body-column')) {
-        return null;
-      }
+    const columnResizeStrategy = {
+        onDragStart: (resizerEl, { sizeProp }) => {
+            const aElem = resizerEl.previousElementSibling;
+            const bElem = resizerEl.nextElementSibling;
+            if (!aElem || !bElem || !aElem.classList.contains('ptmt-body-column') || !bElem.classList.contains('ptmt-body-column')) return null;
 
-      const refs = getRefs();
-      const parentRectAtStart = refs.mainBody.getBoundingClientRect();
-      const minWidthA = calculateElementMinWidth(aElem.querySelector('.ptmt-pane, .ptmt-split'));
-      const minWidthB = calculateElementMinWidth(bElem.querySelector('.ptmt-pane, .ptmt-split'));
+            const refs = getRefs();
+            const parentRectAtStart = refs.mainBody.getBoundingClientRect();
+            const minWidthA = calculateElementMinWidth(aElem);
+            const minWidthB = calculateElementMinWidth(bElem);
 
-      const initialSizes = {
-        left: refs.leftBody.style.display === 'none' ? 0 : refs.leftBody.getBoundingClientRect()[sizeProp],
-        center: refs.centerBody.style.display === 'none' ? 0 : refs.centerBody.getBoundingClientRect()[sizeProp],
-        right: refs.rightBody.style.display === 'none' ? 0 : refs.rightBody.getBoundingClientRect()[sizeProp],
-      };
+            const initialSizes = {
+                left: refs.leftBody.style.display === 'none' ? 0 : refs.leftBody.getBoundingClientRect()[sizeProp],
+                center: refs.centerBody.style.display === 'none' ? 0 : refs.centerBody.getBoundingClientRect()[sizeProp],
+                right: refs.rightBody.style.display === 'none' ? 0 : refs.rightBody.getBoundingClientRect()[sizeProp],
+            };
+            
+            const getChildInfo = (elem) => {
+                const content = elem.querySelector('.ptmt-pane, .ptmt-split');
+                if (!content || !content.classList.contains('ptmt-split')) return { element: null, sizes: null, smallestIndex: -1 };
+                
+                const dragIsVertical = sizeProp === 'width';
+                const splitIsVertical = !content.classList.contains('horizontal');
+                if (dragIsVertical !== splitIsVertical) return { element: null, sizes: null, smallestIndex: -1 };
 
-      const aKey = aElem.id.replace('ptmt-', '').replace('Body', '');
-      const bKey = bElem.id.replace('ptmt-', '').replace('Body', '');
+                const grandchildren = Array.from(content.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+                if (grandchildren.length <= 1) return { element: null, sizes: null, smallestIndex: -1 };
 
-      return { refs, initialSizes, minWidthA, minWidthB, aKey, bKey, parentRectAtStart, sizeProp };
-    },
+                const sizes = grandchildren.map(c => c.getBoundingClientRect()[sizeProp]);
+                let smallestIndex = -1, minSize = Infinity;
+                sizes.forEach((size, index) => {
+                    if (size < minSize) { minSize = size; smallestIndex = index; }
+                });
+                return { element: content, sizes, smallestIndex };
+            };
 
-    onDragMove: (delta, state) => {
-      let clampedDelta = Math.max(delta, state.minWidthA - state.initialSizes[state.aKey]);
-      clampedDelta = Math.min(clampedDelta, state.initialSizes[state.bKey] - state.minWidthB);
+            const aKey = aElem.id.replace('ptmt-', '').replace('Body', '');
+            const bKey = bElem.id.replace('ptmt-', '').replace('Body', '');
 
-      const newSizes = { ...state.initialSizes };
-      newSizes[state.aKey] = state.initialSizes[state.aKey] + clampedDelta;
-      newSizes[state.bKey] = state.initialSizes[state.bKey] - clampedDelta;
+            return { refs, initialSizes, minWidthA, minWidthB, aKey, bKey, parentRectAtStart, sizeProp, aChildInfo: getChildInfo(aElem), bChildInfo: getChildInfo(bElem) };
+        },
 
-      const totalResizerSize = $$('.ptmt-column-resizer', state.refs.mainBody)
-        .reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
-      const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
+        onDragMove: (delta, state) => {
+            let clampedDelta = Math.max(delta, state.minWidthA - state.initialSizes[state.aKey]);
+            clampedDelta = Math.min(clampedDelta, state.initialSizes[state.bKey] - state.minWidthB);
 
-      if (totalAvailable <= 0) return;
+            const newSizes = { ...state.initialSizes };
+            newSizes[state.aKey] += clampedDelta;
+            newSizes[state.bKey] -= clampedDelta;
 
-      const { leftBody, centerBody, rightBody } = state.refs;
-      if (leftBody.style.display !== 'none') leftBody.style.flex = `1 1 ${pxToPercent(newSizes.left, totalAvailable).toFixed(4)}%`;
-      if (centerBody.style.display !== 'none') centerBody.style.flex = `1 1 ${pxToPercent(newSizes.center, totalAvailable).toFixed(4)}%`;
-      if (rightBody.style.display !== 'none') rightBody.style.flex = `1 1 ${pxToPercent(newSizes.right, totalAvailable).toFixed(4)}%`;
+            const totalResizerSize = $$('.ptmt-column-resizer', state.refs.mainBody).reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
+            const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
 
-      // Trigger real-time icon mode check for all affected panes.
-      const aElem = state.refs[`${state.aKey}Body`];
-      const bElem = state.refs[`${state.bKey}Body`];
-      aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
-      bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
-    }
-  };
+            if (totalAvailable <= 0) return;
 
-  return createResizer(resizer, 'vertical', columnResizeStrategy);
+            const { leftBody, centerBody, rightBody } = state.refs;
+            if (leftBody.style.display !== 'none') setFlexBasisPercent(leftBody, pxToPercent(newSizes.left, totalAvailable));
+            if (centerBody.style.display !== 'none') setFlexBasisPercent(centerBody, pxToPercent(newSizes.center, totalAvailable));
+            if (rightBody.style.display !== 'none') setFlexBasisPercent(rightBody, pxToPercent(newSizes.right, totalAvailable));
+
+            const aElem = state.refs[`${state.aKey}Body`];
+            const bElem = state.refs[`${state.bKey}Body`];
+            
+            applyIntelligentExpansion(aElem, newSizes[state.aKey], state.aChildInfo);
+            applyIntelligentExpansion(bElem, newSizes[state.bKey], state.bChildInfo);
+
+            aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+            bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+        }
+    };
+
+    return createResizer(resizer, 'vertical', columnResizeStrategy);
 }
+
 
 export function setSplitOrientation(splitElement, newOrientation) {
   if (!splitElement) return;
@@ -297,6 +368,13 @@ export function updateResizerDisabledStates() {
 
 export function calculateElementMinWidth(element) {
   if (!element) return 0;
+  
+  const isCollapsed = element.classList.contains('view-collapsed') || element.classList.contains('ptmt-container-collapsed');
+  if(isCollapsed) {
+      const parentIsHorizontal = element.parentElement?.classList.contains('horizontal');
+      const isHorizontal = element.classList.contains('horizontal') || parentIsHorizontal;
+      return element.getBoundingClientRect()[isHorizontal ? 'height' : 'width'];
+  }
 
   if (element.classList.contains('ptmt-pane')) {
     const vs = readPaneViewSettings(element);
@@ -309,29 +387,23 @@ export function calculateElementMinWidth(element) {
 
     if (element.classList.contains('horizontal')) {
       let maxMinWidth = 0;
-      for (const child of children) {
-        maxMinWidth = Math.max(maxMinWidth, calculateElementMinWidth(child));
-      }
+      children.forEach(child => maxMinWidth = Math.max(maxMinWidth, calculateElementMinWidth(child)));
       return maxMinWidth;
     } else {
       let totalMinWidth = 0;
-      for (const child of children) {
-        totalMinWidth += calculateElementMinWidth(child);
-      }
-      for (const resizer of resizers) {
-        totalMinWidth += resizer.getBoundingClientRect().width || 8;
-      }
+      children.forEach(child => totalMinWidth += calculateElementMinWidth(child));
+      resizers.forEach(resizer => totalMinWidth += resizer.getBoundingClientRect().width || 8);
       return totalMinWidth;
     }
   }
   return 0;
 }
 
-export function recalculateAllSplitsRecursively() {
+export function recalculateAllSplitsRecursively(root = getRefs().mainBody) {
   try {
-    const refs = getRefs();
-    const splits = Array.from(refs.mainBody.querySelectorAll('.ptmt-split'));
-    splits.sort((a, b) => getElementDepth(b) - getElementDepth(a));
+    if (!root) return;
+    const splits = Array.from(root.querySelectorAll('.ptmt-split'));
+    splits.sort((a, b) => getElementDepth(a) - getElementDepth(b));
     for (const split of splits) {
       recalculateSplitSizes(split);
     }
@@ -340,93 +412,91 @@ export function recalculateAllSplitsRecursively() {
   }
 }
 
-export function recalculateSplitSizes(split, protectedChild = null) {
-  if (!split?.classList.contains('ptmt-split')) return;
+export function recalculateSplitSizes(split) {
+    if (!split?.classList.contains('ptmt-split')) return;
 
-  const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
-  if (children.length === 0) return;
+    const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+    if (children.length === 0) return;
 
-  const activeChildren = children.filter(c => !c.classList.contains('view-collapsed') && !c.classList.contains('ptmt-container-collapsed'));
+    const activeChildren = children.filter(c => !c.classList.contains('view-collapsed') && !c.classList.contains('ptmt-container-collapsed'));
 
-  if (activeChildren.length < children.length) {
-    children.forEach(child => {
-      if (child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')) {
-        child.style.flex = '0 0 auto';
-      } else {
-        child.style.flex = '1 1 100%';
-      }
-    });
-  } else {
-    if (protectedChild) {
-        const flexValue = protectedChild.style.flex;
-        const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        const protectedBasis = basisMatch ? parseFloat(basisMatch[1]) : (100.0 / activeChildren.length);
-        const protectedIndex = children.indexOf(protectedChild);
-
-        let leftNeighbor = null;
-        for (let i = protectedIndex - 1; i >= 0; i--) {
-            if (activeChildren.includes(children[i])) {
-                leftNeighbor = children[i];
-                break;
+    if (activeChildren.length < children.length) {
+        children.forEach(child => {
+            if (child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')) {
+                child.style.flex = '0 0 auto';
+            } else {
+                setFlexBasisPercent(child, 100 / (activeChildren.length || 1));
             }
-        }
-        let rightNeighbor = null;
-        for (let i = protectedIndex + 1; i < children.length; i++) {
-            if (activeChildren.includes(children[i])) {
-                rightNeighbor = children[i];
-                break;
+        });
+        return;
+    }
+
+    const isHorizontal = split.classList.contains('horizontal');
+    const sizeProp = isHorizontal ? 'height' : 'width';
+    const splitRect = split.getBoundingClientRect();
+    const totalAvailableSize = splitRect[sizeProp];
+    if (totalAvailableSize <= 1) return;
+
+    const resizers = Array.from(split.children).filter(c => c.tagName === 'SPLITTER');
+    const totalResizerSize = resizers.reduce((sum, r) => sum + r.getBoundingClientRect()[sizeProp], 0);
+    const contentAvailableSize = Math.max(0, totalAvailableSize - totalResizerSize);
+
+    const childrenInfo = activeChildren.map(child => {
+        const flexValue = child.style.flex;
+        const basisMatch = flexValue && flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
+        return { el: child, minSize: calculateElementMinWidth(child), flexBasisPercent: basisMatch ? parseFloat(basisMatch[1]) : (100 / activeChildren.length) };
+    });
+
+    const totalMinSize = childrenInfo.reduce((sum, info) => sum + info.minSize, 0);
+    let finalSizes;
+
+    if (contentAvailableSize < totalMinSize) {
+        finalSizes = (totalMinSize > 0) ? childrenInfo.map(info => contentAvailableSize * (info.minSize / totalMinSize)) : childrenInfo.map(() => contentAvailableSize / childrenInfo.length);
+    } else {
+        let idealSizes = childrenInfo.map(info => contentAvailableSize * (info.flexBasisPercent / 100));
+        let deficit = 0;
+        idealSizes.forEach((size, i) => {
+            const min = childrenInfo[i].minSize;
+            if (size < min) { deficit += min - size; idealSizes[i] = min; }
+        });
+
+        if (deficit > 0.01) {
+            let stealableSpace = 0;
+            const stealableChildren = [];
+            idealSizes.forEach((size, i) => {
+                const available = size - childrenInfo[i].minSize;
+                if (available > 0) { stealableSpace += available; stealableChildren.push({ index: i, available }); }
+            });
+
+            if (stealableSpace > 0) {
+                const amountToSteal = Math.min(deficit, stealableSpace);
+                stealableChildren.forEach(s => {
+                    const proportion = s.available / stealableSpace;
+                    idealSizes[s.index] -= amountToSteal * proportion;
+                });
             }
         }
         
-        const neighborsToResize = [leftNeighbor, rightNeighbor].filter(Boolean);
-        const unaffectedChildren = activeChildren.filter(c => c !== protectedChild && !neighborsToResize.includes(c));
+        const currentTotalSize = idealSizes.reduce((a, b) => a + b, 0);
+        const surplus = contentAvailableSize - currentTotalSize;
 
-        const unaffectedBasis = unaffectedChildren.reduce((sum, col) => {
-            const flex = col.style.flex;
-            const match = flex.match(/(\d+(?:\.\d+)?)\s*%/);
-            return sum + (match ? parseFloat(match[1]) : 0);
-        }, 0);
-
-        const neighborTotalBasis = neighborsToResize.reduce((sum, col) => {
-            const flex = col.style.flex;
-            const match = flex.match(/(\d+(?:\.\d+)?)\s*%/);
-            return sum + (match ? parseFloat(match[1]) : 0);
-        }, 0);
-
-        const targetNeighborBasis = 100.0 - protectedBasis - unaffectedBasis;
-
-        if (neighborTotalBasis > 0 && targetNeighborBasis >= 0) {
-            neighborsToResize.forEach(child => {
-                const flex = child.style.flex;
-                const match = flex.match(/(\d+(?:\.\d+)?)\s*%/);
-                const currentBasis = match ? parseFloat(match[1]) : (neighborTotalBasis / neighborsToResize.length);
-                const newBasis = (currentBasis / neighborTotalBasis) * targetNeighborBasis;
-                setFlexBasisPercent(child, newBasis);
+        if (Math.abs(surplus) > 0.1) {
+            let largestChildIndex = -1, maxSize = -1;
+            idealSizes.forEach((size, i) => {
+                if (size > maxSize) { maxSize = size; largestChildIndex = i; }
             });
-        } else if (targetNeighborBasis >= 0 && neighborsToResize.length > 0) {
-            const equalBasis = targetNeighborBasis / neighborsToResize.length;
-            neighborsToResize.forEach(child => setFlexBasisPercent(child, equalBasis));
+            if (largestChildIndex !== -1) { idealSizes[largestChildIndex] += surplus; }
         }
-
-    } else {
-      const totalFlexBasis = activeChildren.reduce((sum, col) => {
-        const flexValue = col.style.flex;
-        const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        return sum + (basisMatch ? parseFloat(basisMatch[1]) : 0);
-      }, 0);
-      if (totalFlexBasis <= 0) return;
-      const error = totalFlexBasis - 100.0;
-      if (Math.abs(error) < 0.01) return;
-      activeChildren.forEach(child => {
-        const flexValue = child.style.flex;
-        const basisMatch = flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        const currentBasis = basisMatch ? parseFloat(basisMatch[1]) : (100.0 / activeChildren.length);
-        const adjustment = error * (currentBasis / totalFlexBasis);
-        const newBasis = currentBasis - adjustment;
-        setFlexBasisPercent(child, newBasis);
-      });
+        finalSizes = idealSizes;
     }
-  }
+
+    const totalFinalSize = finalSizes.reduce((sum, size) => sum + size, 0);
+    if (totalFinalSize > 0.1) {
+        activeChildren.forEach((child, index) => {
+            const percentage = pxToPercent(finalSizes[index], totalFinalSize);
+            setFlexBasisPercent(child, percentage);
+        });
+    }
 }
 
 export function validateAndCorrectAllMinSizes() {
@@ -442,7 +512,7 @@ export function validateAndCorrectAllMinSizes() {
         const parentRect = parent.getBoundingClientRect();
         const paneRect = pane.getBoundingClientRect();
 
-        let orientation = 'vertical'; // Default for columns
+        let orientation = 'vertical';
         let parentSize = parentRect.width;
         let currentSize = paneRect.width;
 

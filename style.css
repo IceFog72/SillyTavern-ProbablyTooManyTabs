@@ -57,6 +57,11 @@
   position: inherit !important;
 }
 
+#character_popup{
+    position: inherit !important;
+    max-width: unset !important;
+    box-shadow: unset !important;
+}
 
 
 

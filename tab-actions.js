@@ -6,13 +6,7 @@ export const tabActions = {
         },
         onSelect: (panel) => {
             console.log('[PTMT-Actions] Gallery panel selected.', panel);
-            // Example: trigger a resize on an element inside gallery if it needs it.
-            const gallery = panel.querySelector('#gallery');
-            if (gallery) {
-                // Some components only resize correctly when they are visible.
-                // This hook allows us to trigger that resize.
-                window.dispatchEvent(new Event('resize'));
-            }
+
         },
         onCollapse: (panel) => {
             console.log('[PTMT-Actions] Gallery tab collapsed.', panel);
@@ -21,14 +15,46 @@ export const tabActions = {
             console.log('[PTMT-Actions] Gallery tab opened.', panel);
         },
     },
-    // To add actions for another tab, uncomment and modify the following:
-    /*
-    'WorldInfo': { 
-        onSelect: (panel) => { 
-            console.log('[PTMT-Actions] World Info selected. Maybe refresh data?', panel);
-        } 
+    'notebookPanel': {
+        onInit: (panel) => {
+            console.log('[PTMT-Actions] notebookPanel panel initialized.', panel);
+        },
+        onSelect: (panel) => {
+            console.log('[PTMT-Actions] notebookPanel panel selected.', panel);
+
+        },
+        onCollapse: (panel) => {
+            console.log('[PTMT-Actions] notebookPanel tab collapsed.', panel);
+        },
+        onOpen: (panel) => {
+            console.log('[PTMT-Actions] notebookPanel tab opened.', panel);
+        },
     },
-    */
+    'character_popup': {
+        onInit: (panel) => {
+            console.log('[PTMT-Actions] character_popup panel initialized.', panel);
+            //if (!is_advanced_char_open) {
+            //   is_advanced_char_open = true;
+            $('#character_popup').css({ 'display': 'flex'}).addClass('open');
+            // }
+        },
+        onSelect: (panel) => {
+            console.log('[PTMT-Actions] character_popup panel selected.', panel);
+
+
+        },
+        onCollapse: (panel) => {
+            console.log('[PTMT-Actions] character_popup tab collapsed.', panel);
+            //if (is_advanced_char_open) {
+            //   is_advanced_char_open = false;
+            $('#character_popup').css('display', 'none').removeClass('open');
+            //}
+        },
+        onOpen: (panel) => {
+            console.log('[PTMT-Actions] character_popup tab opened.', panel);
+            $('#character_popup').css({ 'display': 'flex', 'opacity': 100.0 }).addClass('open');
+        },
+    }
 };
 
 /**
@@ -39,7 +65,7 @@ export const tabActions = {
  */
 export function runTabAction(sourceId, actionType, panel) {
     if (!sourceId || !panel) return;
-    
+
     const actions = tabActions[sourceId];
     if (actions && typeof actions[actionType] === 'function') {
         try {
