@@ -128,7 +128,6 @@ function createResizer(resizer, orientation, config) {
 /**
  * Applies intelligent expansion logic. If the element contains a split matching the drag
  * orientation, it locks the smallest child's size and lets larger ones grow.
- * Otherwise, it falls back to standard proportional resizing.
  */
 function applyIntelligentExpansion(element, newTotalSize, childInfo) {
     if (!element || !childInfo || !childInfo.element) {
@@ -226,9 +225,16 @@ export function attachResizer(resizer, orientation = 'vertical') {
             setFlexBasisPercent(aElem, pxToPercent(newSizeA, totalAvailable));
             setFlexBasisPercent(bElem, pxToPercent(newSizeB, totalAvailable));
 
-            // Apply logic to both sides to ensure consistency and prevent gaps
-            applyIntelligentExpansion(aElem, newSizeA, state.aChildInfo);
-            applyIntelligentExpansion(bElem, newSizeB, state.bChildInfo);
+            if (clampedDelta > 0) { // aElem is expanding, bElem is shrinking
+                applyIntelligentExpansion(aElem, newSizeA, state.aChildInfo);
+                recalculateAllSplitsRecursively(bElem);
+            } else if (clampedDelta < 0) { // bElem is expanding, aElem is shrinking
+                recalculateAllSplitsRecursively(aElem);
+                applyIntelligentExpansion(bElem, newSizeB, state.bChildInfo);
+            } else { // No change, just recalculate both to be safe
+                recalculateAllSplitsRecursively(aElem);
+                recalculateAllSplitsRecursively(bElem);
+            }
 
             aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
             bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
@@ -249,7 +255,6 @@ export function attachColumnResizer(resizer) {
 
             const refs = getRefs();
             const parentRectAtStart = refs.mainBody.getBoundingClientRect();
-            // CORRECTED: Find the content inside the column to calculate min width
             const minWidthA = calculateElementMinWidth(aElem.querySelector('.ptmt-pane, .ptmt-split'));
             const minWidthB = calculateElementMinWidth(bElem.querySelector('.ptmt-pane, .ptmt-split'));
 
@@ -305,8 +310,16 @@ export function attachColumnResizer(resizer) {
             const aElem = state.refs[`${state.aKey}Body`];
             const bElem = state.refs[`${state.bKey}Body`];
             
-            applyIntelligentExpansion(aElem, newSizes[state.aKey], state.aChildInfo);
-            applyIntelligentExpansion(bElem, newSizes[state.bKey], state.bChildInfo);
+            if (clampedDelta > 0) { // aElem column is expanding, bElem is shrinking
+                applyIntelligentExpansion(aElem, newSizes[state.aKey], state.aChildInfo);
+                recalculateAllSplitsRecursively(bElem);
+            } else if (clampedDelta < 0) { // bElem column is expanding, aElem is shrinking
+                recalculateAllSplitsRecursively(aElem);
+                applyIntelligentExpansion(bElem, newSizes[state.bKey], state.bChildInfo);
+            } else { // No change
+                 recalculateAllSplitsRecursively(aElem);
+                 recalculateAllSplitsRecursively(bElem);
+            }
 
             aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
             bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
