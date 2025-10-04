@@ -63,7 +63,15 @@
     box-shadow: unset !important;
 }
 
+.ptmt-pane-grid.grid-vertical #sheld {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+}
 
+.ptmt-pane-grid.grid-vertical .drawer-content {
+  height: 100dvh !important;
+  max-height: 100dvh !important;
+}
 
 html,
 body,
@@ -110,7 +118,7 @@ body,
 }
 
 .ptmt-resizer-vertical:hover {
-  background: linear-gradient(90deg, transparent, var(--SmartThemeShadowColor), transparent);
+  background: linear-gradient(90deg, transparent, var(--SmartThemeQuoteColor), transparent);
 }
 
 .ptmt-resizer-horizontal {
@@ -122,7 +130,7 @@ body,
 }
 
 .ptmt-resizer-horizontal:hover {
-  background: linear-gradient(180deg, transparent, var(--SmartThemeShadowColor), transparent);
+  background: linear-gradient(180deg, transparent, var(--SmartThemeQuoteColor), transparent);
 }
 
 .ptmt-resizer-vertical.disabled,

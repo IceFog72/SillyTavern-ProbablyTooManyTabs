@@ -48,7 +48,8 @@ export class LayoutManager {
         const resetBtn = el('button',
             {
                 style: { marginTop: '10px', cursor: 'pointer' },
-                title: 'Reset all layout settings and reload the UI'
+                title: 'Reset all layout settings and reload the UI',
+                class: 'menu_button menu_button_icon interactable'
             },
             'Reset Layout to Default'
         );
