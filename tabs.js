@@ -49,8 +49,11 @@ function setTabCollapsed(pid, collapsed) {
 }
 
 
-export function createTabElement(title, pid, icon = null) {
+export function createTabElement(title, pid, icon = null, options = {}) {
   const t = el('div', { className: 'ptmt-tab', draggable: true, tabindex: 0 });
+  if (options.collapsed) {
+    t.classList.add('collapsed');
+  }
   const labelEl = el('span', { className: 'ptmt-tab-label' }, title || 'Tab');
   t.dataset.for = pid;
 
@@ -276,7 +279,7 @@ export function createTabFromContent(content, options = {}, target = null) {
     return panel;
 }
 
-export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDefault = true } = {}, targetPane = null) {
+export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDefault = true, collapsed = false } = {}, targetPane = null) {
   const PROTECTED_IDS = new Set(['ptmt-main', 'ptmt-staging-area', 'ptmt-settings-wrapper']);
 
   const toMove = Array.from(document.body.childNodes).filter(n => {
@@ -308,7 +311,7 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
   }
 
   pane._panelContainer.appendChild(panel);
-  const tab = createTabElement(title, pid, icon);
+  const tab = createTabElement(title, pid, icon, { collapsed });
   
   const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   if (settingsBtn) pane._tabStrip.insertBefore(tab, settingsBtn); else pane._tabStrip.appendChild(tab);

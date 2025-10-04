@@ -3,7 +3,7 @@
 import { getRefs, recalculateColumnSizes, applyColumnVisibility } from './layout.js';
 import { getPanelById, getSplitOrientation, el, getPanelBySourceId } from './utils.js';
 import { createPane, writePaneViewSettings, readPaneViewSettings, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
-import { openTab, createTabFromContent, setActivePanelInPane, createTabForBodyContent, createPanelElement, registerPanelDom, createTabElement } from './tabs.js';
+import { openTab, createTabFromContent, setActivePanelInPane, createTabForBodyContent, createPanelElement, registerPanelDom, createTabElement, getPaneForPanel } from './tabs.js';
 import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
 import { settings } from './settings.js';
@@ -16,6 +16,23 @@ const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },
     split: { width: '150px', height: '80px' }
 };
+
+function findTabInSnapshot(snapshotNode, sourceId) {
+    if (!snapshotNode) return null;
+
+    if (snapshotNode.type === 'pane') {
+        return snapshotNode.tabs?.find(t => t.sourceId === sourceId) || null;
+    }
+
+    if (snapshotNode.type === 'split') {
+        if (!snapshotNode.children) return null;
+        for (const child of snapshotNode.children) {
+            const found = findTabInSnapshot(child, sourceId);
+            if (found) return found;
+        }
+    }
+    return null;
+}
 
 export function generateLayoutSnapshot() {
     const refs = getRefs();
@@ -188,6 +205,16 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             applyLayoutSnapshot(defaultLayout, api, settings);
         }
         return;
+    }
+
+    let mainTabInfo = null;
+    if (snapshot.columns) {
+        for (const colName of ['left', 'center', 'right']) {
+            if (snapshot.columns[colName]?.content) {
+                mainTabInfo = findTabInSnapshot(snapshot.columns[colName].content, 'ptmt-main-content');
+                if (mainTabInfo) break;
+            }
+        }
     }
 
     const refs = getRefs();
@@ -544,15 +571,18 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 settingsPanel.querySelector('.ptmt-panel-content').appendChild(settingsUI);
             }
 
-            createTabForBodyContent({
+            const mainPanel = createTabForBodyContent({
                 title: 'Main',
                 icon: '📌',
-                setAsDefault: true
+                setAsDefault: true,
+                collapsed: mainTabInfo ? mainTabInfo.collapsed : false
             }, centerPane);
 
-            const mainPanel = document.querySelector('[data-source-id="ptmt-main-content"]');
             if (mainPanel) {
-                openTab(mainPanel.dataset.panelId);
+                const mainPane = getPaneForPanel(mainPanel);
+                if (mainPane) {
+                    checkAndCollapsePaneIfAllTabsCollapsed(mainPane);
+                }
             }
         }
 
