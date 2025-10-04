@@ -491,7 +491,7 @@ export function openViewSettingsDialog(pane) {
 
   const dialogStyles = {
     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    background: '#2a3b4d', color: '#eee', padding: '20px', borderRadius: '8px',
+    background: 'var(--SmartThemeBlurTintColor)', padding: '20px', borderRadius: '8px',
     border: '1px solid #556', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
     zIndex: '10000', minWidth: '300px'
   };
@@ -506,7 +506,7 @@ export function openViewSettingsDialog(pane) {
       el('h3', { style: { marginTop: '0', marginBottom: '20px' } }, 'Pane Settings'),
       el('div', { style: { marginBottom: '12px' } },
         el('label', { for: 'ptmt-vs-minimal-panel' }, 'Min. Panel Size (px): '),
-        el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'ptmt-vs-minimal-panel' })
+        el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'ptmt-vs-minimal-panel', class: 'neo-range-input' })
       ),
       el('div', { style: { marginBottom: '12px' } },
         el('label', { for: 'ptmt-vs-default' }, 'Default orientation: '),

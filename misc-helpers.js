@@ -106,3 +106,44 @@ export function overrideDelegatedEventHandler(eventType, selector, findFunction,
         console.error('[PTMT] Error while overriding event handler:', e);
     }
 }
+
+/**
+ * Watches for drawers being closed and immediately re-opens them.
+ */
+export function initDrawerObserver() {
+    const observer = new MutationObserver((mutationsList) => {
+        for (const mutation of mutationsList) {
+            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                const target = mutation.target;
+                if (target.nodeType === 1 && target.classList.contains('closedDrawer')) {
+                    target.classList.remove('closedDrawer');
+                    target.classList.add('openDrawer');
+                }
+            }
+        }
+    });
+
+    observer.observe(document.body, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ['class'],
+    });
+
+    console.log('[PTMT] Drawer state observer initialized.');
+    return observer;
+}
+
+export function hideTemplatesAndPopupsWrapper() {
+    try {
+        const wrapper = document.querySelector('div[name="templatesAndPopupsWrapper"]');
+        if (wrapper) {
+            wrapper.style.cssText += 'display: none !important;';
+            console.log('[PTMT] Hid templatesAndPopupsWrapper.');
+            return true;
+        }
+        return false;
+    } catch (e) {
+        console.error('[PTMT] Error hiding templatesAndPopupsWrapper:', e);
+        return false;
+    }
+}

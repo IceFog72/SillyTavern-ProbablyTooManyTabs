@@ -17,7 +17,7 @@ import {
 } from './tabs.js';
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
-import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler } from './misc-helpers.js';
+import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver, hideTemplatesAndPopupsWrapper } from './misc-helpers.js';
 import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 
 (function () {
@@ -135,6 +135,8 @@ import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } 
     try { removeMouseDownDrawerHandler(); } catch { }
     enableInteractions();
     moveBgDivs();
+    initDrawerObserver();
+    hideTemplatesAndPopupsWrapper();
 
     overrideDelegatedEventHandler(
         'click',
@@ -206,10 +208,10 @@ import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } 
                     $('.zoomed_avatar_container').izoomify();
                 }
 
-                $('.zoomed_avatar, .zoomed_avatar .dragClose').on('click touchend', (e) => {
+                newElement.on('click touchend', (e) => {
                     if (e.target.closest('.dragClose')) {
-                        $(`.zoomed_avatar[forChar="${charname}"]`).fadeOut(animation_duration, () => {
-                            $(`.zoomed_avatar[forChar="${charname}"]`).remove();
+                        newElement.fadeOut(animation_duration, () => {
+                            newElement.remove();
                         });
                     }
                 });

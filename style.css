@@ -26,7 +26,10 @@
   border-radius: unset;
   width: auto !important;
   max-width: none !important;
+  display: block !important;
+  opacity: 100 !important;
 }
+
 
 #sheld {
   width: unset !important;

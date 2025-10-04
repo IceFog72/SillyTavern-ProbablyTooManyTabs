@@ -32,7 +32,12 @@ class SettingsManager {
             { id: 'zoomed_avatar', title: 'Avatar', icon: '🏞️' },
             { id: 'character_popup', title: 'Adv. Definitions', icon: '👤' },
             { id: 'user-settings-block', title: 'User Settings', icon: '⚙️' },
-            { id: 'PersonaManagement', title: 'Persona Management', icon: '👤' }
+            { id: 'floatingPrompt', title: 'Author\'s Note', icon: '📓' },
+            { id: 'PersonaManagement', title: 'Persona Management', icon: '👤' },
+            { id: 'objectiveExtensionPopout', title: 'Objective', icon: '🧭' },
+            { id: 'cfgConfig', title: 'Chat CFG', icon: '🧭' },
+            { id: 'logprobsViewer', title: 'Token Probabilities', icon: '✨' },
+            { id: 'dupeFinderPanel', title: 'Similar Characters', icon: '👤' }
         ],
 
         presets: [],
@@ -107,8 +112,14 @@ class SettingsManager {
                                 flex: '1 1 50%',
                                 viewSettings: { contentFlow: "reversed" },
                                 tabs: [
+                                    
+                                    { sourceId: "right-nav-panel" },
                                     { sourceId: "PersonaManagement" },
-                                    { sourceId: "right-nav-panel" }
+                                    { sourceId: "floatingPrompt" },
+                                    { sourceId: "dupeFinderPanel" },
+                                    { sourceId: "cfgConfig" },
+                                    { sourceId: "logprobsViewer" }
+      
                                 ]
                             },
                             {
@@ -122,7 +133,9 @@ class SettingsManager {
                             }
                         ]
                     },
-                    ghostTabs: []
+                    ghostTabs: [
+                        { searchId: "objectiveExtensionPopout", searchClass: "" }
+                    ]
                 }
             }
         }
