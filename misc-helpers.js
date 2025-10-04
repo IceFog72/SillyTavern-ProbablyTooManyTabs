@@ -46,7 +46,7 @@ export function openAllDrawersJq(context = document) {
 
 export function moveBgDivs(ids = ['bg_custom', 'bg1']) {
   if (!document?.body) return [];
-  const found = ids.map(id => document.getElementById(id)).filter(Boolean);
+  /*const found = ids.map(id => document.getElementById(id)).filter(Boolean);
   if (!found.length) return [];
   const mainEl = document.getElementById('ptmt-main');
   const insertBeforeNode = mainEl || document.body.firstChild;
@@ -60,7 +60,7 @@ export function moveBgDivs(ids = ['bg_custom', 'bg1']) {
       } catch { }
     }
   });
-  return found;
+  return found;*/
 }
 
 

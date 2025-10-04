@@ -451,15 +451,15 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     if (leftHasContent) rebuildNodeTree(snapshot.columns.left.content, refs.leftBody);
     if (centerHasContent) rebuildNodeTree(snapshot.columns.center.content, refs.centerBody);
     if (rightHasContent) rebuildNodeTree(snapshot.columns.right.content, refs.rightBody);
-    
-    if(refs.leftBody.style.display !== 'none' && !refs.leftBody.querySelector('.ptmt-pane')) refs.leftBody.appendChild(createPane({}, { deferInitialCheck: true }));
-    if(!refs.centerBody.querySelector('.ptmt-pane')) refs.centerBody.appendChild(createPane({}, { deferInitialCheck: true }));
-    if(refs.rightBody.style.display !== 'none' && !refs.rightBody.querySelector('.ptmt-pane')) refs.rightBody.appendChild(createPane({}, { deferInitialCheck: true }));
-    
+
+    if (refs.leftBody.style.display !== 'none' && !refs.leftBody.querySelector('.ptmt-pane')) refs.leftBody.appendChild(createPane({}, { deferInitialCheck: true }));
+    if (!refs.centerBody.querySelector('.ptmt-pane')) refs.centerBody.appendChild(createPane({}, { deferInitialCheck: true }));
+    if (refs.rightBody.style.display !== 'none' && !refs.rightBody.querySelector('.ptmt-pane')) refs.rightBody.appendChild(createPane({}, { deferInitialCheck: true }));
+
     ['left', 'center', 'right'].forEach(colName => {
         const ghostTabs = snapshot.columns[colName]?.ghostTabs || [];
         ghostTabs.forEach(tabInfo => {
-            if (placedPanelIds.has(tabInfo.sourceId)) return; 
+            if (placedPanelIds.has(tabInfo.sourceId)) return;
 
             const elExists = document.getElementById(tabInfo.sourceId);
             if (elExists) {
@@ -511,7 +511,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             }
         });
     }
-    
+
     initPendingTabsManager(unhydratedGhostTabs);
 
     requestAnimationFrame(() => {
@@ -542,11 +542,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
         createdPanes.forEach(pane => applyPaneOrientation(pane));
 
-        createdPanes.forEach(pane => {
-            if (typeof checkAndCollapsePaneIfAllTabsCollapsed === 'function') {
-                checkAndCollapsePaneIfAllTabsCollapsed(pane);
-            }
-        });
+
 
 
         const settingsWrapperId = 'ptmt-settings-wrapper-content';
@@ -570,20 +566,26 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 const settingsUI = layoutManager.createSettingsPanel();
                 settingsPanel.querySelector('.ptmt-panel-content').appendChild(settingsUI);
             }
-
+            /*
             const mainPanel = createTabForBodyContent({
                 title: 'Main',
                 icon: '📌',
                 setAsDefault: true,
                 collapsed: mainTabInfo ? mainTabInfo.collapsed : false
             }, centerPane);
-
+ 
             if (mainPanel) {
                 const mainPane = getPaneForPanel(mainPanel);
                 if (mainPane) {
                     checkAndCollapsePaneIfAllTabsCollapsed(mainPane);
                 }
-            }
+            }*/
+            createdPanes.forEach(pane => {
+                if (typeof checkAndCollapsePaneIfAllTabsCollapsed === 'function') {
+                    checkAndCollapsePaneIfAllTabsCollapsed(pane);
+                }
+            });
+
         }
 
 

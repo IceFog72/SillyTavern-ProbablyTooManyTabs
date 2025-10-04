@@ -37,7 +37,8 @@ class SettingsManager {
             { id: 'objectiveExtensionPopout', title: 'Objective', icon: '🧭' },
             { id: 'cfgConfig', title: 'Chat CFG', icon: '🧭' },
             { id: 'logprobsViewer', title: 'Token Probabilities', icon: '✨' },
-            { id: 'dupeFinderPanel', title: 'Similar Characters', icon: '👤' }
+            { id: 'dupeFinderPanel', title: 'Similar Characters', icon: '👤' },
+            { id: 'sheld', title: 'Main', icon: '📌' }
         ],
 
         presets: [],
@@ -81,7 +82,8 @@ class SettingsManager {
                                     { sourceId: "rm_extensions_block" },
                                     { sourceId: "Backgrounds" },
                                     { sourceId: "AdvancedFormatting" },
-                                    { sourceId: "user-settings-block" }
+                                    { sourceId: "user-settings-block" },
+                                    { sourceId: "sheld" }
                                 ]
                             },
                             {

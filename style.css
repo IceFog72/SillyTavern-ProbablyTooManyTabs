@@ -109,37 +109,36 @@ body,
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  min-width: 40px;
+  min-width: 36px;
 }
 
 .ptmt-resizer-vertical {
   flex: 0 0 8px;
   cursor: col-resize;
-  background: linear-gradient(90deg, transparent, rgba(0, 0, 0, 0.0), transparent);
+  background: var(--ptmt-bg);
   transition: background var(--ptmt-transition);
   touch-action: none;
 }
 
 .ptmt-resizer-vertical:hover {
-  background: linear-gradient(90deg, transparent, var(--SmartThemeQuoteColor), transparent);
+  background: linear-gradient(90deg, var(--ptmt-bg), var(--SmartThemeQuoteColor), var(--ptmt-bg));
 }
 
 .ptmt-resizer-horizontal {
   flex: 0 0 8px;
   cursor: row-resize;
-  background: linear-gradient(180deg, transparent, rgba(0, 0, 0, 0.00), transparent);
+  background: var(--ptmt-bg);
   transition: background var(--ptmt-transition);
   touch-action: none;
 }
 
 .ptmt-resizer-horizontal:hover {
-  background: linear-gradient(180deg, transparent, var(--SmartThemeQuoteColor), transparent);
+  background: linear-gradient(180deg, var(--ptmt-bg), var(--SmartThemeQuoteColor), var(--ptmt-bg));
 }
 
 .ptmt-resizer-vertical.disabled,
 .ptmt-resizer-horizontal.disabled {
   cursor: not-allowed;
-  opacity: 0.5;
   pointer-events: none;
 }
 
