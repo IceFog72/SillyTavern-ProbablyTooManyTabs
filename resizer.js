@@ -2,6 +2,7 @@
 import { $$, getElementDepth, setFlexBasisPercent, throttle } from './utils.js';
 import { getRefs, recalculateColumnSizes } from './layout.js';
 import { readPaneViewSettings, defaultViewSettings, applyPaneOrientation } from './pane.js';
+import { settings } from './settings.js';
 
 
 export function invalidatePaneTabSizeCache(pane) {
@@ -91,6 +92,9 @@ function createResizer(resizer, orientation, config) {
     try { resizer.setPointerCapture(pointerId); } catch { }
     startClient = e[clientProp];
 
+    if (settings.get('hideContentWhileResizing')) {
+        document.body.classList.add('ptmt-is-resizing');
+    }
     document.body.style.userSelect = 'none';
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
@@ -109,6 +113,9 @@ function createResizer(resizer, orientation, config) {
     pointerId = null;
     dragState = null;
     document.body.style.userSelect = '';
+    if (settings.get('hideContentWhileResizing')) {
+        document.body.classList.remove('ptmt-is-resizing');
+    }
     window.removeEventListener('pointermove', onPointerMove);
     window.removeEventListener('pointerup', onPointerUp);
 

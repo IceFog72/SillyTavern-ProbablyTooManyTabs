@@ -40,7 +40,8 @@ export class LayoutManager {
         globalSettings.append(
             createSettingCheckbox('Show Left Column', 'showLeftPane'),
             createSettingCheckbox('Show Right Column', 'showRightPane'),
-            createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly')
+            createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
+            createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
         );
 
 

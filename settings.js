@@ -12,6 +12,7 @@ export class SettingsManager {
         maxLayersCenter: 3,
         maxLayersRight: 3,
         runMoveBgDivs: true,
+        hideContentWhileResizing: false,
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: '🧭' },
@@ -26,6 +27,7 @@ export class SettingsManager {
             { id: 'notebookPanel', title: 'Notebook', icon: '📓' },
             { id: 'gallery', title: 'Gallery', icon: '🏞️' },
             { id: 'zoomed_avatar', title: 'Avatar', icon: '🏞️' },
+            { id: 'galleryImageDraggable', title: 'Avatar', icon: '🏞️' },
             { id: 'character_popup', title: 'Adv. Definitions', icon: '👤' },
             { id: 'user-settings-block', title: 'User Settings', icon: '⚙️' },
             { id: 'floatingPrompt', title: 'Author\'s Note', icon: '📓' },
@@ -41,7 +43,7 @@ export class SettingsManager {
         savedLayout: null,
 
         defaultLayout: {
-            version: 6,
+            version: 7,
             showLeft: true,
             showRight: true,
             columnSizes: {
@@ -99,7 +101,8 @@ export class SettingsManager {
                     },
                     ghostTabs: [
                         { searchId: "gallery", searchClass: "" },
-                        { searchId: "", searchClass: "zoomed_avatar" }
+                        { searchId: "", searchClass: "zoomed_avatar" },
+                        { searchId: "", searchClass: "galleryImageDraggable" }
                     ]
                 },
                 right: {

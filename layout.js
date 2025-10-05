@@ -95,7 +95,7 @@ function isColumnContentCollapsed(column) {
     );
 }
 
-export function recalculateColumnSizes({ protected: protectedColumn = null, collapsed: collapsedColumn = null } = {}) {
+export function recalculateColumnSizes() {
     const refs = getRefs();
     if (!refs || !refs.mainBody) return;
 
@@ -104,7 +104,10 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
     const visibleColumns = columns.filter(col => col && col.style.display !== 'none');
     if (visibleColumns.length === 0) return;
 
-    // Step 1: Update collapsed state for each column based on its content.
+    let protectedColumn = null;
+    let collapsedColumn = null;
+
+    // Step 1: Update collapsed state for each column based on its content, and detect if a state change occurred.
     visibleColumns.forEach(col => {
         const isContentFullyCollapsed = isColumnContentCollapsed(col);
         const wasColumnCollapsed = col.dataset.isColumnCollapsed === 'true';
@@ -142,6 +145,7 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
             
             col.dataset.isColumnCollapsed = 'true';
             col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;
+            collapsedColumn = col; // This column just collapsed.
         } else if (!isContentFullyCollapsed && wasColumnCollapsed) {
             let lastFlex = col.dataset.lastFlex;
             const minWidth = calculateElementMinWidth(col.querySelector('.ptmt-pane, .ptmt-split'));
@@ -175,6 +179,7 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
             
             col.removeAttribute('data-is-column-collapsed');
             col.style.flex = lastFlex || `1 1 ${100 / visibleColumns.length}%`;
+            protectedColumn = col; // This column just re-opened.
         }
     });
 
@@ -194,21 +199,12 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
 
     const { leftBody, centerBody, rightBody } = refs;
 
-    // Specific event-driven logic (collapse or reopen)
+    // Logic to redistribute space now that we know if a column's state has changed.
     if (protectedColumn || collapsedColumn) {
-        // Guard: Only act on the instruction if the column's state actually matches.
-        if (collapsedColumn && collapsedColumn.dataset.isColumnCollapsed !== 'true') {
-            collapsedColumn = null; // Ignore instruction, column isn't fully collapsed.
-        }
-        if (protectedColumn && protectedColumn.dataset.isColumnCollapsed === 'true') {
-            protectedColumn = null; // Ignore instruction, column is still collapsed.
-        }
-
         if (protectedColumn) { // A column was reopened
             const spaceToTake = getBasis(protectedColumn);
             let donors = [];
 
-            // Determine priority for donating space
             if (protectedColumn === leftBody || protectedColumn === rightBody) {
                 if (activeColumns.includes(centerBody)) {
                     donors.push(centerBody);
@@ -221,7 +217,6 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
                 if (activeColumns.includes(rightBody)) donors.push(rightBody);
             }
 
-            // Fallback to any other active column (excluding self)
             if (donors.length === 0) {
                 donors = activeColumns.filter(c => c !== protectedColumn);
             }
@@ -229,7 +224,6 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
             if (donors.length > 0) {
                 const totalDonorBasis = donors.reduce((sum, col) => sum + getBasis(col), 0);
                 if (totalDonorBasis > 0) {
-                    // Take space proportionally
                     donors.forEach(col => {
                         const currentBasis = getBasis(col);
                         const reduction = spaceToTake * (currentBasis / totalDonorBasis);
@@ -241,7 +235,6 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
             const spaceFreed = getBasis(collapsedColumn, true);
             
             let receivers = [];
-            // Determine priority for receiving space
             if (collapsedColumn === leftBody || collapsedColumn === rightBody) {
                 if (activeColumns.includes(centerBody)) {
                     receivers.push(centerBody);
@@ -254,7 +247,6 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
                 if (activeColumns.includes(rightBody)) receivers.push(rightBody);
             }
 
-            // Fallback to any other active column if priority targets are not available
             if (receivers.length === 0) {
                 receivers = activeColumns;
             }
@@ -262,14 +254,12 @@ export function recalculateColumnSizes({ protected: protectedColumn = null, coll
             if (receivers.length > 0) {
                 const totalReceiverBasis = receivers.reduce((sum, col) => sum + getBasis(col), 0);
                 if (totalReceiverBasis > 0) {
-                    // Distribute proportionally
                     receivers.forEach(col => {
                         const currentBasis = getBasis(col);
                         const share = spaceFreed * (currentBasis / totalReceiverBasis);
                         col.style.flex = `1 1 ${(currentBasis + share).toFixed(4)}%`;
                     });
                 } else {
-                    // Distribute equally
                     const equalShare = spaceFreed / receivers.length;
                     receivers.forEach(col => {
                         const currentBasis = getBasis(col); // is 0
