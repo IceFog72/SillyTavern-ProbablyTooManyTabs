@@ -125,7 +125,7 @@ body,
 }
 
 .ptmt-resizer-vertical {
-  flex: 0 0 8px;
+  flex: 0 0 4px;
   cursor: col-resize;
   background: var(--ptmt-bg);
   transition: background var(--ptmt-transition);
@@ -137,7 +137,7 @@ body,
 }
 
 .ptmt-resizer-horizontal {
-  flex: 0 0 8px;
+  flex: 0 0 4px;
   cursor: row-resize;
   background: var(--ptmt-bg);
   transition: background var(--ptmt-transition);
@@ -152,6 +152,7 @@ body,
 .ptmt-resizer-horizontal.disabled {
   cursor: not-allowed;
   pointer-events: none;
+  flex: 0 0 2px;
 }
 
 
@@ -289,7 +290,7 @@ body,
 }
 
 .ptmt-tab.active {
-  background: var(--ptmt-panel-bg);
+  background: var(--SmartThemeBlurTintColor) !important;
   cursor: default;
   margin-bottom: -1px;
   z-index: 1;
@@ -325,9 +326,7 @@ body,
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab.active {
-  background: var(--ptmt-panel-bg);
   margin-right: -1px;
-  z-index: 1;
   border-right: 2px solid var(--ptmt-accent);
   border-top-color: var(--ptmt-tab-border-color);
 }

@@ -41,7 +41,7 @@ export class LayoutManager {
             createSettingCheckbox('Show Left Column', 'showLeftPane'),
             createSettingCheckbox('Show Right Column', 'showRightPane'),
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
-            createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
+            createSettingCheckbox('Improve resize performance by hiding content', 'hideContentWhileResizing')
         );
 
 
@@ -63,6 +63,50 @@ export class LayoutManager {
         panel.append(globalSettings);
 
         this.renderUnifiedEditor();
+
+        const supportLinksContainer = el('div', {
+            style: {
+                marginTop: '20px',
+                paddingTop: '15px',
+                borderTop: '1px solid var(--SmartThemeBorderColor)',
+                textAlign: 'center',
+                color: 'var(--SmartThemeBodyColor)'
+            }
+        }, 'Provide feedback or support the developer:');
+
+        const linksWrapper = el('div', {
+            style: {
+                display: 'flex',
+                justifyContent: 'center',
+                gap: '15px',
+                marginTop: '10px'
+            }
+        });
+
+        const linkStyle = {
+            display: 'inline-block',
+            padding: '5px 15px',
+            borderRadius: '4px',
+            background: 'var(--SmartThemeChatTintColor)',
+            border: '1px solid var(--SmartThemeBorderColor)',
+            color: 'var(--SmartThemeLinkColor)',
+            textDecoration: 'none',
+            transition: 'background 150ms'
+        };
+        
+        const discordLink = el('a', { href: 'https://discord.gg/2tJcWeMjFQ', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Discord (IceFog\'s AI Brew Bar)');
+        const patreonLink = el('a', { href: 'https://www.patreon.com/cw/IceFog72', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Patreon');
+        const kofiLink = el('a', { href: 'https://ko-fi.com/icefog72', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Ko-fi');
+
+        [discordLink, patreonLink, kofiLink].forEach(link => {
+            link.addEventListener('mouseover', () => link.style.background = 'var(--SmartThemeShadowColor)');
+            link.addEventListener('mouseout', () => link.style.background = 'var(--SmartThemeChatTintColor)');
+        });
+
+        linksWrapper.append(discordLink, patreonLink, kofiLink);
+        supportLinksContainer.appendChild(linksWrapper);
+        panel.appendChild(supportLinksContainer);
+
 
         window.addEventListener('ptmt:layoutChanged', () => this.renderUnifiedEditor());
         return panel;
