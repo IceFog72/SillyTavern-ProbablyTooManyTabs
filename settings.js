@@ -3,19 +3,15 @@
 import { saveSettingsDebounced, saveSettings } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
 
-class SettingsManager {
-    constructor() {
-
-       this.defaultSettings = {
-
+export class SettingsManager {
+    static defaultSettings = {
         showLeftPane: true,
         showRightPane: true,
         showIconsOnly: false,
         maxLayersLeft: 3,
         maxLayersCenter: 3,
-        maxLayersRight:3 ,
+        maxLayersRight: 3,
         runMoveBgDivs: true,
-
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: '🧭' },
@@ -42,11 +38,10 @@ class SettingsManager {
         ],
 
         presets: [],
-
         savedLayout: null,
 
         defaultLayout: {
-            version: 4,
+            version: 6,
             showLeft: true,
             showRight: true,
             columnSizes: {
@@ -65,7 +60,9 @@ class SettingsManager {
                         tabs: [
                             { sourceId: "left-nav-panel" },
                             { sourceId: "notebookPanel" },
-                            { sourceId: "rm_api_block" }
+                            { sourceId: "rm_api_block" },
+                            { sourceId: "cfgConfig" },
+                            { sourceId: "logprobsViewer" }
                         ]
                     },
                     ghostTabs: []
@@ -77,18 +74,19 @@ class SettingsManager {
                         children: [
                             {
                                 type: 'pane',
-                                flex: '1 1 70%',
+                                flex: '1 1 60%',
+                                isCollapsed: false,
                                 tabs: [
+                                    { sourceId: "sheld" },
                                     { sourceId: "rm_extensions_block" },
                                     { sourceId: "Backgrounds" },
                                     { sourceId: "AdvancedFormatting" },
-                                    { sourceId: "user-settings-block" },
-                                    { sourceId: "sheld" }
+                                    { sourceId: "user-settings-block" }
                                 ]
                             },
                             {
                                 type: 'pane',
-                                flex: '1 1 30%',
+                                flex: '1 1 40%',
                                 isCollapsed: true,
                                 viewSettings: { contentFlow: "reversed" },
                                 tabs: [
@@ -114,14 +112,8 @@ class SettingsManager {
                                 flex: '1 1 50%',
                                 viewSettings: { contentFlow: "reversed" },
                                 tabs: [
-                                    
                                     { sourceId: "right-nav-panel" },
                                     { sourceId: "PersonaManagement" },
-                                    { sourceId: "floatingPrompt" },
-                                    { sourceId: "dupeFinderPanel" },
-                                    { sourceId: "cfgConfig" },
-                                    { sourceId: "logprobsViewer" }
-      
                                 ]
                             },
                             {
@@ -130,7 +122,9 @@ class SettingsManager {
                                 isCollapsed: true,
                                 viewSettings: { contentFlow: "reversed" },
                                 tabs: [
-                                    { sourceId: "character_popup" }
+                                    { sourceId: "character_popup" },
+                                    { sourceId: "floatingPrompt" },
+                                    { sourceId: "dupeFinderPanel" }
                                 ]
                             }
                         ]
@@ -143,52 +137,51 @@ class SettingsManager {
         }
     };
 
-    this.settings = this.initializeSettings();
-}
-
-initializeSettings() {
-    if (!extension_settings.PTMT) {
-        extension_settings.PTMT = {};
+    constructor() {
+        this.initializeSettings();
     }
-    const loadedSettings = extension_settings.PTMT;
-    extension_settings.PTMT = { ...this.defaultSettings, ...loadedSettings };
-    return extension_settings.PTMT;
-}
 
-get(key) {
-    if (this.settings.hasOwnProperty(key)) { return this.settings[key]; }
-    return this.defaultSettings[key];
-}
+    initializeSettings() {
+        if (!extension_settings.PTMT) {
+            extension_settings.PTMT = {};
+        }
+        const loadedSettings = extension_settings.PTMT;
+        extension_settings.PTMT = { ...SettingsManager.defaultSettings, ...loadedSettings };
+    }
 
-update(newSettings) {
-    const changedKeys = [];
-    for (const key in newSettings) {
-        if (this.defaultSettings.hasOwnProperty(key)) {
-            this.settings[key] = newSettings[key];
-            changedKeys.push(key);
+    get(key) {
+        if (extension_settings.PTMT.hasOwnProperty(key)) {
+            return extension_settings.PTMT[key];
+        }
+        return SettingsManager.defaultSettings[key];
+    }
+
+    update(newSettings) {
+        const changedKeys = [];
+        for (const key in newSettings) {
+            if (SettingsManager.defaultSettings.hasOwnProperty(key)) {
+                extension_settings.PTMT[key] = newSettings[key];
+                changedKeys.push(key);
+            }
+        }
+        if (changedKeys.length > 0) {
+            this.save();
+            const isOnlyLayoutSave = changedKeys.length === 1 && changedKeys[0] === 'savedLayout';
+            if (!isOnlyLayoutSave) {
+                window.dispatchEvent(new CustomEvent('ptmt:settingsChanged', { detail: { changed: changedKeys, allSettings: extension_settings.PTMT } }));
+            }
         }
     }
-    if (changedKeys.length > 0) {
-        this.save();
-        const isOnlyLayoutSave = changedKeys.length === 1 && changedKeys[0] === 'savedLayout';
-        if (!isOnlyLayoutSave) {
-            window.dispatchEvent(new CustomEvent('ptmt:settingsChanged', { detail: { changed: changedKeys, allSettings: this.settings } }));
-        }
+
+    save() {
+        saveSettingsDebounced();
     }
-}
 
-save() {
-    saveSettingsDebounced();
-}
-
-reset() {
-    const defaultSettingsCopy = JSON.parse(JSON.stringify(this.defaultSettings));
-
-    extension_settings.PTMT = defaultSettingsCopy;
-    this.settings = extension_settings.PTMT;
-
-    saveSettings();
-}
+    reset() {
+        const defaultSettingsCopy = JSON.parse(JSON.stringify(SettingsManager.defaultSettings));
+        extension_settings.PTMT = defaultSettingsCopy;
+        saveSettings();
+    }
 }
 
 export const settings = new SettingsManager();

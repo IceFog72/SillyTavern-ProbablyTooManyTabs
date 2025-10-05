@@ -3,13 +3,13 @@
 import { getRefs, recalculateColumnSizes, applyColumnVisibility } from './layout.js';
 import { getPanelById, getSplitOrientation, el, getPanelBySourceId } from './utils.js';
 import { createPane, writePaneViewSettings, readPaneViewSettings, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
-import { openTab, createTabFromContent, setActivePanelInPane, createTabForBodyContent, createPanelElement, registerPanelDom, createTabElement, getPaneForPanel } from './tabs.js';
+import { openTab, createTabFromContent, setActivePanelInPane, createPanelElement, registerPanelDom, createTabElement, getPaneForPanel } from './tabs.js';
 import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
-import { settings } from './settings.js';
+import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 
-const SNAPSHOT_VERSION = 4;
+const SNAPSHOT_VERSION = 6;
 
 
 const DEFAULT_MIN_SIZES = {
@@ -199,22 +199,16 @@ export function generateLayoutSnapshot() {
 
 export function applyLayoutSnapshot(snapshot, api, settings) {
     if (!validateSnapshot(snapshot)) {
-        console.error('[PTMT] Invalid snapshot, loading default layout');
-        const defaultLayout = settings.get('defaultLayout');
-        if (defaultLayout && defaultLayout !== snapshot) {
+        console.error('[PTMT] Invalid or outdated snapshot, loading current default layout.');
+        const defaultLayout = SettingsManager.defaultSettings.defaultLayout;
+        if (snapshot === defaultLayout) {
+            console.error('[PTMT] The default layout itself is invalid. Aborting.');
+            return;
+        }
+        if (defaultLayout) {
             applyLayoutSnapshot(defaultLayout, api, settings);
         }
         return;
-    }
-
-    let mainTabInfo = null;
-    if (snapshot.columns) {
-        for (const colName of ['left', 'center', 'right']) {
-            if (snapshot.columns[colName]?.content) {
-                mainTabInfo = findTabInSnapshot(snapshot.columns[colName].content, 'ptmt-main-content');
-                if (mainTabInfo) break;
-            }
-        }
     }
 
     const refs = getRefs();
@@ -543,8 +537,6 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         createdPanes.forEach(pane => applyPaneOrientation(pane));
 
 
-
-
         const settingsWrapperId = 'ptmt-settings-wrapper-content';
         let settingsWrapper = document.getElementById(settingsWrapperId);
         if (!settingsWrapper) {
@@ -566,20 +558,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 const settingsUI = layoutManager.createSettingsPanel();
                 settingsPanel.querySelector('.ptmt-panel-content').appendChild(settingsUI);
             }
-            /*
-            const mainPanel = createTabForBodyContent({
-                title: 'Main',
-                icon: '📌',
-                setAsDefault: true,
-                collapsed: mainTabInfo ? mainTabInfo.collapsed : false
-            }, centerPane);
- 
-            if (mainPanel) {
-                const mainPane = getPaneForPanel(mainPanel);
-                if (mainPane) {
-                    checkAndCollapsePaneIfAllTabsCollapsed(mainPane);
-                }
-            }*/
+
             createdPanes.forEach(pane => {
                 if (typeof checkAndCollapsePaneIfAllTabsCollapsed === 'function') {
                     checkAndCollapsePaneIfAllTabsCollapsed(pane);
@@ -608,8 +587,8 @@ function validateSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return false;
     if (!snapshot.columns || typeof snapshot.columns !== 'object') return false;
 
-    if (snapshot.version && snapshot.version < 3) {
-        console.warn('[PTMT] Snapshot version too old:', snapshot.version);
+    if (!snapshot.version || snapshot.version < SNAPSHOT_VERSION) {
+        console.warn(`[PTMT] Snapshot version ${snapshot.version} is older than current version ${SNAPSHOT_VERSION}.`);
         return false;
     }
 

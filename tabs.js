@@ -28,7 +28,7 @@ export const getActivePane = () => {
 };
 
 export function createPanelElement(title) {
-  const panel = el('div', { className: 'ptmt-panel' });
+  const panel = el('div', { className: 'ptmt-panel hidden' });
   panel.appendChild(el('div', { className: 'ptmt-panel-content' }));
   panel.dataset.ptmtType = 'panel';
   if (title) panel.dataset.title = title;
@@ -164,7 +164,6 @@ export function openTab(pid) {
 
   if (tab?.classList.contains('collapsed')) {
     setTabCollapsed(pid, false);
-    target.classList.remove('hidden');
   }
 
   pane._panelContainer.querySelectorAll('.ptmt-panel').forEach(panel => panel.classList.add('hidden'));

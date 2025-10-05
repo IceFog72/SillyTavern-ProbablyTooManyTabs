@@ -11,7 +11,7 @@ import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
 import { createLayoutIfMissing, getRefs, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
 import { applyPaneOrientation, applySplitOrientation, readPaneViewSettings, writePaneViewSettings, openViewSettingsDialog } from './pane.js';
 import {
-  createTabFromContent, createTabForBodyContent, moveNodeIntoTab, listTabs,
+  createTabFromContent, moveNodeIntoTab, listTabs,
   openTab, closeTabById, setDefaultPanelById,
   setActivePanelInPane, moveTabIntoPaneAtIndex, destroyTabById,
 } from './tabs.js';
@@ -38,7 +38,7 @@ import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } 
     }, 750);
 
     const api = {
-      createTabFromContent, createTabForBodyContent, moveNodeIntoTab, listTabs,
+      createTabFromContent, moveNodeIntoTab, listTabs,
       openTab, closeTabById, getPanelById, getTabById, setDefaultPanelById, _refs: getRefs,
       moveTabIntoPaneAtIndex, openViewSettingsDialog, readPaneViewSettings, writePaneViewSettings,
       applyPaneOrientation, attachResizer, setSplitOrientation,
