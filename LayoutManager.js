@@ -95,7 +95,7 @@ export class LayoutManager {
                 textAlign: 'center',
                 color: 'var(--SmartThemeBodyColor)'
             }
-        }, 'Provide feedback or support the developer:');
+        }, 'Feedback/support');
 
         const linksWrapper = el('div', {
             style: {
