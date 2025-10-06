@@ -1,7 +1,8 @@
-// extensions/third-party/PTMT-Tabs/js/pending-tabs.js
+// pending-tabs.js
 import { getRefs } from './layout.js';
 import { createTabFromContent, destroyTabById } from './tabs.js';
 import { settings } from './settings.js';
+import { getPanelBySourceId } from './utils.js';
 
 let hydrationObserver = null;
 let demotionObserver = null;
@@ -34,6 +35,25 @@ function addTabToPendingList(tabInfo) {
     if (identifier && !pendingTabsMap.has(identifier)) {
         console.log(`[PTMT-Pending] Re-arming listener for ${identifier}`);
         pendingTabsMap.set(identifier, tabInfo);
+        
+        const layout = settings.get('savedLayout') || settings.get('defaultLayout');
+        const column = tabInfo.column || 'center';
+
+        for (const col of Object.values(layout.columns)) {
+            if (col.ghostTabs) {
+                col.ghostTabs = col.ghostTabs.filter(t => getTabIdentifier(t) !== identifier);
+            }
+        }
+        
+        if (!layout.columns[column]) layout.columns[column] = { ghostTabs: [] };
+        if (!layout.columns[column].ghostTabs) layout.columns[column].ghostTabs = [];
+        
+        const newTabInfo = { searchId: tabInfo.searchId || '', searchClass: tabInfo.searchClass || '' };
+        if (!layout.columns[column].ghostTabs.some(t => getTabIdentifier(t) === identifier)) {
+            layout.columns[column].ghostTabs.push(newTabInfo);
+        }
+
+        settings.update({ savedLayout: layout });
         checkForPendingTabs([document.body]);
     }
 }
@@ -56,7 +76,17 @@ function findTargetPaneForColumn(columnName) {
 
 function hydrateTab(tabInfo, foundElement) {
     const identifier = getTabIdentifier(tabInfo);
-    if (!identifier || !pendingTabsMap.has(identifier)) return;
+    if (!identifier) return;
+
+    const existingPanel = getPanelBySourceId(identifier);
+    if (existingPanel) {
+        const contentHolder = existingPanel.querySelector('.ptmt-panel-content');
+        if (contentHolder && contentHolder.contains(foundElement)) {
+            return;
+        }
+        console.log(`[PTMT-Pending] Found new content for ${identifier}. Replacing existing tab.`);
+        destroyTabById(existingPanel.dataset.panelId);
+    }
 
     console.log(`[PTMT-Pending] Hydrating tab: ${identifier}`);
     const targetPane = findTargetPaneForColumn(tabInfo.column);
@@ -65,8 +95,9 @@ function hydrateTab(tabInfo, foundElement) {
         return;
     }
     
+    const sourceIdForMapping = tabInfo.searchId || tabInfo.searchClass;
     const mappings = settings.get('panelMappings') || [];
-    const mapping = mappings.find(m => m.id === tabInfo.searchId) || {};
+    const mapping = mappings.find(m => m.id === sourceIdForMapping) || {};
 
     createTabFromContent(foundElement, {
         title: tabInfo.title || mapping.title,
@@ -74,8 +105,6 @@ function hydrateTab(tabInfo, foundElement) {
         makeActive: true,
         sourceId: identifier
     }, targetPane);
-
-    pendingTabsMap.delete(identifier);
 }
 
 function checkForPendingTabs(nodes) {
@@ -120,24 +149,16 @@ function checkForPendingTabs(nodes) {
     }
 }
 
-export function initPendingTabsManager(pendingTabs) {
+export function initPendingTabsManager(allGhostTabs) {
     pendingTabsMap.clear();
-    const layout = settings.get('savedLayout') || settings.get('defaultLayout');
 
-    for(const tabInfo of pendingTabs) {
+    for(const tabInfo of allGhostTabs) {
         if (tabInfo.sourceId && !tabInfo.searchId) {
             tabInfo.searchId = tabInfo.sourceId;
         }
         const identifier = getTabIdentifier(tabInfo);
         if (identifier) {
-            const fullTabInfo = { ...tabInfo };
-            for (const colName in layout.columns) {
-                if (layout.columns[colName].ghostTabs?.some(t => getTabIdentifier(t) === identifier)) {
-                    fullTabInfo.column = colName;
-                    break;
-                }
-            }
-            pendingTabsMap.set(identifier, fullTabInfo);
+            pendingTabsMap.set(identifier, { ...tabInfo });
         }
     }
     

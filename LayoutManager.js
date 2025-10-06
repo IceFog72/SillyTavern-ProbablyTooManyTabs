@@ -4,7 +4,7 @@ import { settings } from './settings.js';
 import { el, debounce, getPanelBySourceId } from './utils.js';
 
 export class LayoutManager {
-    constructor(appApi, settings) { 
+    constructor(appApi, settings) {
         this.appApi = appApi;
         this.settings = settings;
         this.rootElement = null;
@@ -29,7 +29,7 @@ export class LayoutManager {
             const label = el('label', { for: id }, labelText);
 
             checkbox.addEventListener('change', (e) => {
-               
+
                 this.settings.update({ [settingKey]: e.target.checked });
             });
 
@@ -41,7 +41,7 @@ export class LayoutManager {
             createSettingCheckbox('Show Left Column', 'showLeftPane'),
             createSettingCheckbox('Show Right Column', 'showRightPane'),
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
-            createSettingCheckbox('Improve resize performance by hiding content', 'hideContentWhileResizing')
+            createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
         );
 
 
@@ -63,6 +63,29 @@ export class LayoutManager {
         panel.append(globalSettings);
 
         this.renderUnifiedEditor();
+
+        const disclaimerContainer = el('div', {
+            style: {
+                marginTop: '20px',
+                padding: '10px',
+                borderRadius: '4px',
+                background: 'rgba(255, 229, 100, 0.1)',
+                color: 'var(--SmartThemeBodyColor)',
+                textAlign: 'left',
+                fontSize: '0.9em',
+                display: 'flex',
+                gap: '10px',
+                alignItems: 'center'
+            }
+        },
+            el('span', { style: { fontSize: '1.5em' } }, '⚠️'),
+            el('div', {},
+                el('strong', {}, 'Please Note:'),
+                el('p', { style: { margin: '0', opacity: '0.9' } }, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.')
+            )
+        );
+        panel.appendChild(disclaimerContainer);
+
 
         const supportLinksContainer = el('div', {
             style: {
@@ -93,7 +116,7 @@ export class LayoutManager {
             textDecoration: 'none',
             transition: 'background 150ms'
         };
-        
+
         const discordLink = el('a', { href: 'https://discord.gg/2tJcWeMjFQ', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Discord (IceFog\'s AI Brew Bar)');
         const patreonLink = el('a', { href: 'https://www.patreon.com/cw/IceFog72', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Patreon');
         const kofiLink = el('a', { href: 'https://ko-fi.com/icefog72', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Ko-fi');
@@ -143,9 +166,9 @@ export class LayoutManager {
 
         const tree = this.renderTreeElement(element.querySelector('.ptmt-pane, .ptmt-split'));
         if (tree) container.appendChild(tree);
-        
+
         const pendingContainer = el('div', { className: 'ptmt-editor-pending' });
-        const pendingTitle = el('div', { className: 'ptmt-editor-title', style:{marginTop:'10px', borderTop:'1px solid var(--SmartThemeShadowColor)', paddingTop:'8px'} }, el('span', {}, 'Pending Tabs'));
+        const pendingTitle = el('div', { className: 'ptmt-editor-title', style: { marginTop: '10px', borderTop: '1px solid var(--SmartThemeShadowColor)', paddingTop: '8px' } }, el('span', {}, 'Pending Tabs'));
         const pendingTabsList = el('div', { className: 'ptmt-editor-tabs-container' });
         pendingTabsList.dataset.isPendingList = 'true';
         pendingTabsList.dataset.columnName = name;
@@ -156,7 +179,7 @@ export class LayoutManager {
         ghostTabs.forEach(tabInfo => {
             pendingTabsList.appendChild(this.renderPendingTab(tabInfo));
         });
-        
+
         pendingTabsList.addEventListener('dragover', this.handleDragOver.bind(this));
         pendingTabsList.addEventListener('dragleave', this.handleDragLeave.bind(this));
         pendingTabsList.addEventListener('drop', (e) => this.handleDrop(e));
@@ -225,7 +248,7 @@ export class LayoutManager {
         }, '⚙');
 
         settingsBtn.addEventListener('click', (e) => {
-            e.stopPropagation(); 
+            e.stopPropagation();
             this.appApi.openViewSettingsDialog(element);
         });
 
@@ -307,15 +330,15 @@ export class LayoutManager {
 
         return container;
     }
-    
+
     renderPendingTab(tabInfo) {
-        const sourceId = tabInfo.searchId || tabInfo.sourceId;
+        const sourceId = tabInfo.searchId || tabInfo.sourceId || tabInfo.searchClass;
         const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
         const title = mapping.title || sourceId || tabInfo.searchClass;
         const icon = mapping.icon || '👻';
 
         const identifier = tabInfo.searchId ? `ID: ${tabInfo.searchId}` : `Class: ${tabInfo.searchClass}`;
-        
+
         const container = el('div', {
             className: 'ptmt-editor-tab',
             draggable: 'true',
@@ -412,7 +435,7 @@ export class LayoutManager {
         const children = Array.from(targetContainer.children).filter(c => c.classList.contains('ptmt-editor-tab'));
         let newIndex = children.indexOf(indicator);
         if (newIndex === -1) newIndex = children.length;
-        
+
         indicator.remove();
 
         if (isTargetPending) {
@@ -420,7 +443,7 @@ export class LayoutManager {
         } else {
             this.handleLiveTabDrop(targetContainer, newIndex);
         }
-        
+
         this.draggedTabInfo = null;
     }
 
@@ -451,21 +474,21 @@ export class LayoutManager {
                 this.appApi.destroyTabById(livePanel.dataset.panelId);
             }
         }
-        
+
         const layout = this.appApi.generateLayoutSnapshot();
-        
+
         const newTabInfo = { searchId: searchId || sourceId || '', searchClass: searchClass || '' };
 
         for (const col of Object.values(layout.columns)) {
             if (col.ghostTabs) {
-                col.ghostTabs = col.ghostTabs.filter(t => !( (t.searchId === newTabInfo.searchId && t.searchClass === newTabInfo.searchClass) ));
+                col.ghostTabs = col.ghostTabs.filter(t => !((t.searchId === newTabInfo.searchId && t.searchClass === newTabInfo.searchClass)));
             }
         }
-        
+
         layout.columns[targetColumnName].ghostTabs.splice(newIndex, 0, newTabInfo);
-        
+
         this.appApi.updatePendingTabColumn(newTabInfo, targetColumnName);
-        
+
         this.settings.update({ savedLayout: layout });
         this.renderUnifiedEditor();
     }

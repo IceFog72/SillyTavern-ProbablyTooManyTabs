@@ -255,7 +255,6 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     const elementsToCollapse = [];
     const placedPanelIds = new Set();
     const panelLocationMap = new Map(snapshot.panelLocations || []);
-    const unhydratedGhostTabs = [];
 
     const rebuildNodeTree = (node, parent) => {
         if (!node || !parent) return null;
@@ -450,30 +449,15 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     if (!refs.centerBody.querySelector('.ptmt-pane')) refs.centerBody.appendChild(createPane({}, { deferInitialCheck: true }));
     if (refs.rightBody.style.display !== 'none' && !refs.rightBody.querySelector('.ptmt-pane')) refs.rightBody.appendChild(createPane({}, { deferInitialCheck: true }));
 
+    const allGhostTabs = [];
     ['left', 'center', 'right'].forEach(colName => {
-        const ghostTabs = snapshot.columns[colName]?.ghostTabs || [];
-        ghostTabs.forEach(tabInfo => {
-            if (placedPanelIds.has(tabInfo.sourceId)) return;
-
-            const elExists = document.getElementById(tabInfo.sourceId);
-            if (elExists) {
-                const targetPane = refs[`${colName}Body`].querySelector('.ptmt-pane');
-                if (targetPane) {
-                    const mappings = settings.get('panelMappings') || [];
-                    const mapping = mappings.find(m => m.id === tabInfo.sourceId) || {};
-                    const panel = createTabFromContent(tabInfo.sourceId, {
-                        title: tabInfo.title || mapping.title, icon: tabInfo.icon || mapping.icon, makeActive: false
-                    }, targetPane);
-                    if (panel) placedPanelIds.add(tabInfo.sourceId);
-                }
-            } else {
-                unhydratedGhostTabs.push({ ...tabInfo, column: colName });
-            }
+        (snapshot.columns[colName]?.ghostTabs || []).forEach(tabInfo => {
+            allGhostTabs.push({ ...tabInfo, column: colName });
         });
     });
 
     const mappings = settings.get('panelMappings') || [];
-    const allGhostSourceIds = new Set(unhydratedGhostTabs.map(t => t.sourceId));
+    const allGhostSourceIds = new Set(allGhostTabs.map(t => t.sourceId));
     const orphanPanelIds = mappings
         .map(m => m.id)
         .filter(id => !placedPanelIds.has(id) && !allGhostSourceIds.has(id));
@@ -506,7 +490,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         });
     }
 
-    initPendingTabsManager(unhydratedGhostTabs);
+    initPendingTabsManager(allGhostTabs);
 
     requestAnimationFrame(() => {
 
