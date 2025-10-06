@@ -133,6 +133,7 @@ export function initDrawerObserver() {
     return observer;
 }
 
+/*
 export function hideTemplatesAndPopupsWrapper() {
     try {
         const wrapper = document.querySelector('div[name="templatesAndPopupsWrapper"]');
@@ -146,4 +147,4 @@ export function hideTemplatesAndPopupsWrapper() {
         console.error('[PTMT] Error hiding templatesAndPopupsWrapper:', e);
         return false;
     }
-}
+}*/

@@ -17,7 +17,7 @@ import {
 } from './tabs.js';
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
-import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver, hideTemplatesAndPopupsWrapper } from './misc-helpers.js';
+import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
 import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 
 (function () {
@@ -136,7 +136,6 @@ import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } 
     enableInteractions();
     moveBgDivs();
     initDrawerObserver();
-    hideTemplatesAndPopupsWrapper();
 
     overrideDelegatedEventHandler(
         'click',
