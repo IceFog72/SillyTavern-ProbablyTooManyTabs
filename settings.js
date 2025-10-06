@@ -36,6 +36,7 @@ export class SettingsManager {
             { id: 'cfgConfig', title: 'Chat CFG', icon: '🧭' },
             { id: 'logprobsViewer', title: 'Token Probabilities', icon: '✨' },
             { id: 'dupeFinderPanel', title: 'Similar Characters', icon: '👤' },
+            { id: 'summaryExtensionPopout', title: 'Summarize', icon: '💬' },
             { id: 'sheld', title: 'Main', icon: '📌' }
         ],
 
@@ -67,7 +68,9 @@ export class SettingsManager {
                             { sourceId: "logprobsViewer" }
                         ]
                     },
-                    ghostTabs: []
+                    ghostTabs: [
+                        { searchId: "summaryExtensionPopout", searchClass: "" }
+                    ]
                 },
                 center: {
                     content: {
