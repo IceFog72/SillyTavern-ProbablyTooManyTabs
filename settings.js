@@ -38,6 +38,7 @@ export class SettingsManager {
             { id: 'dupeFinderPanel', title: 'Similar Characters', icon: '👤' },
             { id: 'summaryExtensionPopout', title: 'Summarize', icon: '📑' },
             { id: 'extensionSideBar', title: 'History', icon: '🗃️' },
+            { id: 'table_drawer_content', title: 'Memory', icon: '🗃️' },
             { id: 'sheld', title: 'Main', icon: '🏠' }
         ],
 
@@ -88,6 +89,7 @@ export class SettingsManager {
                                     { sourceId: "rm_extensions_block" },
                                     { sourceId: "Backgrounds" },
                                     { sourceId: "AdvancedFormatting" },
+                                    { sourceId: "table_drawer_content" },
                                     { sourceId: "user-settings-block" }
                                 ]
                             },
