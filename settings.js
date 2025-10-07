@@ -27,7 +27,7 @@ export class SettingsManager {
             { id: 'notebookPanel', title: 'Notebook', icon: '📓' },
             { id: 'gallery', title: 'Gallery', icon: '🏞️' },
             { id: 'zoomed_avatar', title: 'Avatar', icon: '🏞️' },
-            { id: 'galleryImageDraggable', title: 'Avatar', icon: '🏞️' },
+            { id: 'galleryImageDraggable', title: 'Avatar', icon: '🗂️' },
             { id: 'character_popup', title: 'Adv. Definitions', icon: '👤' },
             { id: 'user-settings-block', title: 'User Settings', icon: '⚙️' },
             { id: 'floatingPrompt', title: 'Author\'s Note', icon: '📓' },
@@ -36,15 +36,16 @@ export class SettingsManager {
             { id: 'cfgConfig', title: 'Chat CFG', icon: '🧭' },
             { id: 'logprobsViewer', title: 'Token Probabilities', icon: '✨' },
             { id: 'dupeFinderPanel', title: 'Similar Characters', icon: '👤' },
-            { id: 'summaryExtensionPopout', title: 'Summarize', icon: '💬' },
-            { id: 'sheld', title: 'Main', icon: '📌' }
+            { id: 'summaryExtensionPopout', title: 'Summarize', icon: '📑' },
+            { id: 'extensionSideBar', title: 'History', icon: '🗃️' },
+            { id: 'sheld', title: 'Main', icon: '🏠' }
         ],
 
         presets: [],
         savedLayout: null,
 
         defaultLayout: {
-            version: 7,
+            version: 8,
             showLeft: true,
             showRight: true,
             columnSizes: {
@@ -65,7 +66,8 @@ export class SettingsManager {
                             { sourceId: "notebookPanel" },
                             { sourceId: "rm_api_block" },
                             { sourceId: "cfgConfig" },
-                            { sourceId: "logprobsViewer" }
+                            { sourceId: "logprobsViewer" },
+                            { sourceId: "extensionSideBar" }
                         ]
                     },
                     ghostTabs: [

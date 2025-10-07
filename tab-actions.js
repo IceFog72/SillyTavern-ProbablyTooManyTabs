@@ -35,7 +35,7 @@ export const tabActions = {
             console.log('[PTMT-Actions] character_popup panel initialized.', panel);
             //if (!is_advanced_char_open) {
             //   is_advanced_char_open = true;
-            $('#character_popup').css({ 'display': 'flex'}).addClass('open');
+            $('#character_popup').css({ 'display': 'flex' }).addClass('open');
             // }
         },
         onSelect: (panel) => {
@@ -54,7 +54,39 @@ export const tabActions = {
             console.log('[PTMT-Actions] character_popup tab opened.', panel);
             $('#character_popup').css({ 'display': 'flex', 'opacity': 100.0 }).addClass('open');
         },
-    }
+    },
+    'extensionSideBar': {
+        onInit: (panel) => {
+            console.log('[PTMT-Actions] extensionSideBar panel initialized.', panel);
+
+        },
+        onSelect: (panel) => {
+            console.log('[PTMT-Actions] extensionSideBar panel selected.', panel);
+
+          
+
+        },
+        onCollapse: (panel) => {
+            console.log('[PTMT-Actions] extensionSideBar tab collapsed.', panel);
+
+        },
+        onOpen: (panel) => {
+            console.log('[PTMT-Actions] extensionSideBar tab opened.', panel);
+              const sidebar = document.getElementById('extensionSideBar');
+            if (!sidebar) return;
+
+            const toggleButton = document.getElementById('extensionTopBarToggleSidebar');
+            if (!toggleButton) return;
+
+            const isVisible = sidebar.classList.contains('draggable') && sidebar.classList.contains('visible');
+
+            if (!isVisible) {
+                console.log('[PTMT] Sidebar is not visible, attempting to open it.');
+                toggleButton.click();
+            }
+        },
+    },
+
 };
 
 /**

@@ -9,7 +9,7 @@ import { LayoutManager } from './LayoutManager.js';
 import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 
-const SNAPSHOT_VERSION = 7;
+const SNAPSHOT_VERSION = 8;
 
 
 const DEFAULT_MIN_SIZES = {
