@@ -81,7 +81,10 @@ export class LayoutManager {
             el('span', { style: { fontSize: '1.5em' } }, '⚠️'),
             el('div', {},
                 el('strong', {}, 'Please Note:'),
-                el('p', { style: { margin: '0', opacity: '0.9' } }, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.')
+                el('p', { style: { margin: '0', opacity: '0.9' } }, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.'),
+                el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'If you install a supported extension and its tab does not appear, you may need to reset the layout for it to be added.'),
+                el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'For additional extension tab requests, reach out to me on Discord.'),
+                el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'Resizing the navigation panel with character cards may lag on Chrome-based browsers. -> Use Hide some content on resize (for Chrome users) toggle.')
             )
         );
         panel.appendChild(disclaimerContainer);

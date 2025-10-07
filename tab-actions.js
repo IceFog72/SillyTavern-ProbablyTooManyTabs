@@ -63,8 +63,6 @@ export const tabActions = {
         onSelect: (panel) => {
             console.log('[PTMT-Actions] extensionSideBar panel selected.', panel);
 
-          
-
         },
         onCollapse: (panel) => {
             console.log('[PTMT-Actions] extensionSideBar tab collapsed.', panel);
