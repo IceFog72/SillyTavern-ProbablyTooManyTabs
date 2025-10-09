@@ -81,7 +81,7 @@
 .ptmt-pane-grid.grid-vertical #WorldInfo,
 .ptmt-pane-grid.grid-vertical #stqrd--drawer-v2,
 .ptmt-pane-grid.grid-vertical #sheld {
-  height: calc(100dvh - 1px) !important;
+  height: 100% !important;
   max-height: calc(100dvh - 1px) !important;
 }
 
@@ -95,7 +95,7 @@
 .ptmt-pane-grid.grid-horizontal #WorldInfo,
 .ptmt-pane-grid.grid-horizontal #stqrd--drawer-v2,
 .ptmt-pane-grid.grid-horizontal #sheld {
-  height: calc(100dvh - var(--topBarBlockSize) - 1px) !important;
+  height: 100% !important;
   max-height: calc(100dvh - calc(var(--topBarBlockSize) - 1px)) !important;
 }
 
@@ -214,6 +214,7 @@ body,
   min-width: 0;
   min-height: 0;
 }
+
 
 
 .ptmt-pane-grid.grid-horizontal {
