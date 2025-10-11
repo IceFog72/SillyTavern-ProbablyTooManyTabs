@@ -11,6 +11,7 @@ An extension that wraps all SillyTavern UI elements into tabs, with basic option
 * [https://github.com/LenAnderson/SillyTavern-QuickRepliesDrawer](https://github.com/LenAnderson/SillyTavern-QuickRepliesDrawer)
 * [https://github.com/SillyTavern/Extension-Objective](https://github.com/SillyTavern/Extension-Objective)
 * [https://github.com/SillyTavern/Extension-TopInfoBar](https://github.com/SillyTavern/Extension-TopInfoBar)
+* [https://github.com/muyoou/st-memory-enhancement](https://github.com/muyoou/st-memory-enhancement)
 * For additional requests, reach out to me on Discord.
 ---
 
