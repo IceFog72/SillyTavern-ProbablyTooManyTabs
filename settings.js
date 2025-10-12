@@ -39,6 +39,8 @@ export class SettingsManager {
             { id: 'summaryExtensionPopout', title: 'Summarize', icon: '📑' },
             { id: 'extensionSideBar', title: 'History', icon: '🗃️' },
             { id: 'table_drawer_content', title: 'Memory', icon: '🗃️' },
+            { id: 'moonlit_echoes_popout', title: 'Moonlit Echoes', icon: '🎨' },
+            { id: 'groupMemberListPopout', title: 'Group Member List', icon: '📃' },
             { id: 'sheld', title: 'Main', icon: '🏠' }
         ],
 
@@ -46,7 +48,7 @@ export class SettingsManager {
         savedLayout: null,
 
         defaultLayout: {
-            version: 8,
+            version: 9,
             showLeft: true,
             showRight: true,
             columnSizes: {
@@ -72,7 +74,8 @@ export class SettingsManager {
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "summaryExtensionPopout", searchClass: "" }
+                        { searchId: "summaryExtensionPopout", searchClass: "" },
+                        { searchId: "groupMemberListPopout", searchClass: "" }
                     ]
                 },
                 center: {
@@ -140,7 +143,8 @@ export class SettingsManager {
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "objectiveExtensionPopout", searchClass: "" }
+                        { searchId: "objectiveExtensionPopout", searchClass: "" },
+                        { searchId: "moonlit_echoes_popout", searchClass: "" }
                     ]
                 }
             }

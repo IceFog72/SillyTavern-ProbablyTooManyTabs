@@ -64,13 +64,7 @@ export function moveBgDivs(ids = ['bg_custom', 'bg1']) {
 }
 
 
-/**
- * Finds and overrides a delegated jQuery event handler.
- * @param {string} eventType The event type (e.g., 'click').
- * @param {string} selector The selector for the delegated event (e.g., '.mes .avatar').
- * @param {function(string): boolean} findFunction A function that receives the string content of a handler and returns true if it's the one to remove.
- * @param {function} newHandler The new function to attach for the event.
- */
+
 export function overrideDelegatedEventHandler(eventType, selector, findFunction, newHandler) {
     if (!window.jQuery || !jQuery._data) {
         console.warn('[PTMT] Cannot override event handler: jQuery or jQuery._data not available.');
@@ -80,26 +74,26 @@ export function overrideDelegatedEventHandler(eventType, selector, findFunction,
     try {
         const delegatedEvents = jQuery._data(document, 'events');
         if (!delegatedEvents || !delegatedEvents[eventType]) {
-            return; // No events of this type on the document
+            return; 
         }
 
         const handlersForType = delegatedEvents[eventType];
         let handlerToRemove = null;
 
         for (const handler of handlersForType) {
-            // Check if the selector matches and the findFunction returns true
+           
             if (handler.selector === selector && findFunction(handler.handler.toString())) {
                 handlerToRemove = handler.handler;
-                break; // Found it
+                break; 
             }
         }
 
         if (handlerToRemove) {
             console.log(`[PTMT] Overriding delegated '${eventType}' event on selector '${selector}'.`);
-            // Surgically remove the specific handler
+           
             $(document).off(eventType, selector, handlerToRemove);
             
-            // Attach our new handler
+          
             $(document).on(eventType, selector, newHandler);
         }
     } catch (e) {

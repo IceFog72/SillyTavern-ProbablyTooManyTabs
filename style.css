@@ -15,6 +15,7 @@
   position: fixed;
 }
 
+#moonlit_echoes_popout,
 #extensionSideBar,
 #summaryExtensionPopout,
 #objectiveExtensionPopout,
@@ -33,6 +34,12 @@
   opacity: 100 !important;
 }
 
+
+.ptmt-panel-content #extensionTopBar{
+  position: inherit !important;
+  transform: none !important;
+  width: 100% !important;
+}
 
 #sheld {
   width: unset !important;
