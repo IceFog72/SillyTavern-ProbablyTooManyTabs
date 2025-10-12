@@ -8,11 +8,15 @@ An extension that wraps all SillyTavern UI elements into tabs, with basic option
 ## Adapted Extensions
 
 * [https://github.com/SillyTavern/Extension-Notebook](https://github.com/SillyTavern/Extension-Notebook)
-* [https://github.com/LenAnderson/SillyTavern-QuickRepliesDrawer](https://github.com/LenAnderson/SillyTavern-QuickRepliesDrawer)
-* [https://github.com/SillyTavern/Extension-Objective](https://github.com/SillyTavern/Extension-Objective)
+* [https://github.com/LenAnderson/SillyTavern-QuickRepliesDrawer](https://github.com/LenAnderson/SillyTavern-QuickRepliesDrawer) 
+* [https://github.com/SillyTavern/Extension-Objective](https://github.com/SillyTavern/Extension-Objective) popup window
+* [https://github.com/ForgottenGlory/ST-SuperObjective](https://github.com/ForgottenGlory/ST-SuperObjective) popup window
 * [https://github.com/SillyTavern/Extension-TopInfoBar](https://github.com/SillyTavern/Extension-TopInfoBar)
 * [https://github.com/muyoou/st-memory-enhancement](https://github.com/muyoou/st-memory-enhancement)
-* For additional requests, reach out to me on Discord.
+* [https://github.com/RivelleDays/SillyTavern-MoonlitEchoesTheme](https://github.com/RivelleDays/SillyTavern-MoonlitEchoesTheme) popup window
+* For additional requests, reach out to me on mine or main ST Discord.
+
+* popup window - you need to press popup button in Extension settings
 ---
 
 ## Requirements 
