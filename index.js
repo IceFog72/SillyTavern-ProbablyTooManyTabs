@@ -91,7 +91,7 @@ import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } 
     window.addEventListener('ptmt:layoutChanged', (event) => {
       if (event.detail?.reason !== 'snapshotApplied') {
         applyColumnVisibility();
-        if (event.detail?.reason !== 'manualResize') {
+        if (event.detail?.reason !== 'manualResize') { 
           recalculateColumnSizes();
         }
       }

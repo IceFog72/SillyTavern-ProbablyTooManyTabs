@@ -143,8 +143,6 @@ export function setPaneCollapsedView(pane, collapsed) {
   if (!pane) return;
 
   const parentSplit = pane.parentElement;
-  const parentColumn = pane.closest('.ptmt-body-column');
-  const action = {};
 
   if (collapsed) {
       const currentFlex = pane.style.flex;
@@ -180,9 +178,7 @@ export function setPaneCollapsedView(pane, collapsed) {
       }
 
       pane.classList.add('view-collapsed');
-      action.collapsed = parentColumn;
   } else {
-    action.protected = parentColumn;
     pane.classList.remove('view-collapsed');
 
     let lastFlex = pane.dataset.lastFlex;
@@ -248,7 +244,7 @@ export function setPaneCollapsedView(pane, collapsed) {
     recalculateAllSplitsRecursively();
   }
 
-  recalculateColumnSizes(action);
+  recalculateColumnSizes();
   updateResizerDisabledStates();
 }
 

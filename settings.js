@@ -41,6 +41,7 @@ export class SettingsManager {
             { id: 'table_drawer_content', title: 'Memory', icon: '🗃️' },
             { id: 'moonlit_echoes_popout', title: 'Moonlit Echoes', icon: '🎨' },
             { id: 'groupMemberListPopout', title: 'Group Member List', icon: '📃' },
+            { id: 'ctsi-drawer', title: 'CustomInputs', icon: '📃' },
             { id: 'sheld', title: 'Main', icon: '🏠' }
         ],
 
@@ -111,7 +112,6 @@ export class SettingsManager {
                     },
                     ghostTabs: [
                         { searchId: "gallery", searchClass: "" },
-                        { searchId: "", searchClass: "zoomed_avatar" },
                         { searchId: "", searchClass: "galleryImageDraggable" }
                     ]
                 },
@@ -144,7 +144,9 @@ export class SettingsManager {
                     },
                     ghostTabs: [
                         { searchId: "objectiveExtensionPopout", searchClass: "" },
-                        { searchId: "moonlit_echoes_popout", searchClass: "" }
+                        { searchId: "moonlit_echoes_popout", searchClass: "" },
+                        { searchId: "", searchClass: "zoomed_avatar" },
+                        { searchId: "ctsi-drawer", searchClass: "" }
                     ]
                 }
             }

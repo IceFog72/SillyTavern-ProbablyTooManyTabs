@@ -15,6 +15,7 @@
   position: fixed;
 }
 
+#groupMemberListPopout,
 #moonlit_echoes_popout,
 #extensionSideBar,
 #summaryExtensionPopout,
@@ -26,14 +27,27 @@
 .editable-slider-notification,
 .drawer-content {
   position: static !important;
-  inset: auto !important;
+  inset: auto;
   border-radius: unset;
   width: auto !important;
   max-width: none !important;
-  display: block !important;
+  display: block;
   opacity: 100 !important;
 }
 
+
+#logprobsViewer,
+#notebookPanel,
+#floatingPrompt, 
+#cfgConfig
+{
+    display: block !important;
+}
+
+#completion_prompt_manager_popup
+{
+  position: absolute !important;
+}
 
 .ptmt-panel-content #extensionTopBar{
   position: inherit !important;
