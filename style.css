@@ -35,10 +35,21 @@
   opacity: 100 !important;
 }
 
+#extensionTopBar,
+#send_form{
+  border-radius: 0 !important;
+}
+
+#character_cross
+{
+  position: inherit !important;
+  display: none !important;
+}
 
 #logprobsViewer,
 #notebookPanel,
 #floatingPrompt, 
+#dupeFinderPanel,
 #cfgConfig
 {
     display: block !important;
