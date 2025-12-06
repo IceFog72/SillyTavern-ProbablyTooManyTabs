@@ -319,15 +319,12 @@ body,
   gap: 8px;
   white-space: nowrap;
   transition: background var(--ptmt-transition), opacity var(--ptmt-transition), border-color var(--ptmt-transition);
-
-
   background: var(--ptmt-tab-inactive-bg);
   border: 1px solid var(--ptmt-tab-border-color);
   border-bottom: none;
   border-top-left-radius: 4px;
   border-top-right-radius: 4px;
   margin-right: -1px;
-
   position: relative;
 }
 

@@ -1,10 +1,9 @@
 // pane.js
-import { el, getSplitOrientation, getPanelById, getTabById } from './utils.js';
+import { el, getSplitOrientation, getPanelById, getTabById, getRefs } from './utils.js'; // Changed import
 import { settings } from './settings.js';
-import { getRefs, recalculateColumnSizes } from './layout.js';
+import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
-import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, resizerControllers, setSplitOrientation } from './resizer.js';
-
+import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation } from './resizer.js';
 export const MAX_PANE_LAYERS = 3;
 
 export const defaultViewSettings = {
@@ -84,7 +83,9 @@ export function readPaneViewSettings(pane) {
 export function writePaneViewSettings(pane, settings) {
   try {
     pane.dataset.viewSettings = JSON.stringify({ ...defaultViewSettings, ...settings });
-  } catch { }
+  } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
 }
 
 export function getParentSplitOrientation(pane) {
@@ -302,7 +303,9 @@ export function removePaneIfEmpty(pane, depth = 0) {
     refs.centerBody.appendChild(createPane());
   }
 
-  try { window.dispatchEvent(new CustomEvent('ptmt:layoutChanged')); } catch { }
+  try { window.dispatchEvent(new CustomEvent('ptmt:layoutChanged')); } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
 }
 
 export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newFirst = true) {
@@ -387,12 +390,16 @@ function normalizeLiftedElement(el) {
             c.style.flex = '1 1 0%';
           }
         } else {
-          try { c.style.flex = ''; } catch { }
+          try { c.style.flex = ''; } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
         }
       });
       return;
     }
-    try { el.style.flex = ''; } catch { }
+    try { el.style.flex = ''; } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
   } catch (e) {
     console.warn('normalizeLiftedElement error', e);
   }

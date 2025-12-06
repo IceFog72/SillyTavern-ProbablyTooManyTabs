@@ -5,20 +5,20 @@ import { power_user } from '../../../power-user.js';
 import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
 import { settings } from './settings.js';
-import { LayoutManager } from './LayoutManager.js';
-import { el, debounce, getPanelById, getTabById } from './utils.js';
+ 
+import { el, debounce, getPanelById, getTabById, getRefs } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
-import { createLayoutIfMissing, getRefs, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
+import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
 import { applyPaneOrientation, applySplitOrientation, readPaneViewSettings, writePaneViewSettings, openViewSettingsDialog } from './pane.js';
 import {
   createTabFromContent, moveNodeIntoTab, listTabs,
   openTab, closeTabById, setDefaultPanelById,
-  setActivePanelInPane, moveTabIntoPaneAtIndex, destroyTabById,
+   moveTabIntoPaneAtIndex, destroyTabById,
 } from './tabs.js';
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
-import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
+import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 
 (function () {
   function initApp() {
@@ -131,8 +131,12 @@ import { initPendingTabsManager, initDemotionObserver, updatePendingTabColumn } 
     }
 
 
-    try { openAllDrawersJq(); } catch { }
-    try { removeMouseDownDrawerHandler(); } catch { }
+    try { openAllDrawersJq(); } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
+    try { removeMouseDownDrawerHandler(); } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
     enableInteractions();
     moveBgDivs();
     initDrawerObserver();

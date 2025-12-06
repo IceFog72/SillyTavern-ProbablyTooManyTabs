@@ -1,4 +1,4 @@
-// extensions/third-party/PTMT-Tabs/js/tab-actions.js
+// tab-actions.js
 export const tabActions = {
     'gallery': {
         onInit: (panel) => {

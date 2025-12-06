@@ -1,6 +1,6 @@
 // resizer.js
-import { $$, getElementDepth, setFlexBasisPercent, throttle } from './utils.js';
-import { getRefs, recalculateColumnSizes } from './layout.js';
+import { $$, getElementDepth, setFlexBasisPercent, throttle, getRefs } from './utils.js'; // Changed import
+import { recalculateColumnSizes } from './layout.js';
 import { readPaneViewSettings, defaultViewSettings, applyPaneOrientation } from './pane.js';
 import { settings } from './settings.js';
 
@@ -89,7 +89,9 @@ function createResizer(resizer, orientation, config) {
 
     e.preventDefault();
     pointerId = e.pointerId;
-    try { resizer.setPointerCapture(pointerId); } catch { }
+    try { resizer.setPointerCapture(pointerId); } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
     startClient = e[clientProp];
 
     if (settings.get('hideContentWhileResizing')) {
@@ -108,7 +110,9 @@ function createResizer(resizer, orientation, config) {
 
   function onPointerUp(e) {
     if (pointerId !== null && e.pointerId === pointerId) {
-      try { resizer.releasePointerCapture(pointerId); } catch { }
+      try { resizer.releasePointerCapture(pointerId); } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
     }
     pointerId = null;
     dragState = null;
@@ -121,7 +125,9 @@ function createResizer(resizer, orientation, config) {
 
     try {
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'manualResize' } }));
-    } catch { }
+    } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
   }
 
   resizer.addEventListener('pointerdown', onPointerDown);

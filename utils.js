@@ -1,5 +1,27 @@
 // utils.js
+
+let _refs = null;
+
 export const isElement = (v) => v && (v.nodeType === 1 || v === document);
+
+// Moved here to prevent circular dependency cycles between layout.js and pane.js
+export function getRefs() {
+  if (_refs) {
+    const ok = _refs.main && document.getElementById('ptmt-main') === _refs.main && _refs.centerBody && document.getElementById('ptmt-centerBody') === _refs.centerBody;
+    if (ok) return _refs;
+    _refs = null;
+  }
+  _refs = {
+    main: document.getElementById('ptmt-main'),
+    mainBody: document.getElementById('ptmt-mainBody'),
+    leftBody: document.getElementById('ptmt-leftBody'),
+    centerBody: document.getElementById('ptmt-centerBody'),
+    rightBody: document.getElementById('ptmt-rightBody'),
+    dropIndicator: document.getElementById('ptmt-drop-indicator'),
+    splitOverlay: document.getElementById('ptmt-split-overlay')
+  };
+  return _refs;
+}
 
 export const getPanelById = pid => document.querySelector(`[data-panel-id="${CSS.escape(pid)}"]`);
 export const getTabById = pid => document.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);

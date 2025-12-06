@@ -1,9 +1,23 @@
 // drag-drop.js
 
-import { getRefs } from './layout.js';
 import { getPaneLayerCount, splitPaneWithPane, MAX_PANE_LAYERS } from './pane.js';
-import { openTab, getActivePane, moveTabIntoPaneAtIndex, cloneTabIntoPane, cloneTabIntoSplit, movePanelToPane, moveTabToPane } from './tabs.js';
-import { getPanelById, getTabById, throttle } from './utils.js';
+import { openTab, getActivePane, moveTabIntoPaneAtIndex, cloneTabIntoPane, cloneTabIntoSplit } from './tabs.js';
+import { getPanelById, throttle, getRefs } from './utils.js';
+
+// Helper functions moved up or converted to function declarations to avoid ReferenceError
+function getDragPidFromEvent(ev) {
+  try {
+    return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-ptmt-tab') || '';
+  } catch { return ''; }
+}
+
+function relativePanePos(pane, clientX, clientY) {
+  const container = pane._panelContainer || pane;
+  const rect = container.getBoundingClientRect();
+  const x = clientX - rect.left;
+  const y = clientY - rect.top;
+  return { rect, x, y, rx: x / Math.max(1, rect.width), ry: y / Math.max(1, rect.height) };
+}
 
 function getDragContext(ev) {
     const pid = getDragPidFromEvent(ev);
@@ -75,29 +89,17 @@ function handlePaneSplitDrop(ctx, ev, performDrop) {
     return true; 
 }
 
-const getDragPidFromEvent = (ev) => {
-  try {
-    return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-ptmt-tab') || '';
-  } catch { return ''; }
-};
-
-const elementUnderPoint = (x, y) => document.elementFromPoint(x, y) || null;
-
-function relativePanePos(pane, clientX, clientY) {
-  const container = pane._panelContainer || pane;
-  const rect = container.getBoundingClientRect();
-  const x = clientX - rect.left;
-  const y = clientY - rect.top;
-  return { rect, x, y, rx: x / Math.max(1, rect.width), ry: y / Math.max(1, rect.height) };
-}
-
 function computeDropIndex(tabStrip, clientX, clientY) {
   const vertical = tabStrip.classList.contains('vertical');
   const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
   if (!tabs.length) return 0;
   
-  for (let i = 0; i < tabs.length; i++) {
-    const r = tabs[i].getBoundingClientRect();
+  // 1. Read all dimensions at once
+  const tabRects = tabs.map(t => t.getBoundingClientRect());
+
+  // 2. Perform logic without touching the DOM
+  for (let i = 0; i < tabRects.length; i++) {
+    const r = tabRects[i];
     const midpoint = vertical ? (r.top + r.height / 2) : (r.left + r.width / 2);
     const clientPos = vertical ? clientY : clientX;
     
@@ -169,18 +171,15 @@ function processDragEvent(ev, { performDrop = false } = {}) {
         return;
     }
 
-
     if (ctx.overTabStrip) {
         handleTabStripDrop(ctx, ev, performDrop);
         return;
     }
 
-
     const splitHandled = handlePaneSplitDrop(ctx, ev, performDrop);
     if (splitHandled) {
         return;
     }
-
 
     handleTabStripDrop(ctx, ev, performDrop);
 }
@@ -197,7 +196,6 @@ export function enableInteractions() {
     refs.mainBody.addEventListener('dragover', throttledProcessDrag);
 
     refs.mainBody.addEventListener('drop', ev => {
-
         processDragEvent(ev, { performDrop: true });
     });
 
@@ -212,4 +210,3 @@ export function enableInteractions() {
         }, 50);
     });
 }
-

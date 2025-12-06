@@ -1,29 +1,12 @@
-// layout.js
-
-import { el } from './utils.js';
+import { el, getRefs } from './utils.js'; // getRefs imported from utils
 import { createPane } from './pane.js';
 import { attachColumnResizer, calculateElementMinWidth } from './resizer.js';
 import { settings } from './settings.js';
 
-let _refs = null;
-
-export function getRefs() {
-  if (_refs) {
-    const ok = _refs.main && document.getElementById('ptmt-main') === _refs.main && _refs.centerBody && document.getElementById('ptmt-centerBody') === _refs.centerBody;
-    if (ok) return _refs;
-    _refs = null;
-  }
-  _refs = {
-    main: document.getElementById('ptmt-main'),
-    mainBody: document.getElementById('ptmt-mainBody'),
-    leftBody: document.getElementById('ptmt-leftBody'),
-    centerBody: document.getElementById('ptmt-centerBody'),
-    rightBody: document.getElementById('ptmt-rightBody'),
-    dropIndicator: document.getElementById('ptmt-drop-indicator'),
-    splitOverlay: document.getElementById('ptmt-split-overlay')
-  };
-  return _refs;
-}
+// Export getRefs from here for backward compatibility if other files import it from layout.js,
+// OR update all other files to import from utils.js. 
+// For safety, we can re-export it:
+export { getRefs } from './utils.js';
 
 export function createLayoutIfMissing() {
   if (document.getElementById('ptmt-main')) return getRefs();

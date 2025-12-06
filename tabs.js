@@ -1,7 +1,6 @@
 // tabs.js
 
-import { el, isElement, getPanelBySourceId,getPanelById,getTabById } from './utils.js';
-import { getRefs } from './layout.js';
+import { el, isElement, getPanelBySourceId, getPanelById, getTabById, getRefs } from './utils.js';
 import { setPaneCollapsedView, removePaneIfEmpty, checkAndCollapsePaneIfAllTabsCollapsed, splitPaneWithPane } from './pane.js';
 import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
 import { invalidatePaneTabSizeCache } from './resizer.js';
@@ -103,13 +102,17 @@ export function createTabElement(title, pid, icon = null, options = {}) {
     try {
       ev.dataTransfer.setData('text/plain', pid);
       ev.dataTransfer.setData('application/x-ptmt-tab', pid);
-    } catch { }
+    } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
     const g = t.cloneNode(true);
     Object.assign(g.style, { position: 'absolute', left: '-9999px', top: '-9999px' });
     document.body.appendChild(g);
     try {
       ev.dataTransfer.setDragImage(g, 10, 10);
-    } catch { }
+    } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
     setTimeout(() => g.remove(), 60);
   });
 
@@ -303,9 +306,13 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
   for (const node of toMove) {
     if (node.nodeType === 1 && PROTECTED_IDS.has(node.id)) continue;
     if (node.tagName === 'SCRIPT' && node.dataset?.ptmtIgnore !== 'false') {
-      try { document.head.appendChild(node); } catch { }
+      try { document.head.appendChild(node); } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
     } else {
-      try { content.appendChild(node); } catch { }
+      try { content.appendChild(node); } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
     }
   }
 
@@ -456,5 +463,7 @@ export function setDefaultPanelById(pid) {
     if (prev) prev.removeAttribute('data-default-panel');
     const p = getPanelById(pid);
     if (p) p.dataset.defaultPanel = 'true';
-  } catch { }
+  } catch (e) {
+  console.warn('[PTMT] Failed :', e);
+}
 }
