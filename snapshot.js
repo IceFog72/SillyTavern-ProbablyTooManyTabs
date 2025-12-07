@@ -1,9 +1,9 @@
 // snapshot.js 
 
-import { getRefs, recalculateColumnSizes, applyColumnVisibility } from './layout.js';
+import { getRefs } from './utils.js'; // Ensure getRefs is imported from utils
 import { getPanelById, getSplitOrientation, el, getPanelBySourceId } from './utils.js';
 import { createPane, writePaneViewSettings, readPaneViewSettings, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
-import { openTab, createTabFromContent, setActivePanelInPane, createPanelElement, registerPanelDom, createTabElement, getPaneForPanel } from './tabs.js';
+import { setActivePanelInPane, createPanelElement, registerPanelDom, createTabElement, createTabFromContent } from './tabs.js';
 import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
 import { settings, SettingsManager } from './settings.js';
@@ -11,28 +11,10 @@ import { initPendingTabsManager } from './pending-tabs.js';
 
 const SNAPSHOT_VERSION = 9;
 
-
 const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },
     split: { width: '150px', height: '80px' }
 };
-
-function findTabInSnapshot(snapshotNode, sourceId) {
-    if (!snapshotNode) return null;
-
-    if (snapshotNode.type === 'pane') {
-        return snapshotNode.tabs?.find(t => t.sourceId === sourceId) || null;
-    }
-
-    if (snapshotNode.type === 'split') {
-        if (!snapshotNode.children) return null;
-        for (const child of snapshotNode.children) {
-            const found = findTabInSnapshot(child, sourceId);
-            if (found) return found;
-        }
-    }
-    return null;
-}
 
 export function generateLayoutSnapshot() {
     const refs = getRefs();
@@ -95,9 +77,18 @@ export function generateLayoutSnapshot() {
 
             const children = structuralChildren.map(child => buildNodeTree(child, parentColumn));
 
+            // FIX: Regex now looks for the number specifically attached to a % sign
             const splitRatios = structuralChildren.map(child => {
-                const flexMatch = (child.style.flex || '').match(/(\d+(?:\.\d+)?)/);
-                return flexMatch ? parseFloat(flexMatch[1]) : 50;
+                const flexString = child.style.flex || '';
+                // Look for '1 1 49.5%' -> matches 49.5
+                const percentMatch = flexString.match(/(\d+(?:\.\d+)?)%/);
+                if (percentMatch) {
+                    return parseFloat(percentMatch[1]);
+                }
+                
+                // Fallback: If no percent found (e.g. 'flex: 1'), assumes equal distribution or specific logic
+                // But usually split children have percentages. 
+                return (100 / structuralChildren.length);
             });
 
             const computedStyle = getComputedStyle(element);
@@ -220,11 +211,9 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     [refs.leftBody, refs.centerBody, refs.rightBody].forEach(col => {
         if (col) {
             const elementsToPreserve = Array.from(col.querySelectorAll('[data-preserve="true"]'));
-
             while (col.firstChild) {
                 col.removeChild(col.firstChild);
             }
-
             elementsToPreserve.forEach(el => col.appendChild(el));
         }
     });
@@ -267,23 +256,17 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             const pane = createPane({}, { deferInitialCheck: true });
             if (node.paneId) pane.dataset.paneId = node.paneId;
 
-
             if (node.isCollapsed) {
-
                 if (node.actualWidth) pane.dataset.lastWidth = node.actualWidth;
                 if (node.actualHeight) pane.dataset.lastHeight = node.actualHeight;
                 if (node.lastFlex) pane.dataset.lastFlex = node.lastFlex;
-
 
                 const minWidth = node.minWidth || DEFAULT_MIN_SIZES.pane.width;
                 const minHeight = node.minHeight || DEFAULT_MIN_SIZES.pane.height;
                 pane.style.minWidth = minWidth;
                 pane.style.minHeight = minHeight;
-
-
                 pane.style.flex = node.flex || '0 0 auto';
             } else {
-
                 if (node.flex) pane.style.flex = node.flex;
                 if (node.lastFlex) pane.dataset.lastFlex = node.lastFlex;
                 if (node.minWidth) pane.style.minWidth = node.minWidth;
@@ -301,7 +284,6 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             parent.appendChild(pane);
             createdPanes.push(pane);
 
-
             if (node.isCollapsed) {
                 elementsToCollapse.push({
                     el: pane,
@@ -313,19 +295,16 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             }
 
             createTabsForPane(pane, node.tabs || [], placedPanelIds);
-
             return pane;
         }
 
         if (node.type === 'split') {
             const split = el('div', { className: 'ptmt-split' });
 
-
             if (node.isCollapsed) {
                 if (node.actualWidth) split.dataset.lastWidth = node.actualWidth;
                 if (node.actualHeight) split.dataset.lastHeight = node.actualHeight;
                 if (node.lastFlex) split.dataset.lastFlex = node.lastFlex;
-
                 split.style.flex = node.flex || '0 0 auto';
             } else {
                 if (node.flex) split.style.flex = node.flex;
@@ -358,8 +337,15 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
                 const childEl = rebuildNodeTree(childNode, split);
 
-                if (childEl && node.splitRatios?.[index]) {
-                    childEl.style.flex = `0 1 ${node.splitRatios[index]}%`;
+                // FIX: Do not overwrite the flex if the child node explicitly provided it.
+                // Only use splitRatios as a fallback if explicit flex is missing.
+                if (childEl) {
+                    const explicitFlex = childNode.flex;
+                    const isExplicitValid = explicitFlex && explicitFlex.indexOf('%') > -1;
+
+                    if (!isExplicitValid && node.splitRatios?.[index]) {
+                         childEl.style.flex = `0 1 ${node.splitRatios[index]}%`;
+                    }
                 }
             });
 
@@ -371,15 +357,12 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
     const createTabsForPane = (pane, tabsData, placedPanelIds) => {
         if (!pane || !Array.isArray(tabsData)) return;
-
         const sortedTabs = [...tabsData].sort((a, b) => (a.order || 0) - (b.order || 0));
-
         let activePid = null;
         let defaultPid = null;
 
         for (const t of sortedTabs) {
             if (!t) continue;
-
             try {
                 let panel = null;
                 let pid = null;
@@ -399,14 +382,11 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 } else if (t.customContent) {
                     panel = createPanelElement(t.title || 'Custom');
                     panel.querySelector('.ptmt-panel-content').innerHTML = t.customContent;
-
                     Object.entries(t.customData || {}).forEach(([key, value]) => {
                         if (key !== 'panelId') panel.dataset[key] = value;
                     });
-
                     pid = registerPanelDom(panel, t.title);
                     pane._panelContainer.appendChild(panel);
-
                     const tab = createTabElement(t.title, pid, t.icon);
                     pane._tabStrip.appendChild(tab);
                 }
@@ -474,11 +454,9 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                         column.querySelector('.ptmt-pane');
                 }
             }
-
             if (!targetPane) {
                 targetPane = refs.centerBody.querySelector('.ptmt-pane');
             }
-
             if (targetPane) {
                 const mapping = mappings.find(m => m.id === id) || {};
                 createTabFromContent(id, {
@@ -493,21 +471,12 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     initPendingTabsManager(allGhostTabs);
 
     requestAnimationFrame(() => {
-
         elementsToCollapse.forEach(item => {
-
-            if (item.lastFlex) {
-                item.el.dataset.lastFlex = item.lastFlex;
-            }
-            if (item.lastWidth) {
-                item.el.dataset.lastWidth = item.lastWidth;
-            }
-            if (item.lastHeight) {
-                item.el.dataset.lastHeight = item.lastHeight;
-            }
+            if (item.lastFlex) item.el.dataset.lastFlex = item.lastFlex;
+            if (item.lastWidth) item.el.dataset.lastWidth = item.lastWidth;
+            if (item.lastHeight) item.el.dataset.lastHeight = item.lastHeight;
 
             if (item.type === 'pane') {
-
                 if (typeof setPaneCollapsedView === 'function') {
                     setPaneCollapsedView(item.el, true);
                 } else {
@@ -519,7 +488,6 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         });
 
         createdPanes.forEach(pane => applyPaneOrientation(pane));
-
 
         const settingsWrapperId = 'ptmt-settings-wrapper-content';
         let settingsWrapper = document.getElementById(settingsWrapperId);
@@ -548,15 +516,12 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     checkAndCollapsePaneIfAllTabsCollapsed(pane);
                 }
             });
-
         }
-
 
         setTimeout(() => {
             recalculateAllSplitsRecursively();
             recalculateColumnSizes();
             updateResizerDisabledStates();
-
             document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
             validateAndCorrectAllMinSizes();
 
@@ -590,15 +555,12 @@ function validateSnapshot(snapshot) {
 
 function nodeHasMeaningfulContent(node) {
     if (!node) return false;
-
     if (node.type === 'pane') {
         return Array.isArray(node.tabs) && node.tabs.length > 0;
     }
-
     if (node.type === 'split') {
         return Array.isArray(node.children) &&
             node.children.some(child => nodeHasMeaningfulContent(child));
     }
-
     return false;
 }

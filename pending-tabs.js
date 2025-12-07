@@ -169,10 +169,19 @@ export function initPendingTabsManager(allGhostTabs) {
     if (pendingTabsMap.size === 0) return;
 
     hydrationObserver = new MutationObserver((mutationsList) => {
+        let shouldCheck = false;
         for (const mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                checkForPendingTabs(mutation.addedNodes);
+                // OPTIMIZATION: Ignore text-only changes or tiny updates
+                if (mutation.target.id === 'chat' || mutation.target.classList.contains('mes_text')) continue; 
+                shouldCheck = true;
+                break; // Found a structural change, proceed to check
             }
+        }
+        if (shouldCheck) {
+            // Pass all added nodes from all mutations to avoid re-querying the whole DOM if possible
+            const allAdded = mutationsList.flatMap(m => Array.from(m.addedNodes));
+            checkForPendingTabs(allAdded);
         }
     });
 
