@@ -1,11 +1,11 @@
 // index.js 
 
-import { eventSource, event_types, characters,animation_duration  } from '../../../../script.js';
+import { eventSource, event_types, characters, animation_duration } from '../../../../script.js';
 import { power_user } from '../../../power-user.js';
 import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
 import { settings } from './settings.js';
- 
+
 import { el, debounce, getPanelById, getTabById, getRefs } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
 import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
@@ -13,9 +13,9 @@ import { applyPaneOrientation, applySplitOrientation, readPaneViewSettings, writ
 import {
   createTabFromContent, moveNodeIntoTab, listTabs,
   openTab, closeTabById, setDefaultPanelById,
-   moveTabIntoPaneAtIndex, destroyTabById,
+  moveTabIntoPaneAtIndex, destroyTabById,
 } from './tabs.js';
-import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively } from './resizer.js';
+import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively, validateAndCorrectAllMinSizes } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
@@ -91,7 +91,7 @@ import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js'
     window.addEventListener('ptmt:layoutChanged', (event) => {
       if (event.detail?.reason !== 'snapshotApplied') {
         applyColumnVisibility();
-        if (event.detail?.reason !== 'manualResize') { 
+        if (event.detail?.reason !== 'manualResize') {
           recalculateColumnSizes();
         }
       }
@@ -116,6 +116,7 @@ import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js'
     window.addEventListener('resize', debounce(() => {
       document.querySelectorAll('.ptmt-pane').forEach(pane => delete pane.dataset.appliedOrientation);
       recalculateAllSplitsRecursively();
+      validateAndCorrectAllMinSizes();
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     }, 150));
 
@@ -132,104 +133,104 @@ import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js'
 
 
     try { openAllDrawersJq(); } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+      console.warn('[PTMT] Failed :', e);
+    }
     try { removeMouseDownDrawerHandler(); } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+      console.warn('[PTMT] Failed :', e);
+    }
     enableInteractions();
     moveBgDivs();
     initDrawerObserver();
 
     overrideDelegatedEventHandler(
-        'click',
-        '.mes .avatar',
-        (handlerString) => {
-            return handlerString.includes("$('#zoomed_avatar_template').html()");
-        },
-        function () {
-            const messageElement = $(this).closest('.mes');
-            const thumbURL = $(this).children('img').attr('src');
-            const charsPath = '/characters/';
-            const targetAvatarImg = thumbURL.substring(thumbURL.lastIndexOf('=') + 1);
-            const charname = targetAvatarImg.replace('.png', '');
-            const isValidCharacter = characters.some(x => x.avatar === decodeURIComponent(targetAvatarImg));
+      'click',
+      '.mes .avatar',
+      (handlerString) => {
+        return handlerString.includes("$('#zoomed_avatar_template').html()");
+      },
+      function () {
+        const messageElement = $(this).closest('.mes');
+        const thumbURL = $(this).children('img').attr('src');
+        const charsPath = '/characters/';
+        const targetAvatarImg = thumbURL.substring(thumbURL.lastIndexOf('=') + 1);
+        const charname = targetAvatarImg.replace('.png', '');
+        const isValidCharacter = characters.some(x => x.avatar === decodeURIComponent(targetAvatarImg));
 
-            if (!power_user.movingUI) {
-                $('.zoomed_avatar').each(function () {
-                    const currentForChar = $(this).attr('forChar');
-                    if (currentForChar !== charname && typeof currentForChar !== 'undefined') {
-                        console.debug(`Removing zoomed avatar for character: ${currentForChar}`);
-                        $(this).remove();
-                    }
-                });
+        if (!power_user.movingUI) {
+          $('.zoomed_avatar').each(function () {
+            const currentForChar = $(this).attr('forChar');
+            if (currentForChar !== charname && typeof currentForChar !== 'undefined') {
+              console.debug(`Removing zoomed avatar for character: ${currentForChar}`);
+              $(this).remove();
             }
-
-            const avatarSrc = (isDataURL(thumbURL) || /^\/?img\/(?:.+)/.test(thumbURL)) ? thumbURL : charsPath + targetAvatarImg;
-            if ($(`.zoomed_avatar[forChar="${charname}"]`).length) {
-                console.debug('removing container as it already existed');
-                $(`.zoomed_avatar[forChar="${charname}"]`).fadeOut(animation_duration, () => {
-                    $(`.zoomed_avatar[forChar="${charname}"]`).remove();
-                });
-            } else {
-                console.debug('making new container from template');
-                const template = $('#zoomed_avatar_template').html();
-                const newElement = $(template);
-                newElement.attr('forChar', charname);
-                newElement.attr('id', `zoomFor_${charname}`);
-                newElement.addClass('draggable');
-                newElement.find('.drag-grabber').attr('id', `zoomFor_${charname}header`);
-                
-                let movingDivsContainer = $('#movingDivs');
-                if (movingDivsContainer.length === 0) {
-                    movingDivsContainer = $('<div id="movingDivs"></div>');
-                    $('body').append(movingDivsContainer);
-                }
-                movingDivsContainer.append(newElement);
-
-                newElement.fadeIn(animation_duration);
-                const zoomedAvatarImgElement = $(`.zoomed_avatar[forChar="${charname}"] img`);
-                if (messageElement.attr('is_user') == 'true' || (messageElement.attr('is_system') == 'true' && !isValidCharacter)) {
-                    const isValidPersona = decodeURIComponent(targetAvatarImg) in power_user.personas;
-                    if (isValidPersona) {
-                        const personaSrc = getUserAvatar(targetAvatarImg);
-                        zoomedAvatarImgElement.attr('src', personaSrc);
-                        zoomedAvatarImgElement.attr('data-izoomify-url', personaSrc);
-                    } else {
-                        zoomedAvatarImgElement.attr('src', thumbURL);
-                        zoomedAvatarImgElement.attr('data-izoomify-url', thumbURL);
-                    }
-                } else if (messageElement.attr('is_user') == 'false') {
-                    zoomedAvatarImgElement.attr('src', avatarSrc);
-                    zoomedAvatarImgElement.attr('data-izoomify-url', avatarSrc);
-                }
-                //loadMovingUIState();
-                $(`.zoomed_avatar[forChar="${charname}"]`).css('display', 'flex');
-                //dragElement(newElement);
-
-                if (power_user.zoomed_avatar_magnification) {
-                    $('.zoomed_avatar_container').izoomify();
-                }
-
-                newElement.on('click touchend', (e) => {
-                    if (e.target.closest('.dragClose')) {
-                        newElement.fadeOut(animation_duration, () => {
-                            newElement.remove();
-                        });
-                    }
-                });
-
-                /*zoomedAvatarImgElement.on('dragstart', (e) => {
-                    console.log('saw drag on avatar!');
-                    e.preventDefault();
-                    return false;
-                });*/
-            }
+          });
         }
+
+        const avatarSrc = (isDataURL(thumbURL) || /^\/?img\/(?:.+)/.test(thumbURL)) ? thumbURL : charsPath + targetAvatarImg;
+        if ($(`.zoomed_avatar[forChar="${charname}"]`).length) {
+          console.debug('removing container as it already existed');
+          $(`.zoomed_avatar[forChar="${charname}"]`).fadeOut(animation_duration, () => {
+            $(`.zoomed_avatar[forChar="${charname}"]`).remove();
+          });
+        } else {
+          console.debug('making new container from template');
+          const template = $('#zoomed_avatar_template').html();
+          const newElement = $(template);
+          newElement.attr('forChar', charname);
+          newElement.attr('id', `zoomFor_${charname}`);
+          newElement.addClass('draggable');
+          newElement.find('.drag-grabber').attr('id', `zoomFor_${charname}header`);
+
+          let movingDivsContainer = $('#movingDivs');
+          if (movingDivsContainer.length === 0) {
+            movingDivsContainer = $('<div id="movingDivs"></div>');
+            $('body').append(movingDivsContainer);
+          }
+          movingDivsContainer.append(newElement);
+
+          newElement.fadeIn(animation_duration);
+          const zoomedAvatarImgElement = $(`.zoomed_avatar[forChar="${charname}"] img`);
+          if (messageElement.attr('is_user') == 'true' || (messageElement.attr('is_system') == 'true' && !isValidCharacter)) {
+            const isValidPersona = decodeURIComponent(targetAvatarImg) in power_user.personas;
+            if (isValidPersona) {
+              const personaSrc = getUserAvatar(targetAvatarImg);
+              zoomedAvatarImgElement.attr('src', personaSrc);
+              zoomedAvatarImgElement.attr('data-izoomify-url', personaSrc);
+            } else {
+              zoomedAvatarImgElement.attr('src', thumbURL);
+              zoomedAvatarImgElement.attr('data-izoomify-url', thumbURL);
+            }
+          } else if (messageElement.attr('is_user') == 'false') {
+            zoomedAvatarImgElement.attr('src', avatarSrc);
+            zoomedAvatarImgElement.attr('data-izoomify-url', avatarSrc);
+          }
+          //loadMovingUIState();
+          $(`.zoomed_avatar[forChar="${charname}"]`).css('display', 'flex');
+          //dragElement(newElement);
+
+          if (power_user.zoomed_avatar_magnification) {
+            $('.zoomed_avatar_container').izoomify();
+          }
+
+          newElement.on('click touchend', (e) => {
+            if (e.target.closest('.dragClose')) {
+              newElement.fadeOut(animation_duration, () => {
+                newElement.remove();
+              });
+            }
+          });
+
+          /*zoomedAvatarImgElement.on('dragstart', (e) => {
+              console.log('saw drag on avatar!');
+              e.preventDefault();
+              return false;
+          });*/
+        }
+      }
     );
-    
+
     initDemotionObserver(api);
- 
+
     return api;
   }
 

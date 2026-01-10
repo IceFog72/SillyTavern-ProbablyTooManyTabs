@@ -6,6 +6,7 @@ import { createPane, writePaneViewSettings, readPaneViewSettings, applyPaneOrien
 import { setActivePanelInPane, createPanelElement, registerPanelDom, createTabElement, createTabFromContent } from './tabs.js';
 import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
+import { recalculateColumnSizes } from './layout.js';
 import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 
@@ -85,7 +86,7 @@ export function generateLayoutSnapshot() {
                 if (percentMatch) {
                     return parseFloat(percentMatch[1]);
                 }
-                
+
                 // Fallback: If no percent found (e.g. 'flex: 1'), assumes equal distribution or specific logic
                 // But usually split children have percentages. 
                 return (100 / structuralChildren.length);
@@ -344,7 +345,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     const isExplicitValid = explicitFlex && explicitFlex.indexOf('%') > -1;
 
                     if (!isExplicitValid && node.splitRatios?.[index]) {
-                         childEl.style.flex = `0 1 ${node.splitRatios[index]}%`;
+                        childEl.style.flex = `0 1 ${node.splitRatios[index]}%`;
                     }
                 }
             });
