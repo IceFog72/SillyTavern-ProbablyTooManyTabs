@@ -34,7 +34,7 @@ export function createPane(initialSettings = {}, options = {}) {
   const tabStrip = el('div', { className: 'ptmt-tabStrip' });
   const panelContainer = el('div', { className: 'ptmt-panelContainer' });
   const grid = el('div', { className: 'ptmt-pane-grid', style: { width: '100%', height: '100%' } });
-  
+
   pane.dataset.paneId = `ptmt-pane-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
 
   grid.append(tabStrip, panelContainer);
@@ -72,9 +72,16 @@ export function getPaneLayerCount(pane) {
 export function readPaneViewSettings(pane) {
   try {
     if (!pane) return { ...defaultViewSettings };
+    if (pane._viewSettingsCache) return pane._viewSettingsCache;
+
     const raw = pane.dataset.viewSettings;
-    if (!raw) return { ...defaultViewSettings };
-    return { ...defaultViewSettings, ...JSON.parse(raw) };
+    if (!raw) {
+      pane._viewSettingsCache = { ...defaultViewSettings };
+      return pane._viewSettingsCache;
+    }
+
+    pane._viewSettingsCache = { ...defaultViewSettings, ...JSON.parse(raw) };
+    return pane._viewSettingsCache;
   } catch {
     return { ...defaultViewSettings };
   }
@@ -82,10 +89,12 @@ export function readPaneViewSettings(pane) {
 
 export function writePaneViewSettings(pane, settings) {
   try {
-    pane.dataset.viewSettings = JSON.stringify({ ...defaultViewSettings, ...settings });
+    const newSettings = { ...defaultViewSettings, ...settings };
+    pane.dataset.viewSettings = JSON.stringify(newSettings);
+    pane._viewSettingsCache = newSettings;
   } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+    console.warn('[PTMT] Failed :', e);
+  }
 }
 
 export function getParentSplitOrientation(pane) {
@@ -99,44 +108,44 @@ export function getParentSplitOrientation(pane) {
 
 
 function findGoverningOrientation(pane) {
-    let current = pane.parentElement;
+  let current = pane.parentElement;
 
-    while (current && !current.classList.contains('ptmt-body-column')) {
-        if (current.classList.contains('ptmt-split') && !current.classList.contains('ptmt-container-collapsed')) {
-            return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
-        }
-        current = current.parentElement;
+  while (current && !current.classList.contains('ptmt-body-column')) {
+    if (current.classList.contains('ptmt-split') && !current.classList.contains('ptmt-container-collapsed')) {
+      return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
     }
-    return 'vertical';
+    current = current.parentElement;
+  }
+  return 'vertical';
 }
 
 export function applyPaneOrientation(pane) {
-    if (!pane) return;
-    const vs = readPaneViewSettings(pane) || {};
-    const isCollapsed = pane.classList.contains('view-collapsed');
-    let orientation;
+  if (!pane) return;
+  const vs = readPaneViewSettings(pane) || {};
+  const isCollapsed = pane.classList.contains('view-collapsed');
+  let orientation;
 
-    if (isCollapsed) {
-        let collapsedOrientation = vs.collapsedOrientation || 'auto';
-        if (collapsedOrientation === 'auto') {
-            orientation = findGoverningOrientation(pane);
-        } else {
-            orientation = collapsedOrientation;
-        }
+  if (isCollapsed) {
+    let collapsedOrientation = vs.collapsedOrientation || 'auto';
+    if (collapsedOrientation === 'auto') {
+      orientation = findGoverningOrientation(pane);
     } else {
-        orientation = vs.defaultOrientation || 'auto';
-        if (orientation === 'auto') {
-            const rect = (pane._panelContainer || pane).getBoundingClientRect();
-            orientation = (rect.width >= rect.height) ? 'horizontal' : 'vertical';
-        }
-        pane.dataset.lastExpandedOrientation = orientation;
+      orientation = collapsedOrientation;
     }
+  } else {
+    orientation = vs.defaultOrientation || 'auto';
+    if (orientation === 'auto') {
+      const rect = (pane._panelContainer || pane).getBoundingClientRect();
+      orientation = (rect.width >= rect.height) ? 'horizontal' : 'vertical';
+    }
+    pane.dataset.lastExpandedOrientation = orientation;
+  }
 
-    const gridEl = pane._grid || pane;
-    gridEl.classList.toggle('grid-vertical', orientation === 'vertical');
-    gridEl.classList.toggle('grid-horizontal', orientation === 'horizontal');
-    (pane._tabStrip || pane).classList.toggle('vertical', orientation === 'vertical');
-    gridEl.classList.toggle('flow-reversed', vs.contentFlow === 'reversed');
+  const gridEl = pane._grid || pane;
+  gridEl.classList.toggle('grid-vertical', orientation === 'vertical');
+  gridEl.classList.toggle('grid-horizontal', orientation === 'horizontal');
+  (pane._tabStrip || pane).classList.toggle('vertical', orientation === 'vertical');
+  gridEl.classList.toggle('flow-reversed', vs.contentFlow === 'reversed');
 }
 
 
@@ -146,39 +155,39 @@ export function setPaneCollapsedView(pane, collapsed) {
   const parentSplit = pane.parentElement;
 
   if (collapsed) {
-      const currentFlex = pane.style.flex;
-      const vs = readPaneViewSettings(pane);
-      const minSizePx = vs.minimalPanelSize || 250;
-      const rect = pane.getBoundingClientRect();
-      const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
-      const currentBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
-      
-      let shouldResetToMin = false;
-      if (parentSplit?.classList.contains('ptmt-split')) {
-          const isHorizontal = parentSplit.classList.contains('horizontal');
-          const currentSize = isHorizontal ? rect.height : rect.width;
-          if (currentSize < minSizePx || currentBasisPercent >= 99.9) {
-              shouldResetToMin = true;
-          }
-      } else if (currentBasisPercent >= 99.9) { // Is the only pane in a column
-          shouldResetToMin = true;
-      }
-      
-      if (shouldResetToMin && parentSplit?.classList.contains('ptmt-split')) {
-          const isHorizontal = parentSplit.classList.contains('horizontal');
-          const parentRect = parentSplit.getBoundingClientRect();
-          const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
-          if (totalParentSize > 0) {
-              const minBasisPercent = (minSizePx / totalParentSize) * 100;
-              pane.dataset.lastFlex = `1 1 ${Math.min(100, minBasisPercent).toFixed(4)}%`;
-          } else {
-              pane.dataset.lastFlex = '1 1 30%'; // Fallback
-          }
-      } else if (currentFlex) {
-          pane.dataset.lastFlex = currentFlex;
-      }
+    const currentFlex = pane.style.flex;
+    const vs = readPaneViewSettings(pane);
+    const minSizePx = vs.minimalPanelSize || 250;
+    const rect = pane.getBoundingClientRect();
+    const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
+    const currentBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
 
-      pane.classList.add('view-collapsed');
+    let shouldResetToMin = false;
+    if (parentSplit?.classList.contains('ptmt-split')) {
+      const isHorizontal = parentSplit.classList.contains('horizontal');
+      const currentSize = isHorizontal ? rect.height : rect.width;
+      if (currentSize < minSizePx || currentBasisPercent >= 99.9) {
+        shouldResetToMin = true;
+      }
+    } else if (currentBasisPercent >= 99.9) { // Is the only pane in a column
+      shouldResetToMin = true;
+    }
+
+    if (shouldResetToMin && parentSplit?.classList.contains('ptmt-split')) {
+      const isHorizontal = parentSplit.classList.contains('horizontal');
+      const parentRect = parentSplit.getBoundingClientRect();
+      const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
+      if (totalParentSize > 0) {
+        const minBasisPercent = (minSizePx / totalParentSize) * 100;
+        pane.dataset.lastFlex = `1 1 ${Math.min(100, minBasisPercent).toFixed(4)}%`;
+      } else {
+        pane.dataset.lastFlex = '1 1 30%'; // Fallback
+      }
+    } else if (currentFlex) {
+      pane.dataset.lastFlex = currentFlex;
+    }
+
+    pane.classList.add('view-collapsed');
   } else {
     pane.classList.remove('view-collapsed');
 
@@ -188,47 +197,47 @@ export function setPaneCollapsedView(pane, collapsed) {
     const minSizePx = vs.minimalPanelSize || 250;
 
     if (parentSplit?.classList.contains('ptmt-split')) {
-        const isHorizontal = parentSplit.classList.contains('horizontal');
-        const parentRect = parentSplit.getBoundingClientRect();
-        const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
-        
-        if (totalParentSize > 0) {
-            const minBasisPercent = (minSizePx / totalParentSize) * 100;
-            const lastBasisMatch = lastFlex ? lastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
-            const lastBasisPercent = lastBasisMatch ? parseFloat(lastBasisMatch[1]) : 0;
+      const isHorizontal = parentSplit.classList.contains('horizontal');
+      const parentRect = parentSplit.getBoundingClientRect();
+      const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
 
-            if (Math.abs(lastBasisPercent - minBasisPercent) < 0.1) {
-                const siblings = Array.from(parentSplit.children).filter(c => c !== pane && (c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')));
-                const totalSiblingLastFlex = siblings.reduce((sum, s) => {
-                    if (s.dataset.lastFlex) {
-                        const match = s.dataset.lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
-                        return sum + (match ? parseFloat(match[1]) : 0);
-                    }
-                    return sum;
-                }, 0);
+      if (totalParentSize > 0) {
+        const minBasisPercent = (minSizePx / totalParentSize) * 100;
+        const lastBasisMatch = lastFlex ? lastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
+        const lastBasisPercent = lastBasisMatch ? parseFloat(lastBasisMatch[1]) : 0;
 
-                if (totalSiblingLastFlex > 0 && totalSiblingLastFlex < 100) {
-                    let targetBasis = 100.0 - totalSiblingLastFlex;
-                    targetBasis = Math.max(targetBasis, minBasisPercent);
-                    lastFlex = `1 1 ${targetBasis.toFixed(4)}%`;
-                }
+        if (Math.abs(lastBasisPercent - minBasisPercent) < 0.1) {
+          const siblings = Array.from(parentSplit.children).filter(c => c !== pane && (c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')));
+          const totalSiblingLastFlex = siblings.reduce((sum, s) => {
+            if (s.dataset.lastFlex) {
+              const match = s.dataset.lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
+              return sum + (match ? parseFloat(match[1]) : 0);
             }
+            return sum;
+          }, 0);
+
+          if (totalSiblingLastFlex > 0 && totalSiblingLastFlex < 100) {
+            let targetBasis = 100.0 - totalSiblingLastFlex;
+            targetBasis = Math.max(targetBasis, minBasisPercent);
+            lastFlex = `1 1 ${targetBasis.toFixed(4)}%`;
+          }
         }
-        
-        let targetBasisPercent;
-        if (totalParentSize > 0) {
-            const minBasisPercent = (minSizePx / totalParentSize) * 100;
-            if (lastFlex && !isFlexInvalid) {
-                const basisMatch = lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
-                const lastBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
-                targetBasisPercent = Math.max(minBasisPercent, lastBasisPercent);
-            } else {
-                targetBasisPercent = minBasisPercent;
-            }
-            pane.style.flex = `1 1 ${Math.min(100, targetBasisPercent).toFixed(4)}%`;
+      }
+
+      let targetBasisPercent;
+      if (totalParentSize > 0) {
+        const minBasisPercent = (minSizePx / totalParentSize) * 100;
+        if (lastFlex && !isFlexInvalid) {
+          const basisMatch = lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
+          const lastBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
+          targetBasisPercent = Math.max(minBasisPercent, lastBasisPercent);
         } else {
-            pane.style.flex = (lastFlex && !isFlexInvalid) ? lastFlex : '1 1 50%';
+          targetBasisPercent = minBasisPercent;
         }
+        pane.style.flex = `1 1 ${Math.min(100, targetBasisPercent).toFixed(4)}%`;
+      } else {
+        pane.style.flex = (lastFlex && !isFlexInvalid) ? lastFlex : '1 1 50%';
+      }
     } else {
       pane.style.flex = '1 1 100%';
     }
@@ -304,8 +313,8 @@ export function removePaneIfEmpty(pane, depth = 0) {
   }
 
   try { window.dispatchEvent(new CustomEvent('ptmt:layoutChanged')); } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+    console.warn('[PTMT] Failed :', e);
+  }
 }
 
 export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newFirst = true) {
@@ -391,15 +400,15 @@ function normalizeLiftedElement(el) {
           }
         } else {
           try { c.style.flex = ''; } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+            console.warn('[PTMT] Failed :', e);
+          }
         }
       });
       return;
     }
     try { el.style.flex = ''; } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+      console.warn('[PTMT] Failed :', e);
+    }
   } catch (e) {
     console.warn('normalizeLiftedElement error', e);
   }

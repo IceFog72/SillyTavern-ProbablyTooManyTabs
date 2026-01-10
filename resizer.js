@@ -35,7 +35,7 @@ function getOrCalculateFullTabSize(pane) {
     if (wasInIconMode) {
         pane.classList.add('ptmt-pane-icons-only');
     }
-    
+
     pane.dataset.cachedTabSize = requiredSize;
     return requiredSize;
 }
@@ -51,9 +51,9 @@ export function checkPaneForIconMode(pane) {
         pane.classList.remove('ptmt-pane-icons-only');
         return;
     }
-    
+
     const requiredSize = getOrCalculateFullTabSize(pane);
-    
+
     const isVertical = tabStrip.classList.contains('vertical');
     const containerRect = tabStrip.getBoundingClientRect();
     const availableSize = isVertical ? containerRect.height : containerRect.width;
@@ -68,74 +68,74 @@ export const resizerControllers = new WeakMap();
 const pxToPercent = (px, total) => !Number.isFinite(total) || total <= 0 ? 50 : Math.max(0, Math.min(100, (px / total) * 100));
 
 function createResizer(resizer, orientation, config) {
-  const isVertical = orientation === 'vertical' || orientation === 'v';
-  const sizeProp = isVertical ? 'width' : 'height';
-  const clientProp = isVertical ? 'clientX' : 'clientY';
-  resizer.style.cursor = isVertical ? 'col-resize' : 'row-resize';
+    const isVertical = orientation === 'vertical' || orientation === 'v';
+    const sizeProp = isVertical ? 'width' : 'height';
+    const clientProp = isVertical ? 'clientX' : 'clientY';
+    resizer.style.cursor = isVertical ? 'col-resize' : 'row-resize';
 
-  let pointerId = null;
-  let startClient = 0;
-  let dragState = null;
+    let pointerId = null;
+    let startClient = 0;
+    let dragState = null;
 
-  function onPointerDown(e) {
-    if ((e.button && e.button !== 0) || resizer.classList.contains('disabled')) {
-      e.preventDefault();
-      e.stopPropagation();
-      return;
+    function onPointerDown(e) {
+        if ((e.button && e.button !== 0) || resizer.classList.contains('disabled')) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+
+        dragState = config.onDragStart(resizer, { sizeProp, clientProp });
+        if (!dragState) return;
+
+        e.preventDefault();
+        pointerId = e.pointerId;
+        try { resizer.setPointerCapture(pointerId); } catch (e) {
+            console.warn('[PTMT] Failed :', e);
+        }
+        startClient = e[clientProp];
+
+        if (settings.get('hideContentWhileResizing')) {
+            document.body.classList.add('ptmt-is-resizing');
+        }
+        document.body.style.userSelect = 'none';
+        window.addEventListener('pointermove', onPointerMove);
+        window.addEventListener('pointerup', onPointerUp);
     }
 
-    dragState = config.onDragStart(resizer, { sizeProp, clientProp });
-    if (!dragState) return;
-
-    e.preventDefault();
-    pointerId = e.pointerId;
-    try { resizer.setPointerCapture(pointerId); } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
-    startClient = e[clientProp];
-
-    if (settings.get('hideContentWhileResizing')) {
-        document.body.classList.add('ptmt-is-resizing');
+    function onPointerMove(e) {
+        if (pointerId === null || e.pointerId !== pointerId || !dragState) return;
+        const delta = e[clientProp] - startClient;
+        config.onDragMove(delta, dragState);
     }
-    document.body.style.userSelect = 'none';
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
-  }
 
-  function onPointerMove(e) {
-    if (pointerId === null || e.pointerId !== pointerId || !dragState) return;
-    const delta = e[clientProp] - startClient;
-    config.onDragMove(delta, dragState);
-  }
+    function onPointerUp(e) {
+        if (pointerId !== null && e.pointerId === pointerId) {
+            try { resizer.releasePointerCapture(pointerId); } catch (e) {
+                console.warn('[PTMT] Failed :', e);
+            }
+        }
+        pointerId = null;
+        dragState = null;
+        document.body.style.userSelect = '';
+        if (settings.get('hideContentWhileResizing')) {
+            document.body.classList.remove('ptmt-is-resizing');
+        }
+        window.removeEventListener('pointermove', onPointerMove);
+        window.removeEventListener('pointerup', onPointerUp);
 
-  function onPointerUp(e) {
-    if (pointerId !== null && e.pointerId === pointerId) {
-      try { resizer.releasePointerCapture(pointerId); } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+        try {
+            window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'manualResize' } }));
+        } catch (e) {
+            console.warn('[PTMT] Failed :', e);
+        }
     }
-    pointerId = null;
-    dragState = null;
-    document.body.style.userSelect = '';
-    if (settings.get('hideContentWhileResizing')) {
-        document.body.classList.remove('ptmt-is-resizing');
-    }
-    window.removeEventListener('pointermove', onPointerMove);
-    window.removeEventListener('pointerup', onPointerUp);
 
-    try {
-      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'manualResize' } }));
-    } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
-  }
-
-  resizer.addEventListener('pointerdown', onPointerDown);
-  return {
-    detach() {
-      resizer.removeEventListener('pointerdown', onPointerDown);
-    }
-  };
+    resizer.addEventListener('pointerdown', onPointerDown);
+    return {
+        detach() {
+            resizer.removeEventListener('pointerdown', onPointerDown);
+        }
+    };
 }
 
 /**
@@ -147,7 +147,7 @@ function applyIntelligentExpansion(element, newTotalSize, childInfo) {
         recalculateAllSplitsRecursively(element);
         return;
     }
-    
+
     const { sizes: initialChildSizes, smallestIndex, element: splitElement } = childInfo;
     const children = Array.from(splitElement.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
     const smallestChildInitialSize = initialChildSizes[smallestIndex];
@@ -165,7 +165,7 @@ function applyIntelligentExpansion(element, newTotalSize, childInfo) {
         recalculateAllSplitsRecursively(element);
         return;
     }
-    
+
     const remainingPercent = 100 - newSmallestChildBasisPercent;
 
     children.forEach((child, index) => {
@@ -208,7 +208,7 @@ export function attachResizer(resizer, orientation = 'vertical') {
 
                 const children = Array.from(elem.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
                 if (children.length <= 1) return { element: null, sizes: null, smallestIndex: -1 };
-                
+
                 const sizes = children.map(c => c.getBoundingClientRect()[sizeProp]);
                 let smallestIndex = -1, minSize = Infinity;
                 sizes.forEach((size, index) => {
@@ -226,7 +226,7 @@ export function attachResizer(resizer, orientation = 'vertical') {
 
             const aElem = state.flexSiblings[state.aElemIndex];
             const bElem = state.flexSiblings[state.bElemIndex];
-            
+
             const newSizeA = state.initialSizes[state.aElemIndex] + clampedDelta;
             const newSizeB = state.initialSizes[state.bElemIndex] - clampedDelta;
 
@@ -249,8 +249,12 @@ export function attachResizer(resizer, orientation = 'vertical') {
                 recalculateAllSplitsRecursively(bElem);
             }
 
-            aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
-            bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+            const checkConfig = (el) => {
+                if (el.classList.contains('ptmt-pane')) throttledCheckPaneForIconMode(el);
+                el.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+            };
+            checkConfig(aElem);
+            checkConfig(bElem);
         }
     };
 
@@ -276,11 +280,11 @@ export function attachColumnResizer(resizer) {
                 center: refs.centerBody.style.display === 'none' ? 0 : refs.centerBody.getBoundingClientRect()[sizeProp],
                 right: refs.rightBody.style.display === 'none' ? 0 : refs.rightBody.getBoundingClientRect()[sizeProp],
             };
-            
+
             const getChildInfo = (elem) => {
                 const content = elem.querySelector('.ptmt-pane, .ptmt-split');
                 if (!content || !content.classList.contains('ptmt-split')) return { element: null, sizes: null, smallestIndex: -1 };
-                
+
                 const dragIsVertical = sizeProp === 'width';
                 const splitIsVertical = !content.classList.contains('horizontal');
                 if (dragIsVertical !== splitIsVertical) return { element: null, sizes: null, smallestIndex: -1 };
@@ -322,7 +326,7 @@ export function attachColumnResizer(resizer) {
 
             const aElem = state.refs[`${state.aKey}Body`];
             const bElem = state.refs[`${state.bKey}Body`];
-            
+
             if (clampedDelta > 0) { // aElem column is expanding, bElem is shrinking
                 applyIntelligentExpansion(aElem, newSizes[state.aKey], state.aChildInfo);
                 recalculateAllSplitsRecursively(bElem);
@@ -330,8 +334,8 @@ export function attachColumnResizer(resizer) {
                 recalculateAllSplitsRecursively(aElem);
                 applyIntelligentExpansion(bElem, newSizes[state.bKey], state.bChildInfo);
             } else { // No change
-                 recalculateAllSplitsRecursively(aElem);
-                 recalculateAllSplitsRecursively(bElem);
+                recalculateAllSplitsRecursively(aElem);
+                recalculateAllSplitsRecursively(bElem);
             }
 
             aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
@@ -344,22 +348,22 @@ export function attachColumnResizer(resizer) {
 
 
 export function setSplitOrientation(splitElement, newOrientation) {
-  if (!splitElement) return;
-  const isHorizontal = newOrientation === 'horizontal';
+    if (!splitElement) return;
+    const isHorizontal = newOrientation === 'horizontal';
 
-  if (splitElement.classList.contains('horizontal') === isHorizontal) return;
+    if (splitElement.classList.contains('horizontal') === isHorizontal) return;
 
-  splitElement.classList.toggle('horizontal', isHorizontal);
+    splitElement.classList.toggle('horizontal', isHorizontal);
 
-  const resizer = splitElement.querySelector(':scope > .ptmt-resizer-vertical, :scope > .ptmt-resizer-horizontal');
-  if (resizer) {
-    if (resizerControllers.has(resizer)) {
-      resizerControllers.get(resizer).detach();
-      resizerControllers.delete(resizer);
+    const resizer = splitElement.querySelector(':scope > .ptmt-resizer-vertical, :scope > .ptmt-resizer-horizontal');
+    if (resizer) {
+        if (resizerControllers.has(resizer)) {
+            resizerControllers.get(resizer).detach();
+            resizerControllers.delete(resizer);
+        }
+        resizer.className = `ptmt-resizer-${newOrientation}`;
+        attachResizer(resizer, newOrientation);
     }
-    resizer.className = `ptmt-resizer-${newOrientation}`;
-    attachResizer(resizer, newOrientation);
-  }
 }
 
 export function updateResizerDisabledStates() {
@@ -392,42 +396,42 @@ export function updateResizerDisabledStates() {
 }
 
 export function calculateElementMinWidth(element) {
-  if (!element) return 0;
-  
-  if (element.classList.contains('ptmt-pane')) {
-    const vs = readPaneViewSettings(element);
-    return Number(vs.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
-  }
+    if (!element) return 0;
 
-  if (element.classList.contains('ptmt-split')) {
-    const children = Array.from(element.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
-    const resizers = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
-
-    if (element.classList.contains('horizontal')) {
-      let maxMinWidth = 0;
-      children.forEach(child => maxMinWidth = Math.max(maxMinWidth, calculateElementMinWidth(child)));
-      return maxMinWidth;
-    } else {
-      let totalMinWidth = 0;
-      children.forEach(child => totalMinWidth += calculateElementMinWidth(child));
-      resizers.forEach(resizer => totalMinWidth += resizer.getBoundingClientRect().width || 8);
-      return totalMinWidth;
+    if (element.classList.contains('ptmt-pane')) {
+        const vs = readPaneViewSettings(element);
+        return Number(vs.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
     }
-  }
-  return 0;
+
+    if (element.classList.contains('ptmt-split')) {
+        const children = Array.from(element.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+        const resizers = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
+
+        if (element.classList.contains('horizontal')) {
+            let maxMinWidth = 0;
+            children.forEach(child => maxMinWidth = Math.max(maxMinWidth, calculateElementMinWidth(child)));
+            return maxMinWidth;
+        } else {
+            let totalMinWidth = 0;
+            children.forEach(child => totalMinWidth += calculateElementMinWidth(child));
+            resizers.forEach(resizer => totalMinWidth += resizer.getBoundingClientRect().width || 8);
+            return totalMinWidth;
+        }
+    }
+    return 0;
 }
 
 export function recalculateAllSplitsRecursively(root = getRefs().mainBody) {
-  try {
-    if (!root) return;
-    const splits = Array.from(root.querySelectorAll('.ptmt-split'));
-    splits.sort((a, b) => getElementDepth(a) - getElementDepth(b));
-    for (const split of splits) {
-      recalculateSplitSizes(split);
+    try {
+        if (!root) return;
+        const splits = Array.from(root.querySelectorAll('.ptmt-split'));
+        splits.sort((a, b) => getElementDepth(a) - getElementDepth(b));
+        for (const split of splits) {
+            recalculateSplitSizes(split);
+        }
+    } catch (e) {
+        console.warn('recalculateAllSplitsRecursively error:', e);
     }
-  } catch (e) {
-    console.warn('recalculateAllSplitsRecursively error:', e);
-  }
 }
 
 export function recalculateSplitSizes(split) {
@@ -494,7 +498,7 @@ export function recalculateSplitSizes(split) {
                 });
             }
         }
-        
+
         const currentTotalSize = idealSizes.reduce((a, b) => a + b, 0);
         const surplus = contentAvailableSize - currentTotalSize;
 
