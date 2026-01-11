@@ -328,7 +328,8 @@ body,
   background: var(--ptmt-tab-inactive-bg);
   border: 1px solid var(--ptmt-tab-border-color);
   border-bottom: none;
-
+  min-height: 20px;
+  min-width: 20px;
   position: relative;
 }
 
