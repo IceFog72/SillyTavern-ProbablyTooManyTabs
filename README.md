@@ -1,7 +1,6 @@
-
 # SillyTavern — ProbablyTooManyTabs
 
-An extension that wraps all SillyTavern UI elements into tabs, with basic options to rearrange them into columns. <img width="2560" height="1362" alt="image" src="https://github.com/user-attachments/assets/b1a997bb-16a8-4153-bc88-1651e63cbbfb" />
+An extension that transforms the SillyTavern interface into a flexible tabbed workspace, allowing you to organize all UI elements into customizable columns. <img width="2560" height="1362" alt="image" src="https://github.com/user-attachments/assets/b1a997bb-16a8-4153-bc88-1651e63cbbfb" />
 
 ---
 
@@ -29,9 +28,6 @@ An extension that wraps all SillyTavern UI elements into tabs, with basic option
 
 * Resizing the navigation panel with character cards may lag on Chrome-based browsers.
   * Workaround → Enable *"Hide some content on resize (for Chrome users)"* in **Layout Settings**.
-
-* Auto icon mode on panel resize is not yet working correctly.
-  * Status: **WIP**
 
 * If you encounter a UI bug or have suggestions, please leave a message in my Discord channel — either in the extension thread or in **st-general**.
 

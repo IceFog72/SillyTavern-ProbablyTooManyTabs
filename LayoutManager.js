@@ -105,7 +105,8 @@ export class LayoutManager {
                 display: 'flex',
                 justifyContent: 'center',
                 gap: '15px',
-                marginTop: '10px'
+                marginTop: '10px',
+                paddingBottom: '10px'
             }
         });
 

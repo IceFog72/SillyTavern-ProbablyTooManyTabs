@@ -414,7 +414,10 @@ export function calculateElementMinWidth(element) {
         } else {
             let totalMinWidth = 0;
             children.forEach(child => totalMinWidth += calculateElementMinWidth(child));
-            resizers.forEach(resizer => totalMinWidth += resizer.getBoundingClientRect().width || 8);
+            resizers.forEach(resizer => {
+                const width = resizer.classList.contains('disabled') ? 0 : 6;
+                totalMinWidth += width;
+            });
             return totalMinWidth;
         }
     }
