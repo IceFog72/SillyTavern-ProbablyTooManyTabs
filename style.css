@@ -172,7 +172,7 @@ body,
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  min-width: 36px;
+  min-width: 38px;
 }
 
 .ptmt-resizer-vertical {
@@ -309,9 +309,6 @@ body,
   flex-direction: column;
   align-items: stretch;
   height: auto;
-  border-bottom: none;
-  border-top: none;
-
 }
 
 
@@ -355,11 +352,6 @@ body,
   opacity: 0.8;
 }
 
-.ptmt-tabStrip.vertical {
-  margin-bottom: 0px;
-}
-
-
 .ptmt-tabStrip.vertical .ptmt-tab {
   width: auto;
   justify-content: center;
@@ -389,6 +381,7 @@ body,
   background: color-mix(in srgb, var(--ptmt-tab-hover-bg), var(--SmartThemeBorderColor) 30%) !important;
   cursor: default;
   border-right: 2px solid var(--ptmt-accent);
+  border-left: none;
   border-top-color: var(--ptmt-tab-border-color);
 }
 
