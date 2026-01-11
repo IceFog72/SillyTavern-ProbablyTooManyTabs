@@ -53,6 +53,19 @@
   display: block !important;
 }
 
+#dupeFinderPanel .panelControlBar {
+  position: unset !important;
+  display: none !important;
+}
+
+#floatingPrompt .panelControlBar,
+#extensionSideBar .panelControlBar,
+#cfgConfig .panelControlBar,
+#notebookPanel .panelControlBar,
+.logprobs_panel_controls {
+  display: none !important;
+}
+
 #completion_prompt_manager_popup {
   position: absolute !important;
 }
@@ -71,7 +84,6 @@
 
 .fa-lock,
 .fa-unlock,
-.panelControlBar,
 #top-bar,
 #top-settings-holder {
   display: none !important;
@@ -94,6 +106,10 @@
   backdrop-filter: none !important;
 }
 
+.stqrd--editorPanel:is(body > *) {
+  width: 500px !important;
+}
+
 .galleryImageDraggable,
 .zoomed_avatar {
   position: inherit !important;
@@ -108,6 +124,10 @@
   position: inherit !important;
   max-width: unset !important;
   box-shadow: unset !important;
+}
+
+body.charListGrid #rm_print_characters_block .character_select .character_name_block:has(.ch_assistant) {
+  flex-direction: row !important;
 }
 
 .ptmt-pane-grid.grid-vertical #gallery,
@@ -336,6 +356,11 @@ body,
 
 .ptmt-tab:focus {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active {
+  border-top: 2px solid var(--ptmt-accent);
+  border-bottom: none;
 }
 
 .ptmt-tab.active {

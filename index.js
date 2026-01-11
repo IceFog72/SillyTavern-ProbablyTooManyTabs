@@ -19,9 +19,11 @@ import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalc
 import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
+import { positionAnchor } from './positionAnchor.js';
 
 (function () {
   function initApp() {
+    positionAnchor();
     createLayoutIfMissing();
     const refs = getRefs();
 

@@ -529,7 +529,11 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', {
                 detail: { reason: 'snapshotApplied' }
             }));
-        }, 50);
+
+            setTimeout(() => {
+                document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
+            }, 300);
+        }, 200);
     });
 }
 

@@ -70,7 +70,7 @@ export const tabActions = {
         },
         onOpen: (panel) => {
             console.log('[PTMT-Actions] extensionSideBar tab opened.', panel);
-              const sidebar = document.getElementById('extensionSideBar');
+            const sidebar = document.getElementById('extensionSideBar');
             if (!sidebar) return;
 
             const toggleButton = document.getElementById('extensionTopBarToggleSidebar');
@@ -81,6 +81,44 @@ export const tabActions = {
             if (!isVisible) {
                 console.log('[PTMT] Sidebar is not visible, attempting to open it.');
                 toggleButton.click();
+            }
+        },
+    },
+    'stqrd--drawer-v2': {
+        onInit: (panel) => {
+            console.log('[PTMT-Actions] Quick Replies panel initialized.', panel);
+            const settings = document.getElementById('qr--settings');
+            if (settings && getComputedStyle(settings).display !== 'none') {
+                const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
+                if (popoutBtn) {
+                    console.log('[PTMT-Actions] Triggering Quick Replies popout.');
+                    popoutBtn.click();
+                }
+            }
+        },
+        onSelect: (panel) => {
+            console.log('[PTMT-Actions] Quick Replies panel selected.', panel);
+            const settings = document.getElementById('qr--settings');
+            if (settings && getComputedStyle(settings).display !== 'none') {
+                const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
+                if (popoutBtn) {
+                    console.log('[PTMT-Actions] Triggering Quick Replies popout.');
+                    popoutBtn.click();
+                }
+            }
+        },
+        onCollapse: (panel) => {
+            console.log('[PTMT-Actions] Quick Replies panel collapsed.', panel);
+        },
+        onOpen: (panel) => {
+            console.log('[PTMT-Actions] Quick Replies panel opened.', panel);
+            const settings = document.getElementById('qr--settings');
+            if (settings && getComputedStyle(settings).display !== 'none') {
+                const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
+                if (popoutBtn) {
+                    console.log('[PTMT-Actions] Triggering Quick Replies popout.');
+                    popoutBtn.click();
+                }
             }
         },
     },
@@ -105,3 +143,5 @@ export function runTabAction(sourceId, actionType, panel) {
         }
     }
 }
+
+
