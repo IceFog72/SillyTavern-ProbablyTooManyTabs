@@ -35,6 +35,10 @@
   opacity: 100 !important;
 }
 
+#tts-bar {
+  position: inherit !important;
+}
+
 #extensionTopBar,
 #send_form {
   border-radius: 0 !important;
