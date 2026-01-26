@@ -5,6 +5,17 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "name": "Attach to SillyTavern",
+            "type": "firefox",
+            "request": "attach",
+            "pathMappings": [
+                {
+                    "url": "http://127.0.0.1:8000/scripts/extensions/third-party",
+                    "path": "d:/SillyTavern-Launcher/SillyTavern/data/default-user/extensions"
+                }
+            ]
+        },
+        {
             "name": "Launch index.html",
             "type": "firefox",
             "request": "launch",

@@ -44,6 +44,13 @@ export function createPane(initialSettings = {}, options = {}) {
   pane._tabStrip = tabStrip;
   pane._panelContainer = panelContainer;
 
+  tabStrip.addEventListener('wheel', (e) => {
+    if (!tabStrip.classList.contains('vertical') && e.deltaY !== 0) {
+      tabStrip.scrollLeft += e.deltaY;
+      e.preventDefault();
+    }
+  }, { passive: false });
+
   writePaneViewSettings(pane, initialSettings);
 
   if (!options.deferInitialCheck) {

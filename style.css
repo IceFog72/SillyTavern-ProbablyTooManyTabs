@@ -365,12 +365,26 @@ body,
   border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor), transparent 70%);
   border-right: none;
   border-left: none;
+
+  /* Scrollable tabs */
+  overflow-x: auto;
+  overflow-y: hidden;
+  flex-wrap: nowrap;
+  scrollbar-width: none;
+  /* Firefox */
+}
+
+.ptmt-tabStrip::-webkit-scrollbar {
+  display: none;
+  /* Webkit */
 }
 
 .ptmt-tabStrip.vertical {
   flex-direction: column;
   align-items: stretch;
-  height: auto;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
 }
 
 
@@ -389,6 +403,7 @@ body,
   border-bottom: none;
   min-height: 20px;
   min-width: 20px;
+  flex-shrink: 0;
   position: relative;
 }
 

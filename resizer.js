@@ -41,24 +41,9 @@ function getOrCalculateFullTabSize(pane) {
 }
 
 export function checkPaneForIconMode(pane) {
-    if (!pane || !pane._tabStrip || !pane._panelContainer || pane.classList.contains('view-collapsed')) {
-        return;
-    }
-
-    const tabStrip = pane._tabStrip;
-    const tabs = tabStrip.querySelectorAll('.ptmt-tab');
-    if (tabs.length === 0) {
-        pane.classList.remove('ptmt-pane-icons-only');
-        return;
-    }
-
-    const requiredSize = getOrCalculateFullTabSize(pane);
-
-    const isVertical = tabStrip.classList.contains('vertical');
-    const containerRect = tabStrip.getBoundingClientRect();
-    const availableSize = isVertical ? containerRect.height : containerRect.width;
-
-    pane.classList.toggle('ptmt-pane-icons-only', requiredSize > availableSize);
+    // Disabled auto-icons mode as per user request
+    if (!pane || !pane.classList) return;
+    pane.classList.remove('ptmt-pane-icons-only');
 }
 
 const throttledCheckPaneForIconMode = throttle(checkPaneForIconMode, 80);
