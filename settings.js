@@ -53,6 +53,7 @@ export class SettingsManager {
             version: 9,
             showLeft: true,
             showRight: true,
+            hiddenTabs: [],
             columnSizes: {
                 left: "1 1 20%",
                 center: "1 1 60%",

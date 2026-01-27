@@ -14,8 +14,9 @@ import {
   createTabFromContent, moveNodeIntoTab, listTabs,
   openTab, closeTabById, setDefaultPanelById,
   moveTabIntoPaneAtIndex, destroyTabById,
+  setActivePanelInPane, setTabCollapsed,
 } from './tabs.js';
-import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively, validateAndCorrectAllMinSizes } from './resizer.js';
+import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively, validateAndCorrectAllMinSizes, checkPaneForIconMode } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
@@ -43,8 +44,9 @@ import { positionAnchor } from './positionAnchor.js';
       createTabFromContent, moveNodeIntoTab, listTabs,
       openTab, closeTabById, getPanelById, getTabById, setDefaultPanelById, _refs: getRefs,
       moveTabIntoPaneAtIndex, openViewSettingsDialog, readPaneViewSettings, writePaneViewSettings,
+      setActivePanelInPane, setTabCollapsed,
       applyPaneOrientation, attachResizer, setSplitOrientation,
-      generateLayoutSnapshot, destroyTabById, updatePendingTabColumn,
+      generateLayoutSnapshot, destroyTabById, updatePendingTabColumn, checkPaneForIconMode,
       saveLayout: () => {
         const layout = generateLayoutSnapshot();
         settings.update({ savedLayout: layout });

@@ -160,6 +160,71 @@ export class LayoutManager {
                 editorRoot.appendChild(this.renderColumn(col.name, col.title, col.element));
             }
         });
+
+        // Add Hidden Tabs Section
+        const hiddenSection = this.renderHiddenSection();
+        if (hiddenSection) {
+            editorRoot.appendChild(hiddenSection);
+        }
+    }
+
+    renderHiddenSection() {
+        const container = el('fieldset', { className: 'ptmt-editor-column ptmt-hidden-section' });
+        const legend = el('legend', {}, 'Hidden Tabs (Not in Layout)');
+        container.appendChild(legend);
+
+        const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container', style: { minHeight: '40px', display: 'flex', flexWrap: 'wrap', gap: '8px' } });
+        tabsContainer.dataset.isHiddenList = 'true';
+
+        const currentLayout = this.settings.get('savedLayout') || this.settings.get('defaultLayout');
+        const hiddenTabs = currentLayout.hiddenTabs || [];
+
+        if (hiddenTabs.length === 0) {
+            const placeholder = el('div', { style: { opacity: '0.5', padding: '10px', fontSize: '0.9em' } }, 'Drag tabs here to hide them from the UI');
+            tabsContainer.appendChild(placeholder);
+        }
+
+        hiddenTabs.forEach(entry => {
+            tabsContainer.appendChild(this.renderHiddenTab(entry));
+        });
+
+        tabsContainer.addEventListener('dragover', this.handleDragOver.bind(this));
+        tabsContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        tabsContainer.addEventListener('drop', (e) => this.handleDrop(e));
+
+        container.appendChild(tabsContainer);
+        return container;
+    }
+
+    renderHiddenTab(entry) {
+        const sourceId = typeof entry === 'string' ? entry : entry.sourceId;
+        const isActive = typeof entry === 'object' ? entry.active : false;
+        const isCollapsed = typeof entry === 'object' ? entry.collapsed : false;
+
+        const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
+        const title = mapping.title || sourceId;
+        const icon = mapping.icon || '🚫';
+
+        const container = el('div', {
+            className: 'ptmt-editor-tab',
+            draggable: 'true',
+            'data-is-hidden-item': 'true',
+            'data-source-id': sourceId,
+            'data-is-active': isActive.toString(),
+            'data-is-collapsed': isCollapsed.toString()
+        });
+
+        const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to restore' }, '☰');
+        const iconSpan = el('span', { className: 'ptmt-tab-icon' }, icon);
+        const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
+        const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15) + '...');
+
+        container.append(handle, iconSpan, titleSpan, idLabel);
+
+        container.addEventListener('dragstart', (e) => this.handleDragStart(e));
+        container.addEventListener('drop', (e) => this.handleDrop(e));
+
+        return container;
     }
 
     renderColumn(name, title, element) {
@@ -285,6 +350,8 @@ export class LayoutManager {
             draggable: 'true',
             'data-pid': pid,
             'data-source-id': sourceId,
+            'data-is-active': tabElement.classList.contains('active').toString(),
+            'data-is-collapsed': tabElement.classList.contains('collapsed').toString()
         });
 
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder' }, '☰');
@@ -346,7 +413,9 @@ export class LayoutManager {
         const container = el('div', {
             className: 'ptmt-editor-tab',
             draggable: 'true',
-            'data-is-pending': 'true'
+            'data-is-pending': 'true',
+            'data-is-active': (tabInfo.active === true).toString(),
+            'data-is-collapsed': (tabInfo.collapsed === true).toString()
         });
         container.dataset.searchId = tabInfo.searchId || '';
         container.dataset.searchClass = tabInfo.searchClass || '';
@@ -375,7 +444,10 @@ export class LayoutManager {
             sourceId: draggedElement.dataset.sourceId,
             searchId: draggedElement.dataset.searchId,
             searchClass: draggedElement.dataset.searchClass,
-            isPending: draggedElement.dataset.isPending === 'true'
+            isPending: draggedElement.dataset.isPending === 'true',
+            isHidden: draggedElement.dataset.isHiddenItem === 'true',
+            isActive: draggedElement.dataset.isActive === 'true',
+            isCollapsed: draggedElement.dataset.isCollapsed === 'true'
         };
         e.dataTransfer.effectAllowed = 'move';
         setTimeout(() => draggedElement.classList.add('dragging'), 0);
@@ -388,11 +460,11 @@ export class LayoutManager {
 
         if (this.draggedTabInfo) {
             const isSourcePending = this.draggedTabInfo.isPending;
-            if (isSourcePending !== isTargetPendingList) {
-                e.dataTransfer.dropEffect = 'none';
-                this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
-                return;
-            }
+            const isSourceHidden = this.draggedTabInfo.isHidden;
+
+            // Allow dragging between pending and hidden, but not between live and those
+            // Actually, let's allow dragging from live to hidden too.
+            // But dragging from pending/hidden to LIVE should go to the LIVE pane dropped on.
         }
 
         e.dataTransfer.dropEffect = 'move';
@@ -435,6 +507,7 @@ export class LayoutManager {
 
         const targetContainer = indicator.parentElement;
         const isTargetPending = targetContainer.dataset.isPendingList === 'true';
+        const isTargetHidden = targetContainer.dataset.isHiddenList === 'true';
 
         const children = Array.from(targetContainer.children).filter(c => c.classList.contains('ptmt-editor-tab'));
         let newIndex = children.indexOf(indicator);
@@ -442,7 +515,9 @@ export class LayoutManager {
 
         indicator.remove();
 
-        if (isTargetPending) {
+        if (isTargetHidden) {
+            this.handleHiddenTabDrop(targetContainer, newIndex);
+        } else if (isTargetPending) {
             this.handlePendingTabDrop(targetContainer, newIndex);
         } else {
             this.handleLiveTabDrop(targetContainer, newIndex);
@@ -457,7 +532,21 @@ export class LayoutManager {
         const targetPane = document.querySelector(`.ptmt-pane[data-pane-id="${targetPaneId}"]`);
 
         if (sourcePanel && targetPane) {
+            const wasActive = this.draggedTabInfo.isActive;
+            const wasCollapsed = this.draggedTabInfo.isCollapsed;
+
             this.appApi.moveTabIntoPaneAtIndex(sourcePanel, targetPane, newIndex);
+
+            if (wasActive) {
+                this.appApi.setActivePanelInPane(targetPane, this.draggedTabInfo.pid);
+            } else if (wasCollapsed) {
+                this.appApi.setTabCollapsed(this.draggedTabInfo.pid, true);
+            }
+
+            // Re-sync icon mode and layout
+            this.appApi.checkPaneForIconMode(targetPane);
+            window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+
         } else {
             console.warn("[PTMT] Could not execute live tab move: source or target not found.", { sourcePanel, targetPane });
         }
@@ -481,7 +570,12 @@ export class LayoutManager {
 
         const layout = this.appApi.generateLayoutSnapshot();
 
-        const newTabInfo = { searchId: searchId || sourceId || '', searchClass: searchClass || '' };
+        const newTabInfo = {
+            searchId: searchId || sourceId || '',
+            searchClass: searchClass || '',
+            active: this.draggedTabInfo.isActive,
+            collapsed: this.draggedTabInfo.isCollapsed
+        };
 
         for (const col of Object.values(layout.columns)) {
             if (col.ghostTabs) {
@@ -491,7 +585,53 @@ export class LayoutManager {
 
         layout.columns[targetColumnName].ghostTabs.splice(newIndex, 0, newTabInfo);
 
+        // Remove from hidden tabs if it was there
+        if (layout.hiddenTabs) {
+            // hiddenTabs might be strings or objects now
+            layout.hiddenTabs = layout.hiddenTabs.filter(id => {
+                const sid = typeof id === 'string' ? id : (id.sourceId || id.searchId);
+                return sid !== (searchId || sourceId);
+            });
+        }
+
         this.appApi.updatePendingTabColumn(newTabInfo, targetColumnName);
+
+        this.settings.update({ savedLayout: layout });
+        this.renderUnifiedEditor();
+    }
+
+    handleHiddenTabDrop(targetContainer, newIndex) {
+        const { pid, sourceId, searchId, searchClass, isActive, isCollapsed } = this.draggedTabInfo;
+        const effectiveSourceId = sourceId || searchId || searchClass;
+
+        if (!effectiveSourceId) return;
+
+        const layout = this.appApi.generateLayoutSnapshot();
+        if (!layout.hiddenTabs) layout.hiddenTabs = [];
+
+        // Remove from current columns (pending lists)
+        for (const col of Object.values(layout.columns)) {
+            if (col.ghostTabs) {
+                col.ghostTabs = col.ghostTabs.filter(t => (t.searchId || t.sourceId) !== effectiveSourceId && t.searchClass !== searchClass);
+            }
+        }
+
+        // If it was a live tab, we need to destroy it in the UI
+        if (pid) {
+            this.appApi.destroyTabById(pid);
+        }
+
+        // Add to hidden tabs as an object to preserve state
+        const hiddenInfo = {
+            sourceId: effectiveSourceId,
+            active: isActive,
+            collapsed: isCollapsed
+        };
+
+        // Remove existing entry if it exists
+        layout.hiddenTabs = layout.hiddenTabs.filter(h => (typeof h === 'string' ? h : h.sourceId) !== effectiveSourceId);
+
+        layout.hiddenTabs.splice(newIndex, 0, hiddenInfo);
 
         this.settings.update({ savedLayout: layout });
         this.renderUnifiedEditor();

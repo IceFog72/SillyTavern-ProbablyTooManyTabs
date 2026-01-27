@@ -94,13 +94,14 @@ export function readPaneViewSettings(pane) {
   }
 }
 
-export function writePaneViewSettings(pane, settings) {
+export function writePaneViewSettings(pane, newPaneSettings) {
   try {
-    const newSettings = { ...defaultViewSettings, ...settings };
-    pane.dataset.viewSettings = JSON.stringify(newSettings);
-    pane._viewSettingsCache = newSettings;
+    const currentSettings = readPaneViewSettings(pane);
+    const updated = { ...defaultViewSettings, ...currentSettings, ...newPaneSettings };
+    pane.dataset.viewSettings = JSON.stringify(updated);
+    pane._viewSettingsCache = updated;
   } catch (e) {
-    console.warn('[PTMT] Failed :', e);
+    console.warn('[PTMT] Failed to write pane settings:', e);
   }
 }
 
@@ -525,7 +526,7 @@ export function openViewSettingsDialog(pane) {
       el('h3', { style: { marginTop: '0', marginBottom: '20px' } }, 'Pane Settings'),
       el('div', { style: { marginBottom: '12px' } },
         el('label', { for: 'ptmt-vs-minimal-panel' }, 'Min. Panel Size (px): '),
-        el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'ptmt-vs-minimal-panel', class: 'neo-range-input' })
+        el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'ptmt-vs-minimal-panel', className: 'text_edit' })
       ),
       el('div', { style: { marginBottom: '12px' } },
         el('label', { for: 'ptmt-vs-default' }, 'Default orientation: '),
@@ -555,7 +556,8 @@ export function openViewSettingsDialog(pane) {
   document.body.appendChild(dialog);
   dialog.querySelector('#ptmt-vs-cancel').addEventListener('click', () => dialog.remove());
   dialog.querySelector('#ptmt-vs-save').addEventListener('click', () => {
-    const minimal = Number(dialog.querySelector('#ptmt-vs-minimal-panel').value) || defaultViewSettings.minimalPanelSize;
+    const minVal = dialog.querySelector('#ptmt-vs-minimal-panel').value;
+    const minimal = Math.max(20, parseInt(minVal, 10)) || defaultViewSettings.minimalPanelSize;
     const def = dialog.querySelector('#ptmt-vs-default').value || 'auto';
     const col = dialog.querySelector('#ptmt-vs-collapsed').value || 'auto';
     const flow = dialog.querySelector('#ptmt-vs-flow').value || 'default';

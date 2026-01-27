@@ -34,17 +34,18 @@ export function createPanelElement(title) {
   return panel;
 }
 
-function setTabCollapsed(pid, collapsed) {
-    const tab = getTabById(pid);
-    if (!tab) return;
-    const isCurrentlyCollapsed = tab.classList.contains('collapsed');
-    if (isCurrentlyCollapsed === collapsed) return;
+export function setTabCollapsed(pid, collapsed) {
+  const tab = getTabById(pid);
+  if (!tab) return;
+  const isCurrentlyCollapsed = tab.classList.contains('collapsed');
+  if (isCurrentlyCollapsed === collapsed) return;
 
-    tab.classList.toggle('collapsed', collapsed);
+  tab.classList.toggle('collapsed', collapsed);
+  const panel = getPanelById(pid);
+  if (panel) panel.classList.toggle('collapsed', collapsed);
 
-    const panel = getPanelById(pid);
-    const sourceId = panel?.dataset.sourceId;
-    runTabAction(sourceId, collapsed ? 'onCollapse' : 'onOpen', panel);
+  const sourceId = panel?.dataset.sourceId;
+  runTabAction(sourceId, collapsed ? 'onCollapse' : 'onOpen', panel);
 }
 
 
@@ -103,16 +104,16 @@ export function createTabElement(title, pid, icon = null, options = {}) {
       ev.dataTransfer.setData('text/plain', pid);
       ev.dataTransfer.setData('application/x-ptmt-tab', pid);
     } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+      console.warn('[PTMT] Failed :', e);
+    }
     const g = t.cloneNode(true);
     Object.assign(g.style, { position: 'absolute', left: '-9999px', top: '-9999px' });
     document.body.appendChild(g);
     try {
       ev.dataTransfer.setDragImage(g, 10, 10);
     } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+      console.warn('[PTMT] Failed :', e);
+    }
     setTimeout(() => g.remove(), 60);
   });
 
@@ -134,26 +135,46 @@ export function setActivePanelInPane(pane, pid = null) {
 
   let targetPid = pid;
   if (!targetPid) {
-    const firstAvailableTab = tabStrip.querySelector('.ptmt-tab:not(.collapsed):not([data-for=""])');
+    const firstAvailableTab = tabStrip.querySelector('.ptmt-tab:not(.collapsed):not([data-for=""])') || tabStrip.querySelector('.ptmt-tab:not([data-for=""])');
     targetPid = firstAvailableTab?.dataset.for || panelContainer.querySelector('.ptmt-panel')?.dataset.panelId || null;
   }
-  
-  if (previouslyActiveTab?.dataset.for === targetPid) return true;
 
-  panelContainer.querySelectorAll('.ptmt-panel').forEach(p => p.classList.add('hidden'));
-  tabStrip.querySelectorAll('.ptmt-tab').forEach(t => t.classList.remove('active'));
+  // We intentionally removed the early return if already active to handle de-conflicting
+  // when an already-active tab is moved into a pane that has another active tab.
+
+  tabStrip.querySelectorAll('.ptmt-tab').forEach(t => {
+    const isTarget = t.dataset.for === targetPid;
+    t.classList.toggle('active', isTarget);
+    if (isTarget) {
+      t.classList.remove('collapsed');
+    } else {
+      t.classList.add('collapsed');
+    }
+
+    const p = getPanelById(t.dataset.for);
+    if (p) {
+      p.classList.toggle('active', isTarget);
+      if (isTarget) {
+        p.classList.remove('collapsed');
+        p.classList.remove('hidden');
+      } else {
+        p.classList.add('collapsed');
+        p.classList.add('hidden');
+      }
+    }
+  });
 
   if (!targetPid) return false;
 
   const targetPanel = getPanelById(targetPid);
-  const targetTab = getTabById(targetPid);
-
-  if (targetPanel) targetPanel.classList.remove('hidden');
-  if (targetTab) targetTab.classList.add('active');
+  if (targetPanel) {
+    targetPanel.classList.remove('hidden');
+    targetPanel.classList.remove('collapsed');
+  }
 
   const sourceId = targetPanel?.dataset.sourceId;
   runTabAction(sourceId, 'onSelect', targetPanel);
-  
+
   return true;
 }
 
@@ -165,15 +186,7 @@ export function openTab(pid) {
   const pane = getPaneForPanel(target) || getPaneForTabElement(tab) || getActivePane();
   if (!pane) return false;
 
-  if (tab?.classList.contains('collapsed')) {
-    setTabCollapsed(pid, false);
-  }
-
-  pane._panelContainer.querySelectorAll('.ptmt-panel').forEach(panel => panel.classList.add('hidden'));
-  pane._tabStrip.querySelectorAll('.ptmt-tab').forEach(t => t.classList.remove('active'));
-  target.classList.remove('hidden');
-  if (tab) tab.classList.add('active');
-  return true;
+  return setActivePanelInPane(pane, pid);
 }
 
 export function closeTabById(pid) {
@@ -197,98 +210,98 @@ export function closeTabById(pid) {
  * @param {string} pid The panelId of the tab to destroy.
  */
 export function destroyTabById(pid) {
-    const tab = getTabById(pid);
-    const panel = getPanelById(pid);
-    const pane = getPaneForTabElement(tab) || getPaneForPanel(panel);
+  const tab = getTabById(pid);
+  const panel = getPanelById(pid);
+  const pane = getPaneForTabElement(tab) || getPaneForPanel(panel);
 
-    if (tab) tab.remove();
-    if (panel) panel.remove();
+  if (tab) tab.remove();
+  if (panel) panel.remove();
 
-    if (pane) {
-        invalidatePaneTabSizeCache(pane);
-        // If the destroyed tab was active, find a new one to activate.
-        if (tab && tab.classList.contains('active')) {
-            setActivePanelInPane(pane);
-        }
-        removePaneIfEmpty(pane);
+  if (pane) {
+    invalidatePaneTabSizeCache(pane);
+    // If the destroyed tab was active, find a new one to activate.
+    if (tab && tab.classList.contains('active')) {
+      setActivePanelInPane(pane);
     }
-    return true;
+    removePaneIfEmpty(pane);
+  }
+  return true;
 }
 
 export function createTabFromContent(content, options = {}, target = null) {
-    const { title = null, icon = null, makeActive = true, setAsDefault = false, sourceId = null } = options;
-    
-    let node;
-    if (typeof content === 'string') {
-        node = document.getElementById(content);
-    } else if (isElement(content)) {
-        node = content;
-    }
+  const { title = null, icon = null, makeActive = true, setAsDefault = false, sourceId = null } = options;
 
-    let stagingArea = document.getElementById('ptmt-staging-area');
-    if (!stagingArea) {
-        console.warn('[PTMT] Staging area not found, creating a new one.');
-        stagingArea = el('div', { id: 'ptmt-staging-area', style: { display: 'none' } });
-        document.body.appendChild(stagingArea);
-    }
+  let node;
+  if (typeof content === 'string') {
+    node = document.getElementById(content);
+  } else if (isElement(content)) {
+    node = content;
+  }
 
-    if (node && node.parentElement !== stagingArea) {
-       stagingArea.appendChild(node);
-    }
+  let stagingArea = document.getElementById('ptmt-staging-area');
+  if (!stagingArea) {
+    console.warn('[PTMT] Staging area not found, creating a new one.');
+    stagingArea = el('div', { id: 'ptmt-staging-area', style: { display: 'none' } });
+    document.body.appendChild(stagingArea);
+  }
 
-    if (!node) {
-        return null;
-    }
+  if (node && node.parentElement !== stagingArea) {
+    stagingArea.appendChild(node);
+  }
 
-    const effectiveSourceId = sourceId || node.id;
+  if (!node) {
+    return null;
+  }
 
-    let targetPane;
-    const refs = getRefs();
-    if (isElement(target) && target.classList.contains('ptmt-pane')) {
-        targetPane = target;
-    } else if (typeof target === 'string' && refs[`${target}Body`]) {
-        targetPane = refs[`${target}Body`].querySelector('.ptmt-pane');
-    } else {
-        targetPane = getActivePane() || refs.centerBody.querySelector('.ptmt-pane');
-    }
+  const effectiveSourceId = sourceId || node.id;
 
-    if (!targetPane) {
-        console.warn(`[SFT] Could not find a target pane for content.`);
-        return null;
-    }
+  let targetPane;
+  const refs = getRefs();
+  if (isElement(target) && target.classList.contains('ptmt-pane')) {
+    targetPane = target;
+  } else if (typeof target === 'string' && refs[`${target}Body`]) {
+    targetPane = refs[`${target}Body`].querySelector('.ptmt-pane');
+  } else {
+    targetPane = getActivePane() || refs.centerBody.querySelector('.ptmt-pane');
+  }
 
-    if (effectiveSourceId && getPanelBySourceId(effectiveSourceId)) {
-        return getPanelBySourceId(effectiveSourceId);
-    }
+  if (!targetPane) {
+    console.warn(`[SFT] Could not find a target pane for content.`);
+    return null;
+  }
 
-    const panelTitle = title || node.getAttribute('data-panel-title') || node.id || 'Panel';
-    const panel = createPanelElement(panelTitle);
-    panel.dataset.sourceId = effectiveSourceId;
-    const pid = registerPanelDom(panel, panelTitle);
-    panel.querySelector('.ptmt-panel-content').appendChild(node);
-    targetPane._panelContainer.appendChild(panel);
+  if (effectiveSourceId && getPanelBySourceId(effectiveSourceId)) {
+    return getPanelBySourceId(effectiveSourceId);
+  }
 
-    const tab = createTabElement(panelTitle, pid, icon);
-    targetPane._tabStrip.appendChild(tab);
+  const panelTitle = title || node.getAttribute('data-panel-title') || node.id || 'Panel';
+  const panel = createPanelElement(panelTitle);
+  panel.dataset.sourceId = effectiveSourceId;
+  const pid = registerPanelDom(panel, panelTitle);
+  panel.querySelector('.ptmt-panel-content').appendChild(node);
+  targetPane._panelContainer.appendChild(panel);
 
-    invalidatePaneTabSizeCache(targetPane);
+  const tab = createTabElement(panelTitle, pid, icon, { collapsed: options.collapsed });
+  targetPane._tabStrip.appendChild(tab);
 
-    runTabAction(effectiveSourceId, 'onInit', panel);
+  invalidatePaneTabSizeCache(targetPane);
 
-    if (setAsDefault) setDefaultPanelById(pid);
-    if (makeActive) openTab(pid);
+  runTabAction(effectiveSourceId, 'onInit', panel);
 
-    return panel;
+  if (setAsDefault) setDefaultPanelById(pid);
+  if (makeActive) openTab(pid);
+
+  return panel;
 }
 
 export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDefault = true, collapsed = false } = {}, targetPane = null) {
   const PROTECTED_IDS = new Set(['ptmt-main', 'ptmt-staging-area', 'ptmt-settings-wrapper']);
 
   const toMove = Array.from(document.body.childNodes).filter(n => {
-      if (n.nodeType !== 1) return true;
-      return !PROTECTED_IDS.has(n.id);
+    if (n.nodeType !== 1) return true;
+    return !PROTECTED_IDS.has(n.id);
   });
-  
+
   if (toMove.length === 0) return null;
 
   const pane = targetPane || getActivePane();
@@ -298,8 +311,8 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
   }
 
   const panel = createPanelElement(title);
-  const sourceId = 'ptmt-main-content'; 
-  panel.dataset.sourceId = sourceId; 
+  const sourceId = 'ptmt-main-content';
+  panel.dataset.sourceId = sourceId;
   const pid = registerPanelDom(panel, title);
   const content = panel.querySelector('.ptmt-panel-content');
 
@@ -307,21 +320,21 @@ export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDe
     if (node.nodeType === 1 && PROTECTED_IDS.has(node.id)) continue;
     if (node.tagName === 'SCRIPT' && node.dataset?.ptmtIgnore !== 'false') {
       try { document.head.appendChild(node); } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+        console.warn('[PTMT] Failed :', e);
+      }
     } else {
       try { content.appendChild(node); } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+        console.warn('[PTMT] Failed :', e);
+      }
     }
   }
 
   pane._panelContainer.appendChild(panel);
   const tab = createTabElement(title, pid, icon, { collapsed });
-  
+
   const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   if (settingsBtn) pane._tabStrip.insertBefore(tab, settingsBtn); else pane._tabStrip.appendChild(tab);
-  
+
   invalidatePaneTabSizeCache(pane);
 
   runTabAction(sourceId, 'onInit', panel);
@@ -369,8 +382,8 @@ export function movePanelToPane(panel, pane) {
     invalidatePaneTabSizeCache(prevPane);
   }
   if (!pane._panelContainer.contains(panel)) {
-      pane._panelContainer.appendChild(panel);
-      invalidatePaneTabSizeCache(pane);
+    pane._panelContainer.appendChild(panel);
+    invalidatePaneTabSizeCache(pane);
   }
   moveTabToPane(pid, pane);
   if (prevPane) {
@@ -425,7 +438,7 @@ export function cloneTabIntoPane(panel, pane, index = null) {
   const tab = createTabElement(title, newPid);
   const settingsBtn = pane._tabStrip.querySelector('.ptmt-view-settings');
   pane._tabStrip[settingsBtn ? 'insertBefore' : 'appendChild'](tab, settingsBtn);
-  
+
   invalidatePaneTabSizeCache(pane);
 
   setActivePanelInPane(pane, newPid);
@@ -464,6 +477,6 @@ export function setDefaultPanelById(pid) {
     const p = getPanelById(pid);
     if (p) p.dataset.defaultPanel = 'true';
   } catch (e) {
-  console.warn('[PTMT] Failed :', e);
-}
+    console.warn('[PTMT] Failed :', e);
+  }
 }

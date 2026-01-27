@@ -14,7 +14,7 @@ const getTabIdentifier = (tabInfo) => {
     return null;
 };
 
- 
+
 export function updatePendingTabColumn(tabInfo, newColumn) {
     const identifier = getTabIdentifier(tabInfo);
     if (!identifier) return;
@@ -35,7 +35,7 @@ function addTabToPendingList(tabInfo) {
     if (identifier && !pendingTabsMap.has(identifier)) {
         console.log(`[PTMT-Pending] Re-arming listener for ${identifier}`);
         pendingTabsMap.set(identifier, tabInfo);
-        
+
         const layout = settings.get('savedLayout') || settings.get('defaultLayout');
         const column = tabInfo.column || 'center';
 
@@ -44,10 +44,10 @@ function addTabToPendingList(tabInfo) {
                 col.ghostTabs = col.ghostTabs.filter(t => getTabIdentifier(t) !== identifier);
             }
         }
-        
+
         if (!layout.columns[column]) layout.columns[column] = { ghostTabs: [] };
         if (!layout.columns[column].ghostTabs) layout.columns[column].ghostTabs = [];
-        
+
         const newTabInfo = { searchId: tabInfo.searchId || '', searchClass: tabInfo.searchClass || '' };
         if (!layout.columns[column].ghostTabs.some(t => getTabIdentifier(t) === identifier)) {
             layout.columns[column].ghostTabs.push(newTabInfo);
@@ -62,16 +62,16 @@ function findTargetPaneForColumn(columnName) {
     const refs = getRefs();
     const columnEl = refs[`${columnName}Body`];
     if (!columnEl) return null;
-    
+
     let searchEl = columnEl;
-    while(searchEl) {
+    while (searchEl) {
         const pane = searchEl.querySelector('.ptmt-pane');
         if (pane) return pane;
         const split = searchEl.querySelector('.ptmt-split');
         if (!split) break;
         searchEl = split.children[0];
     }
-    return null; 
+    return null;
 }
 
 function hydrateTab(tabInfo, foundElement) {
@@ -94,7 +94,7 @@ function hydrateTab(tabInfo, foundElement) {
         console.warn(`[PTMT-Pending] Could not find a target pane in column '${tabInfo.column}' for tab '${identifier}'.`);
         return;
     }
-    
+
     const sourceIdForMapping = tabInfo.searchId || tabInfo.searchClass;
     const mappings = settings.get('panelMappings') || [];
     const mapping = mappings.find(m => m.id === sourceIdForMapping) || {};
@@ -102,7 +102,8 @@ function hydrateTab(tabInfo, foundElement) {
     createTabFromContent(foundElement, {
         title: tabInfo.title || mapping.title,
         icon: tabInfo.icon || mapping.icon,
-        makeActive: true,
+        makeActive: tabInfo.active !== undefined ? tabInfo.active : true,
+        collapsed: tabInfo.collapsed || false,
         sourceId: identifier
     }, targetPane);
 }
@@ -137,7 +138,7 @@ function checkForPendingTabs(nodes) {
                     }
                 }
             }
-            
+
             if (foundElement) {
                 tabsToHydrate.set(identifier, { tabInfo, foundElement });
             }
@@ -152,7 +153,7 @@ function checkForPendingTabs(nodes) {
 export function initPendingTabsManager(allGhostTabs) {
     pendingTabsMap.clear();
 
-    for(const tabInfo of allGhostTabs) {
+    for (const tabInfo of allGhostTabs) {
         if (tabInfo.sourceId && !tabInfo.searchId) {
             tabInfo.searchId = tabInfo.sourceId;
         }
@@ -161,7 +162,7 @@ export function initPendingTabsManager(allGhostTabs) {
             pendingTabsMap.set(identifier, { ...tabInfo });
         }
     }
-    
+
     if (hydrationObserver) {
         hydrationObserver.disconnect();
     }
@@ -173,7 +174,7 @@ export function initPendingTabsManager(allGhostTabs) {
         for (const mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
                 // OPTIMIZATION: Ignore text-only changes or tiny updates
-                if (mutation.target.id === 'chat' || mutation.target.classList.contains('mes_text')) continue; 
+                if (mutation.target.id === 'chat' || mutation.target.classList.contains('mes_text')) continue;
                 shouldCheck = true;
                 break; // Found a structural change, proceed to check
             }
@@ -206,7 +207,7 @@ export function initDemotionObserver(api) {
 
                     const sourceId = panel.dataset.sourceId;
                     if (!sourceId || !sourceId.includes(':')) continue;
-                    
+
                     panel.dataset.demoting = 'true';
 
                     const [type, value] = sourceId.split(':', 2);
@@ -214,20 +215,20 @@ export function initDemotionObserver(api) {
                     if (type === 'id') tabInfoToRearm.searchId = value;
                     else if (type === 'class') tabInfoToRearm.searchClass = value;
                     else { delete panel.dataset.demoting; continue; }
-                    
+
                     const columnEl = panel.closest('.ptmt-body-column');
                     const colId = columnEl ? columnEl.id : 'ptmt-centerBody';
                     const colName = colId.replace('ptmt-', '').replace('Body', '');
 
                     console.log(`[PTMT-Demotion] Tab ${sourceId} content removed. Destroying tab and re-arming listener.`);
-                    
+
                     destroyTabById(panel.dataset.panelId);
-                    
+
                     addTabToPendingList({ ...tabInfoToRearm, column: colName });
-                    
+
                     window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'demotion' } }));
-                    
-                    continue; 
+
+                    continue;
                 }
             }
         }

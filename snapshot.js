@@ -168,6 +168,7 @@ export function generateLayoutSnapshot() {
         },
 
         resizerStates: captureResizerStates(),
+        hiddenTabs: currentLayout.hiddenTabs || [],
 
         panelLocations: (() => {
             const locations = new Map();
@@ -439,9 +440,11 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
     const mappings = settings.get('panelMappings') || [];
     const allGhostSourceIds = new Set(allGhostTabs.map(t => t.sourceId));
+    const hiddenTabsList = new Set((snapshot.hiddenTabs || []).map(h => typeof h === 'string' ? h : h.sourceId));
+
     const orphanPanelIds = mappings
         .map(m => m.id)
-        .filter(id => !placedPanelIds.has(id) && !allGhostSourceIds.has(id));
+        .filter(id => !placedPanelIds.has(id) && !allGhostSourceIds.has(id) && !hiddenTabsList.has(id));
 
     if (orphanPanelIds.length > 0) {
         orphanPanelIds.forEach(id => {

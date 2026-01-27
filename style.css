@@ -370,14 +370,24 @@ body,
   overflow-x: auto;
   overflow-y: hidden;
   flex-wrap: nowrap;
-  scrollbar-width: none;
-  /* Firefox */
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--SmartThemeQuoteColor), transparent 50%) transparent;
 }
 
 .ptmt-tabStrip::-webkit-scrollbar {
-  display: none;
-  /* Webkit */
+  width: 2px;
+  height: 2px;
 }
+
+.ptmt-tabStrip::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--SmartThemeQuoteColor), transparent 50%);
+  border-radius: 2px;
+}
+
+.ptmt-tabStrip::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 
 .ptmt-tabStrip.vertical {
   flex-direction: column;
@@ -547,14 +557,31 @@ body,
 
 #ptmt-unified-editor {
   display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
   gap: 15px;
-  overflow-x: auto;
-  padding-bottom: 10px;
+  padding-bottom: 20px;
+  width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden !important;
+  /* Force wrapping, never scroll */
+  overflow-y: visible !important;
 }
 
 .ptmt-editor-column {
-  flex: 1;
-  min-width: 280px;
+  flex: 1 1 240px;
+  min-width: 0;
+  /* Critical for fieldsets to shrink */
+  max-width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  overflow: hidden;
+  /* Prevent wide inputs from pushing column width */
+}
+
+.ptmt-editor-column.ptmt-hidden-section {
+  flex: 1 1 100%;
+  margin-top: 5px;
 }
 
 .ptmt-editor-split,
@@ -689,8 +716,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
 #ptmt-unified-editor.ptmt-editor-vertical-layout {
 
   flex-direction: column;
-  overflow-x: hidden;
-  overflow-y: auto;
   min-width: 0;
 }
 
@@ -714,4 +739,29 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .ptmt-editor-tabs-container {
   min-height: 20px;
+}
+
+#ptmt-view-settings-dialog {
+  color: var(--SmartThemeBodyColor);
+}
+
+#ptmt-view-settings-dialog input.text_edit,
+#ptmt-view-settings-dialog select {
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--SmartThemeBorderColor);
+  color: var(--SmartThemeBodyColor);
+  border-radius: 4px;
+  padding: 4px 8px;
+  outline: none;
+}
+
+#ptmt-view-settings-dialog input[type="number"] {
+  width: 80px;
+}
+
+#ptmt-view-settings-dialog label {
+  display: inline-block;
+  min-width: 160px;
+  font-size: 0.95em;
+  opacity: 0.9;
 }
