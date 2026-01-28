@@ -579,6 +579,19 @@ body,
   /* Prevent wide inputs from pushing column width */
 }
 
+.ptmt-editor-column.ptmt-editor-column-hidden {
+  flex: 1 1 240px;
+  opacity: 0.6;
+  filter: grayscale(0.4);
+  background: rgba(0, 0, 0, 0.15);
+  border-style: dashed;
+}
+
+.ptmt-editor-column.ptmt-editor-column-hidden legend {
+  color: var(--SmartThemeShadowColor);
+  font-style: italic;
+}
+
 .ptmt-editor-column.ptmt-hidden-section {
   flex: 1 1 100%;
   margin-top: 5px;

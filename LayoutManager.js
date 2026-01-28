@@ -156,8 +156,10 @@ export class LayoutManager {
         ];
 
         columns.forEach(col => {
-            if (col.element.style.display !== 'none') {
-                editorRoot.appendChild(this.renderColumn(col.name, col.title, col.element));
+            const isHidden = col.element.style.display === 'none';
+            const isAlwaysVisible = col.name === 'left' || col.name === 'right';
+            if (isAlwaysVisible || !isHidden) {
+                editorRoot.appendChild(this.renderColumn(col.name, col.title, col.element, isHidden));
             }
         });
 
@@ -227,9 +229,16 @@ export class LayoutManager {
         return container;
     }
 
-    renderColumn(name, title, element) {
-        const container = el('fieldset', { className: 'ptmt-editor-column', 'data-column-name': name });
-        const legend = el('legend', {}, title);
+    renderColumn(name, title, element, isHidden = false) {
+        const container = el('fieldset', {
+            className: 'ptmt-editor-column',
+            'data-column-name': name
+        });
+        if (isHidden) {
+            container.classList.add('ptmt-editor-column-hidden');
+        }
+
+        const legend = el('legend', {}, title + (isHidden ? ' (Hidden)' : ''));
 
         container.appendChild(legend);
 
