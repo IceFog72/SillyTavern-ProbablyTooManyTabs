@@ -39,15 +39,16 @@ export function applySplitOrientation(split) {
 
   let targetOrientation;
   if (isParentColumnCollapsed) {
+    // Splits in collapsed sidebars MUST be horizontal to stack panes vertically
     targetOrientation = 'horizontal';
+  } else {
+    targetOrientation = split.dataset.naturalOrientation || 'vertical';
 
-    // Check if any descendant pane has a specific preference
+    // Check if any descendant pane has a specific preference that should govern the split
     const preferred = findPreferredDescendentOrientation(split);
     if (preferred) {
       targetOrientation = preferred;
     }
-  } else {
-    targetOrientation = split.dataset.naturalOrientation || 'vertical';
   }
 
   setSplitOrientation(split, targetOrientation);
@@ -141,29 +142,39 @@ export function getParentSplitOrientation(pane) {
 
 
 function findGoverningOrientation(pane) {
+  // If the column is collapsed (narrow), the primary goal is space-saving.
+  // Vertical tabs (on the side) are almost always better in a 36px wide column.
+  const column = pane.closest('.ptmt-body-column');
+  if (column?.dataset.isColumnCollapsed === 'true') {
+    // Check if there's an explicit preference in this column/pane
+    const preferred = findPreferredDescendentOrientation(pane); // Check this pane first
+    if (preferred) return preferred;
+
+    // Default to vertical (tabs-on-side) for narrow collapsed columns
+    return 'vertical';
+  }
+
+  // Handle nested splits
   let current = pane.parentElement;
   const isPaneCollapsed = pane.classList.contains('view-collapsed');
 
   while (current && !current.classList.contains('ptmt-body-column')) {
     if (current.classList.contains('ptmt-split')) {
       const isSplitCollapsed = current.classList.contains('ptmt-container-collapsed');
-      // If the pane is collapsed, we look at the split's orientation even if it's collapsed.
-      // If the pane is NOT collapsed, we only look at splits that are NOT collapsed.
       if (!isPaneCollapsed && isSplitCollapsed) {
-        // Skip
+        // Skip hidden containers
       } else {
+        // Here, matching the split orientation makes sense for consistency
         return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
       }
     }
     current = current.parentElement;
   }
 
-  // If we reach the column, check for specific pane preferences in the column
-  const column = pane.closest('.ptmt-body-column');
-  if (column?.dataset.isColumnCollapsed === 'true') {
-    const preferred = findPreferredDescendentOrientation(column);
-    if (preferred) return preferred;
-    return 'vertical'; // Default for narrow collapsed column
+  // Fallback based on dimensions for top-level panes in columns
+  const rect = pane.getBoundingClientRect();
+  if (rect.width > 0 && rect.height > 0) {
+    return (rect.width >= rect.height) ? 'horizontal' : 'vertical';
   }
 
   return 'vertical';
@@ -524,7 +535,8 @@ function updateSplitCollapsedState(split) {
     setSplitOrientation(split, targetOrientation);
 
     // After rotation, children might need to re-evaluate their internal orientation (e.g. tabstrip flip)
-    panes.forEach(p => applyPaneOrientation(p));
+    const childPanesArr = split.querySelectorAll('.ptmt-pane');
+    childPanesArr.forEach(p => applyPaneOrientation(p));
 
   } else if (!allChildrenCollapsed && isCurrentlyCollapsed) {
     split.style.flex = split.dataset.lastFlex || '1 1 100%';
