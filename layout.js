@@ -1,5 +1,5 @@
 import { el, getRefs } from './utils.js'; // getRefs imported from utils
-import { createPane } from './pane.js';
+import { createPane, findPreferredDescendentOrientation } from './pane.js';
 import { attachColumnResizer, calculateElementMinWidth } from './resizer.js';
 import { settings } from './settings.js';
 
@@ -9,71 +9,71 @@ import { settings } from './settings.js';
 export { getRefs } from './utils.js';
 
 export function createLayoutIfMissing() {
-  if (document.getElementById('ptmt-main')) return getRefs();
+    if (document.getElementById('ptmt-main')) return getRefs();
 
-  const main = el('div', { id: 'ptmt-main' });
-  const topBar = el('div', { id: 'ptmt-topBar' });
+    const main = el('div', { id: 'ptmt-main' });
+    const topBar = el('div', { id: 'ptmt-topBar' });
 
-  const mainBody = el('div', { id: 'ptmt-mainBody', style: { display: 'flex', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden', position: 'relative' } });
-  const leftBody = el('div', { id: 'ptmt-leftBody', className: 'ptmt-body-column' });
-  const centerBody = el('div', { id: 'ptmt-centerBody', className: 'ptmt-body-column' });
-  const rightBody = el('div', { id: 'ptmt-rightBody', className: 'ptmt-body-column' });
+    const mainBody = el('div', { id: 'ptmt-mainBody', style: { display: 'flex', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden', position: 'relative' } });
+    const leftBody = el('div', { id: 'ptmt-leftBody', className: 'ptmt-body-column' });
+    const centerBody = el('div', { id: 'ptmt-centerBody', className: 'ptmt-body-column' });
+    const rightBody = el('div', { id: 'ptmt-rightBody', className: 'ptmt-body-column' });
 
-  const resizerLeftCenter = el('splitter', { className: 'ptmt-resizer-vertical ptmt-column-resizer' });
-  const resizerCenterRight = el('splitter', { className: 'ptmt-resizer-vertical ptmt-column-resizer' });
+    const resizerLeftCenter = el('splitter', { className: 'ptmt-resizer-vertical ptmt-column-resizer' });
+    const resizerCenterRight = el('splitter', { className: 'ptmt-resizer-vertical ptmt-column-resizer' });
 
-  mainBody.append(leftBody, resizerLeftCenter, centerBody, resizerCenterRight, rightBody);
-  main.append(topBar, mainBody);
+    mainBody.append(leftBody, resizerLeftCenter, centerBody, resizerCenterRight, rightBody);
+    main.append(topBar, mainBody);
 
-  leftBody.appendChild(createPane());
-  centerBody.appendChild(createPane());
-  rightBody.appendChild(createPane());
+    leftBody.appendChild(createPane());
+    centerBody.appendChild(createPane());
+    rightBody.appendChild(createPane());
 
-  attachColumnResizer(resizerLeftCenter);
-  attachColumnResizer(resizerCenterRight);
+    attachColumnResizer(resizerLeftCenter);
+    attachColumnResizer(resizerCenterRight);
 
-  document.body.insertBefore(main, document.body.firstChild);
+    document.body.insertBefore(main, document.body.firstChild);
 
-  mainBody.append(
-    el('div', { className: 'ptmt-drop-indicator', id: 'ptmt-drop-indicator', style: { display: 'none' } }),
-    el('div', { className: 'ptmt-split-overlay', id: 'ptmt-split-overlay', style: { display: 'none' } })
-  );
-  return getRefs();
+    mainBody.append(
+        el('div', { className: 'ptmt-drop-indicator', id: 'ptmt-drop-indicator', style: { display: 'none' } }),
+        el('div', { className: 'ptmt-split-overlay', id: 'ptmt-split-overlay', style: { display: 'none' } })
+    );
+    return getRefs();
 }
 
 export function applyColumnVisibility() {
-  const refs = getRefs();
-  const showLeft = settings.get('showLeftPane');
-  const showRight = settings.get('showRightPane');
+    const refs = getRefs();
+    const showLeft = settings.get('showLeftPane');
+    const showRight = settings.get('showRightPane');
 
-  const resizerLeft = refs.mainBody.querySelector('.ptmt-resizer-vertical');
-  const resizerRight = refs.mainBody.querySelectorAll('.ptmt-resizer-vertical')[1];
+    const resizerLeft = refs.mainBody.querySelector('.ptmt-resizer-vertical');
+    const resizerRight = refs.mainBody.querySelectorAll('.ptmt-resizer-vertical')[1];
 
-  if (refs.leftBody.style.display !== (showLeft ? 'flex' : 'none')) {
-    refs.leftBody.style.display = showLeft ? 'flex' : 'none';
-    if (resizerLeft) resizerLeft.style.display = showLeft ? 'flex' : 'none';
-    if (showLeft && !refs.leftBody.querySelector('.ptmt-pane')) {
-      refs.leftBody.appendChild(createPane());
+    if (refs.leftBody.style.display !== (showLeft ? 'flex' : 'none')) {
+        refs.leftBody.style.display = showLeft ? 'flex' : 'none';
+        if (resizerLeft) resizerLeft.style.display = showLeft ? 'flex' : 'none';
+        if (showLeft && !refs.leftBody.querySelector('.ptmt-pane')) {
+            refs.leftBody.appendChild(createPane());
+        }
     }
-  }
 
-  if (refs.rightBody.style.display !== (showRight ? 'flex' : 'none')) {
-    refs.rightBody.style.display = showRight ? 'flex' : 'none';
-    if (resizerRight) resizerRight.style.display = showRight ? 'flex' : 'none';
-    if (showRight && !refs.rightBody.querySelector('.ptmt-pane')) {
-      refs.rightBody.appendChild(createPane());
+    if (refs.rightBody.style.display !== (showRight ? 'flex' : 'none')) {
+        refs.rightBody.style.display = showRight ? 'flex' : 'none';
+        if (resizerRight) resizerRight.style.display = showRight ? 'flex' : 'none';
+        if (showRight && !refs.rightBody.querySelector('.ptmt-pane')) {
+            refs.rightBody.appendChild(createPane());
+        }
     }
-  }
 
-  recalculateColumnSizes();
+    recalculateColumnSizes();
 }
 
 
 function isColumnContentCollapsed(column) {
     if (!column || column.style.display === 'none') return true;
     const directChildren = Array.from(column.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
-    if (directChildren.length === 0) return true; 
-    return directChildren.every(child => 
+    if (directChildren.length === 0) return true;
+    return directChildren.every(child =>
         child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')
     );
 }
@@ -112,7 +112,7 @@ export function recalculateColumnSizes() {
                     col.dataset.lastFlex = `1 1 ${minBasisPercent.toFixed(4)}%`;
                 }
             } else {
-                 if (currentFlex && currentFlex.includes('%')) {
+                if (currentFlex && currentFlex.includes('%')) {
                     col.dataset.lastFlex = currentFlex;
                 } else {
                     const parentWidth = col.parentElement.getBoundingClientRect().width;
@@ -125,9 +125,14 @@ export function recalculateColumnSizes() {
                     }
                 }
             }
-            
+
             col.dataset.isColumnCollapsed = 'true';
-            col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;
+            const preferred = findPreferredDescendentOrientation(col);
+            if (preferred === 'horizontal') {
+                col.style.flex = col.dataset.lastFlex || '1 1 20%';
+            } else {
+                col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;
+            }
             collapsedColumn = col; // This column just collapsed.
         } else if (!isContentFullyCollapsed && wasColumnCollapsed) {
             let lastFlex = col.dataset.lastFlex;
@@ -145,7 +150,7 @@ export function recalculateColumnSizes() {
                 if (Math.abs(lastBasisPercent - minBasisPercent) < 0.1) {
                     const siblings = visibleColumns.filter(c => c !== col);
                     const totalSiblingLastFlex = siblings.reduce((sum, s) => {
-                         if (s.dataset.lastFlex) {
+                        if (s.dataset.lastFlex) {
                             const match = s.dataset.lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
                             return sum + (match ? parseFloat(match[1]) : 0);
                         }
@@ -159,7 +164,7 @@ export function recalculateColumnSizes() {
                     }
                 }
             }
-            
+
             col.removeAttribute('data-is-column-collapsed');
             col.style.flex = lastFlex || `1 1 ${100 / visibleColumns.length}%`;
             protectedColumn = col; // This column just re-opened.
@@ -216,7 +221,7 @@ export function recalculateColumnSizes() {
             }
         } else if (collapsedColumn) { // A column was collapsed
             const spaceFreed = getBasis(collapsedColumn, true);
-            
+
             let receivers = [];
             if (collapsedColumn === leftBody || collapsedColumn === rightBody) {
                 if (activeColumns.includes(centerBody)) {
@@ -258,8 +263,8 @@ export function recalculateColumnSizes() {
     const finalError = finalTotalBasis - 100.0;
 
     if (Math.abs(finalError) > 0.01) {
-        const colToAdjust = activeColumns.includes(centerBody) ? centerBody : activeColumns[activeColumns.length-1];
-        if(colToAdjust) {
+        const colToAdjust = activeColumns.includes(centerBody) ? centerBody : activeColumns[activeColumns.length - 1];
+        if (colToAdjust) {
             const basis = getBasis(colToAdjust);
             colToAdjust.style.flex = `1 1 ${(basis - finalError).toFixed(4)}%`;
         }

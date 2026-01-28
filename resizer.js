@@ -41,9 +41,9 @@ function getOrCalculateFullTabSize(pane) {
 }
 
 export function checkPaneForIconMode(pane) {
-    // Disabled auto-icons mode as per user request
     if (!pane || !pane.classList) return;
-    pane.classList.remove('ptmt-pane-icons-only');
+    const showIconsOnly = settings.get('showIconsOnly');
+    pane.classList.toggle('ptmt-pane-icons-only', !!showIconsOnly);
 }
 
 const throttledCheckPaneForIconMode = throttle(checkPaneForIconMode, 80);

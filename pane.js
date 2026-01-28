@@ -13,6 +13,24 @@ export const defaultViewSettings = {
   contentFlow: 'default',
 };
 
+export function findPreferredDescendentOrientation(element) {
+  if (!element) return null;
+  if (element.classList.contains('ptmt-pane')) {
+    const vs = readPaneViewSettings(element);
+    if (vs.collapsedOrientation && vs.collapsedOrientation !== 'auto') {
+      return vs.collapsedOrientation;
+    }
+  }
+  const panes = element.querySelectorAll('.ptmt-pane');
+  for (const p of panes) {
+    const vs = readPaneViewSettings(p);
+    if (vs.collapsedOrientation && vs.collapsedOrientation !== 'auto') {
+      return vs.collapsedOrientation;
+    }
+  }
+  return null;
+}
+
 export function applySplitOrientation(split) {
   if (!split) return;
 
@@ -22,12 +40,19 @@ export function applySplitOrientation(split) {
   let targetOrientation;
   if (isParentColumnCollapsed) {
     targetOrientation = 'horizontal';
+
+    // Check if any descendant pane has a specific preference
+    const preferred = findPreferredDescendentOrientation(split);
+    if (preferred) {
+      targetOrientation = preferred;
+    }
   } else {
     targetOrientation = split.dataset.naturalOrientation || 'vertical';
   }
 
   setSplitOrientation(split, targetOrientation);
 }
+
 
 export function createPane(initialSettings = {}, options = {}) {
   const pane = el('div', { className: 'ptmt-pane', style: { position: 'relative', display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden' } });
@@ -117,13 +142,30 @@ export function getParentSplitOrientation(pane) {
 
 function findGoverningOrientation(pane) {
   let current = pane.parentElement;
+  const isPaneCollapsed = pane.classList.contains('view-collapsed');
 
   while (current && !current.classList.contains('ptmt-body-column')) {
-    if (current.classList.contains('ptmt-split') && !current.classList.contains('ptmt-container-collapsed')) {
-      return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
+    if (current.classList.contains('ptmt-split')) {
+      const isSplitCollapsed = current.classList.contains('ptmt-container-collapsed');
+      // If the pane is collapsed, we look at the split's orientation even if it's collapsed.
+      // If the pane is NOT collapsed, we only look at splits that are NOT collapsed.
+      if (!isPaneCollapsed && isSplitCollapsed) {
+        // Skip
+      } else {
+        return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
+      }
     }
     current = current.parentElement;
   }
+
+  // If we reach the column, check for specific pane preferences in the column
+  const column = pane.closest('.ptmt-body-column');
+  if (column?.dataset.isColumnCollapsed === 'true') {
+    const preferred = findPreferredDescendentOrientation(column);
+    if (preferred) return preferred;
+    return 'vertical'; // Default for narrow collapsed column
+  }
+
   return 'vertical';
 }
 
@@ -462,29 +504,37 @@ function updateSplitCollapsedState(split) {
   const isCurrentlyCollapsed = split.classList.contains('ptmt-container-collapsed');
 
   if (allChildrenCollapsed && !isCurrentlyCollapsed) {
-
     const currentFlex = split.style.flex;
     if (currentFlex && currentFlex.includes('%')) {
       split.dataset.lastFlex = currentFlex;
     }
     split.classList.add('ptmt-container-collapsed');
 
-
+    // Heuristic for collapsed orientation
     const parent = split.parentElement;
     const rect = parent.getBoundingClientRect();
+    let targetOrientation = rect.height > rect.width ? 'horizontal' : 'vertical';
 
+    // Search for a preferred orientation settings in descendent panes
+    const preferred = findPreferredDescendentOrientation(split);
+    if (preferred) {
+      targetOrientation = preferred;
+    }
 
-    const targetOrientation = rect.height > rect.width ? 'horizontal' : 'vertical';
     setSplitOrientation(split, targetOrientation);
 
-  } else if (!allChildrenCollapsed && isCurrentlyCollapsed) {
+    // After rotation, children might need to re-evaluate their internal orientation (e.g. tabstrip flip)
+    panes.forEach(p => applyPaneOrientation(p));
 
+  } else if (!allChildrenCollapsed && isCurrentlyCollapsed) {
     split.style.flex = split.dataset.lastFlex || '1 1 100%';
     split.classList.remove('ptmt-container-collapsed');
 
-
     const naturalOrientation = split.dataset.naturalOrientation || 'vertical';
     setSplitOrientation(split, naturalOrientation);
+
+    // Re-evaluate child orientations as they expand
+    split.querySelectorAll('.ptmt-pane').forEach(p => applyPaneOrientation(p));
   }
 
   const parentSplit = split.parentElement;

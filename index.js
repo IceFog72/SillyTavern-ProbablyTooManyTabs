@@ -109,11 +109,12 @@ import { positionAnchor } from './positionAnchor.js';
     });
 
     window.addEventListener('ptmt:settingsChanged', () => {
-
       const showIconsOnly = settings.get('showIconsOnly');
-      getRefs().main.classList.toggle('ptmt-global-icons-only', showIconsOnly);
-
-
+      const refs = getRefs();
+      if (refs && refs.mainBody) {
+        refs.mainBody.classList.toggle('ptmt-global-icons-only', !!showIconsOnly);
+      }
+      document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     });
 
