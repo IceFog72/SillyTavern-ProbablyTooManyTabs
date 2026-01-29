@@ -130,12 +130,10 @@ import { positionAnchor } from './positionAnchor.js';
 
     if (savedLayout) {
       if (savedLayout.version !== defaultLayout.version) {
-        console.log(`[PTMT Layout] Version mismatch (Saved: ${savedLayout.version}, Current: ${defaultLayout.version}). Resetting layout.`);
-        api.saveLayout(); // Optional: Save broken layout as backup? Maybe too complex for now.
-        // Actually, users want a reset.
-        settings.update({ savedLayout: null }); // Clear saved layout
-        applyLayoutSnapshot(defaultLayout, api, settings); // Apply default
-        toastr.warning('ProbablyTooManyTabs: Layout reset due to update. Please re-configure your layout if needed.', 'Layout Update', { timeOut: 10000 });
+        console.log(`[PTMT Layout] Version mismatch (Saved: ${savedLayout.version}, Current: ${defaultLayout.version}).`);
+
+        applyLayoutSnapshot(savedLayout, api, settings);
+        toastr.info('ProbablyTooManyTabs: Extension update detected. Please use the "Reset Layout to Default" button in Layout Settings tab.', 'Extension Update', { timeOut: 15000 });
       } else {
         console.log("[PTMT Layout] Applying user's saved layout.");
         applyLayoutSnapshot(savedLayout, api, settings);

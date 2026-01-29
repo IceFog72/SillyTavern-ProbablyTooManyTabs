@@ -8,7 +8,7 @@ let hydrationObserver = null;
 let demotionObserver = null;
 let pendingTabsMap = new Map();
 
-const getTabIdentifier = (tabInfo) => {
+export const getTabIdentifier = (tabInfo) => {
     if (tabInfo.searchId) return `id:${tabInfo.searchId}`;
     if (tabInfo.searchClass) return `class:${tabInfo.searchClass}`;
     return null;
@@ -22,11 +22,12 @@ export function updatePendingTabColumn(tabInfo, newColumn) {
     if (pendingTabsMap.has(identifier)) {
         const existingTab = pendingTabsMap.get(identifier);
         existingTab.column = newColumn;
-        console.log(`[PTMT-Pending] Updated live destination for ${identifier} to column '${newColumn}'.`);
+        existingTab.paneId = tabInfo.paneId;
+        console.log(`[PTMT-Pending] Updated live destination for ${identifier} to column '${newColumn}' and pane '${tabInfo.paneId}'.`);
     } else {
         const newPendingTab = { ...tabInfo, column: newColumn };
         pendingTabsMap.set(identifier, newPendingTab);
-        console.log(`[PTMT-Pending] Moved and armed listener for ${identifier} in column '${newColumn}'.`);
+        console.log(`[PTMT-Pending] Armed listener for ${identifier} in column '${newColumn}' and pane '${tabInfo.paneId}'.`);
     }
 }
 
@@ -48,7 +49,11 @@ function addTabToPendingList(tabInfo) {
         if (!layout.columns[column]) layout.columns[column] = { ghostTabs: [] };
         if (!layout.columns[column].ghostTabs) layout.columns[column].ghostTabs = [];
 
-        const newTabInfo = { searchId: tabInfo.searchId || '', searchClass: tabInfo.searchClass || '' };
+        const newTabInfo = {
+            searchId: tabInfo.searchId || '',
+            searchClass: tabInfo.searchClass || '',
+            paneId: tabInfo.paneId || null
+        };
         if (!layout.columns[column].ghostTabs.some(t => getTabIdentifier(t) === identifier)) {
             layout.columns[column].ghostTabs.push(newTabInfo);
         }
@@ -58,7 +63,12 @@ function addTabToPendingList(tabInfo) {
     }
 }
 
-function findTargetPaneForColumn(columnName) {
+function findTargetPane(columnName, paneId) {
+    if (paneId) {
+        const pane = document.querySelector(`.ptmt-pane[data-pane-id="${paneId}"]`);
+        if (pane) return pane;
+    }
+
     const refs = getRefs();
     const columnEl = refs[`${columnName}Body`];
     if (!columnEl) return null;
@@ -90,9 +100,9 @@ function hydrateTab(tabInfo, foundElement) {
     }
 
     console.log(`[PTMT-Pending] Hydrating tab: ${identifier}`);
-    const targetPane = findTargetPaneForColumn(tabInfo.column);
+    const targetPane = findTargetPane(tabInfo.column, tabInfo.paneId);
     if (!targetPane) {
-        console.warn(`[PTMT-Pending] Could not find a target pane in column '${tabInfo.column}' for tab '${identifier}'.`);
+        console.warn(`[PTMT-Pending] Could not find a target pane (ID: ${tabInfo.paneId || 'any'}) in column '${tabInfo.column}' for tab '${identifier}'.`);
         return;
     }
 
@@ -221,14 +231,16 @@ export function initDemotionObserver(api) {
                     else { delete panel.dataset.demoting; continue; }
 
                     const columnEl = panel.closest('.ptmt-body-column');
+                    const paneEl = panel.closest('.ptmt-pane');
                     const colId = columnEl ? columnEl.id : 'ptmt-centerBody';
                     const colName = colId.replace('ptmt-', '').replace('Body', '');
+                    const paneId = paneEl ? paneEl.dataset.paneId : null;
 
-                    console.log(`[PTMT-Demotion] Tab ${sourceId} content removed. Destroying tab and re-arming listener.`);
+                    console.log(`[PTMT-Demotion] Tab ${sourceId} content removed from pane ${paneId}. Destroying tab and re-arming listener.`);
 
                     destroyTabById(panel.dataset.panelId);
 
-                    addTabToPendingList({ ...tabInfoToRearm, column: colName });
+                    addTabToPendingList({ ...tabInfoToRearm, column: colName, paneId: paneId });
 
                     window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'demotion' } }));
 

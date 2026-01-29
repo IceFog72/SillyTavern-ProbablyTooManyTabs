@@ -2,6 +2,7 @@
 
 import { settings } from './settings.js';
 import { el, debounce, getPanelBySourceId } from './utils.js';
+import { getTabIdentifier } from './pending-tabs.js';
 
 export class LayoutManager {
     constructor(appApi, settings) {
@@ -259,22 +260,11 @@ export class LayoutManager {
 
         const pendingContainer = el('div', { className: 'ptmt-editor-pending' });
         const pendingTitle = el('div', { className: 'ptmt-editor-title', style: { marginTop: '10px', borderTop: '1px solid var(--SmartThemeShadowColor)', paddingTop: '8px' } }, el('span', {}, 'Pending Tabs'));
-        const pendingTabsList = el('div', { className: 'ptmt-editor-tabs-container' });
-        pendingTabsList.dataset.isPendingList = 'true';
-        pendingTabsList.dataset.columnName = name;
+        pendingContainer.appendChild(pendingTitle);
 
-        const currentLayout = this.settings.get('savedLayout') || this.settings.get('defaultLayout');
-        const ghostTabs = currentLayout.columns[name]?.ghostTabs || [];
+        const pendingTree = this.renderPendingTreeElement(element.querySelector('.ptmt-pane, .ptmt-split'), name);
+        if (pendingTree) pendingContainer.appendChild(pendingTree);
 
-        ghostTabs.forEach(tabInfo => {
-            pendingTabsList.appendChild(this.renderPendingTab(tabInfo));
-        });
-
-        pendingTabsList.addEventListener('dragover', this.handleDragOver.bind(this));
-        pendingTabsList.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        pendingTabsList.addEventListener('drop', (e) => this.handleDrop(e));
-
-        pendingContainer.append(pendingTitle, pendingTabsList);
         container.appendChild(pendingContainer);
 
 
@@ -352,6 +342,7 @@ export class LayoutManager {
 
         const titleDiv = el('div', { className: 'ptmt-editor-title' });
         const titleSpan = el('span', {}, 'Pane');
+        const idSpan = el('span', { className: 'ptmt-editor-id', style: { marginLeft: '8px', opacity: '0.6', fontSize: '0.85em' }, title: element.dataset.paneId }, `[${element.dataset.paneId}]`);
         const settingsBtn = el('button', {
             className: 'ptmt-pane-config-btn',
             title: 'Configure this pane (size, flow, etc.)',
@@ -362,7 +353,7 @@ export class LayoutManager {
             this.appApi.openViewSettingsDialog(element);
         });
 
-        titleDiv.append(titleSpan, settingsBtn);
+        titleDiv.append(titleSpan, idSpan, settingsBtn);
         container.appendChild(titleDiv);
 
 
@@ -443,6 +434,72 @@ export class LayoutManager {
         return container;
     }
 
+    renderPendingTreeElement(element, columnName) {
+        if (!element || element.classList.contains('ptmt-resizer-vertical')) return null;
+
+        if (element.classList.contains('ptmt-split')) {
+            // Recurse into children but don't render the split container itself
+            const childrenWrappers = Array.from(element.children).map(child => this.renderPendingTreeElement(child, columnName)).filter(Boolean);
+            if (childrenWrappers.length === 0) return null;
+
+            // Return a fragment-like container (div) to hold children
+            const container = el('div', { className: 'ptmt-editor-pending-split-group' });
+            childrenWrappers.forEach(w => container.appendChild(w));
+            return container;
+        }
+        if (element.classList.contains('ptmt-pane')) {
+            return this.renderPendingPane(element, columnName);
+        }
+        return null;
+    }
+
+    renderPendingPane(element, columnName) {
+        const paneId = element.dataset.paneId;
+        const container = el('div', { className: 'ptmt-editor-pane' });
+        container.dataset.paneId = paneId;
+
+        const titleDiv = el('div', { className: 'ptmt-editor-title' });
+        const titleSpan = el('span', {}, 'Pane');
+        const idSpan = el('span', { className: 'ptmt-editor-id', style: { marginLeft: '8px', opacity: '0.6', fontSize: '0.85em' }, title: paneId }, `[${paneId}]`);
+        titleDiv.append(titleSpan, idSpan);
+        container.appendChild(titleDiv);
+
+        const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container' });
+        tabsContainer.dataset.isPendingList = 'true';
+        tabsContainer.dataset.columnName = columnName;
+        tabsContainer.dataset.paneId = paneId;
+
+        tabsContainer.addEventListener('dragover', this.handleDragOver.bind(this));
+        tabsContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        tabsContainer.addEventListener('drop', (e) => this.handleDrop(e));
+
+        const currentLayout = this.settings.get('savedLayout') || this.settings.get('defaultLayout');
+        const ghostTabs = currentLayout.columns[columnName]?.ghostTabs || [];
+
+        // Identify if this is the first pane in the column to handle orphans
+        const columnEl = element.closest('.ptmt-body-column');
+        const firstPane = columnEl.querySelector('.ptmt-pane');
+        const isFirstPane = element === firstPane;
+
+        let filteredGhostTabs;
+        if (isFirstPane) {
+            // Include tabs explicitly mapped to this pane, tabs with no paneId, 
+            // OR tabs whose paneId doesn't exist anywhere in this column's live structure.
+            const allPaneIdsInColumn = new Set(Array.from(columnEl.querySelectorAll('.ptmt-pane')).map(p => p.dataset.paneId));
+            filteredGhostTabs = ghostTabs.filter(t => (t.paneId === paneId) || (!t.paneId) || (!allPaneIdsInColumn.has(t.paneId)));
+        } else {
+            // Just the ones explicitly mapped to this pane
+            filteredGhostTabs = ghostTabs.filter(t => t.paneId === paneId);
+        }
+
+        filteredGhostTabs.forEach(tabInfo => {
+            tabsContainer.appendChild(this.renderPendingTab(tabInfo));
+        });
+
+        container.appendChild(tabsContainer);
+        return container;
+    }
+
     renderPendingTab(tabInfo) {
         const sourceId = tabInfo.searchId || tabInfo.sourceId || tabInfo.searchClass;
         const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
@@ -456,10 +513,12 @@ export class LayoutManager {
             draggable: 'true',
             'data-is-pending': 'true',
             'data-is-active': (tabInfo.active === true).toString(),
-            'data-is-collapsed': (tabInfo.collapsed === true).toString()
+            'data-is-collapsed': (tabInfo.collapsed === true).toString(),
+            'data-pane-id': tabInfo.paneId || ''
         });
         container.dataset.searchId = tabInfo.searchId || '';
         container.dataset.searchClass = tabInfo.searchClass || '';
+        container.dataset.sourceId = sourceId; // Important for handleDragStart
 
 
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder or move' }, '☰');
@@ -616,7 +675,8 @@ export class LayoutManager {
     }
 
     handlePendingTabDrop(targetContainer, newIndex) {
-        const targetColumnName = targetContainer.closest('.ptmt-editor-column').dataset.columnName;
+        const targetColumnName = targetContainer.dataset.columnName;
+        const targetPaneId = targetContainer.dataset.paneId;
         const { sourceId, searchId, searchClass } = this.draggedTabInfo;
 
         // PROTECTION: Don't allow moving settings tab to pending
@@ -639,27 +699,53 @@ export class LayoutManager {
 
         const layout = this.appApi.generateLayoutSnapshot();
 
-        const newTabInfo = {
-            searchId: searchId || sourceId || '',
-            searchClass: searchClass || '',
-            active: this.draggedTabInfo.isActive,
-            collapsed: this.draggedTabInfo.isCollapsed
-        };
+        // 1. Determine the target identity
+        const targetIdentifier = getTabIdentifier({ searchId, searchClass });
+        if (!targetIdentifier) {
+            console.warn('[PTMT] Cannot drop pending tab: no stable identifier (ID or Class) found.');
+            return;
+        }
 
+        const matchPredicate = (t) => getTabIdentifier(t) === targetIdentifier;
+
+        // 2. Find ORIGINAL tab info to preserve non-structural metadata (icon, title, sourceId)
+        let originalTabInfo = null;
         for (const col of Object.values(layout.columns)) {
             if (col.ghostTabs) {
-                col.ghostTabs = col.ghostTabs.filter(t => !((t.searchId === newTabInfo.searchId && t.searchClass === newTabInfo.searchClass)));
+                const found = col.ghostTabs.find(matchPredicate);
+                if (found) {
+                    originalTabInfo = found;
+                    break;
+                }
             }
         }
 
+        const newTabInfo = {
+            ...(originalTabInfo || {}), // Preserve original fields
+            searchId: searchId || originalTabInfo?.searchId || '',
+            searchClass: searchClass || originalTabInfo?.searchClass || '',
+            active: this.draggedTabInfo.isActive,
+            collapsed: this.draggedTabInfo.isCollapsed,
+            paneId: targetPaneId
+        };
+
+        // 3. CLEANUP: Remove ANY matching identifier from ALL columns to prevent clones
+        for (const colName in layout.columns) {
+            const col = layout.columns[colName];
+            if (col.ghostTabs) {
+                col.ghostTabs = col.ghostTabs.filter(t => !matchPredicate(t));
+            }
+        }
+
+        // 4. Insert into target location
+        if (!layout.columns[targetColumnName].ghostTabs) layout.columns[targetColumnName].ghostTabs = [];
         layout.columns[targetColumnName].ghostTabs.splice(newIndex, 0, newTabInfo);
 
         // Remove from hidden tabs if it was there
         if (layout.hiddenTabs) {
-            // hiddenTabs might be strings or objects now
             layout.hiddenTabs = layout.hiddenTabs.filter(id => {
-                const sid = typeof id === 'string' ? id : (id.sourceId || id.searchId);
-                return sid !== (searchId || sourceId);
+                const sid = typeof id === 'string' ? id : (id.sourceId || id.searchId || id.panelId);
+                return sid !== targetSid;
             });
         }
 
@@ -687,7 +773,7 @@ export class LayoutManager {
         // Remove from current columns (pending lists)
         for (const col of Object.values(layout.columns)) {
             if (col.ghostTabs) {
-                col.ghostTabs = col.ghostTabs.filter(t => (t.searchId || t.sourceId) !== effectiveSourceId && t.searchClass !== searchClass);
+                col.ghostTabs = col.ghostTabs.filter(t => !((t.searchId || '') === (searchId || '') && (t.searchClass || '') === (searchClass || '')));
             }
         }
 

@@ -50,7 +50,7 @@ export class SettingsManager {
         savedLayout: null,
 
         defaultLayout: {
-            version: 11,
+            version: 12,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],
@@ -67,6 +67,7 @@ export class SettingsManager {
                 left: {
                     content: {
                         type: 'pane',
+                        paneId: 'ptmt-default-left-pane',
                         tabs: [
                             { sourceId: "left-nav-panel" },
                             { sourceId: "notebookPanel" },
@@ -77,10 +78,10 @@ export class SettingsManager {
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "summaryExtensionPopout", searchClass: "" },
-                        { searchId: "groupMemberListPopout", searchClass: "" },
-                        { searchId: "qr--popout", searchClass: "" },
-                        { searchId: "ctsi-drawerPopout", searchClass: "" }
+                        { searchId: "summaryExtensionPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
+                        { searchId: "groupMemberListPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
+                        { searchId: "qr--popout", searchClass: "", paneId: "ptmt-default-left-pane" },
+                        { searchId: "ctsi-drawerPopout", searchClass: "", paneId: "ptmt-default-left-pane" }
                     ]
                 },
                 center: {
@@ -90,6 +91,7 @@ export class SettingsManager {
                         children: [
                             {
                                 type: 'pane',
+                                paneId: 'ptmt-default-center-top-pane',
                                 flex: '1 1 60%',
                                 isCollapsed: false,
                                 tabs: [
@@ -103,6 +105,7 @@ export class SettingsManager {
                             },
                             {
                                 type: 'pane',
+                                paneId: 'ptmt-default-center-bottom-pane',
                                 flex: '1 1 40%',
                                 isCollapsed: true,
                                 viewSettings: { contentFlow: "reversed" },
@@ -115,8 +118,8 @@ export class SettingsManager {
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "gallery", searchClass: "" },
-                        { searchId: "", searchClass: "galleryImageDraggable" }
+                        { searchId: "gallery", searchClass: "", paneId: "ptmt-default-center-top-pane" },
+                        { searchId: "", searchClass: "galleryImageDraggable", paneId: "ptmt-default-center-top-pane" }
                     ]
                 },
                 right: {
@@ -126,6 +129,7 @@ export class SettingsManager {
                         children: [
                             {
                                 type: 'pane',
+                                paneId: 'ptmt-default-right-top-pane',
                                 flex: '1 1 50%',
                                 viewSettings: { contentFlow: "reversed" },
                                 tabs: [
@@ -135,6 +139,7 @@ export class SettingsManager {
                             },
                             {
                                 type: 'pane',
+                                paneId: 'ptmt-default-right-bottom-pane',
                                 flex: '1 1 50%',
                                 isCollapsed: true,
                                 viewSettings: { contentFlow: "reversed" },
@@ -147,9 +152,9 @@ export class SettingsManager {
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "objectiveExtensionPopout", searchClass: "" },
-                        { searchId: "moonlit_echoes_popout", searchClass: "" },
-                        { searchId: "", searchClass: "zoomed_avatar" }
+                        { searchId: "objectiveExtensionPopout", searchClass: "", paneId: "ptmt-default-right-top-pane" },
+                        { searchId: "moonlit_echoes_popout", searchClass: "", paneId: "ptmt-default-right-top-pane" },
+                        { searchId: "", searchClass: "zoomed_avatar", paneId: "ptmt-default-right-top-pane" }
                     ]
                 }
             }
