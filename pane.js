@@ -44,25 +44,29 @@ export function applySplitOrientation(split) {
   );
 
   let targetOrientation;
-  if (isParentColumnCollapsed) {
+
+  if (allChildrenCollapsed) {
+    const setting = split.dataset.orientationCollapsed || 'auto';
+    if (setting !== 'auto') {
+      targetOrientation = setting;
+    } else {
+      if (isParentColumnCollapsed) {
+        targetOrientation = 'horizontal';
+      } else {
+        const parent = split.parentElement;
+        const rect = parent.getBoundingClientRect();
+        targetOrientation = rect.height > rect.width ? 'horizontal' : 'vertical';
+
+        const preferred = findPreferredDescendentOrientation(split);
+        if (preferred) {
+          targetOrientation = preferred;
+        }
+      }
+    }
+
+  } else if (isParentColumnCollapsed) {
     // Splits in collapsed sidebars MUST be horizontal to stack panes vertically
     targetOrientation = 'horizontal';
-  } else if (allChildrenCollapsed) {
-    // Apply orientation rule for collapsed state
-    const setting = split.dataset.orientationCollapsed || 'auto';
-    if (setting === 'auto') {
-      const parent = split.parentElement;
-      const rect = parent.getBoundingClientRect();
-      targetOrientation = rect.height > rect.width ? 'horizontal' : 'vertical';
-
-      // Search for a preferred orientation settings in descendent panes
-      const preferred = findPreferredDescendentOrientation(split);
-      if (preferred) {
-        targetOrientation = preferred;
-      }
-    } else {
-      targetOrientation = setting;
-    }
   } else {
     // Apply orientation rule for expanded state (whenever any child is expanded)
     const setting = split.dataset.orientationExpanded || 'auto';
@@ -174,37 +178,35 @@ export function getParentSplitOrientation(pane) {
 
 
 function findGoverningOrientation(pane) {
-  const isPaneCollapsed = pane.classList.contains('view-collapsed');
+  // 1. Primary rule: "Eliminate empty space" via Aspect Ratio / Dimensions
+  // If the pane is narrow (e.g. width < 120px) or taller than it is wide, use Vertical (tabs on side).
+  // If the pane is wide, use Horizontal (tabs on top).
+  const rect = (pane._panelContainer || pane).getBoundingClientRect();
 
-  // 1. Look for splits in the hierarchy first. 
-  // If a parent split has an orientation, we should generally match it in "Auto" mode.
-  let current = pane.parentElement;
-  while (current && !current.classList.contains('ptmt-body-column')) {
-    if (current.classList.contains('ptmt-split')) {
-      const isSplitCollapsed = current.classList.contains('ptmt-container-collapsed');
-      // If the pane is collapsed, we can look at the split's orientation regardless of its state.
-      if (isPaneCollapsed || !isSplitCollapsed) {
-        return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
-      }
-    }
-    current = current.parentElement;
+  // Handling for initialization or hidden state where rect is 0
+  if (rect.width > 0 && rect.height > 0) {
+    if (rect.width < 120) return 'vertical'; // Force vertical for very narrow strips regardless of height
+    return (rect.width >= rect.height) ? 'horizontal' : 'vertical';
   }
 
-  // 2. Fallback to column-level heuristics if we are directly in a column
+  // 2. Fallback: Column-level heuristics for collapsed columns (when dimensions are 0/hidden)
   const column = pane.closest('.ptmt-body-column');
   if (column?.dataset.isColumnCollapsed === 'true') {
     // Check if there's an explicit preference in this column/pane
-    const preferred = findPreferredDescendentOrientation(pane); // Check this pane first
-    if (preferred) return preferred;
-
-    // Default to vertical (tabs-on-side) for narrow collapsed columns
+    const preferred = findPreferredDescendentOrientation(pane);
+    if (preferred && preferred !== 'auto') return preferred;
     return 'vertical';
   }
 
-  // 3. Fallback based on dimensions for top-level panes in expanded columns
-  const rect = pane.getBoundingClientRect();
-  if (rect.width > 0 && rect.height > 0) {
-    return (rect.width >= rect.height) ? 'horizontal' : 'vertical';
+  // 3. Fallback: Split hierarchy (legacy logic, mostly for hidden states)
+  let current = pane.parentElement;
+  while (current && !current.classList.contains('ptmt-body-column')) {
+    if (current.classList.contains('ptmt-split')) {
+      // Only default to split orientation if we really don't know anything else
+      // But usually we prefer vertical default for safety in unknown narrow contexts
+      return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
+    }
+    current = current.parentElement;
   }
 
   return 'vertical';
@@ -279,6 +281,9 @@ export function setPaneCollapsedView(pane, collapsed) {
     }
 
     pane.classList.add('view-collapsed');
+    if (parentSplit?.classList.contains('ptmt-split')) {
+      updateSplitCollapsedState(parentSplit);
+    }
   } else {
     pane.classList.remove('view-collapsed');
 
@@ -536,7 +541,7 @@ export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
   }
 }
 
-function updateSplitCollapsedState(split) {
+export function updateSplitCollapsedState(split) {
   if (!split || !split.classList.contains('ptmt-split')) return;
 
   const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
@@ -567,6 +572,9 @@ function updateSplitCollapsedState(split) {
   const parentSplit = split.parentElement;
   if (parentSplit?.classList.contains('ptmt-split')) {
     updateSplitCollapsedState(parentSplit);
+    recalculateColumnSizes(); // Ensure column checks happen as we bubble up
+  } else {
+    recalculateColumnSizes();
   }
 }
 

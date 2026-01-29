@@ -10,7 +10,7 @@ import { recalculateColumnSizes } from './layout.js';
 import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 
-const SNAPSHOT_VERSION = 10;
+const SNAPSHOT_VERSION = 11;
 
 const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },

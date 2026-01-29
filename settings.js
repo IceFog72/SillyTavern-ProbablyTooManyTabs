@@ -50,7 +50,7 @@ export class SettingsManager {
         savedLayout: null,
 
         defaultLayout: {
-            version: 10,
+            version: 11,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],

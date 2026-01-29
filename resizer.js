@@ -428,7 +428,15 @@ export function recalculateSplitSizes(split) {
     const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
     if (children.length === 0) return;
 
-    const activeChildren = children.filter(c => !c.classList.contains('view-collapsed') && !c.classList.contains('ptmt-container-collapsed'));
+    let activeChildren = children.filter(c => !c.classList.contains('view-collapsed') && !c.classList.contains('ptmt-container-collapsed'));
+
+    // NEW: If ALL children are collapsed (e.g. inside a collapsed column), they should share the space equally
+    // instead of shrinking to '0 0 auto'. This allows correct alignment (e.g. 50/50 split of the 72px column).
+    // This also ensures that collapsed panels in the Center Column FILL the center instead of stacking on the left.
+    const allCollapsed = activeChildren.length === 0;
+    if (allCollapsed) {
+        activeChildren = children;
+    }
 
     if (activeChildren.length < children.length) {
         children.forEach(child => {

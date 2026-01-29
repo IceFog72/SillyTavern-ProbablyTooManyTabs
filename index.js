@@ -9,7 +9,7 @@ import { settings } from './settings.js';
 import { el, debounce, getPanelById, getTabById, getRefs } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
 import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
-import { applyPaneOrientation, applySplitOrientation, readPaneViewSettings, writePaneViewSettings, openViewSettingsDialog } from './pane.js';
+import { applyPaneOrientation, applySplitOrientation, readPaneViewSettings, writePaneViewSettings, openViewSettingsDialog, updateSplitCollapsedState } from './pane.js';
 import {
   createTabFromContent, moveNodeIntoTab, listTabs,
   openTab, closeTabById, setDefaultPanelById,
@@ -45,7 +45,7 @@ import { positionAnchor } from './positionAnchor.js';
       openTab, closeTabById, getPanelById, getTabById, setDefaultPanelById, _refs: getRefs,
       moveTabIntoPaneAtIndex, openViewSettingsDialog, readPaneViewSettings, writePaneViewSettings,
       setActivePanelInPane, setTabCollapsed,
-      applyPaneOrientation, attachResizer, setSplitOrientation,
+      applyPaneOrientation, attachResizer, setSplitOrientation, updateSplitCollapsedState, applySplitOrientation,
       generateLayoutSnapshot, destroyTabById, updatePendingTabColumn, checkPaneForIconMode,
       saveLayout: () => {
         const layout = generateLayoutSnapshot();
@@ -93,16 +93,16 @@ import { positionAnchor } from './positionAnchor.js';
     window.ptmtTabs = api;
 
     window.addEventListener('ptmt:layoutChanged', (event) => {
+      // First apply layout/orientation classes so sizes can be calculated correctly
+      document.querySelectorAll('.ptmt-split').forEach(applySplitOrientation);
+      document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
+
       if (event.detail?.reason !== 'snapshotApplied') {
         applyColumnVisibility();
         if (event.detail?.reason !== 'manualResize') {
           recalculateColumnSizes();
         }
       }
-
-
-      document.querySelectorAll('.ptmt-split').forEach(applySplitOrientation);
-      document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
 
       updateResizerDisabledStates();
       saveCurrentLayoutDebounced();
@@ -129,8 +129,17 @@ import { positionAnchor } from './positionAnchor.js';
     const defaultLayout = settings.get('defaultLayout');
 
     if (savedLayout) {
-      console.log("[PTMT Layout] Applying user's saved layout.");
-      applyLayoutSnapshot(savedLayout, api, settings);
+      if (savedLayout.version !== defaultLayout.version) {
+        console.log(`[PTMT Layout] Version mismatch (Saved: ${savedLayout.version}, Current: ${defaultLayout.version}). Resetting layout.`);
+        api.saveLayout(); // Optional: Save broken layout as backup? Maybe too complex for now.
+        // Actually, users want a reset.
+        settings.update({ savedLayout: null }); // Clear saved layout
+        applyLayoutSnapshot(defaultLayout, api, settings); // Apply default
+        toastr.warning('ProbablyTooManyTabs: Layout reset due to update. Please re-configure your layout if needed.', 'Layout Update', { timeOut: 10000 });
+      } else {
+        console.log("[PTMT Layout] Applying user's saved layout.");
+        applyLayoutSnapshot(savedLayout, api, settings);
+      }
     } else {
       console.log("[PTMT Layout] No saved layout found, applying default layout.");
       applyLayoutSnapshot(defaultLayout, api, settings);

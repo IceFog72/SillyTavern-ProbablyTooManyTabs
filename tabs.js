@@ -79,6 +79,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
       } else { // pane is collapsing
         pane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)').forEach(tab => {
           setTabCollapsed(tab.dataset.for, true);
+          tab.classList.remove('active');
         });
       }
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));

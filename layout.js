@@ -91,8 +91,50 @@ export function recalculateColumnSizes() {
     let protectedColumn = null;
     let collapsedColumn = null;
 
+
+    // Helper to calculate the required width of a collapsed column based on its split structure
+    function calculateCollapsedColumnWidth(element) {
+        // If it's a pane, it takes up MIN_COLLAPSED_PIXELS
+        if (element.classList.contains('ptmt-pane')) {
+            return MIN_COLLAPSED_PIXELS;
+        }
+
+        // If it's a split...
+        if (element.classList.contains('ptmt-split')) {
+            const children = Array.from(element.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+            if (children.length === 0) return MIN_COLLAPSED_PIXELS;
+
+            // If forced horizontal (stacked), width is max of children (since they stack)
+            const isHorizontal = element.classList.contains('horizontal');
+
+            if (isHorizontal) {
+                let maxWidth = 0;
+                children.forEach(child => maxWidth = Math.max(maxWidth, calculateCollapsedColumnWidth(child)));
+                return maxWidth;
+            } else {
+                // If vertical (side-by-side), width is sum of children + splitters
+                let totalWidth = 0;
+                children.forEach(child => totalWidth += calculateCollapsedColumnWidth(child));
+
+                // Add splitters (approx 4px or 6px depending on CSS, using 4px to be safe/tight)
+                // Actually resizer logic uses 6px usually? Let's check resizer.js or use a safe constant.
+                // resizer.js uses 6px for non-disabled.
+                // But for collapsed view, splitters might be hidden? 
+                // If the split is vertical, splitters are visible.
+                const splitters = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
+                const splitterWidth = splitters.length * 4; // Approximate
+                return totalWidth + splitterWidth;
+            }
+        }
+        return MIN_COLLAPSED_PIXELS;
+    }
+
     // Step 1: Update collapsed state for each column based on its content, and detect if a state change occurred.
     visibleColumns.forEach(col => {
+        // The Center Body should NEVER collapse to a fixed width (e.g. 36px/76px).
+        // It must always fill the remaining space to prevent panels from stacking on the left.
+        if (col.id === 'ptmt-centerBody') return;
+
         const isContentFullyCollapsed = isColumnContentCollapsed(col);
         const wasColumnCollapsed = col.dataset.isColumnCollapsed === 'true';
 
@@ -132,7 +174,10 @@ export function recalculateColumnSizes() {
             if (preferred === 'horizontal') {
                 col.style.flex = col.dataset.lastFlex || '1 1 20%';
             } else {
-                col.style.flex = `0 0 ${MIN_COLLAPSED_PIXELS}px`;
+                // Determine layout content to calculate proper width
+                const content = col.querySelector('.ptmt-pane, .ptmt-split'); // helper to find root
+                const width = content ? calculateCollapsedColumnWidth(content) : MIN_COLLAPSED_PIXELS;
+                col.style.flex = `0 0 ${width}px`;
             }
             collapsedColumn = col; // This column just collapsed.
         } else if (!isContentFullyCollapsed && wasColumnCollapsed) {
@@ -169,6 +214,11 @@ export function recalculateColumnSizes() {
             col.removeAttribute('data-is-column-collapsed');
             col.style.flex = lastFlex || `1 1 ${100 / visibleColumns.length}%`;
             protectedColumn = col; // This column just re-opened.
+        } else if (isContentFullyCollapsed && wasColumnCollapsed) {
+            // If already collapsed, ensure the width is correct (in case orientation or content changed)
+            const content = col.querySelector('.ptmt-pane, .ptmt-split');
+            const width = content ? calculateCollapsedColumnWidth(content) : MIN_COLLAPSED_PIXELS;
+            col.style.flex = `0 0 ${width}px`;
         }
     });
 
