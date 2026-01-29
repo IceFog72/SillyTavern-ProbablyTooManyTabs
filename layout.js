@@ -46,8 +46,9 @@ export function applyColumnVisibility() {
     const showLeft = settings.get('showLeftPane');
     const showRight = settings.get('showRightPane');
 
-    const resizerLeft = refs.mainBody.querySelector('.ptmt-resizer-vertical');
-    const resizerRight = refs.mainBody.querySelectorAll('.ptmt-resizer-vertical')[1];
+    const resizers = Array.from(refs.mainBody.querySelectorAll('.ptmt-column-resizer'));
+    const resizerLeft = resizers[0];
+    const resizerRight = resizers[1];
 
     if (refs.leftBody.style.display !== (showLeft ? 'flex' : 'none')) {
         refs.leftBody.style.display = showLeft ? 'flex' : 'none';

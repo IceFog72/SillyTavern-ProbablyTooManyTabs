@@ -10,7 +10,7 @@ import { recalculateColumnSizes } from './layout.js';
 import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 
-const SNAPSHOT_VERSION = 9;
+const SNAPSHOT_VERSION = 10;
 
 const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },
@@ -101,6 +101,8 @@ export function generateLayoutSnapshot() {
                 lastFlex: element.dataset.lastFlex || null,
                 orientation: getSplitOrientation(element),
                 naturalOrientation: element.dataset.naturalOrientation || getSplitOrientation(element),
+                orientationExpanded: element.dataset.orientationExpanded || null,
+                orientationCollapsed: element.dataset.orientationCollapsed || null,
                 children: children.filter(Boolean),
                 splitRatios: splitRatios,
 
@@ -204,6 +206,14 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         return;
     }
 
+    const settingsWrapperId = 'ptmt-settings-wrapper-content';
+    let settingsWrapper = document.getElementById(settingsWrapperId);
+    if (!settingsWrapper) {
+        settingsWrapper = el('div', { id: settingsWrapperId });
+        const stagingArea = document.getElementById('ptmt-staging-area') || document.body;
+        stagingArea.appendChild(settingsWrapper);
+    }
+
     const refs = getRefs();
     if (!refs || !refs.mainBody) {
         console.error('[PTMT] Cannot apply snapshot: layout refs not found');
@@ -238,7 +248,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         }
     }
 
-    const resizers = Array.from(refs.mainBody.querySelectorAll('.ptmt-resizer-vertical.ptmt-column-resizer'));
+    const resizers = Array.from(refs.mainBody.querySelectorAll('.ptmt-column-resizer'));
     if (resizers[0]) resizers[0].style.display = snapshot.showLeft ? 'flex' : 'none';
     if (resizers[1]) resizers[1].style.display = snapshot.showRight ? 'flex' : 'none';
 
@@ -314,6 +324,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             }
 
             split.dataset.naturalOrientation = node.naturalOrientation || node.orientation;
+            if (node.orientationExpanded) split.dataset.orientationExpanded = node.orientationExpanded;
+            if (node.orientationCollapsed) split.dataset.orientationCollapsed = node.orientationCollapsed;
             split.classList.toggle('horizontal', node.orientation === 'horizontal');
 
             parent.appendChild(split);
@@ -502,7 +514,9 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         }
 
         const centerPane = refs.centerBody.querySelector('.ptmt-pane');
-        if (centerPane) {
+        const settingsTab = getPanelBySourceId(settingsWrapperId);
+
+        if (!settingsTab && centerPane) {
             const settingsPanel = createTabFromContent(settingsWrapperId, {
                 title: 'Layout Settings',
                 icon: '🔧',
@@ -514,13 +528,22 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 const settingsUI = layoutManager.createSettingsPanel();
                 settingsPanel.querySelector('.ptmt-panel-content').appendChild(settingsUI);
             }
-
-            createdPanes.forEach(pane => {
-                if (typeof checkAndCollapsePaneIfAllTabsCollapsed === 'function') {
-                    checkAndCollapsePaneIfAllTabsCollapsed(pane);
-                }
-            });
+        } else if (settingsTab) {
+            // Re-initialize manager on existing panel
+            const layoutManager = new LayoutManager(api, settings);
+            const settingsUI = layoutManager.createSettingsPanel();
+            const content = settingsTab.querySelector('.ptmt-panel-content');
+            if (content) {
+                content.innerHTML = '';
+                content.appendChild(settingsUI);
+            }
         }
+
+        createdPanes.forEach(pane => {
+            if (typeof checkAndCollapsePaneIfAllTabsCollapsed === 'function') {
+                checkAndCollapsePaneIfAllTabsCollapsed(pane);
+            }
+        });
 
         setTimeout(() => {
             recalculateAllSplitsRecursively();

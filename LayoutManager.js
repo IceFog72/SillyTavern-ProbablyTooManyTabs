@@ -29,7 +29,19 @@ export class LayoutManager {
             const label = el('label', { for: id }, labelText);
 
             checkbox.addEventListener('change', (e) => {
-
+                // PROTECTION: Don't allow hiding a column if it contains the settings tab
+                if (e.target.checked === false) {
+                    const colName = settingKey === 'showLeftPane' ? 'left' : (settingKey === 'showRightPane' ? 'right' : null);
+                    if (colName) {
+                        const refs = this.appApi._refs();
+                        const colEl = refs[`${colName}Body`];
+                        if (colEl && colEl.querySelector('[data-source-id="ptmt-settings-wrapper-content"]')) {
+                            alert("Cannot hide this column because it contains the Layout Settings tab. Move the tab to another column first.");
+                            e.target.checked = true;
+                            return;
+                        }
+                    }
+                }
                 this.settings.update({ [settingKey]: e.target.checked });
             });
 
@@ -283,25 +295,45 @@ export class LayoutManager {
 
 
     renderSplit(element) {
-        const orientation = element.classList.contains('horizontal') ? 'Horizontal' : 'Vertical';
         const container = el('div', { className: 'ptmt-editor-split' });
         const titleDiv = el('div', { className: 'ptmt-editor-title' });
-        const titleSpan = el('span', {}, `Split (${orientation})`);
+        const titleSpan = el('span', {}, `Split Container`);
 
-        const orientationSelect = el('select', { title: 'Set split orientation' });
-        ['vertical', 'horizontal'].forEach(o => {
-            const opt = el('option', { value: o, selected: o.toLowerCase() === orientation.toLowerCase() }, o.charAt(0).toUpperCase() + o.slice(1));
-            orientationSelect.appendChild(opt);
+        const createLabel = (text) => el('span', { style: { fontSize: '0.8em', opacity: '0.7', marginRight: '5px' } }, text);
+
+        const expandedOrientation = element.dataset.orientationExpanded || element.dataset.naturalOrientation || 'auto';
+        const collapsedOrientation = element.dataset.orientationCollapsed || 'auto';
+
+        const expandedSelect = el('select', { title: 'Orientation when expanded' });
+        const collapsedSelect = el('select', { title: 'Orientation when collapsed' });
+
+        ['auto', 'vertical', 'horizontal'].forEach(o => {
+            expandedSelect.appendChild(el('option', { value: o, selected: o === expandedOrientation }, o.charAt(0).toUpperCase() + o.slice(1)));
+            collapsedSelect.appendChild(el('option', { value: o, selected: o === collapsedOrientation }, o.charAt(0).toUpperCase() + o.slice(1)));
         });
 
-
-        orientationSelect.addEventListener('change', (e) => {
-            const newOrientation = e.target.value;
-            this.appApi.setSplitOrientation(element, newOrientation);
+        expandedSelect.addEventListener('change', (e) => {
+            element.dataset.orientationExpanded = e.target.value;
+            // Legacy support
+            if (e.target.value !== 'auto') element.dataset.naturalOrientation = e.target.value;
+            this.appApi.applySplitOrientation(element);
         });
 
+        collapsedSelect.addEventListener('change', (e) => {
+            element.dataset.orientationCollapsed = e.target.value;
+            this.appApi.updateSplitCollapsedState(element);
+        });
 
-        titleDiv.append(titleSpan, orientationSelect);
+        const controls = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } });
+
+        const expandedRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end' } });
+        expandedRow.append(createLabel('Expanded:'), expandedSelect);
+
+        const collapsedRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end' } });
+        collapsedRow.append(createLabel('Collapsed:'), collapsedSelect);
+
+        controls.append(expandedRow, collapsedRow);
+        titleDiv.append(titleSpan, controls);
         container.appendChild(titleDiv);
 
         const childrenWrapper = el('div', { className: 'ptmt-editor-children' });
@@ -466,14 +498,27 @@ export class LayoutManager {
         e.preventDefault();
         const container = e.currentTarget;
         const isTargetPendingList = container.dataset.isPendingList === 'true';
+        const isTargetHiddenList = container.dataset.isHiddenList === 'true';
 
         if (this.draggedTabInfo) {
-            const isSourcePending = this.draggedTabInfo.isPending;
-            const isSourceHidden = this.draggedTabInfo.isHidden;
+            const isSettingsTab = this.draggedTabInfo.sourceId === 'ptmt-settings-wrapper-content';
 
-            // Allow dragging between pending and hidden, but not between live and those
-            // Actually, let's allow dragging from live to hidden too.
-            // But dragging from pending/hidden to LIVE should go to the LIVE pane dropped on.
+            // PROTECTION: Don't allow dragging settings tab into hidden/pending sections
+            if (isSettingsTab && (isTargetPendingList || isTargetHiddenList)) {
+                e.dataTransfer.dropEffect = 'none';
+                this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+                return;
+            }
+
+            // PROTECTION: Don't allow dragging settings tab into HIDDEN columns
+            if (isSettingsTab) {
+                const targetColumn = container.closest('.ptmt-editor-column');
+                if (targetColumn && targetColumn.classList.contains('ptmt-editor-column-hidden')) {
+                    e.dataTransfer.dropEffect = 'none';
+                    this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+                    return;
+                }
+            }
         }
 
         e.dataTransfer.dropEffect = 'move';
@@ -537,10 +582,19 @@ export class LayoutManager {
 
     handleLiveTabDrop(targetContainer, newIndex) {
         const sourcePanel = this.appApi.getPanelById(this.draggedTabInfo.pid);
+        const targetColumnEl = targetContainer.closest('.ptmt-editor-column');
         const targetPaneId = targetContainer.closest('.ptmt-editor-pane').dataset.paneId;
         const targetPane = document.querySelector(`.ptmt-pane[data-pane-id="${targetPaneId}"]`);
 
         if (sourcePanel && targetPane) {
+            // PROTECTION: Don't allow dropping settings tab into hidden columns
+            if (this.draggedTabInfo.sourceId === 'ptmt-settings-wrapper-content') {
+                if (targetColumnEl && targetColumnEl.classList.contains('ptmt-editor-column-hidden')) {
+                    alert("The Layout Settings tab cannot be moved to a hidden column.");
+                    return;
+                }
+            }
+
             const wasActive = this.draggedTabInfo.isActive;
             const wasCollapsed = this.draggedTabInfo.isCollapsed;
 
@@ -564,6 +618,12 @@ export class LayoutManager {
     handlePendingTabDrop(targetContainer, newIndex) {
         const targetColumnName = targetContainer.closest('.ptmt-editor-column').dataset.columnName;
         const { sourceId, searchId, searchClass } = this.draggedTabInfo;
+
+        // PROTECTION: Don't allow moving settings tab to pending
+        if (sourceId === 'ptmt-settings-wrapper-content') {
+            alert("The Layout Settings tab cannot be moved to pending or hidden lists.");
+            return;
+        }
 
         let liveSourceId = null;
         if (searchId) liveSourceId = `id:${searchId}`;
@@ -614,6 +674,12 @@ export class LayoutManager {
         const effectiveSourceId = sourceId || searchId || searchClass;
 
         if (!effectiveSourceId) return;
+
+        // PROTECTION: Don't allow hiding the settings tab
+        if (effectiveSourceId === 'ptmt-settings-wrapper-content') {
+            alert("The Layout Settings tab cannot be hidden. It must remain in one of the columns.");
+            return;
+        }
 
         const layout = this.appApi.generateLayoutSnapshot();
         if (!layout.hiddenTabs) layout.hiddenTabs = [];

@@ -82,6 +82,7 @@ function hydrateTab(tabInfo, foundElement) {
     if (existingPanel) {
         const contentHolder = existingPanel.querySelector('.ptmt-panel-content');
         if (contentHolder && contentHolder.contains(foundElement)) {
+            pendingTabsMap.delete(identifier);
             return;
         }
         console.log(`[PTMT-Pending] Found new content for ${identifier}. Replacing existing tab.`);
@@ -106,6 +107,9 @@ function hydrateTab(tabInfo, foundElement) {
         collapsed: tabInfo.collapsed || false,
         sourceId: identifier
     }, targetPane);
+
+    // CRITICAL: Once hydrated, stop looking for this element to prevent performance leaks
+    pendingTabsMap.delete(identifier);
 }
 
 function checkForPendingTabs(nodes) {
