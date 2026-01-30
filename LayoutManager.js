@@ -96,6 +96,7 @@ export class LayoutManager {
                 el('strong', {}, 'Please Note:'),
                 el('p', { style: { margin: '0', opacity: '0.9' } }, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.'),
                 el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'If you install a supported extension and its tab does not appear, you may need to reset the layout for it to be added.'),
+                el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'Pending Tabs lists extensions or panels available for columns that are not currently in active layout.'),
                 el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'For additional extension tab requests, reach out to me on Discord.'),
                 el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'Resizing the navigation panel with character cards may lag on Chrome-based browsers. -> Use Hide some content on resize (for Chrome users) toggle.')
             )
@@ -232,7 +233,7 @@ export class LayoutManager {
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to restore' }, '☰');
         const iconSpan = el('span', { className: 'ptmt-tab-icon' }, icon);
         const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
-        const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15) + '...');
+        const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15));
 
         container.append(handle, iconSpan, titleSpan, idLabel);
 
@@ -389,7 +390,7 @@ export class LayoutManager {
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder' }, '☰');
         const iconInput = el('input', { type: 'text', value: mapping.icon || '', placeholder: 'Icon', 'data-prop': 'icon' });
         const titleInput = el('input', { type: 'text', value: tabElement.querySelector('.ptmt-tab-label').textContent, placeholder: 'Title', 'data-prop': 'title' });
-        const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15) + '...' || 'N/A');
+        const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15) || 'N/A');
 
 
         container.append(handle, iconInput, titleInput, idLabel);

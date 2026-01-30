@@ -28,6 +28,7 @@
 .drawer-content {
   position: static !important;
   inset: auto;
+  box-shadow: unset !important;
   border-radius: unset !important;
   width: auto !important;
   max-width: none !important;
@@ -599,7 +600,7 @@ body,
 
 .ptmt-editor-split,
 .ptmt-editor-pane {
-  border: 1px dashed var(--SmartThemeShadowColor);
+  border: 1px dashed var(--SmartThemeQuoteColor);
   padding: 8px;
   margin-top: 8px;
   border-radius: 4px;
@@ -621,7 +622,7 @@ body,
 
 .ptmt-editor-title select,
 .ptmt-editor-title button {
-  background: var(--SmartThemeChatTintColor);
+  background: var(--SmartThemeQuoteColor);
   border: 1px solid var(--SmartThemeBorderColor);
   color: var(--SmartThemeBodyColor);
   border-radius: 4px;
@@ -685,12 +686,12 @@ body,
 
 .ptmt-editor-id {
   font-family: monospace;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--SmartThemeEmColor);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 80px;
+  max-width: 160px;
 }
 
 
