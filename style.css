@@ -15,6 +15,11 @@
   position: fixed;
 }
 
+#context_story_string,
+#sysprompt_content {
+  min-height: 160px;
+}
+
 #groupMemberListPopout,
 #moonlit_echoes_popout,
 #extensionSideBar,
@@ -606,6 +611,10 @@ body,
   border-radius: 4px;
 }
 
+.ptmt-editor-pane.ptmt-pending-pane {
+  border: 1px dashed var(--SmartThemeBodyColor) !important;
+}
+
 .ptmt-editor-title {
   display: flex;
   justify-content: space-between;
@@ -650,10 +659,14 @@ body,
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 4px;
-  margin-bottom: 2px;
+  padding: 6px;
+  /* Slightly more padding */
+  margin-bottom: 4px;
+  /* More separation */
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
+  min-height: 32px;
+  /* Ensure minimum height for touch targets */
 }
 
 .ptmt-editor-tab.dragging {
@@ -663,7 +676,24 @@ body,
 .ptmt-drag-handle {
   cursor: grab;
   color: var(--SmartThemeEmColor);
-  padding: 0 4px;
+  padding: 4px 8px;
+  /* INCREASED TAGET SIZE */
+  font-size: 1.2em;
+  /* LARGER ICON */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.05);
+  /* Subtle background to indicate interactability */
+  margin-right: 4px;
+  /* Space between handle and content */
+  height: 100%;
+}
+
+.ptmt-drag-handle:hover {
+  background: var(--SmartThemeHighlightColor);
+  color: var(--SmartThemeBodyColor);
 }
 
 .ptmt-drag-handle:active {

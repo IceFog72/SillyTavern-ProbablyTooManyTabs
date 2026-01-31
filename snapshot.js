@@ -306,7 +306,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 });
             }
 
-            createTabsForPane(pane, node.tabs || [], placedPanelIds);
+            createTabsForPane(pane, node.tabs || [], placedPanelIds, node.isCollapsed);
             return pane;
         }
 
@@ -369,7 +369,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         return null;
     };
 
-    const createTabsForPane = (pane, tabsData, placedPanelIds) => {
+    const createTabsForPane = (pane, tabsData, placedPanelIds, isPaneCollapsed) => {
         if (!pane || !Array.isArray(tabsData)) return;
         const sortedTabs = [...tabsData].sort((a, b) => (a.order || 0) - (b.order || 0));
         let activePid = null;
@@ -427,7 +427,9 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         } else if (defaultPid) {
             setActivePanelInPane(pane, defaultPid);
         } else {
-            setActivePanelInPane(pane);
+            if (!isPaneCollapsed) {
+                setActivePanelInPane(pane);
+            }
         }
     };
 

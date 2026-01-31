@@ -359,9 +359,7 @@ export class LayoutManager {
 
 
         const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container' });
-        tabsContainer.addEventListener('dragover', this.handleDragOver.bind(this));
-        tabsContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        tabsContainer.addEventListener('drop', (e) => this.handleDrop(e));
+        // MOVED listeners to parent container
 
         const tabs = Array.from(element.querySelectorAll('.ptmt-tab'));
         tabs.forEach(tab => {
@@ -369,6 +367,12 @@ export class LayoutManager {
         });
 
         container.appendChild(tabsContainer);
+
+        // Attach listeners to the WHOLE pane container so dropping anywhere on the pane works
+        container.addEventListener('dragover', this.handleDragOver.bind(this));
+        container.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        container.addEventListener('drop', (e) => this.handleDrop(e));
+
         return container;
     }
 
@@ -456,7 +460,7 @@ export class LayoutManager {
 
     renderPendingPane(element, columnName) {
         const paneId = element.dataset.paneId;
-        const container = el('div', { className: 'ptmt-editor-pane' });
+        const container = el('div', { className: 'ptmt-editor-pane ptmt-pending-pane' });
         container.dataset.paneId = paneId;
 
         const titleDiv = el('div', { className: 'ptmt-editor-title' });
@@ -470,9 +474,7 @@ export class LayoutManager {
         tabsContainer.dataset.columnName = columnName;
         tabsContainer.dataset.paneId = paneId;
 
-        tabsContainer.addEventListener('dragover', this.handleDragOver.bind(this));
-        tabsContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        tabsContainer.addEventListener('drop', (e) => this.handleDrop(e));
+        // MOVED listeners to parent container
 
         const currentLayout = this.settings.get('savedLayout') || this.settings.get('defaultLayout');
         const ghostTabs = currentLayout.columns[columnName]?.ghostTabs || [];
@@ -498,6 +500,12 @@ export class LayoutManager {
         });
 
         container.appendChild(tabsContainer);
+
+        // Attach listeners to the WHOLE pane container for easier dropping
+        container.addEventListener('dragover', this.handleDragOver.bind(this));
+        container.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        container.addEventListener('drop', (e) => this.handleDrop(e));
+
         return container;
     }
 
@@ -556,7 +564,14 @@ export class LayoutManager {
 
     handleDragOver(e) {
         e.preventDefault();
-        const container = e.currentTarget;
+        let container = e.currentTarget;
+
+        // If checking a pane wrapper, redirect to its inner tabs container
+        if (container.classList.contains('ptmt-editor-pane')) {
+            const inner = container.querySelector('.ptmt-editor-tabs-container');
+            if (inner) container = inner;
+        }
+
         const isTargetPendingList = container.dataset.isPendingList === 'true';
         const isTargetHiddenList = container.dataset.isHiddenList === 'true';
 
@@ -602,7 +617,9 @@ export class LayoutManager {
 
     handleDragLeave(e) {
         setTimeout(() => {
-            if (!this.rootElement.querySelector(':hover.ptmt-editor-tabs-container')) {
+            // Allow hovering over panes as well as the tabs container directly
+            const isHoveringValidTarget = this.rootElement.querySelector(':hover.ptmt-editor-tabs-container') || this.rootElement.querySelector(':hover.ptmt-editor-pane');
+            if (!isHoveringValidTarget) {
                 this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
             }
         }, 100);
@@ -743,6 +760,7 @@ export class LayoutManager {
         layout.columns[targetColumnName].ghostTabs.splice(newIndex, 0, newTabInfo);
 
         // Remove from hidden tabs if it was there
+        const targetSid = sourceId || searchId || searchClass;
         if (layout.hiddenTabs) {
             layout.hiddenTabs = layout.hiddenTabs.filter(id => {
                 const sid = typeof id === 'string' ? id : (id.sourceId || id.searchId || id.panelId);
