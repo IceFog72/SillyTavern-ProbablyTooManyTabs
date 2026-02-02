@@ -371,7 +371,7 @@ export function moveTabToPane(pid, pane) {
   if (prevPane) {
     const isCurrentlyCollapsed = prevPane.classList.contains('view-collapsed');
     // Only maintain active tab if pane is OPEN and we didn't just remove the active one.
-    if (!isCurrentlyCollapsed && !wasActive) {
+    if (!isCurrentlyCollapsed) {
       setActivePanelInPane(prevPane);
     }
     checkAndCollapsePaneIfAllTabsCollapsed(prevPane);
@@ -399,7 +399,7 @@ export function movePanelToPane(panel, pane) {
   if (prevPane) {
     const isCurrentlyCollapsed = prevPane.classList.contains('view-collapsed');
     // Only maintain active tab if pane is OPEN and we didn't just remove the active one.
-    if (!isCurrentlyCollapsed && !wasActive) {
+    if (!isCurrentlyCollapsed) {
       setActivePanelInPane(prevPane);
     }
     checkAndCollapsePaneIfAllTabsCollapsed(prevPane);
@@ -437,8 +437,7 @@ export function moveTabIntoPaneAtIndex(panel, pane, index) {
 
   if (prevPane) {
     const isCurrentlyCollapsed = prevPane.classList.contains('view-collapsed');
-    // Only maintain active tab if pane is OPEN and we didn't just remove the active one.
-    if (!isCurrentlyCollapsed && !wasActive) {
+    if (!isCurrentlyCollapsed) {
       setActivePanelInPane(prevPane);
     }
     checkAndCollapsePaneIfAllTabsCollapsed(prevPane);
