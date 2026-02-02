@@ -20,7 +20,6 @@ const DEFAULT_MIN_SIZES = {
 export function generateLayoutSnapshot() {
     const refs = getRefs();
     if (!refs) return null;
-
     const buildNodeTree = (element, parentColumn = null) => {
         if (!element) return null;
 
@@ -408,7 +407,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 if (pid) {
                     const tabEl = pane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);
                     if (tabEl) {
-                        if (t.collapsed) tabEl.classList.add('collapsed');
+                        // FIX: If the pane is collapsed, tabs should also be collapsed unless explicitly active
+                        if (t.collapsed || (isPaneCollapsed && !t.active)) tabEl.classList.add('collapsed');
                         if (t.active) activePid = pid;
                         if (t.isDefault) {
                             defaultPid = pid;

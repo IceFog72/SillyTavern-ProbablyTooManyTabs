@@ -57,20 +57,14 @@ export class LayoutManager {
             createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
         );
 
+        const resetBtn = el('button', {
+            class: "menu_button menu_button_icon interactable ptmt-reset-button",
+            title: "Reset all layout settings and reload the UI",
+            tabindex: "0",
+            role: "button"
+        }, 'Reset Layout to Default');
 
-
-        const resetBtn = el('button',
-            {
-                style: { marginTop: '10px', cursor: 'pointer' },
-                title: 'Reset all layout settings and reload the UI',
-                class: 'menu_button menu_button_icon interactable'
-            },
-            'Reset Layout to Default'
-        );
-        resetBtn.addEventListener('click', () => {
-            this.appApi.resetLayout();
-        });
-
+        resetBtn.addEventListener('click', () => this.appApi.resetLayout());
         globalSettings.append(resetBtn);
 
         panel.append(globalSettings);
@@ -102,6 +96,7 @@ export class LayoutManager {
             )
         );
         panel.appendChild(disclaimerContainer);
+
 
 
         const supportLinksContainer = el('div', {
@@ -147,6 +142,8 @@ export class LayoutManager {
         linksWrapper.append(discordLink, patreonLink, kofiLink);
         supportLinksContainer.appendChild(linksWrapper);
         panel.appendChild(supportLinksContainer);
+
+
 
 
         window.addEventListener('ptmt:layoutChanged', () => this.renderUnifiedEditor());

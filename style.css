@@ -607,8 +607,23 @@ body,
 }
 
 .ptmt-editor-column.ptmt-hidden-section {
-  flex: 1 1 100%;
+  flex: 1 1 240px;
   margin-top: 5px;
+}
+
+.ptmt-reset-button {
+  margin-top: 15px !important;
+  padding: 5px 15px !important;
+  border-radius: 4px !important;
+  background: rgba(255, 107, 107, 0.15) !important;
+  border: 1px solid rgba(255, 107, 107, 0.4) !important;
+  color: var(--SmartThemeBodyColor);
+  transition: all 0.2s ease-in-out;
+}
+
+.ptmt-reset-button:hover {
+  background: rgba(255, 107, 107, 0.25) !important;
+  border-color: rgba(255, 107, 107, 0.6) !important;
 }
 
 .ptmt-editor-split,

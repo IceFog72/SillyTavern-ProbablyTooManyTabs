@@ -230,7 +230,7 @@ export function destroyTabById(pid) {
 }
 
 export function createTabFromContent(content, options = {}, target = null) {
-  const { title = null, icon = null, makeActive = true, setAsDefault = false, sourceId = null } = options;
+  const { title = null, icon = null, makeActive = true, setAsDefault = false, sourceId = null, collapsed = false } = options;
 
   let node;
   if (typeof content === 'string') {
