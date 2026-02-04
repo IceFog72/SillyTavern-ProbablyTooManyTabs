@@ -1,6 +1,7 @@
 // index.js 
 
-import { eventSource, event_types, characters, animation_duration } from '../../../../script.js';
+import { eventSource, event_types, characters, animation_duration, swipe, isSwipingAllowed } from '../../../../script.js';
+import { SWIPE_DIRECTION, SWIPE_SOURCE } from '../../../../scripts/constants.js';
 import { power_user } from '../../../power-user.js';
 import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
@@ -14,7 +15,7 @@ import {
   createTabFromContent, moveNodeIntoTab, listTabs,
   openTab, closeTabById, setDefaultPanelById,
   moveTabIntoPaneAtIndex, destroyTabById,
-  setActivePanelInPane, setTabCollapsed,
+  setActivePanelInPane, setTabCollapsed, getActivePane,
 } from './tabs.js';
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively, validateAndCorrectAllMinSizes, checkPaneForIconMode } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
@@ -153,6 +154,109 @@ import { positionAnchor } from './positionAnchor.js';
     enableInteractions();
     moveBgDivs();
     initDrawerObserver();
+
+    // --- Keyboard-Driven Swipe Event Handling ---
+    // Handle Arrow key swipes by routing them to the active pane.
+    // This fixes the issue where ST's default keyboard handler uses ':last' selector
+    // which doesn't work correctly in PTMT's multi-pane layout.
+
+    $(document).on('keydown', async (e) => {
+      // Only handle arrow keys
+      if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+
+      // Check if input is focused (excluding send_textarea which ST allows)
+      const focused = $(':focus');
+      if (focused.is('input') || focused.is('textarea') || focused.prop('contenteditable') == 'true') {
+        if (focused.attr('id') !== 'send_textarea') {
+          return; // Don't swipe while typing in other inputs
+        }
+      }
+
+      // Check if swiping is allowed (respects ST's generation state, etc.)
+      if (typeof isSwipingAllowed === 'function' && !isSwipingAllowed()) {
+        return;
+      }
+
+      // Get the active pane
+      const activePane = getActivePane();
+      if (!activePane) return;
+
+      // Prevent ST's default keyboard handler from also triggering
+      e.stopImmediatePropagation();
+      e.preventDefault();
+
+      // Find the swipe button in the active pane to use as event target
+      const direction = e.key === 'ArrowRight' ? SWIPE_DIRECTION.RIGHT : SWIPE_DIRECTION.LEFT;
+      const swipeBtn = activePane.querySelector(e.key === 'ArrowRight' ? '.swipe_right' : '.swipe_left');
+
+      console.log(`[PTMT] Keyboard swipe ${e.key === 'ArrowRight' ? 'right' : 'left'} triggered on active pane`);
+
+      // Call swipe function directly - if no button exists, pass the pane as target
+      await swipe({ target: swipeBtn || activePane }, direction, { source: SWIPE_SOURCE.KEYBOARD });
+    });
+    // ------------------------------------
+
+    // --- Touchscreen Swipe Gesture Handling ---
+    // Handle touch swipe gestures by routing them to the active pane.
+    // Uses the swiped-events library that ST already includes.
+
+    document.addEventListener('swiped-left', async (e) => {
+      if (power_user.gestures === false) return;
+
+      // Don't swipe if a popup is open
+      if (typeof Popup !== 'undefined' && Popup.util?.isPopupOpen()) return;
+
+      // Only handle swipes within the chat area
+      if (!$(e.target).closest('#sheld').length) return;
+
+      // Don't swipe while in text edit mode
+      if ($('#curEditTextarea').length) return;
+
+      // Get the active pane
+      const activePane = getActivePane();
+      if (!activePane) return;
+
+      // Check if the swipe originated from within a .mes element in the active pane
+      const targetMes = $(e.target).closest('.mes')[0];
+      if (!targetMes || !activePane.contains(targetMes)) return;
+
+      // Find the swipe button in the active pane
+      const swipeBtn = activePane.querySelector('.swipe_right');
+      if (!swipeBtn || !$(swipeBtn).is(':visible')) return;
+
+      console.log('[PTMT] Touch swipe left (swipe right) triggered on active pane');
+      await swipe({ target: swipeBtn }, SWIPE_DIRECTION.RIGHT, { source: 'touch' });
+    });
+
+    document.addEventListener('swiped-right', async (e) => {
+      if (power_user.gestures === false) return;
+
+      // Don't swipe if a popup is open
+      if (typeof Popup !== 'undefined' && Popup.util?.isPopupOpen()) return;
+
+      // Only handle swipes within the chat area
+      if (!$(e.target).closest('#sheld').length) return;
+
+      // Don't swipe while in text edit mode
+      if ($('#curEditTextarea').length) return;
+
+      // Get the active pane
+      const activePane = getActivePane();
+      if (!activePane) return;
+
+      // Check if the swipe originated from within a .mes element in the active pane
+      const targetMes = $(e.target).closest('.mes')[0];
+      if (!targetMes || !activePane.contains(targetMes)) return;
+
+      // Find the swipe button in the active pane
+      const swipeBtn = activePane.querySelector('.swipe_left');
+      if (!swipeBtn || !$(swipeBtn).is(':visible')) return;
+
+      console.log('[PTMT] Touch swipe right (swipe left) triggered on active pane');
+      await swipe({ target: swipeBtn }, SWIPE_DIRECTION.LEFT, { source: 'touch' });
+    });
+    // ------------------------------------
+
 
     overrideDelegatedEventHandler(
       'click',

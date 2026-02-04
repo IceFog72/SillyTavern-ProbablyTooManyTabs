@@ -36,6 +36,10 @@
             "request": "attach",
             "pathMappings": [
                 {
+                    "url": "http://127.0.0.1:8000/scripts/extensions/tts/openai.js",
+                    "path": "http://127.0.0.1:8000/scripts/openai.js"
+                },
+                {
                     "url": "http://127.0.0.1:8000/scripts/extensions/third-party",
                     "path": "d:/SillyTavern-Launcher/SillyTavern/data/default-user/extensions"
                 }
