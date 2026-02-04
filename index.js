@@ -164,12 +164,10 @@ import { positionAnchor } from './positionAnchor.js';
       // Only handle arrow keys
       if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
 
-      // Check if input is focused (excluding send_textarea which ST allows)
+      // Check if any input is focused - don't swipe while user is typing
       const focused = $(':focus');
       if (focused.is('input') || focused.is('textarea') || focused.prop('contenteditable') == 'true') {
-        if (focused.attr('id') !== 'send_textarea') {
-          return; // Don't swipe while typing in other inputs
-        }
+        return; // Don't swipe while typing
       }
 
       // Check if swiping is allowed (respects ST's generation state, etc.)
