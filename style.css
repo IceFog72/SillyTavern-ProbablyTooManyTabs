@@ -713,6 +713,8 @@ body,
   border-radius: 4px;
   min-height: 32px;
   /* Ensure minimum height for touch targets */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .ptmt-editor-tab.dragging {
@@ -735,6 +737,9 @@ body,
   margin-right: 4px;
   /* Space between handle and content */
   height: 100%;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 .ptmt-drag-handle:hover {

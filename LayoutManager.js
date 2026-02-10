@@ -985,11 +985,20 @@ export class LayoutManager {
     }
 
     handleTouchStart(e, pid) {
-        const tab = e.target.closest('.ptmt-editor-tab');
+        // Only allow dragging via the handle on touch devices to prevent scrolling issues
+        const handle = e.target.closest('.ptmt-drag-handle');
+        if (!handle) return;
+
+        const tab = e.currentTarget;
         if (!tab) return;
 
-        // Use a timer to distinguish between scroll and drag
+        // Prevent selection immediately on handle touch
+        if (e.cancelable) e.preventDefault();
+
+        // Use a shorter timer or start immediately if touching the handle
         tab._touchTimer = setTimeout(() => {
+            if (this.touchDragGhost) return; // Already dragging
+
             this.handleDragStart(e, pid);
             tab.classList.add('dragging');
 
@@ -1006,10 +1015,11 @@ export class LayoutManager {
                 height: `${rect.height}px`,
                 margin: '0',
                 boxShadow: '0 5px 15px rgba(0,0,0,0.5)',
-                transform: 'scale(1.05)'
+                transform: 'scale(1.05)',
+                transition: 'none' // Ensure no layout transitions interfere
             });
             document.body.appendChild(this.touchDragGhost);
-        }, 300);
+        }, 150); // Shorter delay for handle-initiated drag
     }
 
     handleTouchMove(e) {
