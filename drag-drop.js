@@ -164,84 +164,6 @@ export const hideSplitOverlay = () => {
   refs.splitOverlay && (refs.splitOverlay.style.display = 'none');
 };
 
-let touchDragGhost = null;
-let touchDragPid = null;
-
-function processDragEvent(ev, { performDrop = false } = {}) {
-  if (ev.cancelable) ev.preventDefault();
-  const ctx = getDragContext(ev);
-
-  if (!ctx || !ctx.pid) {
-    hideDropIndicator();
-    hideSplitOverlay();
-    return;
-  }
-
-  if (ctx.overTabStrip) {
-    handleTabStripDrop(ctx, ev, performDrop);
-    return;
-  }
-
-  const splitHandled = handlePaneSplitDrop(ctx, ev, performDrop);
-  if (splitHandled) {
-    return;
-  }
-
-  handleTabStripDrop(ctx, ev, performDrop);
-}
-
-function handleTouchStart(e) {
-  const tab = e.target.closest('.ptmt-tab');
-  if (!tab) return;
-  touchDragPid = tab.dataset.for;
-
-  // Wait a bit to ensure it's a drag, not a tap
-  tab._touchTimer = setTimeout(() => {
-    tab.classList.add('dragging');
-    touchDragGhost = tab.cloneNode(true);
-    Object.assign(touchDragGhost.style, {
-      position: 'fixed',
-      pointerEvents: 'none',
-      zIndex: '20000',
-      opacity: '0.8',
-      left: `${e.touches[0].clientX - 20}px`,
-      top: `${e.touches[0].clientY - 20}px`,
-      width: `${tab.offsetWidth}px`,
-      height: `${tab.offsetHeight}px`
-    });
-    document.body.appendChild(touchDragGhost);
-  }, 200);
-}
-
-function handleTouchMove(e) {
-  if (!touchDragGhost) {
-    const tab = e.target.closest('.ptmt-tab');
-    if (tab) clearTimeout(tab._touchTimer);
-    return;
-  }
-
-  if (e.cancelable) e.preventDefault();
-  const touch = e.touches[0];
-  touchDragGhost.style.left = `${touch.clientX - 20}px`;
-  touchDragGhost.style.top = `${touch.clientY - 20}px`;
-
-  processDragEvent(e, { performDrop: false });
-}
-
-function handleTouchEnd(e) {
-  const tab = e.target.closest('.ptmt-tab');
-  if (tab) clearTimeout(tab._touchTimer);
-
-  if (touchDragGhost) {
-    if (e.cancelable) e.preventDefault();
-    processDragEvent(e, { performDrop: true });
-    touchDragGhost.remove();
-    touchDragGhost = null;
-    if (tab) tab.classList.remove('dragging');
-  }
-  touchDragPid = null;
-}
-
 export function enableInteractions() {
   const refs = getRefs();
   document.addEventListener('dragover', ev => {
@@ -267,21 +189,4 @@ export function enableInteractions() {
       }
     }, 50);
   });
-
-  // Delegate touch events to tabs
-  refs.mainBody.addEventListener('touchstart', (e) => {
-    if (e.target.closest('.ptmt-tab')) handleTouchStart(e);
-  }, { passive: false });
-
-  refs.mainBody.addEventListener('touchmove', (e) => {
-    if (touchDragGhost) handleTouchMove(e);
-  }, { passive: false });
-
-  refs.mainBody.addEventListener('touchend', (e) => {
-    if (touchDragPid) handleTouchEnd(e);
-  }, { passive: false });
-
-  refs.mainBody.addEventListener('touchcancel', (e) => {
-    if (touchDragPid) handleTouchEnd(e);
-  }, { passive: false });
 }

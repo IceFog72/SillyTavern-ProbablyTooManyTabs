@@ -10,6 +10,7 @@ export class LayoutManager {
         this.settings = settings;
         this.rootElement = null;
         this.draggedTabInfo = null;
+        this.touchDragGhost = null;
         this.debouncedSettingsUpdate = debounce((updatedMappings) => {
             settings.update({ panelMappings: updatedMappings });
         }, 400);
@@ -253,6 +254,11 @@ export class LayoutManager {
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e));
 
+        container.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        container.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+        container.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), { passive: false });
+
         return container;
     }
 
@@ -449,6 +455,11 @@ export class LayoutManager {
         container.addEventListener('dragstart', (e) => this.handleDragStart(e, pid));
         container.addEventListener('drop', (e) => this.handleDrop(e));
 
+        container.addEventListener('touchstart', (e) => this.handleTouchStart(e, pid), { passive: false });
+        container.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+        container.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), { passive: false });
+
         return container;
     }
 
@@ -552,6 +563,11 @@ export class LayoutManager {
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e));
         container.addEventListener('drop', (e) => this.handleDrop(e));
+
+        container.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+        container.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+        container.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), { passive: false });
 
         return container;
     }
@@ -966,5 +982,91 @@ export class LayoutManager {
 
         this.settings.update({ savedLayout: layout });
         this.renderUnifiedEditor();
+    }
+
+    handleTouchStart(e, pid) {
+        const tab = e.target.closest('.ptmt-editor-tab');
+        if (!tab) return;
+
+        // Use a timer to distinguish between scroll and drag
+        tab._touchTimer = setTimeout(() => {
+            this.handleDragStart(e, pid);
+            tab.classList.add('dragging');
+
+            this.touchDragGhost = tab.cloneNode(true);
+            const rect = tab.getBoundingClientRect();
+            Object.assign(this.touchDragGhost.style, {
+                position: 'fixed',
+                pointerEvents: 'none',
+                zIndex: '30000',
+                opacity: '0.8',
+                left: `${rect.left}px`,
+                top: `${rect.top}px`,
+                width: `${rect.width}px`,
+                height: `${rect.height}px`,
+                margin: '0',
+                boxShadow: '0 5px 15px rgba(0,0,0,0.5)',
+                transform: 'scale(1.05)'
+            });
+            document.body.appendChild(this.touchDragGhost);
+        }, 300);
+    }
+
+    handleTouchMove(e) {
+        const tab = e.target.closest('.ptmt-editor-tab');
+        if (!this.touchDragGhost) {
+            if (tab) clearTimeout(tab._touchTimer);
+            return;
+        }
+
+        if (e.cancelable) e.preventDefault();
+        const touch = e.touches[0];
+
+        // Update ghost position
+        this.touchDragGhost.style.left = `${touch.clientX - this.touchDragGhost.offsetWidth / 2}px`;
+        this.touchDragGhost.style.top = `${touch.clientY - this.touchDragGhost.offsetHeight / 2}px`;
+
+        // Find element under touch
+        const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (!elUnder) return;
+
+        const targetPane = elUnder.closest('.ptmt-editor-pane') || elUnder.closest('.ptmt-editor-tabs-container');
+        if (targetPane) {
+            // Simulate dragover logic
+            const fakeEvent = {
+                preventDefault: () => { },
+                currentTarget: targetPane,
+                target: elUnder,
+                clientY: touch.clientY,
+                dataTransfer: { dropEffect: 'none' }
+            };
+            this.handleDragOver(fakeEvent);
+        } else {
+            this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+        }
+    }
+
+    handleTouchEnd(e) {
+        const tab = e.target.closest('.ptmt-editor-tab');
+        if (tab) clearTimeout(tab._touchTimer);
+
+        if (this.touchDragGhost) {
+            if (e.cancelable) e.preventDefault();
+
+            const indicator = this.rootElement.querySelector('.drop-indicator');
+            if (indicator) {
+                const fakeEvent = {
+                    preventDefault: () => { },
+                    stopPropagation: () => { },
+                    target: indicator // Not strictly used for targetContainer but for clarity
+                };
+                this.handleDrop(fakeEvent);
+            }
+
+            this.touchDragGhost.remove();
+            this.touchDragGhost = null;
+            this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+            this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+        }
     }
 }
