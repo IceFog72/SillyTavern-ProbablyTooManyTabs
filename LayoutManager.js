@@ -576,7 +576,9 @@ export class LayoutManager {
 
     handleDragStart(e, pid) {
         e.stopPropagation();
-        const draggedElement = e.target.closest('.ptmt-editor-tab');
+        const draggedElement = e.target.closest('.ptmt-editor-tab') || (e.currentTarget?.classList.contains('ptmt-editor-tab') ? e.currentTarget : null);
+        if (!draggedElement) return;
+
         this.draggedTabInfo = {
             pid,
             sourceId: draggedElement.dataset.sourceId,
@@ -587,7 +589,14 @@ export class LayoutManager {
             isActive: draggedElement.dataset.isActive === 'true',
             isCollapsed: draggedElement.dataset.isCollapsed === 'true'
         };
-        e.dataTransfer.effectAllowed = 'move';
+        if (e.dataTransfer) {
+            e.dataTransfer.effectAllowed = 'move';
+            try {
+                e.dataTransfer.setData('text/plain', pid || draggedElement.dataset.sourceId || '');
+            } catch (err) {
+                // Ignore errors in some environments
+            }
+        }
         setTimeout(() => draggedElement.classList.add('dragging'), 0);
     }
 
@@ -782,7 +791,7 @@ export class LayoutManager {
         const info = this.draggedTabInfo;
         const targetColumnName = targetContainer.dataset.columnName || targetContainer.closest('.ptmt-editor-column')?.dataset.columnName;
         const targetPaneEl = targetContainer.closest('.ptmt-editor-pane');
-        const targetPaneId = targetPaneEl?.dataset?.paneId;
+        const targetPaneId = targetPaneEl?.dataset?.paneId || targetContainer.dataset.paneId;
         const targetPane = targetPaneId ? document.querySelector(`.ptmt-pane[data-pane-id="${targetPaneId}"]`) : null;
         const { searchId, searchClass, sourceId } = info;
 
@@ -855,9 +864,16 @@ export class LayoutManager {
 
     handlePendingTabDrop(targetContainer, newIndex) {
         const info = this.draggedTabInfo;
-        const targetColumnName = targetContainer.dataset.columnName;
-        const targetPaneId = targetContainer.dataset.paneId;
+        const targetColumnName = targetContainer.dataset.columnName || targetContainer.closest('.ptmt-editor-column')?.dataset.columnName;
+        const targetPaneId = targetContainer.dataset.paneId || targetContainer.closest('.ptmt-editor-pane')?.dataset.paneId;
         const { sourceId, searchId, searchClass } = info;
+
+        console.log('[PTMT-LayoutEditor] handlePendingTabDrop called', { targetColumnName, targetPaneId, info, newIndex });
+
+        if (!targetColumnName) {
+            console.error('[PTMT] Cannot drop: target column name not found', targetContainer);
+            return;
+        }
 
         // PROTECTION: Don't allow moving settings tab to pending
         if (sourceId === 'ptmt-settings-wrapper-content') {
@@ -903,6 +919,10 @@ export class LayoutManager {
         }
 
         // 3. Insert into target location
+        if (!layout.columns[targetColumnName]) {
+            console.error(`[PTMT] Column '${targetColumnName}' not found in layout`, layout.columns);
+            return;
+        }
         if (!layout.columns[targetColumnName].ghostTabs) layout.columns[targetColumnName].ghostTabs = [];
         layout.columns[targetColumnName].ghostTabs.splice(newIndex, 0, newTabInfo);
 
@@ -917,7 +937,8 @@ export class LayoutManager {
 
         this.appApi.updatePendingTabColumn(newTabInfo, targetColumnName);
 
-        this.settings.update({ savedLayout: layout });
+        console.log('[PTMT-LayoutEditor] Pending tab moved to', targetColumnName, 'at index', newIndex);
+        this.settings.update({ [this.settings.getActiveLayoutKey()]: layout });
         this.renderUnifiedEditor();
     }
 
@@ -992,42 +1013,36 @@ export class LayoutManager {
         const tab = e.currentTarget;
         if (!tab) return;
 
-        // Prevent selection immediately on handle touch
-        if (e.cancelable) e.preventDefault();
+        // DO NOT preventDefault here, as it blocks mousedown -> dragstart on hybrid devices.
+        // touch-action: none on the handle already prevents scrolling.
+        e.stopPropagation();
 
-        // Use a shorter timer or start immediately if touching the handle
-        tab._touchTimer = setTimeout(() => {
-            if (this.touchDragGhost) return; // Already dragging
+        if (this.touchDragGhost) return; // Already dragging
 
-            this.handleDragStart(e, pid);
-            tab.classList.add('dragging');
+        this.handleDragStart(e, pid);
+        tab.classList.add('dragging');
 
-            this.touchDragGhost = tab.cloneNode(true);
-            const rect = tab.getBoundingClientRect();
-            Object.assign(this.touchDragGhost.style, {
-                position: 'fixed',
-                pointerEvents: 'none',
-                zIndex: '30000',
-                opacity: '0.8',
-                left: `${rect.left}px`,
-                top: `${rect.top}px`,
-                width: `${rect.width}px`,
-                height: `${rect.height}px`,
-                margin: '0',
-                boxShadow: '0 5px 15px rgba(0,0,0,0.5)',
-                transform: 'scale(1.05)',
-                transition: 'none' // Ensure no layout transitions interfere
-            });
-            document.body.appendChild(this.touchDragGhost);
-        }, 150); // Shorter delay for handle-initiated drag
+        this.touchDragGhost = tab.cloneNode(true);
+        const rect = tab.getBoundingClientRect();
+        Object.assign(this.touchDragGhost.style, {
+            position: 'fixed',
+            pointerEvents: 'none',
+            zIndex: '30000',
+            opacity: '0.8',
+            left: `${rect.left}px`,
+            top: `${rect.top}px`,
+            width: `${rect.width}px`,
+            height: `${rect.height}px`,
+            margin: '0',
+            boxShadow: '0 5px 15px rgba(0,0,0,0.5)',
+            transform: 'scale(1.05)',
+            transition: 'none'
+        });
+        document.body.appendChild(this.touchDragGhost);
     }
 
     handleTouchMove(e) {
-        const tab = e.target.closest('.ptmt-editor-tab');
-        if (!this.touchDragGhost) {
-            if (tab) clearTimeout(tab._touchTimer);
-            return;
-        }
+        if (!this.touchDragGhost) return;
 
         if (e.cancelable) e.preventDefault();
         const touch = e.touches[0];
@@ -1057,9 +1072,6 @@ export class LayoutManager {
     }
 
     handleTouchEnd(e) {
-        const tab = e.target.closest('.ptmt-editor-tab');
-        if (tab) clearTimeout(tab._touchTimer);
-
         if (this.touchDragGhost) {
             if (e.cancelable) e.preventDefault();
 

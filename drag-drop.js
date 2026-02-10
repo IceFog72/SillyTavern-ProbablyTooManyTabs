@@ -20,11 +20,11 @@ function relativePanePos(pane, clientX, clientY) {
 }
 
 function getDragContext(ev) {
-  const pid = getDragPidFromEvent(ev) || (ev.touches ? (ev.currentTarget.dataset.for || touchDragPid) : null);
+  const pid = getDragPidFromEvent(ev);
   if (!pid) return null;
 
-  const clientX = ev.clientX ?? ev.touches?.[0]?.clientX;
-  const clientY = ev.clientY ?? ev.touches?.[0]?.clientY;
+  const clientX = ev.clientX;
+  const clientY = ev.clientY;
 
   const elUnder = document.elementFromPoint(clientX, clientY) || null;
   const paneUnder = elUnder?.closest('.ptmt-pane') || getActivePane();
@@ -32,6 +32,42 @@ function getDragContext(ev) {
   const wantsCopy = ev.ctrlKey || ev.metaKey || ev.altKey;
 
   return { pid, elUnder, paneUnder, overTabStrip, wantsCopy, clientX, clientY };
+}
+
+function processDragEvent(ev, { performDrop = false } = {}) {
+  if (ev.cancelable) ev.preventDefault();
+
+  // Ignore drags when cursor is over the layout editor - they have their own handling
+  const clientX = ev.clientX;
+  const clientY = ev.clientY;
+  const elUnder = document.elementFromPoint(clientX, clientY);
+  const isOverSettingsPanel = elUnder?.closest('.ptmt-settings-panel, #ptmt-unified-editor');
+
+  if (isOverSettingsPanel) {
+    hideDropIndicator();
+    hideSplitOverlay();
+    return;
+  }
+
+  const ctx = getDragContext(ev);
+
+  if (!ctx || !ctx.pid) {
+    hideDropIndicator();
+    hideSplitOverlay();
+    return;
+  }
+
+  if (ctx.overTabStrip) {
+    handleTabStripDrop(ctx, ev, performDrop);
+    return;
+  }
+
+  const splitHandled = handlePaneSplitDrop(ctx, ev, performDrop);
+  if (splitHandled) {
+    return;
+  }
+
+  handleTabStripDrop(ctx, ev, performDrop);
 }
 
 function handleTabStripDrop(ctx, ev, performDrop) {
