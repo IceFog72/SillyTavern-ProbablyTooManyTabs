@@ -204,7 +204,7 @@ export class LayoutManager {
         const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container', style: { minHeight: '40px' } });
         tabsContainer.dataset.isHiddenList = 'true';
 
-        const currentLayout = this.settings.get('savedLayout') || this.settings.get('defaultLayout');
+        const currentLayout = this.settings.getActiveLayout();
         const hiddenTabs = currentLayout.hiddenTabs || [];
 
         if (hiddenTabs.length === 0) {
@@ -781,7 +781,7 @@ export class LayoutManager {
         if (layout.hiddenTabs) {
             layout.hiddenTabs = layout.hiddenTabs.filter(h => (typeof h === 'string' ? h : h.sourceId) !== sourceId);
         }
-        this.settings.update({ savedLayout: layout });
+        this.settings.update({ [this.settings.getActiveLayoutKey()]: layout });
 
         // 4. Refresh
         this.renderUnifiedEditor();
@@ -1001,7 +1001,8 @@ export class LayoutManager {
 
         layout.hiddenTabs.splice(newIndex, 0, hiddenInfo);
 
-        this.settings.update({ savedLayout: layout });
+        console.log(`[PTMT-LayoutEditor] Tab ${effectiveSourceId} moved to hidden tabs at index ${newIndex}`);
+        this.settings.update({ [this.settings.getActiveLayoutKey()]: layout });
         this.renderUnifiedEditor();
     }
 
