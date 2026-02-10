@@ -13,6 +13,17 @@ export const defaultViewSettings = {
   contentFlow: 'default',
 };
 
+const tabStripOverflowObserver = new ResizeObserver(entries => {
+  for (const entry of entries) {
+    const el = entry.target;
+    const isVertical = el.classList.contains('vertical');
+    const hasOverflow = isVertical
+      ? el.scrollHeight > el.clientHeight
+      : el.scrollWidth > el.clientWidth;
+    el.classList.toggle('ptmt-has-overflow', hasOverflow);
+  }
+});
+
 export function findPreferredDescendentOrientation(element) {
   if (!element) return null;
   if (element.classList.contains('ptmt-pane')) {
@@ -112,6 +123,8 @@ export function createPane(initialSettings = {}, options = {}) {
       e.preventDefault();
     }
   }, { passive: false });
+
+  tabStripOverflowObserver.observe(tabStrip);
 
   writePaneViewSettings(pane, initialSettings);
 

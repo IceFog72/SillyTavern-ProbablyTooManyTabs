@@ -413,6 +413,12 @@ body,
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  padding-right: 0;
+}
+
+.ptmt-tabStrip.vertical.ptmt-has-overflow {
+  padding-bottom: 60px;
+  /* Allow vertical overscroll only when overflowing */
 }
 
 
