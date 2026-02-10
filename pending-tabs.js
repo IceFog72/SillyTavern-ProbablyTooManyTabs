@@ -37,28 +37,28 @@ function addTabToPendingList(tabInfo) {
         console.log(`[PTMT-Pending] Re-arming listener for ${identifier}`);
         pendingTabsMap.set(identifier, tabInfo);
 
-        const layout = settings.get('savedLayout') || settings.get('defaultLayout');
+        const currentLayout = settings.getActiveLayout();
         const column = tabInfo.column || 'center';
 
-        for (const col of Object.values(layout.columns)) {
+        for (const col of Object.values(currentLayout.columns)) {
             if (col.ghostTabs) {
                 col.ghostTabs = col.ghostTabs.filter(t => getTabIdentifier(t) !== identifier);
             }
         }
 
-        if (!layout.columns[column]) layout.columns[column] = { ghostTabs: [] };
-        if (!layout.columns[column].ghostTabs) layout.columns[column].ghostTabs = [];
+        if (!currentLayout.columns[column]) currentLayout.columns[column] = { ghostTabs: [] };
+        if (!currentLayout.columns[column].ghostTabs) currentLayout.columns[column].ghostTabs = [];
 
         const newTabInfo = {
             searchId: tabInfo.searchId || '',
             searchClass: tabInfo.searchClass || '',
             paneId: tabInfo.paneId || null
         };
-        if (!layout.columns[column].ghostTabs.some(t => getTabIdentifier(t) === identifier)) {
-            layout.columns[column].ghostTabs.push(newTabInfo);
+        if (!currentLayout.columns[column].ghostTabs.some(t => getTabIdentifier(t) === identifier)) {
+            currentLayout.columns[column].ghostTabs.push(newTabInfo);
         }
 
-        settings.update({ savedLayout: layout });
+        settings.update({ [settings.getActiveLayoutKey()]: currentLayout });
         checkForPendingTabs([document.body]);
     }
 }

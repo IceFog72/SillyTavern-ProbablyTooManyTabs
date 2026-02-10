@@ -5,7 +5,7 @@ import { SWIPE_DIRECTION, SWIPE_SOURCE } from '../../../../scripts/constants.js'
 import { power_user } from '../../../power-user.js';
 import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
-import { settings } from './settings.js';
+import { settings, SettingsManager } from './settings.js';
 
 import { el, debounce, getPanelById, getTabById, getRefs } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
@@ -37,8 +37,10 @@ import { positionAnchor } from './positionAnchor.js';
 
     const saveCurrentLayoutDebounced = debounce(() => {
       const layout = generateLayoutSnapshot();
-      settings.update({ savedLayout: layout });
-      console.log("[PTMT Layout] Layout automatically saved.");
+      const isMobile = settings.get('isMobile');
+      const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+      settings.update({ [key]: layout });
+      console.log(`[PTMT Layout] ${isMobile ? 'Mobile' : 'Desktop'} layout automatically saved to ${key}.`);
     }, 750);
 
     const api = {
@@ -50,20 +52,30 @@ import { positionAnchor } from './positionAnchor.js';
       generateLayoutSnapshot, destroyTabById, updatePendingTabColumn, checkPaneForIconMode,
       saveLayout: () => {
         const layout = generateLayoutSnapshot();
-        settings.update({ savedLayout: layout });
-        alert('Layout saved manually.');
+        const isMobile = settings.get('isMobile');
+        const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+        settings.update({ [key]: layout });
+        alert(`${isMobile ? 'Mobile' : 'Desktop'} layout saved manually to ${key}.`);
       },
       loadLayout: () => {
-        const layout = settings.get('savedLayout');
+        const isMobile = settings.get('isMobile');
+        const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+        const layout = settings.get(key);
         if (layout) {
           applyLayoutSnapshot(layout, api, settings);
         } else {
-          alert('No saved layout found.');
+          alert(`No saved ${isMobile ? 'mobile' : 'desktop'} layout found.`);
         }
       },
       resetLayout: () => {
-        if (confirm("Are you sure you want to reset the layout? This will reload the page.")) {
-          settings.reset();
+        if (confirm("Are you sure you want to reset the current layout to default? This will reload the page.")) {
+          const isMobile = settings.get('isMobile');
+          const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+
+          // Force reset to factory default
+          const factoryDefault = isMobile ? SettingsManager.defaultSettings.mobileLayout : SettingsManager.defaultSettings.defaultLayout;
+          settings.update({ [key]: factoryDefault }, true); // Force synchronous save
+
           window.location.reload();
         }
       },
@@ -89,6 +101,31 @@ import { positionAnchor } from './positionAnchor.js';
       deletePreset: (id) => {
         const presets = settings.get('presets').filter(p => p.id !== id);
         settings.update({ presets });
+      },
+      switchToMobileLayout: (sourceLayout) => {
+        const source = sourceLayout || generateLayoutSnapshot();
+        const mobileLayout = SettingsManager.getMobileLayout(source);
+        settings.update({ showIconsOnly: true });
+        applyLayoutSnapshot(mobileLayout, api, settings);
+      },
+      switchToDesktopLayout: (sourceLayout) => {
+        const source = sourceLayout || generateLayoutSnapshot();
+        const desktopLayout = SettingsManager.getDesktopLayout(source);
+        settings.update({ showIconsOnly: false });
+        applyLayoutSnapshot(desktopLayout, api, settings);
+      },
+      toggleMobileMode: () => {
+        const currentSnapshot = generateLayoutSnapshot();
+        const isMobile = settings.get('isMobile');
+        const oldKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+
+        // Save current to old slot and toggle mode
+        settings.update({
+          [oldKey]: currentSnapshot,
+          isMobile: !isMobile
+        }, true); // Force sync save
+
+        window.location.reload();
       }
     };
     window.ptmtTabs = api;
@@ -109,12 +146,16 @@ import { positionAnchor } from './positionAnchor.js';
       saveCurrentLayoutDebounced();
     });
 
-    window.addEventListener('ptmt:settingsChanged', () => {
+    window.addEventListener('ptmt:settingsChanged', (event) => {
+      const { changed } = event.detail || {};
       const showIconsOnly = settings.get('showIconsOnly');
+      const isMobile = settings.get('isMobile');
+
       const refs = getRefs();
       if (refs && refs.mainBody) {
         refs.mainBody.classList.toggle('ptmt-global-icons-only', !!showIconsOnly);
       }
+
       document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     });
@@ -126,22 +167,25 @@ import { positionAnchor } from './positionAnchor.js';
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     }, 150));
 
-    const savedLayout = settings.get('savedLayout');
+    const isMobile = settings.get('isMobile');
+    const savedLayout = isMobile ? settings.get('savedLayoutMobile') : settings.get('savedLayoutDesktop');
     const defaultLayout = settings.get('defaultLayout');
+    const mobileLayout = settings.get('mobileLayout');
 
     if (savedLayout) {
-      if (savedLayout.version !== defaultLayout.version) {
-        console.log(`[PTMT Layout] Version mismatch (Saved: ${savedLayout.version}, Current: ${defaultLayout.version}).`);
-
-        applyLayoutSnapshot(savedLayout, api, settings);
-        toastr.info('ProbablyTooManyTabs: Extension update detected. Please use the "Reset Layout to Default" button in Layout Settings tab.', 'Extension Update', { timeOut: 15000 });
-      } else {
-        console.log("[PTMT Layout] Applying user's saved layout.");
-        applyLayoutSnapshot(savedLayout, api, settings);
-      }
+      console.log(`[PTMT Layout] Loading saved ${isMobile ? 'mobile' : 'desktop'} layout.`);
+      applyLayoutSnapshot(savedLayout, api, settings);
     } else {
-      console.log("[PTMT Layout] No saved layout found, applying default layout.");
-      applyLayoutSnapshot(defaultLayout, api, settings);
+      console.log("[PTMT Layout] No saved layout found, checking for mobile device.");
+      if (SettingsManager.isMobile() || isMobile) {
+        console.log("[PTMT Layout] Mobile mode active, applying optimized mobile layout.");
+        const targetMobileLayout = mobileLayout || SettingsManager.getMobileLayout(defaultLayout);
+        settings.update({ isMobile: true, showIconsOnly: true });
+        applyLayoutSnapshot(targetMobileLayout, api, settings);
+      } else {
+        console.log("[PTMT Layout] Applying default desktop layout.");
+        applyLayoutSnapshot(defaultLayout, api, settings);
+      }
     }
 
 

@@ -57,6 +57,17 @@ export class LayoutManager {
             createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
         );
 
+        const isMobile = settings.get('isMobile');
+        const mobileToggleBtn = el('button', {
+            class: "menu_button menu_button_icon interactable ptmt-mobile-button",
+            title: isMobile ? "Switch to Desktop Layout (Reloads page)" : "Switch to Mobile Layout (Reloads page)",
+            tabindex: "0",
+            role: "button"
+        }, isMobile ? 'Switch to Desktop Layout' : 'Switch to Mobile Layout');
+
+        mobileToggleBtn.addEventListener('click', () => this.appApi.toggleMobileMode());
+        globalSettings.append(mobileToggleBtn);
+
         const resetBtn = el('button', {
             class: "menu_button menu_button_icon interactable ptmt-reset-button",
             title: "Reset all layout settings and reload the UI",
@@ -65,6 +76,7 @@ export class LayoutManager {
         }, 'Reset Layout to Default');
 
         resetBtn.addEventListener('click', () => this.appApi.resetLayout());
+
         globalSettings.append(resetBtn);
 
         panel.append(globalSettings);
@@ -477,7 +489,7 @@ export class LayoutManager {
 
         // MOVED listeners to parent container
 
-        const currentLayout = this.settings.get('savedLayout') || this.settings.get('defaultLayout');
+        const currentLayout = this.settings.getActiveLayout();
         const ghostTabs = currentLayout.columns[columnName]?.ghostTabs || [];
 
         // Identify if this is the first pane in the column to handle orphans
@@ -791,7 +803,7 @@ export class LayoutManager {
                     col.ghostTabs = col.ghostTabs.filter(t => (t.searchId !== searchId || !searchId) && (t.searchClass !== searchClass || !searchClass));
                 }
             }
-            this.settings.update({ savedLayout: layout });
+            this.settings.update({ [this.settings.getActiveLayoutKey()]: layout });
         } else {
             console.log(`[PTMT-LayoutEditor] Moving pending tab ${sourceId} to new live pane ${targetPaneId} (still pending).`);
             // Update the ghost tab's assignment in the snapshot
@@ -819,7 +831,7 @@ export class LayoutManager {
                 layout.columns[targetColumnName].ghostTabs.splice(newIndex, 0, pendingInfo);
             }
 
-            this.settings.update({ savedLayout: layout });
+            this.settings.update({ [this.settings.getActiveLayoutKey()]: layout });
         }
 
         this.renderUnifiedEditor();

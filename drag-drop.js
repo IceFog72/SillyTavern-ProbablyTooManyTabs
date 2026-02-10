@@ -20,80 +20,83 @@ function relativePanePos(pane, clientX, clientY) {
 }
 
 function getDragContext(ev) {
-    const pid = getDragPidFromEvent(ev);
-    if (!pid) return null;
+  const pid = getDragPidFromEvent(ev) || (ev.touches ? (ev.currentTarget.dataset.for || touchDragPid) : null);
+  if (!pid) return null;
 
-    const elUnder = document.elementFromPoint(ev.clientX, ev.clientY) || null;
-    const paneUnder = elUnder?.closest('.ptmt-pane') || getActivePane();
-    const overTabStrip = !!(elUnder?.closest('.ptmt-tabStrip'));
-    const wantsCopy = ev.ctrlKey || ev.metaKey || ev.altKey;
+  const clientX = ev.clientX ?? ev.touches?.[0]?.clientX;
+  const clientY = ev.clientY ?? ev.touches?.[0]?.clientY;
 
-    return { pid, elUnder, paneUnder, overTabStrip, wantsCopy };
+  const elUnder = document.elementFromPoint(clientX, clientY) || null;
+  const paneUnder = elUnder?.closest('.ptmt-pane') || getActivePane();
+  const overTabStrip = !!(elUnder?.closest('.ptmt-tabStrip'));
+  const wantsCopy = ev.ctrlKey || ev.metaKey || ev.altKey;
+
+  return { pid, elUnder, paneUnder, overTabStrip, wantsCopy, clientX, clientY };
 }
 
 function handleTabStripDrop(ctx, ev, performDrop) {
-    const { paneUnder } = ctx;
-    hideSplitOverlay();
-    const index = computeDropIndex(paneUnder._tabStrip, ev.clientX, ev.clientY);
+  const { paneUnder } = ctx;
+  hideSplitOverlay();
+  const index = computeDropIndex(paneUnder._tabStrip, ctx.clientX, ctx.clientY);
 
-    if (!performDrop) {
-        showDropIndicatorOnTabStrip(paneUnder._tabStrip, index);
-        return;
-    }
+  if (!performDrop) {
+    showDropIndicatorOnTabStrip(paneUnder._tabStrip, index);
+    return;
+  }
 
-    const panel = getPanelById(ctx.pid);
-    if (!panel) { hideDropIndicator(); return; }
+  const panel = getPanelById(ctx.pid);
+  if (!panel) { hideDropIndicator(); return; }
 
-    if (ctx.wantsCopy) {
-        cloneTabIntoPane(panel, paneUnder, index);
-    } else {
-        moveTabIntoPaneAtIndex(panel, paneUnder, index);
-    }
+  if (ctx.wantsCopy) {
+    cloneTabIntoPane(panel, paneUnder, index);
+  } else {
+    moveTabIntoPaneAtIndex(panel, paneUnder, index);
+  }
 
-    hideDropIndicator();
-    openTab(panel.dataset.panelId);
+  hideDropIndicator();
+  openTab(panel.dataset.panelId);
 }
 
 function handlePaneSplitDrop(ctx, ev, performDrop) {
-    const { paneUnder } = ctx;
-    const { rx, ry } = relativePanePos(paneUnder, ev.clientX, ev.clientY);
+  const { paneUnder } = ctx;
+  const { rx, ry } = relativePanePos(paneUnder, ctx.clientX, ctx.clientY);
 
-    const edgeThresh = 0.2;
-    const layers = getPaneLayerCount(paneUnder);
-    const canSplit = layers < MAX_PANE_LAYERS;
+  const edgeThresh = 0.2;
+  const layers = getPaneLayerCount(paneUnder);
+  const canSplit = layers < MAX_PANE_LAYERS;
 
-    if (!canSplit || (rx > edgeThresh && rx < 1 - edgeThresh && ry > edgeThresh && ry < 1 - edgeThresh)) {
-        return false; 
-    }
+  if (!canSplit || (rx > edgeThresh && rx < 1 - edgeThresh && ry > edgeThresh && ry < 1 - edgeThresh)) {
+    return false;
+  }
 
-    const vertical = (rx < edgeThresh || rx > 1 - edgeThresh);
-    const first = vertical ? (rx < 0.5) : (ry < 0.5);
+  const vertical = (rx < edgeThresh || rx > 1 - edgeThresh);
+  const first = vertical ? (rx < 0.5) : (ry < 0.5);
 
-    if (!performDrop) {
-        showSplitOverlayForPane(paneUnder, vertical, first);
-        hideDropIndicator();
-        return true;
-    }
+  if (!performDrop) {
+    showSplitOverlayForPane(paneUnder, vertical, first);
+    hideDropIndicator();
+    return true;
+  }
 
-    const panel = getPanelById(ctx.pid);
-    if (!panel) { hideSplitOverlay(); return true; }
+  const panel = getPanelById(ctx.pid);
+  if (!panel) { hideSplitOverlay(); return true; }
 
-    if (ctx.wantsCopy) {
-        cloneTabIntoSplit(panel, paneUnder, vertical, first);
-    } else {
-        splitPaneWithPane(paneUnder, panel, vertical, first);
-    }
+  if (ctx.wantsCopy) {
+    cloneTabIntoSplit(panel, paneUnder, vertical, first);
+  } else {
+    splitPaneWithPane(paneUnder, panel, vertical, first);
+  }
 
-    hideSplitOverlay();
-    openTab(panel.dataset.panelId);
-    return true; 
+  hideSplitOverlay();
+  openTab(panel.dataset.panelId);
+  return true;
 }
 
 function computeDropIndex(tabStrip, clientX, clientY) {
   const vertical = tabStrip.classList.contains('vertical');
   const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
   if (!tabs.length) return 0;
-  
+
   // 1. Read all dimensions at once
   const tabRects = tabs.map(t => t.getBoundingClientRect());
 
@@ -102,7 +105,7 @@ function computeDropIndex(tabStrip, clientX, clientY) {
     const r = tabRects[i];
     const midpoint = vertical ? (r.top + r.height / 2) : (r.left + r.width / 2);
     const clientPos = vertical ? clientY : clientX;
-    
+
     if (clientPos < midpoint) return i;
   }
   return tabs.length;
@@ -161,52 +164,124 @@ export const hideSplitOverlay = () => {
   refs.splitOverlay && (refs.splitOverlay.style.display = 'none');
 };
 
+let touchDragGhost = null;
+let touchDragPid = null;
+
 function processDragEvent(ev, { performDrop = false } = {}) {
-    ev.preventDefault();
-    const ctx = getDragContext(ev);
+  if (ev.cancelable) ev.preventDefault();
+  const ctx = getDragContext(ev);
 
-    if (!ctx) {
-        hideDropIndicator();
-        hideSplitOverlay();
-        return;
-    }
+  if (!ctx || !ctx.pid) {
+    hideDropIndicator();
+    hideSplitOverlay();
+    return;
+  }
 
-    if (ctx.overTabStrip) {
-        handleTabStripDrop(ctx, ev, performDrop);
-        return;
-    }
-
-    const splitHandled = handlePaneSplitDrop(ctx, ev, performDrop);
-    if (splitHandled) {
-        return;
-    }
-
+  if (ctx.overTabStrip) {
     handleTabStripDrop(ctx, ev, performDrop);
+    return;
+  }
+
+  const splitHandled = handlePaneSplitDrop(ctx, ev, performDrop);
+  if (splitHandled) {
+    return;
+  }
+
+  handleTabStripDrop(ctx, ev, performDrop);
+}
+
+function handleTouchStart(e) {
+  const tab = e.target.closest('.ptmt-tab');
+  if (!tab) return;
+  touchDragPid = tab.dataset.for;
+
+  // Wait a bit to ensure it's a drag, not a tap
+  tab._touchTimer = setTimeout(() => {
+    tab.classList.add('dragging');
+    touchDragGhost = tab.cloneNode(true);
+    Object.assign(touchDragGhost.style, {
+      position: 'fixed',
+      pointerEvents: 'none',
+      zIndex: '20000',
+      opacity: '0.8',
+      left: `${e.touches[0].clientX - 20}px`,
+      top: `${e.touches[0].clientY - 20}px`,
+      width: `${tab.offsetWidth}px`,
+      height: `${tab.offsetHeight}px`
+    });
+    document.body.appendChild(touchDragGhost);
+  }, 200);
+}
+
+function handleTouchMove(e) {
+  if (!touchDragGhost) {
+    const tab = e.target.closest('.ptmt-tab');
+    if (tab) clearTimeout(tab._touchTimer);
+    return;
+  }
+
+  if (e.cancelable) e.preventDefault();
+  const touch = e.touches[0];
+  touchDragGhost.style.left = `${touch.clientX - 20}px`;
+  touchDragGhost.style.top = `${touch.clientY - 20}px`;
+
+  processDragEvent(e, { performDrop: false });
+}
+
+function handleTouchEnd(e) {
+  const tab = e.target.closest('.ptmt-tab');
+  if (tab) clearTimeout(tab._touchTimer);
+
+  if (touchDragGhost) {
+    if (e.cancelable) e.preventDefault();
+    processDragEvent(e, { performDrop: true });
+    touchDragGhost.remove();
+    touchDragGhost = null;
+    if (tab) tab.classList.remove('dragging');
+  }
+  touchDragPid = null;
 }
 
 export function enableInteractions() {
-    const refs = getRefs();
-    document.addEventListener('dragover', ev => {
-        ev.preventDefault();
-        try { ev.dataTransfer.dropEffect = 'move'; } catch {}
-    });
+  const refs = getRefs();
+  document.addEventListener('dragover', ev => {
+    ev.preventDefault();
+    try { ev.dataTransfer.dropEffect = 'move'; } catch { }
+  });
 
-    const throttledProcessDrag = throttle(ev => processDragEvent(ev, { performDrop: false }), 24);
+  const throttledProcessDrag = throttle(ev => processDragEvent(ev, { performDrop: false }), 24);
 
-    refs.mainBody.addEventListener('dragover', throttledProcessDrag);
+  refs.mainBody.addEventListener('dragover', throttledProcessDrag);
 
-    refs.mainBody.addEventListener('drop', ev => {
-        processDragEvent(ev, { performDrop: true });
-    });
+  refs.mainBody.addEventListener('drop', ev => {
+    processDragEvent(ev, { performDrop: true });
+  });
 
-    refs.mainBody.addEventListener('dragleave', (e) => {
-        setTimeout(() => {
-            const mainRect = refs.mainBody.getBoundingClientRect();
-            const stillInside = e.clientX >= mainRect.left && e.clientX <= mainRect.right && e.clientY >= mainRect.top && e.clientY <= mainRect.bottom;
-            if (!stillInside) {
-                hideDropIndicator();
-                hideSplitOverlay();
-            }
-        }, 50);
-    });
+  refs.mainBody.addEventListener('dragleave', (e) => {
+    setTimeout(() => {
+      const mainRect = refs.mainBody.getBoundingClientRect();
+      const stillInside = e.clientX >= mainRect.left && e.clientX <= mainRect.right && e.clientY >= mainRect.top && e.clientY <= mainRect.bottom;
+      if (!stillInside) {
+        hideDropIndicator();
+        hideSplitOverlay();
+      }
+    }, 50);
+  });
+
+  // Delegate touch events to tabs
+  refs.mainBody.addEventListener('touchstart', (e) => {
+    if (e.target.closest('.ptmt-tab')) handleTouchStart(e);
+  }, { passive: false });
+
+  refs.mainBody.addEventListener('touchmove', (e) => {
+    if (touchDragGhost) handleTouchMove(e);
+  }, { passive: false });
+
+  refs.mainBody.addEventListener('touchend', (e) => {
+    if (touchDragPid) handleTouchEnd(e);
+  }, { passive: false });
+
+  refs.mainBody.addEventListener('touchcancel', (e) => {
+    if (touchDragPid) handleTouchEnd(e);
+  }, { passive: false });
 }

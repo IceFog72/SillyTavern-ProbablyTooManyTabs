@@ -12,6 +12,7 @@ export class SettingsManager {
         maxLayersCenter: 3,
         maxLayersRight: 3,
         runMoveBgDivs: true,
+        isMobile: false,
         hideContentWhileResizing: false,
 
         panelMappings: [
@@ -47,10 +48,11 @@ export class SettingsManager {
         ],
 
         presets: [],
-        savedLayout: null,
+        savedLayoutDesktop: null,
+        savedLayoutMobile: null,
 
         defaultLayout: {
-            version: 12,
+            version: 13,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],
@@ -91,7 +93,7 @@ export class SettingsManager {
                         children: [
                             {
                                 type: 'pane',
-                                paneId: 'ptmt-default-center-top-pane',
+                                paneId: 'ptmt-default-center-pane',
                                 flex: '1 1 60%',
                                 isCollapsed: false,
                                 tabs: [
@@ -118,8 +120,8 @@ export class SettingsManager {
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "gallery", searchClass: "", paneId: "ptmt-default-center-top-pane" },
-                        { searchId: "", searchClass: "galleryImageDraggable", paneId: "ptmt-default-center-top-pane" }
+                        { searchId: "gallery", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "", searchClass: "galleryImageDraggable", paneId: "ptmt-default-center-pane" }
                     ]
                 },
                 right: {
@@ -158,11 +160,163 @@ export class SettingsManager {
                     ]
                 }
             }
+        },
+
+        mobileLayout: {
+            version: 13,
+            showLeft: false,
+            showRight: false,
+            hiddenTabs: [],
+            columnSizes: {
+                left: "1 1 20%",
+                center: "1 1 100%",
+                right: "1 1 20%",
+                leftCollapsed: false,
+                rightCollapsed: false,
+                leftLastFlex: null,
+                rightLastFlex: null
+            },
+            columns: {
+                left: { content: { type: 'pane', paneId: 'ptmt-default-left-pane', tabs: [] }, ghostTabs: [] },
+                right: { content: { type: 'pane', paneId: 'ptmt-default-right-pane', tabs: [] }, ghostTabs: [] },
+                center: {
+                    content: {
+                        type: 'pane',
+                        paneId: 'ptmt-default-center-pane',
+                        tabs: [
+                            { sourceId: "sheld" },
+                            { sourceId: "left-nav-panel" },
+                            { sourceId: "notebookPanel" },
+                            { sourceId: "rm_api_block" },
+                            { sourceId: "cfgConfig" },
+                            { sourceId: "logprobsViewer" },
+                            { sourceId: "extensionSideBar" },
+                            { sourceId: "rm_extensions_block" },
+                            { sourceId: "Backgrounds" },
+                            { sourceId: "AdvancedFormatting" },
+                            { sourceId: "table_drawer_content" },
+                            { sourceId: "user-settings-block" },
+                            { sourceId: "WorldInfo" },
+                            { sourceId: "stqrd--drawer-v2" },
+                            { sourceId: "expression-wrapper" },
+                            { sourceId: "right-nav-panel" },
+                            { sourceId: "PersonaManagement" },
+                            { sourceId: "character_popup" },
+                            { sourceId: "floatingPrompt" },
+                            { sourceId: "dupeFinderPanel" }
+                        ]
+                    },
+                    ghostTabs: [
+                        { searchId: "summaryExtensionPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "groupMemberListPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "qr--popout", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "ctsi-drawerPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "gallery", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "galleryImageDraggable", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "objectiveExtensionPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "moonlit_echoes_popout", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "zoomed_avatar", searchClass: "", paneId: "ptmt-default-center-pane" }
+                    ]
+                }
+            }
         }
     };
 
+    static isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+    }
+
+    static getMobileLayout(sourceLayout) {
+        if (!sourceLayout) return null;
+        const layout = JSON.parse(JSON.stringify(sourceLayout));
+        layout.showLeft = false;
+        layout.showRight = false;
+        layout.columnSizes = {
+            left: "1 1 20%",
+            center: "1 1 100%",
+            right: "1 1 20%",
+            leftCollapsed: false,
+            rightCollapsed: false,
+            leftLastFlex: null,
+            rightLastFlex: null
+        };
+
+        // Move all tabs to center-top pane
+        const allTabs = [];
+        const processContent = (node) => {
+            if (!node) return;
+            if (node.type === 'pane' && node.tabs) {
+                allTabs.push(...node.tabs);
+            } else if (node.type === 'split' && node.children) {
+                node.children.forEach(processContent);
+            }
+        };
+
+        processContent(layout.columns.left?.content);
+        processContent(layout.columns.center?.content);
+        processContent(layout.columns.right?.content);
+
+        // Deduplicate tabs by sourceId
+        const uniqueTabs = [];
+        const seen = new Set();
+        allTabs.forEach(t => {
+            if (t.sourceId && !seen.has(t.sourceId)) {
+                uniqueTabs.push(t);
+                seen.add(t.sourceId);
+            } else if (t.customContent) {
+                uniqueTabs.push(t);
+            }
+        });
+
+        layout.columns.center.content = {
+            type: 'pane',
+            paneId: 'ptmt-default-center-pane',
+            tabs: uniqueTabs
+        };
+        layout.columns.left.content = { type: 'pane', paneId: 'ptmt-default-left-pane', tabs: [] };
+        layout.columns.right.content = { type: 'pane', paneId: 'ptmt-default-right-pane', tabs: [] };
+
+        // Clear ghost tabs from side columns for mobile
+        layout.columns.left.ghostTabs = [];
+        layout.columns.right.ghostTabs = [];
+
+        return layout;
+    }
+
+    static getDesktopLayout(sourceLayout) {
+        if (!sourceLayout) return null;
+        const layout = JSON.parse(JSON.stringify(sourceLayout));
+        layout.showLeft = true;
+        layout.showRight = true;
+        layout.columnSizes = {
+            left: "1 1 22%",
+            center: "1 1 56%",
+            right: "1 1 22%",
+            leftCollapsed: false,
+            rightCollapsed: false,
+            leftLastFlex: null,
+            rightLastFlex: null
+        };
+        return layout;
+    }
+
     constructor() {
         this.initializeSettings();
+
+        // Migration: Move old savedLayout to savedLayoutDesktop
+        if (extension_settings.PTMT?.savedLayout && !this.get('savedLayoutDesktop')) {
+            console.log("[PTMT] Migrating legacy layout to savedLayoutDesktop");
+            extension_settings.PTMT.savedLayoutDesktop = extension_settings.PTMT.savedLayout;
+            delete extension_settings.PTMT.savedLayout;
+            this.save();
+        }
+
+        if (SettingsManager.isMobile() && !this.get('isMobile')) {
+            // Only auto-enable if no layout is saved yet, or if it's explicitly mobile
+            if (!this.get('savedLayoutMobile')) {
+                this.update({ isMobile: true });
+            }
+        }
     }
 
     initializeSettings() {
@@ -173,6 +327,21 @@ export class SettingsManager {
         extension_settings.PTMT = { ...SettingsManager.defaultSettings, ...loadedSettings };
     }
 
+    getActiveLayoutKey() {
+        return this.get('isMobile') ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+    }
+
+    getActiveDefaultLayout() {
+        if (this.get('isMobile')) {
+            return SettingsManager.defaultSettings.mobileLayout || this.get('mobileLayout');
+        }
+        return this.get('defaultLayout');
+    }
+
+    getActiveLayout() {
+        return this.get(this.getActiveLayoutKey()) || this.getActiveDefaultLayout();
+    }
+
     get(key) {
         if (extension_settings.PTMT.hasOwnProperty(key)) {
             return extension_settings.PTMT[key];
@@ -180,7 +349,7 @@ export class SettingsManager {
         return SettingsManager.defaultSettings[key];
     }
 
-    update(newSettings) {
+    update(newSettings, force = false) {
         const changedKeys = [];
         for (const key in newSettings) {
             if (SettingsManager.defaultSettings.hasOwnProperty(key)) {
@@ -189,16 +358,20 @@ export class SettingsManager {
             }
         }
         if (changedKeys.length > 0) {
-            this.save();
-            const isOnlyLayoutSave = changedKeys.length === 1 && changedKeys[0] === 'savedLayout';
-            if (!isOnlyLayoutSave) {
+            this.save(force);
+            const isLayoutSave = changedKeys.some(k => k === 'savedLayoutDesktop' || k === 'savedLayoutMobile');
+            if (!isLayoutSave) {
                 window.dispatchEvent(new CustomEvent('ptmt:settingsChanged', { detail: { changed: changedKeys, allSettings: extension_settings.PTMT } }));
             }
         }
     }
 
-    save() {
-        saveSettingsDebounced();
+    save(force = false) {
+        if (force) {
+            saveSettings();
+        } else {
+            saveSettingsDebounced();
+        }
     }
 
     reset() {

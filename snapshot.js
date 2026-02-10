@@ -10,7 +10,7 @@ import { recalculateColumnSizes } from './layout.js';
 import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 
-const SNAPSHOT_VERSION = 12;
+const SNAPSHOT_VERSION = 13;
 
 const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },
@@ -132,7 +132,9 @@ export function generateLayoutSnapshot() {
         return states;
     };
 
-    const currentLayout = settings.get('savedLayout') || settings.get('defaultLayout');
+    const isMobile = settings.get('isMobile');
+    const layoutKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+    const currentLayout = settings.get(layoutKey) || settings.get('defaultLayout');
 
     const snapshot = {
         version: SNAPSHOT_VERSION,
@@ -219,9 +221,16 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         return;
     }
 
+    const stagingArea = document.getElementById('ptmt-staging-area') || document.body;
     [refs.leftBody, refs.centerBody, refs.rightBody].forEach(col => {
         if (col) {
             const elementsToPreserve = Array.from(col.querySelectorAll('[data-preserve="true"]'));
+            // Move all other children to staging area before clearing
+            Array.from(col.childNodes).forEach(node => {
+                if (!elementsToPreserve.includes(node)) {
+                    stagingArea.appendChild(node);
+                }
+            });
             while (col.firstChild) {
                 col.removeChild(col.firstChild);
             }
@@ -231,6 +240,12 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
     refs.leftBody.style.display = snapshot.showLeft ? 'flex' : 'none';
     refs.rightBody.style.display = snapshot.showRight ? 'flex' : 'none';
+
+    // Sync settings to match snapshot visibility
+    settings.update({
+        showLeftPane: !!snapshot.showLeft,
+        showRightPane: !!snapshot.showRight
+    });
 
     if (snapshot.columnSizes) {
         refs.leftBody.style.flex = snapshot.columnSizes.left;
@@ -380,7 +395,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 let panel = null;
                 let pid = null;
 
-                if (t.sourceId && !getPanelBySourceId(t.sourceId)) {
+                if (t.sourceId) {
                     const mapping = (settings.get('panelMappings') || []).find(m => m.id === t.sourceId) || {};
                     panel = createTabFromContent(t.sourceId, {
                         title: t.title || mapping.title,
@@ -461,6 +476,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         .filter(id => !placedPanelIds.has(id) && !allGhostSourceIds.has(id) && !hiddenTabsList.has(id));
 
     if (orphanPanelIds.length > 0) {
+        console.log(`[PTMT] Recovering ${orphanPanelIds.length} orphan tabs:`, orphanPanelIds);
         orphanPanelIds.forEach(id => {
             const originalLocation = panelLocationMap.get(id);
             let targetPane = null;
@@ -477,11 +493,15 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             }
             if (targetPane) {
                 const mapping = mappings.find(m => m.id === id) || {};
-                createTabFromContent(id, {
-                    title: mapping.title,
-                    icon: mapping.icon,
-                    makeActive: false
-                }, targetPane);
+                // Double check if it actually isn't there (sometimes IDs mismatch)
+                if (!targetPane.querySelector(`[data-source-id="${CSS.escape(id)}"]`)) {
+                    createTabFromContent(id, {
+                        title: mapping.title,
+                        icon: mapping.icon,
+                        makeActive: false
+                    }, targetPane);
+                    placedPanelIds.add(id);
+                }
             }
         });
     }
@@ -570,8 +590,8 @@ function validateSnapshot(snapshot) {
     if (!snapshot.columns || typeof snapshot.columns !== 'object') return false;
 
     if (!snapshot.version || snapshot.version < SNAPSHOT_VERSION) {
-        console.warn(`[PTMT] Snapshot version ${snapshot.version} is older than current version ${SNAPSHOT_VERSION}.`);
-        return false;
+        console.warn(`[PTMT] Snapshot version ${snapshot.version} is older than current version ${SNAPSHOT_VERSION}. Continuing with caution.`);
+        // Don't return false here, let orphan recovery handle it if it breaks
     }
 
     const hasContent = ['left', 'center', 'right'].some(col =>

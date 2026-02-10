@@ -271,21 +271,28 @@ export function createTabFromContent(content, options = {}, target = null) {
     return null;
   }
 
-  if (effectiveSourceId && getPanelBySourceId(effectiveSourceId)) {
-    return getPanelBySourceId(effectiveSourceId);
+  const panelTitle = title || node?.getAttribute('data-panel-title') || node?.id || 'Panel';
+  let panel = effectiveSourceId ? getPanelBySourceId(effectiveSourceId) : null;
+  let pid;
+
+  if (panel) {
+    pid = panel.dataset.panelId;
+  } else {
+    panel = createPanelElement(panelTitle);
+    panel.dataset.sourceId = effectiveSourceId;
+    pid = registerPanelDom(panel, panelTitle);
+    if (node) panel.querySelector('.ptmt-panel-content').appendChild(node);
   }
 
-  const panelTitle = title || node.getAttribute('data-panel-title') || node.id || 'Panel';
-  const panel = createPanelElement(panelTitle);
-  panel.dataset.sourceId = effectiveSourceId;
-  const pid = registerPanelDom(panel, panelTitle);
-  panel.querySelector('.ptmt-panel-content').appendChild(node);
-  targetPane._panelContainer.appendChild(panel);
-
-  const tab = createTabElement(panelTitle, pid, icon, { collapsed: options.collapsed });
-  targetPane._tabStrip.appendChild(tab);
-
-  invalidatePaneTabSizeCache(targetPane);
+  if (targetPane) {
+    targetPane._panelContainer.appendChild(panel);
+    // Ensure tab exists in this pane
+    if (!targetPane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`)) {
+      const tab = createTabElement(panelTitle, pid, icon, { collapsed: options.collapsed });
+      targetPane._tabStrip.appendChild(tab);
+    }
+    invalidatePaneTabSizeCache(targetPane);
+  }
 
   runTabAction(effectiveSourceId, 'onInit', panel);
 
