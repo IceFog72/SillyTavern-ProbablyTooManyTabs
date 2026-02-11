@@ -297,8 +297,6 @@ body,
   background: transparent;
 }
 
-
-
 .ptmt-split {
   display: flex;
   flex: 1 1 0;
@@ -322,7 +320,6 @@ body,
   overflow: hidden;
   position: relative;
   box-sizing: border-box;
-  /*border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor), transparent 70%);*/
   border-radius: var(--ptmt-radius);
 }
 
@@ -384,11 +381,11 @@ body,
   color: var(--SmartThemeBodyColor);
   min-width: 0;
   box-sizing: border-box;
-  /*border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor), transparent 70%);*/
+
   border-right: none;
   border-left: none;
 
-  /* Scrollable tabs */
+
   overflow-x: auto;
   overflow-y: hidden;
   flex-wrap: nowrap;
@@ -422,7 +419,6 @@ body,
 
 .ptmt-tabStrip.vertical.ptmt-has-overflow {
   padding-bottom: 60px;
-  /* Allow vertical overscroll only when overflowing */
 }
 
 
@@ -469,7 +465,6 @@ body,
   cursor: grabbing;
 }
 
-/* Touch drag ghost style */
 .ptmt-tab.dragging:not([style*="fixed"]) {
   opacity: 0.4;
 }
@@ -588,7 +583,7 @@ body,
 }
 
 .ptmt-settings-panel fieldset {
-  margin-bottom: 20px;
+  margin-bottom: 10px;
   border: 1px solid var(--SmartThemeBorderColor);
   padding: 10px;
   border-radius: 4px;
@@ -599,6 +594,8 @@ body,
 }
 
 .ptmt-settings-panel {
+  border: 1px solid var(--SmartThemeBorderColor);
+  padding: 6px;
   background-color: var(--SmartThemeBlurTintColor);
 }
 
@@ -607,23 +604,23 @@ body,
   flex-direction: row;
   flex-wrap: wrap;
   gap: 15px;
-  padding-bottom: 20px;
+  padding-bottom: 10px;
   width: 100%;
   box-sizing: border-box;
   overflow-x: hidden !important;
-  /* Force wrapping, never scroll */
+
   overflow-y: visible !important;
 }
 
 .ptmt-editor-column {
   flex: 1 1 240px;
   min-width: 0;
-  /* Critical for fieldsets to shrink */
+
   max-width: 100%;
   box-sizing: border-box;
   margin: 0;
   overflow: hidden;
-  /* Prevent wide inputs from pushing column width */
+
 }
 
 .ptmt-editor-column.ptmt-editor-column-hidden {
@@ -635,7 +632,6 @@ body,
 }
 
 .ptmt-editor-column.ptmt-editor-column-hidden legend {
-  color: var(--SmartThemeShadowColor);
   font-style: italic;
 }
 
@@ -663,7 +659,7 @@ body,
 .ptmt-editor-pane {
   border: 1px dashed var(--SmartThemeQuoteColor);
   padding: 8px;
-  margin-top: 8px;
+  margin-top: 4px !important;
   border-radius: 4px;
 }
 
@@ -678,7 +674,6 @@ body,
   gap: 8px;
   font-weight: bold;
   color: var(--SmartThemeEmColor);
-  margin-bottom: 8px;
 }
 
 .ptmt-editor-title>span {
@@ -715,14 +710,10 @@ body,
   display: flex;
   align-items: center;
   gap: 5px;
-  padding: 6px;
-  /* Slightly more padding */
   margin-bottom: 4px;
-  /* More separation */
   background: rgba(255, 255, 255, 0.05);
   border-radius: 4px;
-  min-height: 32px;
-  /* Ensure minimum height for touch targets */
+  min-height: 20px;
   user-select: none;
   -webkit-user-select: none;
 }
@@ -735,17 +726,16 @@ body,
   cursor: grab;
   color: var(--SmartThemeEmColor);
   padding: 4px 8px;
-  /* INCREASED TAGET SIZE */
+
   font-size: 1.2em;
-  /* LARGER ICON */
-  display: flex;
+  / display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 3px;
   background: rgba(255, 255, 255, 0.05);
-  /* Subtle background to indicate interactability */
+
   margin-right: 4px;
-  /* Space between handle and content */
+
   height: 100%;
   touch-action: none;
   user-select: none;
@@ -838,11 +828,10 @@ body.ptmt-is-resizing #rm_print_characters_block {
   display: none;
 }
 
-/* Mobile specific overrides */
 @media screen and (max-width: 800px) {
   .ptmt-tab {
     padding: 10px 15px;
-    /* Larger tap targets */
+
   }
 
   .ptmt-tab-icon {

@@ -86,7 +86,7 @@ export class LayoutManager {
 
         const disclaimerContainer = el('div', {
             style: {
-                marginTop: '20px',
+                marginTop: '10px',
                 padding: '10px',
                 borderRadius: '4px',
                 background: 'rgba(255, 229, 100, 0.1)',
@@ -279,7 +279,7 @@ export class LayoutManager {
         if (tree) container.appendChild(tree);
 
         const pendingContainer = el('div', { className: 'ptmt-editor-pending' });
-        const pendingTitle = el('div', { className: 'ptmt-editor-title', style: { marginTop: '10px', borderTop: '1px solid var(--SmartThemeShadowColor)', paddingTop: '8px' } }, el('span', {}, 'Pending Tabs'));
+        const pendingTitle = el('div', { className: 'ptmt-editor-title', style: { paddingTop: '8px' } }, el('span', {}, 'Pending Tabs'));
         pendingContainer.appendChild(pendingTitle);
 
         const pendingTree = this.renderPendingTreeElement(element.querySelector('.ptmt-pane, .ptmt-split'), name);
