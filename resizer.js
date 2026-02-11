@@ -100,13 +100,17 @@ function createResizer(resizer, orientation, config) {
             }
         }
         pointerId = null;
-        dragState = null;
         document.body.style.userSelect = '';
         if (settings.get('hideContentWhileResizing')) {
             document.body.classList.remove('ptmt-is-resizing');
         }
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
+
+        if (dragState && config.onDragEnd) {
+            config.onDragEnd(dragState);
+        }
+        dragState = null;
 
         try {
             window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'manualResize' } }));
@@ -234,19 +238,21 @@ export function attachResizer(resizer, orientation = 'vertical') {
                 recalculateAllSplitsRecursively(bElem);
             }
 
-            const checkConfig = (el) => {
-                if (el.classList.contains('ptmt-pane')) throttledCheckPaneForIconMode(el);
-                el.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
-            };
-            checkConfig(aElem);
-            checkConfig(bElem);
+            aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+            bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+        },
+
+        onDragEnd: (state) => {
+            const aElem = state.flexSiblings[state.aElemIndex];
+            const bElem = state.flexSiblings[state.bElemIndex];
+            if (aElem) aElem.dataset.lastFlex = aElem.style.flex;
+            if (bElem) bElem.dataset.lastFlex = bElem.style.flex;
         }
     };
 
     if (resizerControllers.has(resizer)) { resizerControllers.get(resizer).detach(); }
     resizerControllers.set(resizer, createResizer(resizer, orientation, paneResizeStrategy));
 }
-
 
 export function attachColumnResizer(resizer) {
     const columnResizeStrategy = {
@@ -325,10 +331,23 @@ export function attachColumnResizer(resizer) {
 
             aElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
             bElem.querySelectorAll('.ptmt-pane').forEach(throttledCheckPaneForIconMode);
+        },
+
+        onDragEnd: (state) => {
+            // Update lastFlex so it persists through reloads/collapses
+            const { leftBody, centerBody, rightBody } = state.refs;
+            [leftBody, centerBody, rightBody].forEach(col => {
+                if (col && col.style.display !== 'none' && col.style.flex) {
+                    col.dataset.lastFlex = col.style.flex;
+                    console.log(`[PTMT Layout] 📍 Fixated ${col.id} size to ${col.style.flex}`);
+                }
+            });
         }
     };
 
-    return createResizer(resizer, 'vertical', columnResizeStrategy);
+    if (resizerControllers.has(resizer)) { resizerControllers.get(resizer).detach(); }
+    const controller = createResizer(resizer, 'vertical', columnResizeStrategy);
+    resizerControllers.set(resizer, controller);
 }
 
 

@@ -18,6 +18,7 @@ const DEFAULT_MIN_SIZES = {
 };
 
 export function generateLayoutSnapshot() {
+    console.log("[PTMT Layout] 📸 Generating layout snapshot...");
     const refs = getRefs();
     if (!refs) return null;
     const buildNodeTree = (element, parentColumn = null) => {
@@ -134,22 +135,23 @@ export function generateLayoutSnapshot() {
 
     const isMobile = settings.get('isMobile');
     const layoutKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
-    const currentLayout = settings.get(layoutKey) || settings.get('defaultLayout');
+    const currentLayout = settings.get(layoutKey) || settings.getActiveDefaultLayout();
 
     const snapshot = {
         version: SNAPSHOT_VERSION,
         timestamp: Date.now(),
+        mode: isMobile ? 'mobile' : 'desktop',
         showLeft: refs.leftBody.style.display !== 'none',
         showRight: refs.rightBody.style.display !== 'none',
 
         columnSizes: {
-            left: refs.leftBody.style.flex || '1 1 22%',
-            center: refs.centerBody.style.flex || '1 1 56%',
-            right: refs.rightBody.style.flex || '1 1 22%',
+            left: refs.leftBody.style.flex || refs.leftBody.dataset.lastFlex || "1 1 20%",
+            center: refs.centerBody.style.flex || "1 1 60%",
+            right: refs.rightBody.style.flex || refs.rightBody.dataset.lastFlex || "1 1 20%",
             leftCollapsed: refs.leftBody.dataset.isColumnCollapsed === 'true',
             rightCollapsed: refs.rightBody.dataset.isColumnCollapsed === 'true',
-            leftLastFlex: refs.leftBody.dataset.lastFlex || null,
-            rightLastFlex: refs.rightBody.dataset.lastFlex || null
+            leftLastFlex: refs.leftBody.dataset.lastFlex,
+            rightLastFlex: refs.rightBody.dataset.lastFlex
         },
 
         columns: {
@@ -190,6 +192,7 @@ export function generateLayoutSnapshot() {
         })()
     };
 
+    console.log("[PTMT Layout] ✅ Snapshot generated:", snapshot);
     return snapshot;
 }
 
@@ -252,13 +255,15 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         refs.centerBody.style.flex = snapshot.columnSizes.center;
         refs.rightBody.style.flex = snapshot.columnSizes.right;
 
+        // Restore lastFlex for all columns so resizing persists through collapses/reloads
+        if (snapshot.columnSizes.leftLastFlex) refs.leftBody.dataset.lastFlex = snapshot.columnSizes.leftLastFlex;
+        if (snapshot.columnSizes.rightLastFlex) refs.rightBody.dataset.lastFlex = snapshot.columnSizes.rightLastFlex;
+
         if (snapshot.columnSizes.leftCollapsed) {
             refs.leftBody.dataset.isColumnCollapsed = 'true';
-            refs.leftBody.dataset.lastFlex = snapshot.columnSizes.leftLastFlex || snapshot.columnSizes.left;
         }
         if (snapshot.columnSizes.rightCollapsed) {
             refs.rightBody.dataset.isColumnCollapsed = 'true';
-            refs.rightBody.dataset.lastFlex = snapshot.columnSizes.rightLastFlex || snapshot.columnSizes.right;
         }
     }
 
@@ -294,10 +299,11 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 pane.style.flex = node.flex || '0 0 auto';
             } else {
                 if (node.flex) pane.style.flex = node.flex;
-                if (node.lastFlex) pane.dataset.lastFlex = node.lastFlex;
-                if (node.minWidth) pane.style.minWidth = node.minWidth;
-                if (node.minHeight) pane.style.minHeight = node.minHeight;
             }
+
+            if (node.lastFlex) pane.dataset.lastFlex = node.lastFlex;
+            if (node.minWidth) pane.style.minWidth = node.minWidth;
+            if (node.minHeight) pane.style.minHeight = node.minHeight;
 
             writePaneViewSettings(pane, node.viewSettings || {});
             if (node.viewSettings?.appliedOrientation) {
@@ -372,7 +378,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     const isExplicitValid = explicitFlex && explicitFlex.indexOf('%') > -1;
 
                     if (!isExplicitValid && node.splitRatios?.[index]) {
-                        childEl.style.flex = `0 1 ${node.splitRatios[index]}%`;
+                        childEl.style.flex = `1 1 ${node.splitRatios[index]}%`;
                     }
                 }
             });

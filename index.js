@@ -25,6 +25,7 @@ import { positionAnchor } from './positionAnchor.js';
 
 (function () {
   function initApp() {
+    let isHydrating = true;
     positionAnchor();
     createLayoutIfMissing();
     const refs = getRefs();
@@ -36,11 +37,15 @@ import { positionAnchor } from './positionAnchor.js';
     }
 
     const saveCurrentLayoutDebounced = debounce(() => {
+      if (isHydrating) {
+        console.log(`[PTMT Layout] 🛡️ Save skipped during hydration.`);
+        return;
+      }
       const layout = generateLayoutSnapshot();
       const isMobile = settings.get('isMobile');
       const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+      console.log(`[PTMT Layout] 💾 Auto-saving ${isMobile ? 'Mobile' : 'Desktop'} layout to ${key}. Snapshot:`, layout);
       settings.update({ [key]: layout });
-      console.log(`[PTMT Layout] ${isMobile ? 'Mobile' : 'Desktop'} layout automatically saved to ${key}.`);
     }, 750);
 
     const api = {
@@ -142,9 +147,10 @@ import { positionAnchor } from './positionAnchor.js';
         }
       }
 
+      console.log(`[PTMT Layout] 🔄 layoutChanged triggered. Reason: ${event.detail?.reason || 'unknown'}`);
       updateResizerDisabledStates();
       saveCurrentLayoutDebounced();
-    });
+    }, { passive: true });
 
     window.addEventListener('ptmt:settingsChanged', (event) => {
       const { changed } = event.detail || {};
@@ -203,6 +209,12 @@ import { positionAnchor } from './positionAnchor.js';
     }
 
     enableInteractions();
+
+    recalculateColumnSizes();
+    updateResizerDisabledStates();
+
+    isHydrating = false;
+    console.log(`[PTMT Layout] ✨ Hydration complete. Monitoring layout changes.`);
     moveBgDivs();
     initDrawerObserver();
 
