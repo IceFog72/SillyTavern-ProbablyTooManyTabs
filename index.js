@@ -154,6 +154,7 @@ import { positionAnchor } from './positionAnchor.js';
       const refs = getRefs();
       if (refs && refs.mainBody) {
         refs.mainBody.classList.toggle('ptmt-global-icons-only', !!showIconsOnly);
+        refs.mainBody.classList.toggle('ptmt-mobile', !!isMobile);
       }
 
       document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
@@ -195,6 +196,12 @@ import { positionAnchor } from './positionAnchor.js';
     try { removeMouseDownDrawerHandler(); } catch (e) {
       console.warn('[PTMT] Failed :', e);
     }
+    const refsStartup = getRefs();
+    if (refsStartup && refsStartup.mainBody) {
+      refsStartup.mainBody.classList.toggle('ptmt-mobile', !!isMobile);
+      refsStartup.mainBody.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
+    }
+
     enableInteractions();
     moveBgDivs();
     initDrawerObserver();

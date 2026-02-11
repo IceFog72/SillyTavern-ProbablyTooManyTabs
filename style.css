@@ -244,9 +244,12 @@ body,
 #ptmt-mainBody {
   display: flex;
   flex: 1 1 0;
-  min-height: 0;
   min-width: 0;
   position: relative;
+}
+
+#ptmt-mainBody.ptmt-mobile {
+  padding-top: env(safe-area-inset-top);
 }
 
 .ptmt-body-column {
