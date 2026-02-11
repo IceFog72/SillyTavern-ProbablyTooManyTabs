@@ -250,6 +250,7 @@ body,
 
 #ptmt-mainBody.ptmt-mobile {
   padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 .ptmt-body-column {
