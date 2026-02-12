@@ -728,7 +728,7 @@ body,
   padding: 4px 8px;
 
   font-size: 1.2em;
-  / display: flex;
+  display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 3px;
