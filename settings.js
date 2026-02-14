@@ -3,6 +3,11 @@
 import { saveSettingsDebounced, saveSettings } from '../../../../script.js';
 import { extension_settings } from '../../../extensions.js';
 
+/** @typedef {import('./types.js').PTMTSettings} PTMTSettings */
+/** @typedef {import('./types.js').PanelMapping} PanelMapping */
+/** @typedef {import('./types.js').LayoutSnapshot} LayoutSnapshot */
+/** @typedef {import('./types.js').ColumnLayout} ColumnLayout */
+
 export class SettingsManager {
     static defaultSettings = {
         showLeftPane: true,

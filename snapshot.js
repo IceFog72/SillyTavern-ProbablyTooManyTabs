@@ -10,6 +10,16 @@ import { recalculateColumnSizes } from './layout.js';
 import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 
+/** @typedef {import('./types.js').LayoutSnapshot} LayoutSnapshot */
+/** @typedef {import('./types.js').PaneNode} PaneNode */
+/** @typedef {import('./types.js').SplitNode} SplitNode */
+/** @typedef {import('./types.js').TabData} TabData */
+/** @typedef {import('./types.js').ViewSettings} ViewSettings */
+/** @typedef {import('./types.js').ColumnLayout} ColumnLayout */
+/** @typedef {import('./types.js').ColumnSizes} ColumnSizes */
+/** @typedef {import('./types.js').GhostTab} GhostTab */
+/** @typedef {import('./types.js').HiddenTab} HiddenTab */
+
 const SNAPSHOT_VERSION = 13;
 
 const DEFAULT_MIN_SIZES = {
@@ -443,14 +453,14 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             }
         }
 
+        // FIX: When pane is collapsed, preserveCollapsedState=true to set active panel
+        // without modifying collapsed classes (which would expand the pane)
         if (activePid) {
-            setActivePanelInPane(pane, activePid);
+            setActivePanelInPane(pane, activePid, isPaneCollapsed);
         } else if (defaultPid) {
-            setActivePanelInPane(pane, defaultPid);
+            setActivePanelInPane(pane, defaultPid, isPaneCollapsed);
         } else {
-            if (!isPaneCollapsed) {
-                setActivePanelInPane(pane);
-            }
+            setActivePanelInPane(pane, null, isPaneCollapsed);
         }
     };
 

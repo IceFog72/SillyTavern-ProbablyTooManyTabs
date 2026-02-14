@@ -6,6 +6,11 @@ import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
 import { invalidatePaneTabSizeCache } from './resizer.js';
 import { runTabAction } from './tab-actions.js';
 
+/** @typedef {import('./types.js').PTMTAPI} PTMTAPI */
+/** @typedef {import('./types.js').TabData} TabData */
+/** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
+/** @typedef {import('./types.js').ViewSettings} ViewSettings */
+
 const makeId = (prefix = 'ptmt') => `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
 
 export const registerPanelDom = (panelEl, title) => {
@@ -127,7 +132,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
   return t;
 }
 
-export function setActivePanelInPane(pane, pid = null) {
+export function setActivePanelInPane(pane, pid = null, preserveCollapsedState = false) {
   if (!pane) return false;
   const panelContainer = pane._panelContainer;
   const tabStrip = pane._tabStrip;
@@ -146,21 +151,31 @@ export function setActivePanelInPane(pane, pid = null) {
   tabStrip.querySelectorAll('.ptmt-tab').forEach(t => {
     const isTarget = t.dataset.for === targetPid;
     t.classList.toggle('active', isTarget);
-    if (isTarget) {
-      t.classList.remove('collapsed');
-    } else {
-      t.classList.add('collapsed');
+    
+    // FIX: When preserveCollapsedState is true (pane is collapsed), don't modify collapsed classes
+    // This allows setting the active panel without expanding tabs in a collapsed pane
+    if (!preserveCollapsedState) {
+      if (isTarget) {
+        t.classList.remove('collapsed');
+      } else {
+        t.classList.add('collapsed');
+      }
     }
 
     const p = getPanelById(t.dataset.for);
     if (p) {
       p.classList.toggle('active', isTarget);
       if (isTarget) {
-        p.classList.remove('collapsed');
+        // Always remove hidden when activating a panel (regardless of preserveCollapsedState)
         p.classList.remove('hidden');
+        if (!preserveCollapsedState) {
+          p.classList.remove('collapsed');
+        }
       } else {
-        p.classList.add('collapsed');
-        p.classList.add('hidden');
+        if (!preserveCollapsedState) {
+          p.classList.add('collapsed');
+          p.classList.add('hidden');
+        }
       }
     }
   });
@@ -169,8 +184,11 @@ export function setActivePanelInPane(pane, pid = null) {
 
   const targetPanel = getPanelById(targetPid);
   if (targetPanel) {
+    // Always ensure active panel is not hidden
     targetPanel.classList.remove('hidden');
-    targetPanel.classList.remove('collapsed');
+    if (!preserveCollapsedState) {
+      targetPanel.classList.remove('collapsed');
+    }
   }
 
   const sourceId = targetPanel?.dataset.sourceId;

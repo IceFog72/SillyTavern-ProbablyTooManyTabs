@@ -63,6 +63,12 @@ function createResizer(resizer, orientation, config) {
     let dragState = null;
 
     function onPointerDown(e) {
+        // Validate resizer element exists and is valid
+        if (!resizer || !resizer.classList) {
+            console.warn('[PTMT] Invalid resizer element in onPointerDown');
+            return;
+        }
+
         if ((e.button && e.button !== 0) || resizer.classList.contains('disabled')) {
             e.preventDefault();
             e.stopPropagation();
@@ -75,7 +81,7 @@ function createResizer(resizer, orientation, config) {
         e.preventDefault();
         pointerId = e.pointerId;
         try { resizer.setPointerCapture(pointerId); } catch (e) {
-            console.warn('[PTMT] Failed :', e);
+            console.warn('[PTMT] Failed to set pointer capture:', e);
         }
         startClient = e[clientProp];
 
@@ -210,14 +216,28 @@ export function attachResizer(resizer, orientation = 'vertical') {
         },
 
         onDragMove: (delta, state) => {
-            let clampedDelta = Math.max(delta, state.minSizeA - state.initialSizes[state.aElemIndex]);
-            clampedDelta = Math.min(clampedDelta, state.initialSizes[state.bElemIndex] - state.minSizeB);
+            // Validate state has all required properties before accessing
+            if (!state || !state.flexSiblings || !state.initialSizes ||
+                state.aElemIndex < 0 || state.bElemIndex < 0 ||
+                state.aElemIndex >= state.flexSiblings.length ||
+                state.bElemIndex >= state.flexSiblings.length) {
+                console.warn('[PTMT] Invalid drag state in pane resize');
+                return;
+            }
+
+            const initialSizeA = state.initialSizes[state.aElemIndex] || 0;
+            const initialSizeB = state.initialSizes[state.bElemIndex] || 0;
+            const minSizeA = state.minSizeA || 0;
+            const minSizeB = state.minSizeB || 0;
+
+            let clampedDelta = Math.max(delta, minSizeA - initialSizeA);
+            clampedDelta = Math.min(clampedDelta, initialSizeB - minSizeB);
 
             const aElem = state.flexSiblings[state.aElemIndex];
             const bElem = state.flexSiblings[state.bElemIndex];
 
-            const newSizeA = state.initialSizes[state.aElemIndex] + clampedDelta;
-            const newSizeB = state.initialSizes[state.bElemIndex] - clampedDelta;
+            const newSizeA = initialSizeA + clampedDelta;
+            const newSizeB = initialSizeB - clampedDelta;
 
             const totalResizerSize = Array.from(state.flexSiblings[0].parentElement.children).filter(c => !c.classList.contains('ptmt-pane') && !c.classList.contains('ptmt-split')).reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
             const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
@@ -250,6 +270,11 @@ export function attachResizer(resizer, orientation = 'vertical') {
         }
     };
 
+    // Validate resizer is a valid object before using with WeakMap
+    if (!resizer || typeof resizer !== 'object') {
+        console.warn('[PTMT] Cannot attach resizer: invalid element');
+        return;
+    }
     if (resizerControllers.has(resizer)) { resizerControllers.get(resizer).detach(); }
     resizerControllers.set(resizer, createResizer(resizer, orientation, paneResizeStrategy));
 }
@@ -298,8 +323,20 @@ export function attachColumnResizer(resizer) {
         },
 
         onDragMove: (delta, state) => {
-            let clampedDelta = Math.max(delta, state.minWidthA - state.initialSizes[state.aKey]);
-            clampedDelta = Math.min(clampedDelta, state.initialSizes[state.bKey] - state.minWidthB);
+            // Validate state has all required properties
+            if (!state || !state.initialSizes || !state.aKey || !state.bKey ||
+                !(state.aKey in state.initialSizes) || !(state.bKey in state.initialSizes)) {
+                console.warn('[PTMT] Invalid drag state in column resize');
+                return;
+            }
+
+            const initialSizeA = state.initialSizes[state.aKey] || 0;
+            const initialSizeB = state.initialSizes[state.bKey] || 0;
+            const minWidthA = state.minWidthA || 0;
+            const minWidthB = state.minWidthB || 0;
+
+            let clampedDelta = Math.max(delta, minWidthA - initialSizeA);
+            clampedDelta = Math.min(clampedDelta, initialSizeB - minWidthB);
 
             const newSizes = { ...state.initialSizes };
             newSizes[state.aKey] += clampedDelta;
@@ -345,6 +382,11 @@ export function attachColumnResizer(resizer) {
         }
     };
 
+    // Validate resizer is a valid object before using with WeakMap
+    if (!resizer || typeof resizer !== 'object') {
+        console.warn('[PTMT] Cannot attach column resizer: invalid element');
+        return;
+    }
     if (resizerControllers.has(resizer)) { resizerControllers.get(resizer).detach(); }
     const controller = createResizer(resizer, 'vertical', columnResizeStrategy);
     resizerControllers.set(resizer, controller);

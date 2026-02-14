@@ -4,6 +4,12 @@ import { settings } from './settings.js';
 import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
 import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation } from './resizer.js';
+
+/** @typedef {import('./types.js').ViewSettings} ViewSettings */
+/** @typedef {import('./types.js').PaneNode} PaneNode */
+/** @typedef {import('./types.js').SplitNode} SplitNode */
+/** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
+
 export const MAX_PANE_LAYERS = 3;
 export const NARROW_PANE_THRESHOLD_PX = 120;
 

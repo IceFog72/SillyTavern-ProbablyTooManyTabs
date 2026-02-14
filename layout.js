@@ -8,6 +8,11 @@ import { settings } from './settings.js';
 // For safety, we can re-export it:
 export { getRefs } from './utils.js';
 
+/** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
+/** @typedef {import('./types.js').ColumnLayout} ColumnLayout */
+/** @typedef {import('./types.js').PaneNode} PaneNode */
+/** @typedef {import('./types.js').SplitNode} SplitNode */
+
 export function createLayoutIfMissing() {
     if (document.getElementById('ptmt-main')) return getRefs();
 
@@ -193,7 +198,10 @@ export function recalculateColumnSizes() {
                 const lastBasisMatch = lastFlex ? lastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
                 const lastBasisPercent = lastBasisMatch ? parseFloat(lastBasisMatch[1]) : 0;
 
-                if (Math.abs(lastBasisPercent - minBasisPercent) < 0.1) {
+                // Fix: If lastFlex is unreasonably small (less than minBasisPercent or < 5%),
+                // it was likely saved incorrectly during collapse - use a sensible default
+                const MIN_REASONABLE_PERCENT = 15.0; // Minimum reasonable column width
+                if (lastBasisPercent < Math.max(minBasisPercent, MIN_REASONABLE_PERCENT)) {
                     const siblings = visibleColumns.filter(c => c !== col);
                     const totalSiblingLastFlex = siblings.reduce((sum, s) => {
                         if (s.dataset.lastFlex) {
@@ -207,6 +215,9 @@ export function recalculateColumnSizes() {
                         let targetBasis = 100.0 - totalSiblingLastFlex;
                         targetBasis = Math.max(targetBasis, minBasisPercent);
                         lastFlex = `1 1 ${targetBasis.toFixed(4)}%`;
+                    } else {
+                        // Fallback to equal distribution if no sibling data
+                        lastFlex = `1 1 ${100 / visibleColumns.length}%`;
                     }
                 }
             }

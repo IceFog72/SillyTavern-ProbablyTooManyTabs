@@ -4,6 +4,10 @@ import { getPaneLayerCount, splitPaneWithPane, MAX_PANE_LAYERS } from './pane.js
 import { openTab, getActivePane, moveTabIntoPaneAtIndex, cloneTabIntoPane, cloneTabIntoSplit } from './tabs.js';
 import { getPanelById, throttle, getRefs } from './utils.js';
 
+/** @typedef {import('./types.js').DragContext} DragContext */
+/** @typedef {import('./types.js').RelativePanePosition} RelativePanePosition */
+/** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
+
 // Helper functions moved up or converted to function declarations to avoid ReferenceError
 function getDragPidFromEvent(ev) {
   try {
