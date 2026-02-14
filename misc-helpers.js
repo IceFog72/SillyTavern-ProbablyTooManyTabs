@@ -2,6 +2,8 @@
 
 import { isElement } from './utils.js';
 
+let drawerObserver = null;
+
 export function removeMouseDownDrawerHandler() {
   try {
     if (window.jQuery && jQuery && jQuery._data) {
@@ -107,7 +109,13 @@ export function overrideDelegatedEventHandler(eventType, selector, findFunction,
  * Watches for drawers being closed and immediately re-opens them.
  */
 export function initDrawerObserver() {
-    const observer = new MutationObserver((mutationsList) => {
+    // Disconnect existing observer to prevent memory leaks
+    if (drawerObserver) {
+        drawerObserver.disconnect();
+        drawerObserver = null;
+    }
+
+    drawerObserver = new MutationObserver((mutationsList) => {
         for (const mutation of mutationsList) {
             if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                 const target = mutation.target;
@@ -119,14 +127,22 @@ export function initDrawerObserver() {
         }
     });
 
-    observer.observe(document.body, {
+    drawerObserver.observe(document.body, {
         subtree: true,
         attributes: true,
         attributeFilter: ['class'],
     });
 
     console.log('[PTMT] Drawer state observer initialized.');
-    return observer;
+    return drawerObserver;
+}
+
+export function cleanupDrawerObserver() {
+    if (drawerObserver) {
+        drawerObserver.disconnect();
+        drawerObserver = null;
+        console.log('[PTMT] Drawer state observer cleaned up.');
+    }
 }
 
 /*

@@ -108,7 +108,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
       console.warn('[PTMT] Failed :', e);
     }
     const g = t.cloneNode(true);
-    Object.assign(g.style, { position: 'absolute', left: '-9999px', top: '-9999px' });
+    g.classList.add('ptmt-drag-image-hide'); // Add the new class
     document.body.appendChild(g);
     try {
       ev.dataTransfer.setDragImage(g, 10, 10);

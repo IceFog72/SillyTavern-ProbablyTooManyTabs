@@ -718,6 +718,12 @@ body,
   -webkit-user-select: none;
 }
 
+.ptmt-drag-image-hide {
+  position: absolute;
+  left: -9999px;
+  top: -9999px;
+}
+
 .ptmt-editor-tab.dragging {
   opacity: 0.4;
 }
@@ -792,6 +798,17 @@ select:focus {
 
 body.ptmt-is-resizing #rm_print_characters_block {
   visibility: hidden;
+}
+
+.ptmt-touch-drag-ghost {
+  position: fixed;
+  pointer-events: none;
+  z-index: 30000;
+  opacity: 0.8;
+  margin: 0;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  transform: scale(1.05);
+  transition: none;
 }
 
 .ptmt-resizer-vertical,

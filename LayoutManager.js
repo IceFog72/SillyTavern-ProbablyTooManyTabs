@@ -14,6 +14,7 @@ export class LayoutManager {
         this.debouncedSettingsUpdate = debounce((updatedMappings) => {
             settings.update({ panelMappings: updatedMappings });
         }, 400);
+        this._layoutChangeHandler = null;
     }
 
     createSettingsPanel() {
@@ -159,7 +160,12 @@ export class LayoutManager {
 
 
 
-        window.addEventListener('ptmt:layoutChanged', () => this.renderUnifiedEditor());
+        // Avoid duplicate event listeners - remove old one if exists
+        if (this._layoutChangeHandler) {
+            window.removeEventListener('ptmt:layoutChanged', this._layoutChangeHandler);
+        }
+        this._layoutChangeHandler = () => this.renderUnifiedEditor();
+        window.addEventListener('ptmt:layoutChanged', this._layoutChangeHandler);
         return panel;
     }
 
@@ -1024,20 +1030,13 @@ export class LayoutManager {
         tab.classList.add('dragging');
 
         this.touchDragGhost = tab.cloneNode(true);
+        this.touchDragGhost.classList.add('ptmt-touch-drag-ghost'); // Add the new class
         const rect = tab.getBoundingClientRect();
         Object.assign(this.touchDragGhost.style, {
-            position: 'fixed',
-            pointerEvents: 'none',
-            zIndex: '30000',
-            opacity: '0.8',
             left: `${rect.left}px`,
             top: `${rect.top}px`,
             width: `${rect.width}px`,
             height: `${rect.height}px`,
-            margin: '0',
-            boxShadow: '0 5px 15px rgba(0,0,0,0.5)',
-            transform: 'scale(1.05)',
-            transition: 'none'
         });
         document.body.appendChild(this.touchDragGhost);
     }
@@ -1090,6 +1089,31 @@ export class LayoutManager {
             this.touchDragGhost = null;
             this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
             this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+        }
+    }
+
+    handleTouchCancel(e) {
+        // Clean up touch drag ghost if touch is cancelled (e.g., by system or error)
+        if (this.touchDragGhost) {
+            this.touchDragGhost.remove();
+            this.touchDragGhost = null;
+        }
+        if (this.rootElement) {
+            this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
+            this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+        }
+    }
+
+    cleanup() {
+        // Remove event listener to prevent memory leaks
+        if (this._layoutChangeHandler) {
+            window.removeEventListener('ptmt:layoutChanged', this._layoutChangeHandler);
+            this._layoutChangeHandler = null;
+        }
+        // Clean up touch drag ghost if it exists
+        if (this.touchDragGhost) {
+            this.touchDragGhost.remove();
+            this.touchDragGhost = null;
         }
     }
 }

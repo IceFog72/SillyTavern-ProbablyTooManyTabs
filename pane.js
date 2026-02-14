@@ -5,6 +5,7 @@ import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
 import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation } from './resizer.js';
 export const MAX_PANE_LAYERS = 3;
+export const NARROW_PANE_THRESHOLD_PX = 120;
 
 export const defaultViewSettings = {
   minimalPanelSize: 250,
@@ -198,7 +199,7 @@ function findGoverningOrientation(pane) {
 
   // Handling for initialization or hidden state where rect is 0
   if (rect.width > 0 && rect.height > 0) {
-    if (rect.width < 120) return 'vertical'; // Force vertical for very narrow strips regardless of height
+    if (rect.width < NARROW_PANE_THRESHOLD_PX) return 'vertical'; // Force vertical for very narrow strips regardless of height
     return (rect.width >= rect.height) ? 'horizontal' : 'vertical';
   }
 
@@ -367,11 +368,20 @@ export function setPaneCollapsedView(pane, collapsed) {
   updateResizerDisabledStates();
 }
 
+export function cleanupPaneObservers(pane) {
+  if (pane && pane._tabStrip) {
+    tabStripOverflowObserver.unobserve(pane._tabStrip);
+  }
+}
+
 export function removePaneIfEmpty(pane, depth = 0) {
   if (!pane?.parentElement || depth > 10) return;
   const tabs = pane._tabStrip?.querySelectorAll('.ptmt-tab');
   const panels = pane._panelContainer?.querySelectorAll('.ptmt-panel');
   if (tabs?.length || panels?.length) return;
+
+  // Clean up observers before removing the pane to prevent memory leaks
+  cleanupPaneObservers(pane);
 
   const parent = pane.parentElement;
   if (!parent) return;

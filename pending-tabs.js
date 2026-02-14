@@ -177,8 +177,10 @@ export function initPendingTabsManager(allGhostTabs) {
         }
     }
 
+    // Always disconnect existing observer to prevent memory leaks
     if (hydrationObserver) {
         hydrationObserver.disconnect();
+        hydrationObserver = null;
     }
 
     if (pendingTabsMap.size === 0) return;
@@ -251,4 +253,16 @@ export function initDemotionObserver(api) {
     };
     demotionObserver = new MutationObserver(callback);
     demotionObserver.observe(target, { childList: true, subtree: true });
+}
+
+export function cleanupPendingTabsObservers() {
+    if (hydrationObserver) {
+        hydrationObserver.disconnect();
+        hydrationObserver = null;
+    }
+    if (demotionObserver) {
+        demotionObserver.disconnect();
+        demotionObserver = null;
+    }
+    pendingTabsMap.clear();
 }

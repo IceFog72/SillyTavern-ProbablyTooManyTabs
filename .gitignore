@@ -1,1 +1,4 @@
 .vscode/
+.agent/
+AGENTS.md
+EXTENSION_MAP.md
