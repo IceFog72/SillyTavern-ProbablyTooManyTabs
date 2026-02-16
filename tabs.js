@@ -97,10 +97,6 @@ export function createTabElement(title, pid, icon = null, options = {}) {
 
     setActivePanelInPane(pane, pid);
 
-    pane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)').forEach(tab => {
-      setTabCollapsed(tab.dataset.for, tab.dataset.for !== pid);
-    });
-
     window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
   });
 
@@ -134,67 +130,57 @@ export function createTabElement(title, pid, icon = null, options = {}) {
 
 export function setActivePanelInPane(pane, pid = null, preserveCollapsedState = false) {
   if (!pane) return false;
-  const panelContainer = pane._panelContainer;
   const tabStrip = pane._tabStrip;
-
-  const previouslyActiveTab = tabStrip.querySelector('.ptmt-tab.active');
 
   let targetPid = pid;
   if (!targetPid) {
     const firstAvailableTab = tabStrip.querySelector('.ptmt-tab:not(.collapsed):not([data-for=""])') || tabStrip.querySelector('.ptmt-tab:not([data-for=""])');
-    targetPid = firstAvailableTab?.dataset.for || panelContainer.querySelector('.ptmt-panel')?.dataset.panelId || null;
+    targetPid = firstAvailableTab?.dataset.for || pane._panelContainer?.querySelector('.ptmt-panel')?.dataset.panelId || null;
   }
 
-  // We intentionally removed the early return if already active to handle de-conflicting
-  // when an already-active tab is moved into a pane that has another active tab.
+  const isTabSwitch = pid !== null;
 
   tabStrip.querySelectorAll('.ptmt-tab').forEach(t => {
-    const isTarget = t.dataset.for === targetPid;
+    const pId = t.dataset.for;
+    if (!pId) return;
+    const isTarget = pId === targetPid;
+
+    // 1. Tab Classes
     t.classList.toggle('active', isTarget);
-    
-    // FIX: When preserveCollapsedState is true (pane is collapsed), don't modify collapsed classes
-    // This allows setting the active panel without expanding tabs in a collapsed pane
     if (!preserveCollapsedState) {
-      if (isTarget) {
-        t.classList.remove('collapsed');
-      } else {
-        t.classList.add('collapsed');
-      }
+      t.classList.toggle('collapsed', !isTarget);
     }
 
-    const p = getPanelById(t.dataset.for);
+    // 2. Panel Updates (with cached ref)
+    let p = t._panelRef;
+    if (!p) {
+      p = getPanelById(pId);
+      if (p) t._panelRef = p;
+    }
+
     if (p) {
       p.classList.toggle('active', isTarget);
-      if (isTarget) {
-        // Always remove hidden when activating a panel (regardless of preserveCollapsedState)
-        p.classList.remove('hidden');
-        if (!preserveCollapsedState) {
-          p.classList.remove('collapsed');
+      p.classList.toggle('hidden', !isTarget);
+
+      if (!preserveCollapsedState) {
+        const wasCollapsed = p.classList.contains('collapsed');
+        const nowCollapsed = !isTarget;
+        p.classList.toggle('collapsed', nowCollapsed);
+
+        // Trigger onOpen/onCollapse if state actually changed
+        if (wasCollapsed !== nowCollapsed) {
+          runTabAction(p.dataset.sourceId, nowCollapsed ? 'onCollapse' : 'onOpen', p);
         }
-      } else {
-        if (!preserveCollapsedState) {
-          p.classList.add('collapsed');
-          p.classList.add('hidden');
-        }
+      }
+
+      // 3. Tab Actions - Select
+      if (isTarget && isTabSwitch) {
+        runTabAction(p.dataset.sourceId, 'onSelect', p);
       }
     }
   });
 
-  if (!targetPid) return false;
-
-  const targetPanel = getPanelById(targetPid);
-  if (targetPanel) {
-    // Always ensure active panel is not hidden
-    targetPanel.classList.remove('hidden');
-    if (!preserveCollapsedState) {
-      targetPanel.classList.remove('collapsed');
-    }
-  }
-
-  const sourceId = targetPanel?.dataset.sourceId;
-  runTabAction(sourceId, 'onSelect', targetPanel);
-
-  return true;
+  return targetPid !== null;
 }
 
 export function openTab(pid) {
