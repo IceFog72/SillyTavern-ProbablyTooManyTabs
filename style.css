@@ -6,9 +6,8 @@
   --ptmt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
   --ptmt-tab-border-color: var(--SmartThemeBorderColor);
   --ptmt-tab-bg-color: var(--SmartThemeBlurTintColor);
-  --ptmt-panel-bg: var(--SmartThemeChatTintColor);
-  --ptmt-tab-inactive-bg: var(--ptmt-panel-bg);
-  --ptmt-tab-hover-bg: var(--SmartThemeShadowColor);
+  --ptmt-tab-inactive-bg: var(--SmartThemeBlurTintColor);
+  --ptmt-tab-hover-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor), var(--SmartThemeQuoteColor) 15%);
   --tts-bottom-offset: 39px;
 }
 
@@ -44,6 +43,10 @@
 
 .drawer-content.openDrawer {
   height: 100%;
+}
+
+.drawer-content {
+  min-width: 200px !important;
 }
 
 #tts-bar {
@@ -426,12 +429,11 @@ body,
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 7px 12px;
+  padding: 8px 12px;
   cursor: grab;
   user-select: none;
   gap: 6px;
   white-space: nowrap;
-  transition: background var(--ptmt-transition), opacity var(--ptmt-transition), border-color var(--ptmt-transition);
   background: var(--ptmt-tab-inactive-bg);
   border: 1px solid var(--ptmt-tab-border-color);
   border-bottom: none;
@@ -455,7 +457,6 @@ body,
 }
 
 .ptmt-tab.active {
-  background: color-mix(in srgb, var(--ptmt-tab-hover-bg), var(--SmartThemeBorderColor) 20%) !important;
   cursor: default;
   border-bottom: 2px solid var(--ptmt-accent);
 }
@@ -483,7 +484,8 @@ body,
 }
 
 .ptmt-tab.collapsed {
-  opacity: 0.8;
+  /*opacity: 0.8;
+  backdrop-filter: saturate(0%) contrast(90%) !important;*/
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab {
@@ -512,7 +514,6 @@ body,
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab.active {
-  background: color-mix(in srgb, var(--ptmt-tab-hover-bg), var(--SmartThemeBorderColor) 30%) !important;
   cursor: default;
   border-right: 2px solid var(--ptmt-accent);
   border-left: none;
@@ -529,6 +530,8 @@ body,
   max-width: 200px;
   overflow: hidden;
   text-overflow: ellipsis;
+  mix-blend-mode: difference;
+  color: var(--SmartThemeBodyColor);
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab .ptmt-tab-label {
@@ -806,7 +809,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   z-index: 30000;
   opacity: 0.8;
   margin: 0;
-  box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
   transform: scale(1.05);
   transition: none;
 }
