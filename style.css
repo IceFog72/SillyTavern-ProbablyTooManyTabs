@@ -820,6 +820,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-resizer-vertical,
 .ptmt-resizer-horizontal {
   margin: -1px;
+  z-index: 99999;
 }
 
 @media (prefers-reduced-motion: reduce) {
