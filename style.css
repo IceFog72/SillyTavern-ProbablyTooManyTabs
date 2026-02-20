@@ -50,7 +50,7 @@
 }
 
 #tts-bar {
-
+  width: 100% !important;
   position: inherit !important;
 }
 
@@ -97,6 +97,8 @@ body:has(#extensionTopBar) .ptmt-panel-content #sheld {
   position: inherit !important;
   transform: none !important;
   width: 100% !important;
+  border: none !important;
+  border-bottom: 1px solid var(--SmartThemeBorderColor) !important;
 }
 
 #sheld {
@@ -340,6 +342,7 @@ body,
   grid-area: content;
   min-width: 0;
   min-height: 0;
+  border: 1px solid var(--SmartThemeBorderColor);
 }
 
 
