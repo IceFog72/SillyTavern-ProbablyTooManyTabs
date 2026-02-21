@@ -483,7 +483,7 @@ export function recalculateAllSplitsRecursively(root = getRefs().mainBody) {
     }
 }
 
-export function recalculateSplitSizes(split) {
+export function recalculateSplitSizes(split, actor = null) {
     if (!split?.classList.contains('ptmt-split')) return;
 
     const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
@@ -540,19 +540,31 @@ export function recalculateSplitSizes(split) {
         });
 
         if (deficit > 0.01) {
-            let stealableSpace = 0;
-            const stealableChildren = [];
-            idealSizes.forEach((size, i) => {
-                const available = size - childrenInfo[i].minSize;
-                if (available > 0) { stealableSpace += available; stealableChildren.push({ index: i, available }); }
-            });
+            const actorIndex = actor ? activeChildren.indexOf(actor) : -1;
+            const donorData = idealSizes.map((size, i) => ({ index: i, stealable: Math.max(0, size - childrenInfo[i].minSize) })).filter(d => d.index !== actorIndex);
 
-            if (stealableSpace > 0) {
-                const amountToSteal = Math.min(deficit, stealableSpace);
-                stealableChildren.forEach(s => {
-                    const proportion = s.available / stealableSpace;
-                    idealSizes[s.index] -= amountToSteal * proportion;
-                });
+            if (actorIndex !== -1) {
+                // Neighborhood first
+                donorData.sort((a, b) => Math.abs(a.index - actorIndex) - Math.abs(b.index - actorIndex));
+            }
+
+            for (const donor of donorData) {
+                const taken = Math.min(deficit, donor.stealable);
+                idealSizes[donor.index] -= taken;
+                deficit -= taken;
+                if (deficit <= 0.01) break;
+            }
+
+            // Fallback for remaining deficit
+            if (deficit > 0.01) {
+                const stealableTotal = idealSizes.reduce((sum, size, i) => sum + Math.max(0, size - childrenInfo[i].minSize), 0);
+                if (stealableTotal > 0.1) {
+                    const factor = deficit / stealableTotal;
+                    idealSizes.forEach((size, i) => {
+                        const s = Math.max(0, size - childrenInfo[i].minSize);
+                        idealSizes[i] -= s * factor;
+                    });
+                }
             }
         }
 

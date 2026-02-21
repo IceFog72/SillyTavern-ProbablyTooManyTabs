@@ -25,55 +25,91 @@ export function getBasis(col, useLastFlex = false) {
     return basisMatch ? parseFloat(basisMatch[1]) : 0;
 }
 
-export function normalizeFlexBasis(activeColumns, targetTotal = 100) {
+export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = null) {
     const refs = getRefs();
     if (!refs || !refs.mainBody || activeColumns.length === 0) return;
 
-    const parentWidth = refs.mainBody.getBoundingClientRect().width;
+    const parentRect = refs.mainBody.getBoundingClientRect();
+    const parentWidth = parentRect.width;
+
+    // Guard: ignore if container is hidden or too small to meaningfully calculate percentages
+    // This often happens during sudden UI reflows or tab switches
+    if (parentWidth < 100) return;
+
     const totalResizerWidth = Array.from(refs.mainBody.querySelectorAll('.ptmt-column-resizer')).reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
     const availableWidth = Math.max(1, parentWidth - totalResizerWidth);
 
     // Initial pass: fix any negative or starved values
     let currentTotal = 0;
+    let anyChanges = false;
     const columnData = activeColumns.map(col => {
         const content = col.querySelector('.ptmt-pane, .ptmt-split');
         const minPx = content ? calculateElementMinWidth(content) : 250;
-        const minPercent = (minPx / availableWidth) * 100;
-        
+        // Clamp minPercent to a reasonable range [0.001, 80] to avoid taking whole screen or div by 0
+        const minPercent = Math.min(80, (minPx / availableWidth) * 100);
+
         let basis = getBasis(col);
-        if (basis < minPercent) basis = minPercent;
+        // Added 0.1% tolerance to prevent subpixel jitter creep
+        if (basis < minPercent - 0.1) {
+            basis = minPercent;
+            anyChanges = true;
+        }
         currentTotal += basis;
         return { col, minPercent, basis };
     });
 
     let error = currentTotal - targetTotal;
-    
+
+    // Only apply logic if we had a forced bump or if the total error is significant
+    // This prevents "creeping" shrink where tiny errors result in minor redistribution every call
+    if (!anyChanges && Math.abs(error) <= 0.01) return;
+
     // Iterative pass to reduce error while respecting minPercent
-    if (Math.abs(error) > 0.01) {
+    if (Math.abs(error) > 0.0001) {
         if (error > 0) {
-            let stealableTotal = columnData.reduce((sum, d) => sum + Math.max(0, d.basis - d.minPercent), 0);
-            if (stealableTotal > 0) {
-                const ratio = error / stealableTotal;
-                columnData.forEach(d => {
-                    const stealable = Math.max(0, d.basis - d.minPercent);
-                    d.basis -= stealable * Math.min(1, ratio);
+            const actorIndex = actor ? activeColumns.indexOf(actor) : -1;
+            const donors = columnData.filter(d => d.col !== actor);
+
+            if (actorIndex !== -1) {
+                // Neighborhood first: Sort donors by distance from actor
+                donors.sort((a, b) => {
+                    const distA = Math.abs(activeColumns.indexOf(a.col) - actorIndex);
+                    const distB = Math.abs(activeColumns.indexOf(b.col) - actorIndex);
+                    return distA - distB;
                 });
-            } else {
-                // Everyone is at min, force shrink the largest equally (emergency)
-                const sorted = [...columnData].sort((a, b) => b.basis - a.basis);
-                sorted[0].basis -= error;
+            }
+
+            // Distribute debt to preferred donors first
+            for (const d of donors) {
+                const stealable = Math.max(0, d.basis - d.minPercent);
+                if (stealable > 0) {
+                    const taken = Math.min(error, stealable);
+                    d.basis -= taken;
+                    error -= taken;
+                }
+                if (error <= 0.0001) break;
+            }
+
+            // Final emergency fallback if neighbors were at min
+            if (error > 0.001) {
+                const totalBasis = columnData.reduce((sum, d) => sum + d.basis, 0);
+                const factor = targetTotal / totalBasis;
+                columnData.forEach(d => {
+                    d.basis = Math.max(0.001, d.basis * factor);
+                });
             }
         } else {
-            // Add to the largest column
+            // Error is negative: we have extra space. Add it to the largest column.
             const sorted = [...columnData].sort((a, b) => b.basis - a.basis);
-            if (sorted[0]) sorted[0].basis -= error; // error is negative
+            if (sorted[0]) sorted[0].basis -= error; // error is negative, so this adds
         }
     }
 
     // Apply back to elements
     columnData.forEach(d => {
         d.col.style.flex = `1 1 ${d.basis.toFixed(4)}%`;
-        if (d.col.dataset.isColumnCollapsed !== 'true') {
+        // Only update lastFlex if it's a reasonably large size to avoid saving 'starved' states
+        if (d.col.dataset.isColumnCollapsed !== 'true' && d.basis > 5) {
             d.col.dataset.lastFlex = d.col.style.flex;
         }
     });
@@ -302,10 +338,6 @@ export function recalculateColumnSizes() {
     const activeColumns = visibleColumns.filter(col => col.dataset.isColumnCollapsed !== 'true');
     if (activeColumns.length === 0) return;
 
-
-
-    const { leftBody, centerBody, rightBody } = refs;
-
-    // Use robust normalization to handle state changes and final alignment
-    normalizeFlexBasis(activeColumns);
+    const actor = protectedColumn || collapsedColumn;
+    normalizeFlexBasis(activeColumns, 100, actor);
 }

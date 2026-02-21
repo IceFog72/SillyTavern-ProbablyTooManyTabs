@@ -359,7 +359,7 @@ export function setPaneCollapsedView(pane, collapsed) {
     }
 
     if (parentSplit?.classList.contains('ptmt-split')) {
-      recalculateSplitSizes(parentSplit);
+      recalculateSplitSizes(parentSplit, pane);
     }
   }
 
