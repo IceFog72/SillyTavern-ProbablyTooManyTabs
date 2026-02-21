@@ -90,11 +90,11 @@ function hydrateTab(tabInfo, foundElement) {
 
     const existingPanel = getPanelBySourceId(identifier);
     if (existingPanel) {
-        const contentHolder = existingPanel.querySelector('.ptmt-panel-content');
+        /*const contentHolder = existingPanel.querySelector('.ptmt-panel-content');
         if (contentHolder && contentHolder.contains(foundElement)) {
             pendingTabsMap.delete(identifier);
             return;
-        }
+        }*/
         console.log(`[PTMT-Pending] Found new content for ${identifier}. Replacing existing tab.`);
         destroyTabById(existingPanel.dataset.panelId);
     }
@@ -113,13 +113,12 @@ function hydrateTab(tabInfo, foundElement) {
     createTabFromContent(foundElement, {
         title: tabInfo.title || mapping.title,
         icon: tabInfo.icon || mapping.icon,
-        makeActive: tabInfo.active !== undefined ? tabInfo.active : true,
-        collapsed: tabInfo.collapsed || false,
+        makeActive: true, // Always auto-open per user request
+        collapsed: false, // Ensure it's not collapsed
         sourceId: identifier
     }, targetPane);
 
-    // CRITICAL: Once hydrated, stop looking for this element to prevent performance leaks
-    pendingTabsMap.delete(identifier);
+    //pendingTabsMap.delete(identifier);
 }
 
 function checkForPendingTabs(nodes) {
