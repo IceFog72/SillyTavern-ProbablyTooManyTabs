@@ -154,6 +154,23 @@ import { initStatusBar } from './context-status-bar.js';
       saveCurrentLayoutDebounced();
     }, { passive: true });
 
+    const extensionPath = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs';
+    const applyOverrides = () => {
+      const enabled = settings.get('enableOverride1');
+      let link = document.getElementById('ptmt-overrides-1');
+      if (enabled) {
+        if (!link) {
+          link = document.createElement('link');
+          link.id = 'ptmt-overrides-1';
+          link.rel = 'stylesheet';
+          link.href = `${extensionPath}/overrides-1.css`;
+          document.head.appendChild(link);
+        }
+      } else if (link) {
+        link.remove();
+      }
+    };
+
     window.addEventListener('ptmt:settingsChanged', (event) => {
       const { changed } = event.detail || {};
       const showIconsOnly = settings.get('showIconsOnly');
@@ -165,6 +182,7 @@ import { initStatusBar } from './context-status-bar.js';
         refs.mainBody.classList.toggle('ptmt-mobile', !!isMobile);
       }
 
+      applyOverrides();
       document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     });
@@ -219,6 +237,7 @@ import { initStatusBar } from './context-status-bar.js';
     console.log(`[PTMT Layout] ✨ Hydration complete. Monitoring layout changes.`);
     moveBgDivs();
     initDrawerObserver();
+    applyOverrides();
 
     // --- Keyboard-Driven Swipe Event Handling ---
     // Handle Arrow key swipes by routing them to the active pane.

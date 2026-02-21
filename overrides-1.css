@@ -1,0 +1,369 @@
+/* ========================================= */
+/* 1. MAIN CONTAINERS & BUBBLE LAYOUT        */
+/* ========================================= */
+
+body.big-avatars .mes {
+    display: flow-root !important;
+    position: relative !important;
+    width: 100% !important;
+    padding: 0 !important;
+    /* Default: No padding */
+}
+
+body.big-avatars.swipeAllMessages .mes:not(:has(.swipes-counter:empty)),
+body.big-avatars .mes.last_mes:not(:has(.swipes-counter:empty)) {
+    padding-bottom: 30px !important;
+}
+
+body.bubblechat .mes {
+    padding: 8px;
+    border-radius: unset;
+    border: unset !important;
+}
+
+body.bubblechat .mes[is_user="false"] {
+    border-radius: 0px 8px 8px 0px !important;
+    width: unset !important;
+    margin-right: 8px !important;
+}
+
+body.bubblechat .mes[is_user="true"] {
+    border-radius: 8px 0px 0px 8px !important;
+    width: unset !important;
+    margin-left: 8px !important;
+}
+
+/* Text Block (Allows wrapping around the floated avatar) */
+body.big-avatars .mes .mes_block {
+    display: block !important;
+    width: auto !important;
+    overflow: visible !important;
+    margin: 12px !important;
+}
+
+body.big-avatars .mes_block .ch_name {
+    margin-bottom: 8px !important;
+}
+
+.mes_text {
+    padding-right: unset !important;
+}
+
+body.big-avatars.hideChatAvatars .mes .mesAvatarWrapper,
+body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
+    width: unset !important;
+    height: unset !important;
+    margin: 5px !important;
+}
+
+
+/* ========================================= */
+/* 2. LEFT SIDE (Default / User)             */
+/* ========================================= */
+
+body.big-avatars .mes .mesAvatarWrapper {
+    float: left !important;
+    position: relative !important;
+    display: block !important;
+    width: calc(var(--avatar-base-width) * var(--big-avatar-width-factor) * 4) !important;
+    height: calc(var(--avatar-base-height) * var(--big-avatar-height-factor) * 3.4) !important;
+    margin: 0px 15px 10px 0px !important;
+    z-index: 10 !important;
+}
+
+body.big-avatars .mes .mesAvatarWrapper .avatar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    /* Fade the RIGHT side (where text is) and the BOTTOM */
+    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 40%) !important;
+    mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 40%) !important;
+    -webkit-mask-composite: destination-in !important;
+    mask-composite: intersect !important;
+}
+
+/* User Info/Timer (Left Aligned) */
+body.big-avatars .mesIDDisplay,
+body.big-avatars .mes_timer,
+body.big-avatars .tokenCounterDisplay {
+    mix-blend-mode: difference;
+    text-align: start !important;
+    margin-top: 6px !important;
+    margin-left: 6px !important;
+    position: relative !important;
+    z-index: 12 !important;
+    color: white;
+}
+
+/* ========================================= */
+/* 3. RIGHT SIDE (Bot - is_user="false")     */
+/* ========================================= */
+
+body.big-avatars .mes[is_user="false"] .mesAvatarWrapper {
+    float: right !important;
+    margin: 0px 0px 10px 15px !important;
+}
+
+body.big-avatars .mes[is_user="false"] .mesAvatarWrapper .avatar {
+    right: 0 !important;
+    left: auto !important;
+    /* Fade the LEFT side (where text is) and the BOTTOM */
+    -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 40%) !important;
+    mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 40%) !important;
+    -webkit-mask-composite: destination-in !important;
+    mask-composite: intersect !important;
+}
+
+/* Bot Info/Timer (Right Aligned) */
+body.big-avatars .mes[is_user="false"] .mesIDDisplay,
+body.big-avatars .mes[is_user="false"] .mes_timer,
+body.big-avatars .mes[is_user="false"] .tokenCounterDisplay {
+    text-align: end !important;
+    margin-right: 6px !important;
+    margin-left: unset !important;
+}
+
+/* Common Image Scaling */
+body.big-avatars .mes .mesAvatarWrapper .avatar img {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: calc(var(--avatar-base-width) * var(--big-avatar-width-factor) * 4) !important;
+    height: calc(var(--avatar-base-height) * var(--big-avatar-height-factor) * 4) !important;
+    object-fit: cover !important;
+}
+
+/* ========================================= */
+/* 4. REASONING BLOCK                        */
+/* ========================================= */
+
+.mes_reasoning_header {
+    background-color: unset !important;
+    margin: unset !important;
+    border-left: 1px solid var(--reasoning-body-color);
+    border-top: 1px solid var(--reasoning-body-color);
+    border-radius: 8px 0px 0px 0px !important;
+    font-size: calc(var(--mainFontSize) * 0.7);
+}
+
+/* Border bottom only when collapsed */
+.mes_reasoning_details:not([open]) .mes_reasoning_header {
+    border-bottom: 1px solid var(--reasoning-body-color);
+}
+
+.mes_reasoning_details[open] .mes_reasoning_arrow {
+    top: 50%;
+}
+
+.mes_reasoning_header:has(.up) {
+    border-radius: 8px 0px 0px 0px !important;
+}
+
+.mes_reasoning_details .mes_reasoning_arrow {
+    right: 0px !important;
+}
+
+.mes_reasoning {
+    color: var(--SmartThemeEmColor) !important;
+    border-radius: 0px 8px 0px 0px !important;
+    font-size: calc(var(--mainFontSize) * 0.9);
+}
+
+/* ========================================= */
+/* 5. BUTTONS & UI INTERACTION               */
+/* ========================================= */
+
+.mes_buttons,
+.mes_reasoning_actions {
+    border: 1px solid var(--SmartThemeBorderColor);
+    --shadow-medium: 0 4px 8px 0 hsl(none 0% 0%/0.16);
+    box-shadow: var(--shadow-medium) !important;
+    background-color: var(--SmartThemeBlurTintColor);
+    padding: 2px;
+    border-radius: 8px;
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.mes_reasoning_actions {
+    margin-top: 0.2em;
+    margin-bottom: 0.2em;
+}
+
+.mes:hover .mes_buttons,
+.mes:hover .mes_reasoning_actions {
+    visibility: visible;
+    opacity: 1;
+}
+
+.mes_button,
+.extraMesButtons>div {
+    text-align: center;
+    align-content: center;
+    height: 28px;
+    width: 28px;
+    font-size: calc(var(--mainFontSize) * 1.2);
+    filter: drop-shadow(0px 0px 2px var(--SmartThemeShadowColor));
+}
+
+.mes_button:hover {
+    background-color: #333439;
+    cursor: pointer;
+    border-radius: 8px;
+}
+
+.mes_reasoning_actions .mes_button {
+    font-size: calc(var(--mainFontSize) * 0.7);
+    height: 20px;
+    width: 20px;
+}
+
+/* ========================================= */
+/* 6. SWIPE ARROWS (Grouped < 1/1 >)         */
+/* ========================================= */
+
+/* The Right block: Swaps order to [ 1/1 ] [ > ] */
+body.big-avatars .mes .swipeRightBlock {
+    position: absolute !important;
+    bottom: 10px !important;
+    right: 15px !important;
+    top: auto !important;
+    transform: none !important;
+    z-index: 25 !important;
+
+    display: flex !important;
+    flex-direction: row-reverse !important;
+    /* Swaps Counter and Right Arrow */
+    align-items: center !important;
+    gap: 12px !important;
+    width: auto !important;
+}
+
+/* The Left Arrow: Positioned to the left of the counter */
+body.big-avatars .mes .swipe_left {
+    position: absolute !important;
+    bottom: 10px !important;
+    left: auto !important;
+    /* Anchored to the right to stay glued to the counter group */
+    right: 90px !important;
+    top: auto !important;
+    transform: none !important;
+    z-index: 25 !important;
+}
+
+/* Counter text: Now sits in the center between arrows */
+body.big-avatars .mes .swipes-counter {
+    font-size: 0.85rem !important;
+    font-family: monospace !important;
+    opacity: 0.8;
+    min-width: 40px;
+    /* Space for the "1/1" text */
+    text-align: center !important;
+    /* Center the text inside its box */
+    user-select: none;
+    margin: 0 !important;
+}
+
+/* UI Cleanup: Icons only, no blocks */
+body.big-avatars .mes .swipe_left,
+body.big-avatars .mes .swipe_right {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 1.1rem !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    opacity: 0.5;
+    transition: opacity 0.2s, transform 0.1s;
+    cursor: pointer;
+}
+
+body.big-avatars .mes .swipe_left:hover,
+body.big-avatars .mes .swipe_right:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+@font-face {
+    font-family: 'CaskaydiaCove';
+    src:
+        /* 1. Check for common system names first */
+        local('CaskaydiaCove Nerd Font'),
+        local('CaskaydiaCove NF'),
+        local('CaskaydiaCoveNerdFont-Regular'),
+
+        /* 2. Fallback to the link if not found locally */
+        url('https://github.com/ryanoasis/nerd-fonts/raw/refs/heads/master/patched-fonts/CascadiaCode/CaskaydiaCoveNerdFont-Regular.ttf') format('truetype');
+
+    font-weight: normal;
+    font-style: normal;
+}
+
+code,
+.world_entry_form_control textarea {
+    font-family: CaskaydiaCove Nerd Font
+}
+
+/* ==========================================================================
+   CHARACTER LIST GRID (SCSS-style nesting; requires a preprocessor)
+   ========================================================================== */
+html,
+body.charListGrid {
+    --avatar-width: 4.5vw;
+    --avatar-aspect-ratio: calc(3 / 5.0);
+
+    --avatar-border-width: 1px;
+    --avatar-fav-border-width: 2px;
+    --avatar-padding: 5px;
+
+    .character_select.is_fav .ch_name,
+    .group_select.is_fav .ch_name,
+    .group_member.is_fav .ch_name {
+        color: var(--SmartThemeQuoteColor);
+    }
+
+    .character_select.is_fav .avatar,
+    .group_select.is_fav .avatar,
+    .group_member.is_fav .avatar,
+    .avatar.is_fav {
+        outline: 2px solid var(--SmartThemeQuoteColor);
+    }
+
+    #rm_print_characters_block {
+
+        .avatar.avatar_collage {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(50%, 1fr));
+
+            img {
+                width: 100%;
+                height: 100%;
+            }
+        }
+
+        .avatar img {
+            border: 0 !important;
+        }
+
+        .avatar,
+        .avatar_collage,
+        .avatar:not(.avatar_collage) img {
+            width: var(--avatar-width);
+            width: 100%;
+            height: unset;
+            aspect-ratio: var(--avatar-aspect-ratio);
+            max-height: unset;
+            min-height: unset;
+            max-width: unset;
+            min-width: unset;
+        }
+
+        .character_select_container {
+            align-self: center;
+        }
+    }
+}

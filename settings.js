@@ -20,6 +20,7 @@ export class SettingsManager {
         isMobile: false,
         hideContentWhileResizing: false,
         showContextStatusBar: true,
+        enableOverride1: false,
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: '🧭' },
