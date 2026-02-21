@@ -166,6 +166,7 @@ body.big-avatars .mes .mesAvatarWrapper .avatar img {
 }
 
 .mes_reasoning {
+    border-left: 1px solid var(--reasoning-body-color) !important;
     color: var(--SmartThemeEmColor) !important;
     border-radius: 0px 8px 0px 0px !important;
     font-size: calc(var(--mainFontSize) * 0.9);
@@ -297,7 +298,7 @@ body.big-avatars .mes .swipe_right:hover {
         local('CaskaydiaCoveNerdFont-Regular'),
 
         /* 2. Fallback to the link if not found locally */
-        url('https://github.com/ryanoasis/nerd-fonts/raw/refs/heads/master/patched-fonts/CascadiaCode/CaskaydiaCoveNerdFont-Regular.ttf') format('truetype');
+        url('https://www.programmingfonts.org/fonts/resources/cascadia-code/cascadia-code.woff2') format('truetype');
 
     font-weight: normal;
     font-style: normal;
@@ -311,6 +312,18 @@ code,
 /* ==========================================================================
    CHARACTER LIST GRID (SCSS-style nesting; requires a preprocessor)
    ========================================================================== */
+.stcm_folder_main .avatar {
+    --avatar-width: 30px;
+    --avatar-aspect-ratio: 1;
+
+    --avatar-border-width: 1px;
+    --avatar-fav-border-width: 2px;
+    --avatar-padding: 5px;
+
+    max-height: 30px !important;
+    max-width: 30px !important;
+}
+
 html,
 body.charListGrid {
     --avatar-width: 4.5vw;
