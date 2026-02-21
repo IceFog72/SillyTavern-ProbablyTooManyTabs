@@ -13,6 +13,72 @@ export { getRefs } from './utils.js';
 /** @typedef {import('./types.js').PaneNode} PaneNode */
 /** @typedef {import('./types.js').SplitNode} SplitNode */
 
+
+export function getBasis(col, useLastFlex = false) {
+    if (!col || col.style.display === 'none') return 0;
+    let flexString = col.style.flex;
+    if (useLastFlex && col.dataset.isColumnCollapsed === 'true') {
+        flexString = col.dataset.lastFlex || flexString;
+    }
+    if (!useLastFlex && col.dataset.isColumnCollapsed === 'true') return 0;
+    const basisMatch = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
+    return basisMatch ? parseFloat(basisMatch[1]) : 0;
+}
+
+export function normalizeFlexBasis(activeColumns, targetTotal = 100) {
+    const refs = getRefs();
+    if (!refs || !refs.mainBody || activeColumns.length === 0) return;
+
+    const parentWidth = refs.mainBody.getBoundingClientRect().width;
+    const totalResizerWidth = Array.from(refs.mainBody.querySelectorAll('.ptmt-column-resizer')).reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+    const availableWidth = Math.max(1, parentWidth - totalResizerWidth);
+
+    // Initial pass: fix any negative or starved values
+    let currentTotal = 0;
+    const columnData = activeColumns.map(col => {
+        const content = col.querySelector('.ptmt-pane, .ptmt-split');
+        const minPx = content ? calculateElementMinWidth(content) : 250;
+        const minPercent = (minPx / availableWidth) * 100;
+        
+        let basis = getBasis(col);
+        if (basis < minPercent) basis = minPercent;
+        currentTotal += basis;
+        return { col, minPercent, basis };
+    });
+
+    let error = currentTotal - targetTotal;
+    
+    // Iterative pass to reduce error while respecting minPercent
+    if (Math.abs(error) > 0.01) {
+        if (error > 0) {
+            let stealableTotal = columnData.reduce((sum, d) => sum + Math.max(0, d.basis - d.minPercent), 0);
+            if (stealableTotal > 0) {
+                const ratio = error / stealableTotal;
+                columnData.forEach(d => {
+                    const stealable = Math.max(0, d.basis - d.minPercent);
+                    d.basis -= stealable * Math.min(1, ratio);
+                });
+            } else {
+                // Everyone is at min, force shrink the largest equally (emergency)
+                const sorted = [...columnData].sort((a, b) => b.basis - a.basis);
+                sorted[0].basis -= error;
+            }
+        } else {
+            // Add to the largest column
+            const sorted = [...columnData].sort((a, b) => b.basis - a.basis);
+            if (sorted[0]) sorted[0].basis -= error; // error is negative
+        }
+    }
+
+    // Apply back to elements
+    columnData.forEach(d => {
+        d.col.style.flex = `1 1 ${d.basis.toFixed(4)}%`;
+        if (d.col.dataset.isColumnCollapsed !== 'true') {
+            d.col.dataset.lastFlex = d.col.style.flex;
+        }
+    });
+}
+
 export function createLayoutIfMissing() {
     if (document.getElementById('ptmt-main')) return getRefs();
 
@@ -236,99 +302,10 @@ export function recalculateColumnSizes() {
     const activeColumns = visibleColumns.filter(col => col.dataset.isColumnCollapsed !== 'true');
     if (activeColumns.length === 0) return;
 
-    const getBasis = (col, useLastFlex = false) => {
-        if (!col || col.style.display === 'none') return 0;
-        let flexString = col.style.flex;
-        if (useLastFlex && col.dataset.isColumnCollapsed === 'true') {
-            flexString = col.dataset.lastFlex || flexString;
-        }
-        if (!useLastFlex && col.dataset.isColumnCollapsed === 'true') return 0;
-        const basisMatch = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
-        return basisMatch ? parseFloat(basisMatch[1]) : 0;
-    };
+
 
     const { leftBody, centerBody, rightBody } = refs;
 
-    // Logic to redistribute space now that we know if a column's state has changed.
-    if (protectedColumn || collapsedColumn) {
-        if (protectedColumn) { // A column was reopened
-            const spaceToTake = getBasis(protectedColumn);
-            let donors = [];
-
-            if (protectedColumn === leftBody || protectedColumn === rightBody) {
-                if (activeColumns.includes(centerBody)) {
-                    donors.push(centerBody);
-                } else {
-                    const otherSide = (protectedColumn === leftBody) ? rightBody : leftBody;
-                    if (activeColumns.includes(otherSide)) donors.push(otherSide);
-                }
-            } else if (protectedColumn === centerBody) {
-                if (activeColumns.includes(leftBody)) donors.push(leftBody);
-                if (activeColumns.includes(rightBody)) donors.push(rightBody);
-            }
-
-            if (donors.length === 0) {
-                donors = activeColumns.filter(c => c !== protectedColumn);
-            }
-
-            if (donors.length > 0) {
-                const totalDonorBasis = donors.reduce((sum, col) => sum + getBasis(col), 0);
-                if (totalDonorBasis > 0) {
-                    donors.forEach(col => {
-                        const currentBasis = getBasis(col);
-                        const reduction = spaceToTake * (currentBasis / totalDonorBasis);
-                        col.style.flex = `1 1 ${(currentBasis - reduction).toFixed(4)}%`;
-                    });
-                }
-            }
-        } else if (collapsedColumn) { // A column was collapsed
-            const spaceFreed = getBasis(collapsedColumn, true);
-
-            let receivers = [];
-            if (collapsedColumn === leftBody || collapsedColumn === rightBody) {
-                if (activeColumns.includes(centerBody)) {
-                    receivers.push(centerBody);
-                } else {
-                    const otherSide = (collapsedColumn === leftBody) ? rightBody : leftBody;
-                    if (activeColumns.includes(otherSide)) receivers.push(otherSide);
-                }
-            } else if (collapsedColumn === centerBody) {
-                if (activeColumns.includes(leftBody)) receivers.push(leftBody);
-                if (activeColumns.includes(rightBody)) receivers.push(rightBody);
-            }
-
-            if (receivers.length === 0) {
-                receivers = activeColumns;
-            }
-
-            if (receivers.length > 0) {
-                const totalReceiverBasis = receivers.reduce((sum, col) => sum + getBasis(col), 0);
-                if (totalReceiverBasis > 0) {
-                    receivers.forEach(col => {
-                        const currentBasis = getBasis(col);
-                        const share = spaceFreed * (currentBasis / totalReceiverBasis);
-                        col.style.flex = `1 1 ${(currentBasis + share).toFixed(4)}%`;
-                    });
-                } else {
-                    const equalShare = spaceFreed / receivers.length;
-                    receivers.forEach(col => {
-                        const currentBasis = getBasis(col); // is 0
-                        col.style.flex = `1 1 ${(currentBasis + equalShare).toFixed(4)}%`;
-                    });
-                }
-            }
-        }
-    }
-
-    // General normalization pass to correct any floating point errors
-    const finalTotalBasis = activeColumns.reduce((sum, col) => sum + getBasis(col), 0);
-    const finalError = finalTotalBasis - 100.0;
-
-    if (Math.abs(finalError) > 0.01) {
-        const colToAdjust = activeColumns.includes(centerBody) ? centerBody : activeColumns[activeColumns.length - 1];
-        if (colToAdjust) {
-            const basis = getBasis(colToAdjust);
-            colToAdjust.style.flex = `1 1 ${(basis - finalError).toFixed(4)}%`;
-        }
-    }
+    // Use robust normalization to handle state changes and final alignment
+    normalizeFlexBasis(activeColumns);
 }

@@ -1,6 +1,6 @@
 // resizer.js
 import { $$, getElementDepth, setFlexBasisPercent, throttle, getRefs } from './utils.js'; // Changed import
-import { recalculateColumnSizes } from './layout.js';
+import { recalculateColumnSizes, normalizeFlexBasis } from './layout.js';
 import { readPaneViewSettings, defaultViewSettings, applyPaneOrientation } from './pane.js';
 import { settings } from './settings.js';
 
@@ -581,6 +581,14 @@ export function recalculateSplitSizes(split) {
 export function validateAndCorrectAllMinSizes() {
     let needsRecalculation = false;
     const allPanes = Array.from(document.querySelectorAll('.ptmt-pane:not(.view-collapsed)'));
+
+    const refs = getRefs();
+    if (refs && refs.mainBody) {
+        const columns = [refs.leftBody, refs.centerBody, refs.rightBody].filter(c => c && c.style.display !== 'none' && c.dataset.isColumnCollapsed !== 'true');
+        if (columns.length > 0) {
+            normalizeFlexBasis(columns);
+        }
+    }
 
     for (const pane of allPanes) {
         const vs = readPaneViewSettings(pane);
