@@ -19,6 +19,7 @@ export class SettingsManager {
         runMoveBgDivs: true,
         isMobile: false,
         hideContentWhileResizing: false,
+        showContextStatusBar: true,
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: '🧭' },

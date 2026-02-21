@@ -22,11 +22,13 @@ import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 import { positionAnchor } from './positionAnchor.js';
+import { initStatusBar } from './context-status-bar.js';
 
 (function () {
   function initApp() {
     let isHydrating = true;
     positionAnchor();
+    initStatusBar();
     createLayoutIfMissing();
     const refs = getRefs();
 

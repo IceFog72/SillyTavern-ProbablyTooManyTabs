@@ -56,6 +56,7 @@ export class LayoutManager {
             createSettingCheckbox('Show Left Column', 'showLeftPane'),
             createSettingCheckbox('Show Right Column', 'showRightPane'),
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
+            createSettingCheckbox('Show Context Status Bar', 'showContextStatusBar'),
             createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
         );
 
