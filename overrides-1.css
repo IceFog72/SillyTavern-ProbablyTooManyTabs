@@ -1,5 +1,17 @@
 /* ========================================= */
-/* 1. MAIN CONTAINERS & BUBBLE LAYOUT        */
+/* 1. GLOBAL VARIABLES & THEME               */
+/* ========================================= */
+:root {
+    /* Create a theme-aware danger color by mixing the theme body color with red */
+    --ptmt-danger-color: color-mix(in srgb, var(--SmartThemeBodyColor), var(--SmartThemeQuoteColor) 70%);
+
+    --button-outline-danger-background: color-mix(in srgb, var(--ptmt-danger-color) 15%, transparent);
+    --button-outline-danger-background-hover: color-mix(in srgb, var(--ptmt-danger-color) 25%, transparent);
+    --button-outline-danger-background-active: color-mix(in srgb, var(--ptmt-danger-color) 35%, transparent);
+}
+
+/* ========================================= */
+/* 2. MAIN CONTAINERS & BUBBLE LAYOUT        */
 /* ========================================= */
 
 body.big-avatars .mes {
