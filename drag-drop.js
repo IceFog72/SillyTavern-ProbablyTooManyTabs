@@ -8,7 +8,36 @@ import { getPanelById, throttle, getRefs } from './utils.js';
 /** @typedef {import('./types.js').RelativePanePosition} RelativePanePosition */
 /** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
 
-// Helper functions moved up or converted to function declarations to avoid ReferenceError
+// --- Drag Session Cache ---
+let dragSession = null;
+
+function clearDragSession() {
+  dragSession = null;
+}
+
+function updateDragSession(paneUnder) {
+  if (!paneUnder) return;
+  const tabStrip = paneUnder._tabStrip;
+  if (!tabStrip) return;
+
+  const refs = getRefs();
+  const mainBodyRect = refs.mainBody.getBoundingClientRect();
+  const tsRect = tabStrip.getBoundingClientRect();
+  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
+  const tabRects = tabs.map(t => t.getBoundingClientRect());
+
+  dragSession = {
+    pane: paneUnder,
+    tabStrip,
+    tsRect,
+    tabs,
+    tabRects,
+    mainBodyRect,
+    vertical: tabStrip.classList.contains('vertical')
+  };
+}
+// --------------------------
+
 function getDragPidFromEvent(ev) {
   try {
     return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-ptmt-tab') || '';
@@ -41,7 +70,6 @@ function getDragContext(ev) {
 function processDragEvent(ev, { performDrop = false } = {}) {
   if (ev.cancelable) ev.preventDefault();
 
-  // Ignore drags when cursor is over the layout editor - they have their own handling
   const clientX = ev.clientX;
   const clientY = ev.clientY;
   const elUnder = document.elementFromPoint(clientX, clientY);
@@ -61,6 +89,11 @@ function processDragEvent(ev, { performDrop = false } = {}) {
     return;
   }
 
+  // Optimize: Only refresh session if pane changed
+  if (!dragSession || dragSession.pane !== ctx.paneUnder) {
+    updateDragSession(ctx.paneUnder);
+  }
+
   if (ctx.overTabStrip) {
     handleTabStripDrop(ctx, ev, performDrop);
     return;
@@ -77,10 +110,12 @@ function processDragEvent(ev, { performDrop = false } = {}) {
 function handleTabStripDrop(ctx, ev, performDrop) {
   const { paneUnder } = ctx;
   hideSplitOverlay();
-  const index = computeDropIndex(paneUnder._tabStrip, ctx.clientX, ctx.clientY);
+
+  // Use cached session data for index calculation
+  const index = computeDropIndexFromSession(ctx.clientX, ctx.clientY);
 
   if (!performDrop) {
-    showDropIndicatorOnTabStrip(paneUnder._tabStrip, index);
+    showDropIndicatorFromSession(index);
     return;
   }
 
@@ -99,7 +134,13 @@ function handleTabStripDrop(ctx, ev, performDrop) {
 
 function handlePaneSplitDrop(ctx, ev, performDrop) {
   const { paneUnder } = ctx;
-  const { rx, ry } = relativePanePos(paneUnder, ctx.clientX, ctx.clientY);
+
+  // Pos calculation can still use direct rect if session is for tabs
+  const rect = dragSession?.tsRect || paneUnder.getBoundingClientRect();
+  const x = ctx.clientX - rect.left;
+  const y = ctx.clientY - rect.top;
+  const rx = x / Math.max(1, rect.width);
+  const ry = y / Math.max(1, rect.height);
 
   const edgeThresh = 0.2;
   const layers = getPaneLayerCount(paneUnder);
@@ -132,40 +173,32 @@ function handlePaneSplitDrop(ctx, ev, performDrop) {
   return true;
 }
 
-function computeDropIndex(tabStrip, clientX, clientY) {
-  const vertical = tabStrip.classList.contains('vertical');
-  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
-  if (!tabs.length) return 0;
+function computeDropIndexFromSession(clientX, clientY) {
+  if (!dragSession || !dragSession.tabRects.length) return 0;
 
-  // 1. Read all dimensions at once
-  const tabRects = tabs.map(t => t.getBoundingClientRect());
+  const { tabRects, vertical } = dragSession;
+  const clientPos = vertical ? clientY : clientX;
 
-  // 2. Perform logic without touching the DOM
   for (let i = 0; i < tabRects.length; i++) {
     const r = tabRects[i];
     const midpoint = vertical ? (r.top + r.height / 2) : (r.left + r.width / 2);
-    const clientPos = vertical ? clientY : clientX;
-
     if (clientPos < midpoint) return i;
   }
-  return tabs.length;
+  return tabRects.length;
 }
 
-function showDropIndicatorOnTabStrip(tabStrip, index) {
+function showDropIndicatorFromSession(index) {
   const refs = getRefs();
-  if (!refs.dropIndicator || !refs.mainBody) return;
+  if (!refs.dropIndicator || !dragSession) return;
 
-  const mainBodyRect = refs.mainBody.getBoundingClientRect();
-  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
-  const vertical = tabStrip.classList.contains('vertical');
-  const tsRect = tabStrip.getBoundingClientRect();
+  const { vertical, tsRect, tabRects, mainBodyRect } = dragSession;
   const style = { display: 'block', width: '', height: '', left: '', top: '', transform: '' };
 
   if (vertical) {
-    let top = (tabs.length === 0) ? tsRect.top + 2 : (index >= tabs.length) ? tabs[tabs.length - 1].getBoundingClientRect().bottom - 2 : tabs[index].getBoundingClientRect().top - 2;
+    let top = (tabRects.length === 0) ? tsRect.top + 2 : (index >= tabRects.length) ? tabRects[tabRects.length - 1].bottom - 2 : tabRects[index].top - 2;
     Object.assign(style, { top: `${top - mainBodyRect.top}px`, left: `${tsRect.left - mainBodyRect.left}px`, width: `${tsRect.width}px`, height: '2px', transform: 'translateY(-1px)' });
   } else {
-    let left = (tabs.length === 0) ? tsRect.left + 2 : (index >= tabs.length) ? tabs[tabs.length - 1].getBoundingClientRect().right - 2 : tabs[index].getBoundingClientRect().left - 2;
+    let left = (tabRects.length === 0) ? tsRect.left + 2 : (index >= tabRects.length) ? tabRects[tabRects.length - 1].right - 2 : tabRects[index].left - 2;
     Object.assign(style, { left: `${left - mainBodyRect.left}px`, top: `${tsRect.top - mainBodyRect.top}px`, height: `${tsRect.height}px`, width: '2px', transform: 'translateX(-1px)' });
   }
   Object.assign(refs.dropIndicator.style, style);
@@ -217,6 +250,7 @@ export function enableInteractions() {
 
   refs.mainBody.addEventListener('drop', ev => {
     processDragEvent(ev, { performDrop: true });
+    clearDragSession();
   });
 
   refs.mainBody.addEventListener('dragleave', (e) => {
@@ -226,7 +260,10 @@ export function enableInteractions() {
       if (!stillInside) {
         hideDropIndicator();
         hideSplitOverlay();
+        clearDragSession();
       }
     }, 50);
   });
+
+  document.addEventListener('dragend', clearDragSession);
 }
