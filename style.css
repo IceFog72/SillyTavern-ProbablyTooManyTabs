@@ -806,6 +806,14 @@ body.ptmt-is-resizing #rm_print_characters_block {
   visibility: hidden;
 }
 
+/* Dense Content Optimization */
+.character_select,
+.mes {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 150px;
+}
+
+
 .ptmt-touch-drag-ghost {
   position: fixed;
   pointer-events: none;
