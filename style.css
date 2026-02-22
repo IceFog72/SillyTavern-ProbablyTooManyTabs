@@ -806,12 +806,32 @@ body.ptmt-is-resizing #rm_print_characters_block {
   visibility: hidden;
 }
 
+
+@supports (-webkit-app-region: inherit) {
+  body.bubblechat .mes_block {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
+    contain-intrinsic-block-size: auto 500px;
+  }
+}
+
+@-moz-document url-prefix() {
+  body.bubblechat .mes {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 500px;
+    contain-intrinsic-block-size: auto 500px;
+  }
+
+}
+
 /* Dense Content Optimization */
-.character_select,
-.mes_block {
+.character_select {
   content-visibility: auto;
   contain-intrinsic-size: auto 150px;
 }
+
+
+
 
 
 .ptmt-touch-drag-ghost {
