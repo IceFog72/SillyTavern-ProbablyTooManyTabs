@@ -808,7 +808,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 /* Dense Content Optimization */
 .character_select,
-.mes {
+.mes_block {
   content-visibility: auto;
   contain-intrinsic-size: auto 150px;
 }
