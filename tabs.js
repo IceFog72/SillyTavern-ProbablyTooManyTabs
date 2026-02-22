@@ -194,7 +194,15 @@ export function openTab(pid) {
   const pane = getPaneForPanel(target) || getPaneForTabElement(tab) || getActivePane();
   if (!pane) return false;
 
-  return setActivePanelInPane(pane, pid);
+  const res = setActivePanelInPane(pane, pid);
+
+  // Ensure the pane itself is visible if we're opening a tab in it
+  if (pane.classList.contains('view-collapsed')) {
+    setPaneCollapsedView(pane, false);
+  }
+
+  window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'tabSwitch', pane } }));
+  return res;
 }
 
 export function closeTabById(pid) {
@@ -298,13 +306,22 @@ export function createTabFromContent(content, options = {}, target = null) {
       const tab = createTabElement(panelTitle, pid, icon, { collapsed: options.collapsed });
       targetPane._tabStrip.appendChild(tab);
     }
+
+    // If the user explicitly requested uncollapsed state, apply it now
+    if (options.collapsed === false) {
+      setTabCollapsed(pid, false);
+    }
+
     invalidatePaneTabSizeCache(targetPane);
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'tabAdded', pane: targetPane } }));
   }
 
   runTabAction(effectiveSourceId, 'onInit', panel);
 
   if (setAsDefault) setDefaultPanelById(pid);
-  if (makeActive) openTab(pid);
+  if (makeActive) {
+    openTab(pid);
+  }
 
   return panel;
 }
