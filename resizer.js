@@ -40,6 +40,46 @@ function getOrCalculateFullTabSize(pane) {
     return requiredSize;
 }
 
+export const resizerControllers = new WeakMap();
+const minWidthCache = new WeakMap();
+
+export function invalidateMinWidthCache(element) {
+    if (!element) return;
+    minWidthCache.delete(element);
+    if (element.parentElement) invalidateMinWidthCache(element.parentElement);
+}
+
+export function calculateElementMinWidth(element) {
+    if (!element) return 0;
+    if (minWidthCache.has(element)) return minWidthCache.get(element);
+
+    let minWidth = 0;
+    if (element.classList.contains('ptmt-pane')) {
+        const vs = readPaneViewSettings(element);
+        minWidth = Number(vs.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
+    } else if (element.classList.contains('ptmt-split')) {
+        const children = Array.from(element.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+        const resizers = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
+
+        if (element.classList.contains('horizontal')) {
+            let maxMinWidth = 0;
+            children.forEach(child => maxMinWidth = Math.max(maxMinWidth, calculateElementMinWidth(child)));
+            minWidth = maxMinWidth;
+        } else {
+            let totalMinWidth = 0;
+            children.forEach(child => totalMinWidth += calculateElementMinWidth(child));
+            resizers.forEach(resizer => {
+                const width = resizer.classList.contains('disabled') ? 0 : 6;
+                totalMinWidth += width;
+            });
+            minWidth = totalMinWidth;
+        }
+    }
+
+    minWidthCache.set(element, minWidth);
+    return minWidth;
+}
+
 export function checkPaneForIconMode(pane) {
     if (!pane || !pane.classList) return;
     const showIconsOnly = settings.get('showIconsOnly');
@@ -47,8 +87,6 @@ export function checkPaneForIconMode(pane) {
 }
 
 const throttledCheckPaneForIconMode = throttle(checkPaneForIconMode, 80);
-
-export const resizerControllers = new WeakMap();
 
 const pxToPercent = (px, total) => !Number.isFinite(total) || total <= 0 ? 50 : Math.max(0, Math.min(100, (px / total) * 100));
 
@@ -441,34 +479,7 @@ export function updateResizerDisabledStates() {
     }
 }
 
-export function calculateElementMinWidth(element) {
-    if (!element) return 0;
 
-    if (element.classList.contains('ptmt-pane')) {
-        const vs = readPaneViewSettings(element);
-        return Number(vs.minimalPanelSize) || defaultViewSettings.minimalPanelSize;
-    }
-
-    if (element.classList.contains('ptmt-split')) {
-        const children = Array.from(element.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
-        const resizers = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
-
-        if (element.classList.contains('horizontal')) {
-            let maxMinWidth = 0;
-            children.forEach(child => maxMinWidth = Math.max(maxMinWidth, calculateElementMinWidth(child)));
-            return maxMinWidth;
-        } else {
-            let totalMinWidth = 0;
-            children.forEach(child => totalMinWidth += calculateElementMinWidth(child));
-            resizers.forEach(resizer => {
-                const width = resizer.classList.contains('disabled') ? 0 : 6;
-                totalMinWidth += width;
-            });
-            return totalMinWidth;
-        }
-    }
-    return 0;
-}
 
 export function recalculateAllSplitsRecursively(root = getRefs().mainBody) {
     try {

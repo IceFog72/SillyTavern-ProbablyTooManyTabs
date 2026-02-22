@@ -3,7 +3,7 @@ import { el, getSplitOrientation, getPanelById, getTabById, getRefs } from './ut
 import { settings } from './settings.js';
 import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
-import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation } from './resizer.js';
+import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation, invalidateMinWidthCache } from './resizer.js';
 
 /** @typedef {import('./types.js').ViewSettings} ViewSettings */
 /** @typedef {import('./types.js').PaneNode} PaneNode */
@@ -370,6 +370,7 @@ export function setPaneCollapsedView(pane, collapsed) {
     recalculateAllSplitsRecursively();
   }
 
+  invalidateMinWidthCache(pane);
   recalculateColumnSizes();
   updateResizerDisabledStates();
 }

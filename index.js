@@ -137,21 +137,42 @@ import { initStatusBar } from './context-status-bar.js';
     };
     window.ptmtTabs = api;
 
-    window.addEventListener('ptmt:layoutChanged', (event) => {
-      // First apply layout/orientation classes so sizes can be calculated correctly
-      document.querySelectorAll('.ptmt-split').forEach(applySplitOrientation);
-      document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
-
-      if (event.detail?.reason !== 'snapshotApplied') {
+    const debouncedLayoutReaction = debounce((reason) => {
+      if (reason !== 'snapshotApplied') {
         applyColumnVisibility();
-        if (event.detail?.reason !== 'manualResize') {
+        if (reason !== 'manualResize' && reason !== 'tabSwitch') {
           recalculateColumnSizes();
         }
       }
-
-      console.log(`[PTMT Layout] 🔄 layoutChanged triggered. Reason: ${event.detail?.reason || 'unknown'}`);
       updateResizerDisabledStates();
       saveCurrentLayoutDebounced();
+    }, 50);
+
+    window.addEventListener('ptmt:layoutChanged', (event) => {
+      const reason = event.detail?.reason || 'unknown';
+
+      // First apply layout/orientation classes so sizes can be calculated correctly
+      // These are relatively cheap
+      document.querySelectorAll('.ptmt-split').forEach(applySplitOrientation);
+      document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
+
+      console.log(`[PTMT Layout] 🔄 layoutChanged triggered. Reason: ${reason}`);
+
+      if (reason === 'tabSwitch') {
+        // Tab switching is high frequency. Recalculate column sizes ONLY if the pane was empty/filled
+        // which applyColumnVisibility handles. Full column redistribution is usually overkill here.
+        debouncedLayoutReaction(reason);
+      } else {
+        // For structural changes, we can be more synchronous but still careful
+        if (reason !== 'snapshotApplied') {
+          applyColumnVisibility();
+          if (reason !== 'manualResize') {
+            recalculateColumnSizes();
+          }
+        }
+        updateResizerDisabledStates();
+        saveCurrentLayoutDebounced();
+      }
     }, { passive: true });
 
     const extensionPath = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs';

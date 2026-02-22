@@ -88,13 +88,14 @@ function hydrateTab(tabInfo, foundElement) {
     const identifier = getTabIdentifier(tabInfo);
     if (!identifier) return;
 
+    // SAFETY: If the element we found is ALREADY inside a PTMT panel, it's already "tamed".
+    // We only care about elements that are "wild" (in the main DOM or re-created by ST).
+    if (foundElement.closest('.ptmt-panel-content')) {
+        return;
+    }
+
     const existingPanel = getPanelBySourceId(identifier);
     if (existingPanel) {
-        /*const contentHolder = existingPanel.querySelector('.ptmt-panel-content');
-        if (contentHolder && contentHolder.contains(foundElement)) {
-            pendingTabsMap.delete(identifier);
-            return;
-        }*/
         console.log(`[PTMT-Pending] Found new content for ${identifier}. Replacing existing tab.`);
         destroyTabById(existingPanel.dataset.panelId);
     }
@@ -118,6 +119,7 @@ function hydrateTab(tabInfo, foundElement) {
         sourceId: identifier
     }, targetPane);
 
+    // CRITICAL: Once hydrated, stop looking for this element to prevent performance leaks
     //pendingTabsMap.delete(identifier);
 }
 
@@ -184,20 +186,32 @@ export function initPendingTabsManager(allGhostTabs) {
 
     if (pendingTabsMap.size === 0) return;
 
+    let nodesToCheck = new Set();
+    let hydrationTimeout = null;
+
     hydrationObserver = new MutationObserver((mutationsList) => {
-        let shouldCheck = false;
+        let structuralChange = false;
         for (const mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                // OPTIMIZATION: Ignore text-only changes or tiny updates
-                if (mutation.target.id === 'chat' || mutation.target.classList.contains('mes_text')) continue;
-                shouldCheck = true;
-                break; // Found a structural change, proceed to check
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1) { // Only care about Elements
+                        // OPTIMIZATION: Filter out noisy updates immediately
+                        if (node.id === 'chat' || node.classList.contains('mes')) continue;
+                        nodesToCheck.add(node);
+                        structuralChange = true;
+                    }
+                }
             }
         }
-        if (shouldCheck) {
-            // Pass all added nodes from all mutations to avoid re-querying the whole DOM if possible
-            const allAdded = mutationsList.flatMap(m => Array.from(m.addedNodes));
-            checkForPendingTabs(allAdded);
+
+        if (structuralChange) {
+            if (hydrationTimeout) clearTimeout(hydrationTimeout);
+            hydrationTimeout = setTimeout(() => {
+                if (nodesToCheck.size === 0) return;
+                const batch = Array.from(nodesToCheck);
+                nodesToCheck.clear();
+                checkForPendingTabs(batch);
+            }, 100);
         }
     });
 

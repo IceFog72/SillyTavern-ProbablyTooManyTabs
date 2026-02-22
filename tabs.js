@@ -96,8 +96,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
     }
 
     setActivePanelInPane(pane, pid);
-
-    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'tabSwitch', pane } }));
   });
 
   t.addEventListener('dragstart', ev => {
@@ -140,15 +139,21 @@ export function setActivePanelInPane(pane, pid = null, preserveCollapsedState = 
 
   const isTabSwitch = pid !== null;
 
-  tabStrip.querySelectorAll('.ptmt-tab').forEach(t => {
+  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab'));
+  for (const t of tabs) {
     const pId = t.dataset.for;
-    if (!pId) return;
+    if (!pId) continue;
     const isTarget = pId === targetPid;
 
-    // 1. Tab Classes
-    t.classList.toggle('active', isTarget);
+    // 1. Tab Classes - Only update if changed to avoid reflows
+    if (t.classList.contains('active') !== isTarget) {
+      t.classList.toggle('active', isTarget);
+    }
+
     if (!preserveCollapsedState) {
-      t.classList.toggle('collapsed', !isTarget);
+      if (t.classList.contains('collapsed') !== !isTarget) {
+        t.classList.toggle('collapsed', !isTarget);
+      }
     }
 
     // 2. Panel Updates (with cached ref)
@@ -159,16 +164,14 @@ export function setActivePanelInPane(pane, pid = null, preserveCollapsedState = 
     }
 
     if (p) {
-      p.classList.toggle('active', isTarget);
-      p.classList.toggle('hidden', !isTarget);
+      if (p.classList.contains('active') !== isTarget) p.classList.toggle('active', isTarget);
+      if (p.classList.contains('hidden') !== !isTarget) p.classList.toggle('hidden', !isTarget);
 
       if (!preserveCollapsedState) {
         const wasCollapsed = p.classList.contains('collapsed');
         const nowCollapsed = !isTarget;
-        p.classList.toggle('collapsed', nowCollapsed);
-
-        // Trigger onOpen/onCollapse if state actually changed
         if (wasCollapsed !== nowCollapsed) {
+          p.classList.toggle('collapsed', nowCollapsed);
           runTabAction(p.dataset.sourceId, nowCollapsed ? 'onCollapse' : 'onOpen', p);
         }
       }
@@ -178,7 +181,7 @@ export function setActivePanelInPane(pane, pid = null, preserveCollapsedState = 
         runTabAction(p.dataset.sourceId, 'onSelect', p);
       }
     }
-  });
+  }
 
   return targetPid !== null;
 }

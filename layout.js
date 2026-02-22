@@ -25,6 +25,7 @@ export function getBasis(col, useLastFlex = false) {
     return basisMatch ? parseFloat(basisMatch[1]) : 0;
 }
 
+let lastParentWidth = 0;
 export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = null) {
     const refs = getRefs();
     if (!refs || !refs.mainBody || activeColumns.length === 0) return;
@@ -61,8 +62,9 @@ export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = nul
     let error = currentTotal - targetTotal;
 
     // Only apply logic if we had a forced bump or if the total error is significant
-    // This prevents "creeping" shrink where tiny errors result in minor redistribution every call
-    if (!anyChanges && Math.abs(error) <= 0.01) return;
+    // OR if the viewport actually changed.
+    if (!anyChanges && Math.abs(error) <= 0.01 && parentWidth === lastParentWidth) return;
+    lastParentWidth = parentWidth;
 
     // Iterative pass to reduce error while respecting minPercent
     if (Math.abs(error) > 0.0001) {
@@ -105,10 +107,9 @@ export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = nul
         }
     }
 
-    // Apply back to elements
+    // Only update lastFlex if it's a reasonably large size to avoid saving 'starved' states
     columnData.forEach(d => {
         d.col.style.flex = `1 1 ${d.basis.toFixed(4)}%`;
-        // Only update lastFlex if it's a reasonably large size to avoid saving 'starved' states
         if (d.col.dataset.isColumnCollapsed !== 'true' && d.basis > 5) {
             d.col.dataset.lastFlex = d.col.style.flex;
         }
