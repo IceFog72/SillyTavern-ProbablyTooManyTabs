@@ -655,7 +655,7 @@ body,
 
 .ptmt-tab:not(.active) .ptmt-tab-label {
   /* Fallback incorporating background image luminance for transparent UIs */
-  color: oklch(from var(--ptmt-tab-inactive-bg) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) !important;
+  color: color-mix(in oklch, var(--ST-Quote-Text), oklch(from var(--ptmt-tab-inactive-bg) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) 30%) !important;
   mix-blend-mode: normal;
 }
 
