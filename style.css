@@ -1,14 +1,73 @@
 :root {
-
-  --ptmt-accent: var(--SmartThemeQuoteColor);
-  --ptmt-bg: var(--SmartThemeBlurTintColor);
+  --ptmt-accent: var(--ptmt-adaptive-quote);
+  --ptmt-bg: var(--ST-UI-Background);
   --ptmt-radius: 0px;
+
+
+  /* 1. Base Theme Aliases - Mapped to SillyTavern's SmartTheme system */
+  --ST-Main-Text: var(--SmartThemeBodyColor);
+  /* Default body text color */
+  --ST-Italics-Text: var(--SmartThemeEmColor);
+  /* *italics* text color */
+  --ST-Underlined-Text: var(--SmartThemeUnderlineColor);
+  /* _underlined_ text color */
+  --ST-Quote-Text: var(--SmartThemeQuoteColor);
+  /* > blockquote text color */
+  --ST-Text-Shadow: var(--SmartThemeShadowColor);
+  /* Drop shadow behind text */
+  --ST-UI-Background: var(--SmartThemeBlurTintColor);
+  /* Main Panels, Extension Drawer, Settings */
+  --ST-Chat-Background: var(--SmartThemeChatTintColor);
+  /* The main background behind all chat messages */
+  --ST-UI-Border: var(--SmartThemeBorderColor);
+  /* Global borders for panels, inputs, and dividers */
+  --ST-User-Message-Background: var(--SmartThemeUserMesBlurTintColor);
+  /* Right-side (User) chat bubble background */
+  --ST-Bot-Message-Background: var(--SmartThemeBotMesBlurTintColor);
+  /* Left-side (Bot) chat bubble background */
+  --ST-Blur-Strength: var(--SmartThemeBlurStrength);
+  /* The global backdrop-filter blur intensity */
+  /* 2. Isolated Global Adaptive Text Variables (Calculated against UI Background + JS-sampled Image Luminance) */
+  /* Pure adaptive black/white (intermediate — used to shift base colors toward readable) */
+  --ptmt-adaptive-bw: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1);
+
+  /* Base ST color + adaptive B/W blend — preserves hue, shifts lightness for contrast */
+  --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 60%);
+  --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 60%);
+  --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 60%);
+  --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 60%);
+  --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 60%);
+  --ST-Code-Background: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * 100, 0.15) 0 0 / 0.7);
+  --ST-Code-Text: oklch(from var(--ST-Code-Background) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
+  --ptmt-custom-highlight: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -110, 1) 0 0 / 0.15);
+
+  --ptmt-code-bg: var(--ST-Code-Background);
+  --ptmt-code-text: var(--ST-Code-Text);
+
+
   --ptmt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
-  --ptmt-tab-border-color: var(--SmartThemeBorderColor);
-  --ptmt-tab-bg-color: var(--SmartThemeBlurTintColor);
-  --ptmt-tab-inactive-bg: var(--SmartThemeBlurTintColor);
-  --ptmt-tab-hover-bg: color-mix(in srgb, var(--SmartThemeBlurTintColor), var(--SmartThemeQuoteColor) 15%);
+  --ptmt-tab-border-color: color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
+  --ptmt-tab-bg-color: color-mix(in srgb, var(--ST-UI-Background), transparent 20%);
+  --ptmt-tab-inactive-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 50%);
+  --ptmt-tab-hover-bg: color-mix(in srgb, var(--ST-UI-Background), var(--ptmt-adaptive-quote) 10%);
+  --ptmt-glass-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 10%);
+  --ptmt-glass-border: color-mix(in srgb, var(--ST-UI-Border), transparent 40%);
+  --ptmt-shadow-soft: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 70%);
   --tts-bottom-offset: 39px;
+}
+
+code {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  border: 1px solid var(--ST-UI-Border);
+  border-radius: 5px;
+  background-color: var(--ptmt-code-bg);
+  padding: 1px 4px;
+  max-width: calc(100dvw - 95px);
+  line-height: var(--mainFontSize);
+  color: var(--ptmt-code-text);
+  font-family: var(--SmartThemeMonoFontFamily, monospace);
+  font-size: 0.9em;
 }
 
 .ui-autocomplete {
@@ -98,7 +157,7 @@ body:has(#extensionTopBar) .ptmt-panel-content #sheld {
   transform: none !important;
   width: 100% !important;
   border: none !important;
-  border-bottom: 1px solid var(--SmartThemeBorderColor) !important;
+  border-bottom: 1px solid var(--ST-UI-Border) !important;
 }
 
 #sheld {
@@ -239,7 +298,6 @@ body,
   height: 100vh;
   width: 100vw;
   background: transparent;
-  backdrop-filter: blur(var(--SmartThemeBlurStrength));
 }
 
 #ptmt-topBar {
@@ -274,8 +332,7 @@ body,
 }
 
 .ptmt-resizer-vertical:hover {
-  background: var(--SmartThemeQuoteColor);
-  opacity: 0.5;
+  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 60%);
 }
 
 .ptmt-resizer-horizontal {
@@ -287,8 +344,7 @@ body,
 }
 
 .ptmt-resizer-horizontal:hover {
-  background: var(--SmartThemeQuoteColor);
-  opacity: 0.5;
+  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 60%);
 }
 
 .ptmt-resizer-vertical.disabled,
@@ -342,7 +398,9 @@ body,
   grid-area: content;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--SmartThemeBorderColor);
+  border: 1px solid var(--ptmt-glass-border);
+  backdrop-filter: blur(var(--ST-Blur-Strength));
+  will-change: backdrop-filter;
 }
 
 
@@ -384,19 +442,22 @@ body,
 .ptmt-tabStrip {
   display: flex;
   align-items: flex-end;
-  color: var(--SmartThemeBodyColor);
+  color: var(--ST-Main-Text);
   min-width: 0;
   box-sizing: border-box;
 
   border-right: none;
   border-left: none;
 
+  background: color-mix(in srgb, var(--ST-UI-Background), transparent 80%);
+  backdrop-filter: blur(calc(var(--ST-Blur-Strength) / 2));
+  will-change: backdrop-filter;
 
   overflow-x: auto;
   overflow-y: hidden;
   flex-wrap: nowrap;
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--SmartThemeQuoteColor), transparent 50%) transparent;
+  scrollbar-color: color-mix(in srgb, var(--ST-Quote-Text), transparent 50%) transparent;
 }
 
 .ptmt-tabStrip::-webkit-scrollbar {
@@ -405,7 +466,7 @@ body,
 }
 
 .ptmt-tabStrip::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--SmartThemeQuoteColor), transparent 50%);
+  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 50%);
   border-radius: 2px;
 }
 
@@ -444,6 +505,7 @@ body,
   min-width: 20px;
   flex-shrink: 0;
   position: relative;
+  transition: background var(--ptmt-transition);
 }
 
 .ptmt-tab:hover:not(.active) {
@@ -455,13 +517,36 @@ body,
 }
 
 .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active {
-  border-top: 2px solid var(--ptmt-accent);
-  border-bottom: none;
+  border-top-color: transparent;
+  border-bottom-color: transparent;
 }
 
 .ptmt-tab.active {
   cursor: default;
-  border-bottom: 2px solid var(--ptmt-accent);
+  background: var(--ptmt-tab-bg-color);
+  border-bottom-color: transparent;
+}
+
+.ptmt-tab.active::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--ptmt-accent);
+  box-shadow: 0 0 8px 1px var(--ptmt-accent);
+  border-radius: 2px;
+}
+
+/* Horizontal - Bottom (Flow Reversed) */
+.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tab.active::after {
+  bottom: auto;
+  top: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  width: auto;
 }
 
 .ptmt-tab.dragging {
@@ -474,8 +559,8 @@ body,
 }
 
 .ptmt-tab[style*="fixed"] {
-  background: var(--SmartThemeChatTintColor) !important;
-  border: 1px solid var(--SmartThemeBorderColor) !important;
+  background: var(--ST-Chat-Background) !important;
+  border: 1px solid var(--ST-UI-Border) !important;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
   border-radius: 4px;
   padding: 8px;
@@ -500,7 +585,6 @@ body,
   background: var(--ptmt-tab-inactive-bg);
   border: 1px solid var(--ptmt-tab-border-color);
   flex-direction: column;
-
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab:hover:not(.active) {
@@ -518,14 +602,33 @@ body,
 
 .ptmt-tabStrip.vertical .ptmt-tab.active {
   cursor: default;
-  border-right: 2px solid var(--ptmt-accent);
-  border-left: none;
-  border-top-color: var(--ptmt-tab-border-color);
+  background: var(--ptmt-tab-bg-color);
+  border-right-color: transparent;
+}
+
+.ptmt-tabStrip.vertical .ptmt-tab.active::after {
+  content: "";
+  position: absolute;
+  top: 10%;
+  bottom: 10%;
+  right: 0;
+  width: 2px;
+  height: auto;
+  left: auto;
+  background: var(--ptmt-accent);
+  box-shadow: 0 0 8px 1px var(--ptmt-accent);
+  border-radius: 2px;
+}
+
+/* Vertical - Right (Flow Reversed) */
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active::after {
+  right: auto;
+  left: 0;
 }
 
 .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active {
-  border-left: 2px solid var(--ptmt-accent);
-  border-right: none;
+  border-left-color: transparent;
+  border-right-color: transparent;
 }
 
 .ptmt-tab .ptmt-tab-label {
@@ -534,13 +637,26 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
   mix-blend-mode: difference;
-  color: var(--SmartThemeBodyColor);
+  color: var(--ST-Main-Text);
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab .ptmt-tab-label {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   font-size: 0.85em;
+}
+
+/* Automatic Contrast Enhancement */
+.ptmt-tab.active .ptmt-tab-label {
+  /* Fallback incorporating background image luminance for transparent UIs */
+  color: oklch(from var(--ptmt-tab-bg-color) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) !important;
+  mix-blend-mode: normal;
+}
+
+.ptmt-tab:not(.active) .ptmt-tab-label {
+  /* Fallback incorporating background image luminance for transparent UIs */
+  color: oklch(from var(--ptmt-tab-inactive-bg) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) !important;
+  mix-blend-mode: normal;
 }
 
 .ptmt-panelContainer {
@@ -590,7 +706,7 @@ body,
 
 .ptmt-settings-panel fieldset {
   margin-bottom: 10px;
-  border: 1px solid var(--SmartThemeBorderColor);
+  border: 1px solid var(--ST-UI-Border);
   padding: 10px;
   border-radius: 4px;
 }
@@ -600,9 +716,9 @@ body,
 }
 
 .ptmt-settings-panel {
-  border: 1px solid var(--SmartThemeBorderColor);
+  border: 1px solid var(--ST-UI-Border);
   padding: 6px;
-  background-color: var(--SmartThemeBlurTintColor);
+  background-color: var(--ST-UI-Background);
 }
 
 #ptmt-unified-editor {
@@ -652,7 +768,7 @@ body,
   border-radius: 4px !important;
   background: rgba(255, 107, 107, 0.15) !important;
   border: 1px solid rgba(255, 107, 107, 0.4) !important;
-  color: var(--SmartThemeBodyColor);
+  color: var(--ST-Main-Text);
   transition: all 0.2s ease-in-out;
 }
 
@@ -663,14 +779,14 @@ body,
 
 .ptmt-editor-split,
 .ptmt-editor-pane {
-  border: 1px dashed var(--SmartThemeQuoteColor);
+  border: 1px dashed var(--ST-Quote-Text);
   padding: 8px;
   margin-top: 4px !important;
   border-radius: 4px;
 }
 
 .ptmt-editor-pane.ptmt-pending-pane {
-  border: 1px dashed var(--SmartThemeBodyColor) !important;
+  border: 1px dashed var(--ST-Main-Text) !important;
 }
 
 .ptmt-editor-title {
@@ -679,7 +795,7 @@ body,
   align-items: center;
   gap: 8px;
   font-weight: bold;
-  color: var(--SmartThemeEmColor);
+  color: var(--ST-Italics-Text);
 }
 
 .ptmt-editor-title>span {
@@ -688,17 +804,17 @@ body,
 
 .ptmt-editor-title select,
 .ptmt-editor-title button {
-  background: var(--SmartThemeQuoteColor);
-  border: 1px solid var(--SmartThemeBorderColor);
-  color: var(--SmartThemeBodyColor);
+  background: var(--ST-Quote-Text);
+  border: 1px solid var(--ST-UI-Border);
+  color: var(--ST-Main-Text);
   border-radius: 4px;
   padding: 2px 5px;
   font-size: 12px;
 }
 
 .ptmt-editor-title button:hover {
-  background: var(--SmartThemeShadowColor);
-  border-color: var(--SmartThemeEmColor);
+  background: var(--ST-Text-Shadow);
+  border-color: var(--ST-Italics-Text);
   cursor: pointer;
 }
 
@@ -736,7 +852,7 @@ body,
 
 .ptmt-drag-handle {
   cursor: grab;
-  color: var(--SmartThemeEmColor);
+  color: var(--ST-Italics-Text);
   padding: 4px 8px;
 
   font-size: 1.2em;
@@ -755,8 +871,8 @@ body,
 }
 
 .ptmt-drag-handle:hover {
-  background: var(--SmartThemeHighlightColor);
-  color: var(--SmartThemeBodyColor);
+  background: var(--ST-Highlight-Background);
+  color: var(--ST-Main-Text);
 }
 
 .ptmt-drag-handle:active {
@@ -764,9 +880,9 @@ body,
 }
 
 .ptmt-editor-tab input {
-  background: var(--SmartThemeBlurTintColor);
-  border: 1px solid var(--SmartThemeBorderColor);
-  color: var(--SmartThemeBodyColor);
+  background: var(--ST-UI-Background);
+  border: 1px solid var(--ST-UI-Border);
+  color: var(--ST-Main-Text);
   padding: 2px 4px;
   border-radius: 0.5rem;
   min-width: 36px;
@@ -780,7 +896,7 @@ body,
 .ptmt-editor-id {
   font-family: monospace;
   font-size: 10px;
-  color: var(--SmartThemeEmColor);
+  color: var(--ST-Italics-Text);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -905,17 +1021,24 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 #ptmt-view-settings-dialog {
-  color: var(--SmartThemeBodyColor);
+  color: var(--ST-Main-Text);
 }
 
 #ptmt-view-settings-dialog input.text_edit,
 #ptmt-view-settings-dialog select {
-  background: rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--SmartThemeBorderColor);
-  color: var(--SmartThemeBodyColor);
-  border-radius: 4px;
+  background: color-mix(in srgb, var(--ST-UI-Background), transparent 60%);
+  border: 1px solid var(--ST-UI-Border);
+  color: var(--ST-Main-Text);
+  border-radius: 0.5rem;
   padding: 4px 8px;
   outline: none;
+  transition: all 0.2s ease;
+}
+
+#ptmt-view-settings-dialog input.text_edit:focus,
+#ptmt-view-settings-dialog select:focus {
+  border-color: var(--ST-Quote-Text);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ST-Quote-Text), transparent 80%);
 }
 
 #ptmt-view-settings-dialog input[type="number"] {
@@ -956,29 +1079,28 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .csb-system {
-  background-color: #777;
+  background-color: color-mix(in oklch, #777, var(--ST-Main-Text) 15%);
 }
 
 .csb-prompt {
-  background-color: #ff4d4d;
+  background-color: color-mix(in oklch, #ff4d4d, var(--ST-Quote-Text) 20%);
 }
 
 .csb-world {
-  background-color: #f1c40f;
+  background-color: color-mix(in oklch, #f1c40f, var(--ST-Quote-Text) 20%);
 }
 
 .csb-chat {
-  background-color: #2ecc71;
+  background-color: color-mix(in oklch, #2ecc71, var(--ST-Main-Text) 15%);
 }
 
 .csb-anchors {
-  background-color: #4a90e2;
+  background-color: color-mix(in oklch, #4a90e2, var(--ST-Quote-Text) 20%);
 }
 
-/* Purple */
 .csb-remaining {
-  background-color: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.5);
+  background-color: color-mix(in srgb, var(--ST-Main-Text), transparent 90%);
+  color: color-mix(in srgb, var(--ST-Main-Text), transparent 50%);
   text-shadow: none;
 }
 

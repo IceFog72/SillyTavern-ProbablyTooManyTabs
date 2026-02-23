@@ -93,7 +93,7 @@ export class LayoutManager {
                 padding: '10px',
                 borderRadius: '4px',
                 background: 'rgba(255, 229, 100, 0.1)',
-                color: 'var(--SmartThemeBodyColor)',
+                color: 'var(--ST-Main-Text)',
                 textAlign: 'left',
                 fontSize: '0.9em',
                 display: 'flex',
@@ -119,9 +119,9 @@ export class LayoutManager {
             style: {
                 marginTop: '20px',
                 paddingTop: '15px',
-                borderTop: '1px solid var(--SmartThemeBorderColor)',
+                borderTop: '1px solid var(--ST-UI-Border)',
                 textAlign: 'center',
-                color: 'var(--SmartThemeBodyColor)'
+                color: 'var(--ST-Main-Text)'
             }
         }, 'Feedback/support');
 
@@ -139,9 +139,9 @@ export class LayoutManager {
             display: 'inline-block',
             padding: '5px 15px',
             borderRadius: '4px',
-            background: 'var(--SmartThemeChatTintColor)',
-            border: '1px solid var(--SmartThemeBorderColor)',
-            color: 'var(--SmartThemeLinkColor)',
+            background: 'var(--ST-Chat-Background)',
+            border: '1px solid var(--ST-UI-Border)',
+            color: 'var(--ST-Italics-Text)',
             textDecoration: 'none',
             transition: 'background 150ms'
         };
@@ -151,8 +151,8 @@ export class LayoutManager {
         const kofiLink = el('a', { href: 'https://ko-fi.com/icefog72', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Ko-fi');
 
         [discordLink, patreonLink, kofiLink].forEach(link => {
-            link.addEventListener('mouseover', () => link.style.background = 'var(--SmartThemeShadowColor)');
-            link.addEventListener('mouseout', () => link.style.background = 'var(--SmartThemeChatTintColor)');
+            link.addEventListener('mouseover', () => link.style.background = 'var(--ST-Text-Shadow)');
+            link.addEventListener('mouseout', () => link.style.background = 'var(--ST-Chat-Background)');
         });
 
         linksWrapper.append(discordLink, patreonLink, kofiLink);

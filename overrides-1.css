@@ -3,11 +3,80 @@
 /* ========================================= */
 :root {
     /* Create a theme-aware danger color by mixing the theme body color with red */
-    --ptmt-danger-color: color-mix(in srgb, var(--SmartThemeBodyColor), var(--SmartThemeQuoteColor) 70%);
+    --ptmt-danger-color: color-mix(in srgb, var(--ptmt-adaptive-text), var(--ptmt-adaptive-quote) 70%);
 
     --button-outline-danger-background: color-mix(in srgb, var(--ptmt-danger-color) 15%, transparent);
     --button-outline-danger-background-hover: color-mix(in srgb, var(--ptmt-danger-color) 25%, transparent);
     --button-outline-danger-background-active: color-mix(in srgb, var(--ptmt-danger-color) 35%, transparent);
+
+    /* Isolated Global Adaptive Text Variables (Calculated against UI Background + JS-sampled Image Luminance) */
+    /* Pure adaptive black/white (intermediate — used to shift base colors toward readable) */
+    --ptmt-adaptive-bw: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1);
+
+    /* Base ST color + adaptive B/W blend — preserves hue, shifts lightness for contrast */
+    --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 60%);
+    --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 60%);
+    --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 40%);
+    --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 30%);
+    --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 60%);
+    --ST-Code-Text: oklch(from var(--ST-Code-Background) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
+}
+
+
+/* Comprehensive Adaptive Contrast Overrides (Targeting specific ST default.css hardcoded colors) */
+body,
+#bg_tabs .bg_tabs_list .bg_tab_button a,
+#completion_prompt_manager #completion_prompt_manager_list .completion_prompt_manager_prompt_name .prompt-manager-inspect-action,
+.text_muted,
+small,
+.drag-grabber,
+.options-content a,
+#extensionsMenu>.extension_container>div,
+#extensionsMenu>div:not(.extension_container),
+.list-group>div,
+.list-group .list-group-item,
+#sd_dropdown .list-group span,
+.swipes-counter,
+.bogus_folder_select .avatar,
+textarea,
+input,
+select,
+button,
+.text_pole,
+input[type=search]::-webkit-search-cancel-button,
+.menu_button,
+.prompt_order>div,
+input[type='checkbox'],
+.range-block-counter,
+.nice-link,
+#chartokenwarning a,
+.ui-slider-handle.ui-state-default,
+.ui-slider-handle.ui-state-hover,
+.ui-slider-handle.ui-state-active,
+body .ui-widget-content,
+.drawer-content,
+.wi-enter-footer-text,
+#rm_group_add_members a,
+#rm_group_members a,
+.paginationjs-pages ul li a,
+.faPicker:not(:has(:not(.hidden)))::after,
+.info-block,
+.range-block-value {
+    color: var(--ptmt-adaptive-text) !important;
+    text-shadow: var(--ptmt-adaptive-shadow) !important;
+}
+
+body.noShadows * {
+    text-shadow: none !important;
+}
+
+body.no-blur * {
+    backdrop-filter: unset !important;
+}
+
+input[type="range"],
+.neo-range-slider {
+    background: var(--ptmt-adaptive-text) !important;
 }
 
 /* ========================================= */
@@ -53,12 +122,118 @@ body.big-avatars .mes .mes_block {
     margin: 12px !important;
 }
 
+.mes_block {
+    padding-top: 0;
+    padding-left: 10px;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: clip;
+}
+
 body.big-avatars .mes_block .ch_name {
     margin-bottom: 8px !important;
 }
 
+.mes {
+    /*
+     * Three-layer blending:
+     *   Layer 1: Wallpaper  (--ptmt-bg-luminance — JS-sampled, 0–100)
+     *   Layer 2: Chat Tint  (--ST-Chat-Background — has its own l and alpha)
+     *   Layer 3: Msg Tint   (--ST-Bot-Message-Background — has its own l and alpha)
+     *
+     * Step 1: Blend the chat tint over the wallpaper to get an intermediate luminance.
+     *         intermediate_L = chatL * chatAlpha + wallpaperL * (1 - chatAlpha)
+     *         We express wallpaperL as: var(--ptmt-bg-luminance, 45) / 100
+     *
+     * Step 2: Use that intermediate as the "background" when blending the message tint.
+     *         We store this in --ptmt-mes-bg-L as a pure number for the final oklch clamp.
+     *
+     * Because CSS can't chain relative color syntax across two steps purely, we compute
+     * both steps inside the final oklch clamp expression.
+     */
+
+    /* Intermediate: chat tint blended over wallpaper (used by oklch as the pre-message luminance) */
+    --ptmt-chat-bg-composite: color-mix(in srgb, var(--ST-Chat-Background), oklch(calc(var(--ptmt-bg-luminance, 45) / 100) 0 0));
+
+    /* Final composite: message tint blended over the chat+wallpaper composite */
+    --mes-bg-composite: color-mix(in srgb, var(--ST-Bot-Message-Background), var(--ptmt-chat-bg-composite));
+
+    /* Adaptive text colors derived from the fully-blended composite */
+    /* Pure adaptive B/W intermediate for this message scope */
+    --ptmt-mes-bw: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
+
+    /* Base ST color + message-local adaptive B/W — preserves hue, shifts lightness */
+    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 60%);
+    --ptmt-mes-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-mes-bw) 60%);
+    --ptmt-mes-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-mes-bw) 40%);
+    --ptmt-mes-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-mes-bw) 30%);
+    --ptmt-mes-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-mes-bw) 60%);
+
+    /* Code block adaptive variables */
+    --ptmt-code-bg: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * 100, 0.15) 0 0 / 0.7);
+    --ptmt-code-text: oklch(from var(--ptmt-code-bg) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
+}
+
+.mes[is_user="true"] {
+
+    --mes-bg-composite: color-mix(in srgb, var(--ST-User-Message-Background), var(--ptmt-chat-bg-composite));
+    --ptmt-mes-bw: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
+
+}
+
+#chat .mes_text q {
+    --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 30%);
+    color: var(--ptmt-adaptive-quote) !important;
+}
+
+#chat {
+    --ptmt-chat-bg-composite: color-mix(in srgb, var(--ST-Chat-Background), oklch(calc(var(--ptmt-bg-luminance, 45) / 100) 0 0));
+    --mes-bg-composite: color-mix(in srgb, var(--ST-Bot-Message-Background), var(--ptmt-chat-bg-composite));
+    --ptmt-mes-bw: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
+    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 60%);
+    color: var(--ptmt-mes-text) !important;
+}
+
+.mes .swipes-counter {
+    color: var(--ptmt-mes-text) !important;
+}
+
+.mes {
+    color: var(--ptmt-mes-text);
+    text-shadow: var(--ptmt-mes-shadow) !important;
+}
+
+.mes em {
+    color: var(--ptmt-mes-em);
+}
+
+.mes u,
+.mes ins {
+    color: var(--ptmt-mes-underline);
+}
+
+.mes blockquote {
+    color: var(--ptmt-mes-quote);
+}
+
 .mes_text {
-    padding-right: unset !important;
+    padding-left: 0;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-right: var(--mes-right-spacing);
+    color: var(--ptmt-mes-text);
+}
+
+.mes_text,
+.mes_reasoning {
+    font-weight: 500;
+    line-height: calc(var(--mainFontSize) + .5rem);
+    max-width: 100%;
+    overflow-wrap: anywhere;
+}
+
+.mes_reasoning {
+    color: var(--ptmt-mes-em);
 }
 
 body.big-avatars.hideChatAvatars .mes .mesAvatarWrapper,
@@ -179,7 +354,6 @@ body.big-avatars .mes .mesAvatarWrapper .avatar img {
 
 .mes_reasoning {
     border-left: 1px solid var(--reasoning-body-color) !important;
-    color: var(--SmartThemeEmColor) !important;
     border-radius: 0px 0.5rem 0px 0px !important;
     font-size: calc(var(--mainFontSize) * 0.9);
 }
@@ -190,10 +364,10 @@ body.big-avatars .mes .mesAvatarWrapper .avatar img {
 
 .mes_buttons,
 .mes_reasoning_actions {
-    border: 1px solid var(--SmartThemeBorderColor);
+    border: 1px solid var(--ST-UI-Border);
     --shadow-medium: 0 4px 8px 0 hsl(none 0% 0%/0.16);
     box-shadow: var(--shadow-medium) !important;
-    background-color: var(--SmartThemeBlurTintColor);
+    background-color: var(--ST-UI-Background);
     padding: 2px;
     border-radius: 0.5rem;
     visibility: hidden;
@@ -219,11 +393,10 @@ body.big-avatars .mes .mesAvatarWrapper .avatar img {
     height: 28px;
     width: 28px;
     font-size: calc(var(--mainFontSize) * 1.2);
-    filter: drop-shadow(0px 0px 2px var(--SmartThemeShadowColor));
+    filter: drop-shadow(0px 0px 2px var(--ST-Text-Shadow));
 }
 
 .mes_button:hover {
-    background-color: #333439;
     cursor: pointer;
     border-radius: 0.5rem;
 }
@@ -348,14 +521,14 @@ body.charListGrid {
     .character_select.is_fav .ch_name,
     .group_select.is_fav .ch_name,
     .group_member.is_fav .ch_name {
-        color: var(--SmartThemeQuoteColor);
+        color: var(--ptmt-adaptive-quote);
     }
 
     .character_select.is_fav .avatar,
     .group_select.is_fav .avatar,
     .group_member.is_fav .avatar,
     .avatar.is_fav {
-        outline: 2px solid var(--SmartThemeQuoteColor);
+        outline: 2px solid var(--ptmt-adaptive-quote);
     }
 
     #rm_print_characters_block {
@@ -409,10 +582,22 @@ span {
 }
 
 input,
-select {
-    border: 1px solid color-mix(in srgb, var(--SmartThemeBorderColor) 50%, transparent) !important;
+select,
+textarea {
+    border: 1px solid color-mix(in srgb, var(--ST-UI-Border) 50%, transparent) !important;
     font-size: calc(var(--mainFontSize) * 0.9) !important;
     padding: 6px 8px !important;
+    border-radius: 0.5rem !important;
+    transition: all 0.2s ease;
+}
+
+input:disabled,
+select:disabled,
+textarea:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    filter: saturate(0.6) brightness(0.9) !important;
+    pointer-events: none !important;
 }
 
 .menu_button>* {
@@ -423,15 +608,33 @@ select {
 
 .menu_button {
     filter: unset !important;
-    padding: 6px 8px;
+    padding: 6px 12px;
     text-shadow: unset !important;
     font-size: calc(var(--mainFontSize) * 0.9);
     background-color: var(--button-outline-danger-background) !important;
-    color: color-mix(in srgb, var(--SmartThemeBodyColor) 50%, white 60%);
+    color: color-mix(in srgb, var(--ptmt-adaptive-text) 50%, white 60%);
+    border-radius: 0.5rem !important;
+    transition: all var(--ptmt-transition);
+    border: 1px solid transparent !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+}
+
+.menu_button:disabled,
+.menu_button[disabled] {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
+    filter: saturate(0.4) brightness(0.8) !important;
+    pointer-events: none !important;
 }
 
 .menu_button:hover {
     background-color: var(--button-outline-danger-background-hover) !important;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 60%);
+    border-color: color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 50%) !important;
 }
 
 .menu_button:active {
@@ -439,7 +642,7 @@ select {
 }
 
 .menu_button>small {
-    color: color-mix(in srgb, var(--SmartThemeBodyColor) 50%, white 60%);
+    color: color-mix(in srgb, var(--ptmt-adaptive-text) 50%, white 60%);
 }
 
 small:hover {
@@ -459,7 +662,7 @@ small:hover {
 input[type="radio"],
 input[type="checkbox"] {
     appearance: none;
-    background-color: var(--SmartThemeBlurTintColor) !important;
+    background-color: var(--ST-UI-Background) !important;
     border-radius: 72px;
     border-style: none;
     flex-shrink: 0;
@@ -469,7 +672,7 @@ input[type="checkbox"] {
     width: 26px;
     filter: none;
     transform: none;
-    border: 1px solid var(--SmartThemeBorderColor) !important;
+    border: 1px solid var(--ST-UI-Border) !important;
     padding: unset !important;
 }
 
@@ -490,7 +693,7 @@ input[type="checkbox"]::after {
 
 input[type="radio"]::after,
 input[type="checkbox"]::after {
-    background-color: var(--SmartThemeBodyColor) !important;
+    background-color: var(--ST-Main-Text) !important;
     border-radius: 50%;
     content: "";
     height: 10px;
@@ -507,18 +710,18 @@ input[type="checkbox"] {
 
 input[type="radio"]:hover,
 input[type="checkbox"]:hover {
-    background-color: var(--SmartThemeEmColor) !important;
+    background-color: var(--ST-Italics-Text) !important;
     transition-duration: 0s;
 }
 
 input[type="radio"]:checked,
 input[type="checkbox"]:checked {
-    background-color: var(--SmartThemeQuoteColor) !important;
+    background-color: var(--ST-Quote-Text) !important;
 }
 
 input[type="radio"]:checked::after,
 input[type="checkbox"]:checked::after {
-    background-color: var(--SmartThemeBodyColor) !important;
+    background-color: var(--ST-Main-Text) !important;
     left: 12px;
 }
 
@@ -529,7 +732,7 @@ input[type="checkbox"]:focus:not(.focus-visible) {
 
 input[type="radio"]:checked:hover,
 input[type="checkbox"]:checked:hover {
-    background-color: var(--SmartThemeUnderlineColor) !important;
+    background-color: var(--ST-Underlined-Text) !important;
 }
 
 .drawer-toggle:has(.openIcon),
@@ -572,49 +775,52 @@ input[type="checkbox"]:checked:hover {
 
 
 #user-settings-block h4 {
-    background: color-mix(in srgb, var(--SmartThemeQuoteColor) 10%, var(--SmartThemeEmColor) 10%);
-    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--ptmt-adaptive-quote) 10%, var(--ptmt-adaptive-em) 10%);
+    border-radius: 0.5rem !important;
 }
 
 .inline-drawer-header {
-    background: color-mix(in srgb, var(--SmartThemeQuoteColor) 10%, var(--SmartThemeEmColor) 10%);
-    padding: 8px;
+    background: color-mix(in srgb, var(--ptmt-adaptive-quote) 10%, var(--ptmt-adaptive-em) 10%);
+    padding: 8px !important;
 }
 
 .inline-drawer-content {
-    padding: 8px;
-    background: color-mix(in srgb, var(--SmartThemeQuoteColor) 10%, var(--SmartThemeEmColor) 10%);
-    border-radius: 0px 0px 0.5rem 0.5rem;
-    margin-bottom: 2px;
+    padding: 8px !important;
+    background: color-mix(in srgb, var(--ptmt-adaptive-quote) 10%, var(--ptmt-adaptive-em) 10%);
+    border-radius: 0px 0px 0.5rem 0.5rem !important;
+    margin-bottom: 2px !important;
 }
 
 .inline-drawer-header:has(.up) {
-    border-radius: 0.5rem 0.5rem 0px 0px;
+    border-radius: 0.5rem 0.5rem 0px 0px !important;
 }
 
 .inline-drawer-header:has(.down) {
-    border-radius: 0.5rem;
+    border-radius: 0.5rem !important;
 }
 
 #extensions_settings .inline-drawer-toggle.inline-drawer-header,
 #extensions_settings2 .inline-drawer-toggle.inline-drawer-header,
+.inline-drawer-toggle.inline-drawer-header,
 .standoutHeader,
 .userSettingsInnerExpandable {
-    background: color-mix(in srgb, var(--SmartThemeQuoteColor) 10%, var(--SmartThemeEmColor) 10%);
-    margin: unset;
-    padding: 4px 8px;
-    margin-bottom: 2px;
-    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--ptmt-adaptive-quote) 10%, var(--ptmt-adaptive-em) 10%);
+    margin: unset !important;
+    padding: 4px 8px !important;
+    margin-bottom: 2px !important;
+    border-radius: 0.5rem !important;
     border: unset !important;
 }
 
 #extensions_settings .inline-drawer-toggle.inline-drawer-header:has(.up),
-#extensions_settings2 .inline-drawer-toggle.inline-drawer-header:has(.up) {
-    border-radius: 0.5rem 0.5rem 0px 0px;
+#extensions_settings2 .inline-drawer-toggle.inline-drawer-header:has(.up),
+.inline-drawer-toggle.inline-drawer-header:has(.up) {
+    border-radius: 0.5rem 0.5rem 0px 0px !important;
 }
 
 #extensions_settings .inline-drawer-toggle.inline-drawer-header,
 #extensions_settings2 .inline-drawer-toggle.inline-drawer-header,
+.inline-drawer-toggle.inline-drawer-header,
 .standoutHeader,
 .userSettingsInnerExpandable {
     padding: 6px 6px !important;

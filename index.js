@@ -23,12 +23,14 @@ import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDel
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 import { positionAnchor } from './positionAnchor.js';
 import { initStatusBar } from './context-status-bar.js';
+import { themeEngine } from './theme-engine.js';
 
 (function () {
   function initApp() {
     let isHydrating = true;
     positionAnchor();
     initStatusBar();
+    themeEngine.init();
     createLayoutIfMissing();
     const refs = getRefs();
 

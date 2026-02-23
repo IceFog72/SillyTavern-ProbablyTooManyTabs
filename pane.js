@@ -626,7 +626,7 @@ export function openViewSettingsDialog(pane) {
 
   const dialogStyles = {
     position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    background: 'var(--SmartThemeBlurTintColor)', padding: '20px', borderRadius: '8px',
+    background: 'var(--ST-UI-Background)', padding: '20px', borderRadius: '8px',
     border: '1px solid #556', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
     zIndex: '10000', minWidth: '300px'
   };
