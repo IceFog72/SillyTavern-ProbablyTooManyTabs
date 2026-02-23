@@ -589,10 +589,8 @@ input,
 select,
 textarea {
     border: 1px solid color-mix(in srgb, var(--ST-UI-Border) 50%, transparent) !important;
-    font-size: calc(var(--mainFontSize) * 0.9) !important;
     padding: 6px 8px !important;
     border-radius: 0.5rem !important;
-    transition: all 0.2s ease;
 }
 
 input:disabled,

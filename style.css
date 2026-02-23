@@ -1,6 +1,5 @@
 :root {
-  --ptmt-accent: var(--ptmt-adaptive-quote);
-  --ptmt-bg: var(--ST-UI-Background);
+
   --ptmt-radius: 0px;
 
 
@@ -29,7 +28,7 @@
   /* The global backdrop-filter blur intensity */
   /* 2. Isolated Global Adaptive Text Variables (Calculated against UI Background + JS-sampled Image Luminance) */
   /* Pure adaptive black/white (intermediate — used to shift base colors toward readable) */
-  --ptmt-adaptive-bw: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1);
+  --ptmt-adaptive-bw: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1);
 
   /* Base ST color + adaptive B/W blend — preserves hue, shifts lightness for contrast */
   --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 60%);
@@ -37,9 +36,9 @@
   --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 60%);
   --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 60%);
   --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 60%);
-  --ST-Code-Background: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * 100, 0.15) 0 0 / 0.7);
+  --ST-Code-Background: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * 100, 0.15) 0 0 / 0.7);
   --ST-Code-Text: oklch(from var(--ST-Code-Background) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
-  --ptmt-custom-highlight: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -110, 1) 0 0 / 0.15);
+  --ptmt-custom-highlight: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -110, 1) 0 0 / 0.15);
 
   --ptmt-code-bg: var(--ST-Code-Background);
   --ptmt-code-text: var(--ST-Code-Text);
@@ -50,8 +49,6 @@
   --ptmt-tab-bg-color: color-mix(in srgb, var(--ST-UI-Background), transparent 20%);
   --ptmt-tab-inactive-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 50%);
   --ptmt-tab-hover-bg: color-mix(in srgb, var(--ST-UI-Background), var(--ptmt-adaptive-quote) 10%);
-  --ptmt-glass-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 10%);
-  --ptmt-glass-border: color-mix(in srgb, var(--ST-UI-Border), transparent 40%);
   --ptmt-shadow-soft: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 70%);
   --tts-bottom-offset: 39px;
 }
@@ -106,6 +103,7 @@ code {
 
 .drawer-content {
   min-width: 200px !important;
+  border: none !important;
 }
 
 #tts-bar {
@@ -116,6 +114,15 @@ code {
 #extensionTopBar,
 #send_form {
   border-radius: 0 !important;
+}
+
+#send_form {
+  border: none;
+  border-top: 1px solid var(--ST-UI-Border) !important;
+}
+
+send_textarea {
+  border: none;
 }
 
 body:has(#extensionTopBar) .ptmt-panel-content #sheld {
@@ -326,7 +333,7 @@ body,
 .ptmt-resizer-vertical {
   flex: 0 0 6px;
   cursor: col-resize;
-  background: var(--ptmt-bg);
+  background: var(--ST-UI-Background);
   transition: background var(--ptmt-transition);
   touch-action: none;
 }
@@ -338,7 +345,7 @@ body,
 .ptmt-resizer-horizontal {
   flex: 0 0 6px;
   cursor: row-resize;
-  background: var(--ptmt-bg);
+  background: var(--ST-UI-Background);
   transition: background var(--ptmt-transition);
   touch-action: none;
 }
@@ -398,7 +405,7 @@ body,
   grid-area: content;
   min-width: 0;
   min-height: 0;
-  border: 1px solid var(--ptmt-glass-border);
+  border: 1px solid var(--ST-UI-Border);
   backdrop-filter: blur(var(--ST-Blur-Strength));
   will-change: backdrop-filter;
 }
@@ -499,8 +506,8 @@ body,
   gap: 6px;
   white-space: nowrap;
   background: var(--ptmt-tab-inactive-bg);
-  border: 1px solid var(--ptmt-tab-border-color);
-  border-bottom: none;
+  border-left: 1px solid var(--ptmt-tab-border-color);
+  border-right: 1px solid var(--ptmt-tab-border-color);
   min-height: 20px;
   min-width: 20px;
   flex-shrink: 0;
@@ -527,6 +534,7 @@ body,
   border-bottom-color: transparent;
 }
 
+
 .ptmt-tab.active::after {
   content: "";
   position: absolute;
@@ -534,8 +542,25 @@ body,
   left: 10%;
   right: 10%;
   height: 2px;
-  background: var(--ptmt-accent);
-  box-shadow: 0 0 8px 1px var(--ptmt-accent);
+  background: var(--ptmt-adaptive-quote);
+  box-shadow: 0 0 8px 1px var(--ptmt-adaptive-quote);
+  border-radius: 2px;
+}
+
+.ptmt-tab.active:hover::after {
+  background: var(--ST-Main-Text) !important;
+  box-shadow: 0 0 8px 1px var(--ST-Main-Text) !important;
+}
+
+.ptmt-tab:hover::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: var(--ptmt-adaptive-shadow);
+  box-shadow: 0 0 8px 1px var(--ptmt-adaptive-shadow);
   border-radius: 2px;
 }
 
@@ -583,7 +608,9 @@ body,
   white-space: normal;
   border-radius: 0;
   background: var(--ptmt-tab-inactive-bg);
-  border: 1px solid var(--ptmt-tab-border-color);
+  border: none;
+  border-bottom: 1px solid var(--ptmt-tab-border-color) !important;
+  border-top: 1px solid var(--ptmt-tab-border-color) !important;
   flex-direction: column;
 }
 
@@ -606,6 +633,18 @@ body,
   border-right-color: transparent;
 }
 
+.ptmt-tabStrip.vertical .ptmt-tab::after {
+  content: "";
+  position: absolute;
+  top: 10%;
+  bottom: 10%;
+  right: 0;
+  width: 2px;
+  height: auto;
+  left: auto;
+  border-radius: 2px;
+}
+
 .ptmt-tabStrip.vertical .ptmt-tab.active::after {
   content: "";
   position: absolute;
@@ -615,13 +654,14 @@ body,
   width: 2px;
   height: auto;
   left: auto;
-  background: var(--ptmt-accent);
-  box-shadow: 0 0 8px 1px var(--ptmt-accent);
+  background: var(--ptmt-adaptive-quote);
+  box-shadow: 0 0 8px 1px var(--ptmt-adaptive-quote);
   border-radius: 2px;
 }
 
+
 /* Vertical - Right (Flow Reversed) */
-.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active::after {
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab::after {
   right: auto;
   left: 0;
 }
@@ -649,13 +689,13 @@ body,
 /* Automatic Contrast Enhancement */
 .ptmt-tab.active .ptmt-tab-label {
   /* Fallback incorporating background image luminance for transparent UIs */
-  color: oklch(from var(--ptmt-tab-bg-color) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) !important;
+  color: oklch(from var(--ptmt-tab-bg-color) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) !important;
   mix-blend-mode: normal;
 }
 
 .ptmt-tab:not(.active) .ptmt-tab-label {
   /* Fallback incorporating background image luminance for transparent UIs */
-  color: color-mix(in oklch, var(--ST-Quote-Text), oklch(from var(--ptmt-tab-inactive-bg) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) 30%) !important;
+  color: color-mix(in oklch, var(--ST-Quote-Text), oklch(from var(--ptmt-tab-inactive-bg) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) 30%) !important;
   mix-blend-mode: normal;
 }
 
@@ -689,7 +729,7 @@ body,
 
 .ptmt-drop-indicator {
   position: absolute;
-  background: var(--ptmt-accent);
+  background: var(--ptmt-adaptive-quote);
   opacity: 0.95;
   pointer-events: none;
   z-index: 9998;
@@ -824,7 +864,7 @@ body,
 
 .ptmt-editor-tabs-container .drop-indicator {
   height: 2px;
-  background-color: var(--ptmt-accent);
+  background-color: var(--ptmt-adaptive-quote);
   margin: 2px 0;
 }
 
@@ -914,7 +954,7 @@ body,
 button:focus,
 input:focus,
 select:focus {
-  outline: 2px solid var(--ptmt-accent);
+  outline: 2px solid var(--ptmt-adaptive-quote);
   outline-offset: 1px;
 }
 
@@ -963,7 +1003,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .ptmt-resizer-vertical,
 .ptmt-resizer-horizontal {
-  margin: -1px;
   z-index: 99999;
 }
 
