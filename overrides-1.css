@@ -14,11 +14,11 @@
     --ptmt-adaptive-bw: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1);
 
     /* Base ST color + adaptive B/W blend — preserves hue, shifts lightness for contrast */
-    --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 60%);
-    --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 60%);
-    --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 40%);
+    --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 30%);
+    --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 30%);
+    --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 20%);
     --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 30%);
-    --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 60%);
+    --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 30%);
     --ST-Code-Text: oklch(from var(--ST-Code-Background) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
 }
 
@@ -64,6 +64,10 @@ body .ui-widget-content,
 .range-block-value {
     color: var(--ptmt-adaptive-text) !important;
     text-shadow: var(--ptmt-adaptive-shadow) !important;
+}
+
+.toggle-description {
+    color: var(--ptmt-adaptive-em) !important;
 }
 
 body.noShadows * {
@@ -163,11 +167,11 @@ body.big-avatars .mes_block .ch_name {
     --ptmt-mes-bw: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
 
     /* Base ST color + message-local adaptive B/W — preserves hue, shifts lightness */
-    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 60%);
-    --ptmt-mes-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-mes-bw) 60%);
-    --ptmt-mes-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-mes-bw) 40%);
+    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 30%);
+    --ptmt-mes-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-mes-bw) 30%);
+    --ptmt-mes-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-mes-bw) 20%);
     --ptmt-mes-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-mes-bw) 30%);
-    --ptmt-mes-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-mes-bw) 60%);
+    --ptmt-mes-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-mes-bw) 30%);
 
     /* Code block adaptive variables */
     --ptmt-code-bg: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * 100, 0.15) 0 0 / 0.7);
@@ -190,7 +194,7 @@ body.big-avatars .mes_block .ch_name {
     --ptmt-chat-bg-composite: color-mix(in srgb, var(--ST-Chat-Background), oklch(calc(var(--ptmt-bg-luminance, 45) / 100) 0 0));
     --mes-bg-composite: color-mix(in srgb, var(--ST-Bot-Message-Background), var(--ptmt-chat-bg-composite));
     --ptmt-mes-bw: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
-    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 60%);
+    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 30%);
     color: var(--ptmt-mes-text) !important;
 }
 
@@ -265,8 +269,8 @@ body.big-avatars .mes .mesAvatarWrapper .avatar {
     width: 100% !important;
     height: 100% !important;
     /* Fade the RIGHT side (where text is) and the BOTTOM */
-    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 40%) !important;
-    mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 40%) !important;
+    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
+    mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
     -webkit-mask-composite: destination-in !important;
     mask-composite: intersect !important;
 }
@@ -297,8 +301,8 @@ body.big-avatars .mes[is_user="false"] .mesAvatarWrapper .avatar {
     right: 0 !important;
     left: auto !important;
     /* Fade the LEFT side (where text is) and the BOTTOM */
-    -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 40%) !important;
-    mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 40%) !important;
+    -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
+    mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
     -webkit-mask-composite: destination-in !important;
     mask-composite: intersect !important;
 }
@@ -611,8 +615,6 @@ textarea:disabled {
     padding: 6px 12px;
     text-shadow: unset !important;
     font-size: calc(var(--mainFontSize) * 0.9);
-    background-color: var(--button-outline-danger-background) !important;
-    color: color-mix(in srgb, var(--ptmt-adaptive-text) 50%, white 60%);
     border-radius: 0.5rem !important;
     transition: all var(--ptmt-transition);
     border: 1px solid transparent !important;
@@ -631,18 +633,15 @@ textarea:disabled {
 }
 
 .menu_button:hover {
-    background-color: var(--button-outline-danger-background-hover) !important;
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 60%);
+    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 30%);
     border-color: color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 50%) !important;
 }
 
-.menu_button:active {
-    background-color: var(--button-outline-danger-background-active) !important;
-}
+.menu_button:active {}
 
 .menu_button>small {
-    color: color-mix(in srgb, var(--ptmt-adaptive-text) 50%, white 60%);
+    color: color-mix(in srgb, var(--ptmt-adaptive-text) 50%, white 30%);
 }
 
 small:hover {
