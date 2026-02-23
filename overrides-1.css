@@ -126,6 +126,10 @@ body.big-avatars .mes .mes_block {
     margin: 12px !important;
 }
 
+.mes_reasoning {
+    overflow: visible !important;
+}
+
 .mes_block {
     padding-top: 0;
     padding-left: 10px;
@@ -166,8 +170,9 @@ body.big-avatars .mes_block .ch_name {
     /* Pure adaptive B/W intermediate for this message scope */
     --ptmt-mes-bw: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
 
+    --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 30%);
     /* Base ST color + message-local adaptive B/W — preserves hue, shifts lightness */
-    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 30%);
+    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 40%);
     --ptmt-mes-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-mes-bw) 30%);
     --ptmt-mes-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-mes-bw) 20%);
     --ptmt-mes-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-mes-bw) 30%);
@@ -718,7 +723,7 @@ input[type="checkbox"]:checked {
 
 input[type="radio"]:checked::after,
 input[type="checkbox"]:checked::after {
-    background-color: var(--ST-Main-Text) !important;
+    background-color: var(--ST-UI-Background) !important;
     left: 12px;
 }
 

@@ -121,8 +121,9 @@ code {
   border-top: 1px solid var(--ST-UI-Border) !important;
 }
 
-send_textarea {
-  border: none;
+#send_textarea {
+  border: none !important;
+  border-radius: 0 !important;
 }
 
 body:has(#extensionTopBar) .ptmt-panel-content #sheld {
@@ -989,7 +990,12 @@ body.ptmt-is-resizing #rm_print_characters_block {
   contain-intrinsic-size: auto 150px;
 }
 
-
+#tts-bar {
+  bottom: 0 !important;
+  opacity: 100 !important;
+  transform: none !important;
+  transition: none !important;
+}
 
 
 
