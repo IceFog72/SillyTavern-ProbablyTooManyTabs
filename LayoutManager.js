@@ -21,7 +21,8 @@ export class LayoutManager {
         const panel = el('div', { className: 'ptmt-settings-panel' });
         this.rootElement = panel;
 
-        const globalSettings = el('fieldset', {}, el('legend', {}, 'Global Layout'));
+        const topSection = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'stretch', marginBottom: '10px' } });
+        const globalSettings = el('fieldset', { style: { flex: '1 1 300px', margin: '0' } }, el('legend', {}, 'Global Layout'));
 
 
 
@@ -83,7 +84,11 @@ export class LayoutManager {
 
         globalSettings.append(resetBtn);
 
-        panel.append(globalSettings);
+        const colorizerSettings = this.createDialogueColorizerSettings();
+        colorizerSettings.style.flex = '1 1 300px';
+        colorizerSettings.style.margin = '0';
+        topSection.append(globalSettings, colorizerSettings);
+        panel.append(topSection);
 
         this.renderUnifiedEditor();
 
@@ -1104,6 +1109,67 @@ export class LayoutManager {
             this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
             this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
         }
+    }
+
+    createDialogueColorizerSettings() {
+        const container = el('fieldset', {}, el('legend', {}, 'Dialogue Colorizer (Quoted Text Only)'));
+
+        const createSettingCheckbox = (labelText, settingKey) => {
+            const id = `ptmt-colorizer-${settingKey}`;
+            const wrapper = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' } });
+            const checkbox = el('input', { type: 'checkbox', id, checked: this.settings.get(settingKey) });
+            const label = el('label', { for: id }, labelText);
+
+            checkbox.addEventListener('change', (e) => {
+                this.settings.update({ [settingKey]: e.target.checked });
+            });
+
+            wrapper.append(checkbox, label);
+            return wrapper;
+        };
+
+        const createSettingDropdown = (labelText, settingKey, options) => {
+            const id = `ptmt-colorizer-${settingKey}`;
+            const wrapper = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' } });
+            const label = el('label', { for: id }, labelText);
+            const select = el('select', { id });
+
+            options.forEach(opt => {
+                select.appendChild(el('option', { value: opt.value, selected: this.settings.get(settingKey) === opt.value }, opt.label));
+            });
+
+            select.addEventListener('change', (e) => {
+                this.settings.update({ [settingKey]: e.target.value });
+            });
+
+            wrapper.append(label, select);
+            return wrapper;
+        };
+
+        const createColorPicker = (labelText, settingKey) => {
+            const id = `ptmt-colorizer-${settingKey}`;
+            const wrapper = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' } });
+            const label = el('label', { for: id }, labelText);
+            const input = el('input', { type: 'color', id, value: this.settings.get(settingKey) });
+
+            input.addEventListener('input', (e) => {
+                this.settings.update({ [settingKey]: e.target.value });
+            });
+
+            wrapper.append(label, input);
+            return wrapper;
+        };
+
+        container.append(
+            createSettingCheckbox('Enable Dialogue Colorizer', 'enableDialogueColorizer'),
+            createSettingDropdown('Color Source', 'dialogueColorizerSource', [
+                { value: 'avatar_vibrant', label: 'Avatar Vibrant' },
+                { value: 'static_color', label: 'Static Color' }
+            ]),
+            createColorPicker('Static Color', 'dialogueColorizerStaticColor')
+        );
+
+        return container;
     }
 
     cleanup() {

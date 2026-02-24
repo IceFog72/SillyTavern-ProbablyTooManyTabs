@@ -78,10 +78,6 @@ export const updateStatusBar = debounce(async function () {
             segment.style.width = `${percentage}%`;
 
             segment.title = `${label}: ${tokens} tokens (${percentage.toFixed(1)}%)`;
-            // Only show labels for non-chat segments if they're wide enough
-            if (label !== 'Chat' && percentage >= 10) {
-                segment.innerText = label.split(' ')[0];
-            }
 
             scaleBar.appendChild(segment);
         };

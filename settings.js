@@ -21,6 +21,9 @@ export class SettingsManager {
         hideContentWhileResizing: false,
         showContextStatusBar: true,
         enableOverride1: false,
+        enableDialogueColorizer: false,
+        dialogueColorizerSource: 'avatar_vibrant',
+        dialogueColorizerStaticColor: '#e18a24',
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: '🧭' },

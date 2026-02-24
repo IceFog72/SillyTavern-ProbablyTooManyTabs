@@ -24,6 +24,7 @@ import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js'
 import { positionAnchor } from './positionAnchor.js';
 import { initStatusBar } from './context-status-bar.js';
 import { themeEngine } from './theme-engine.js';
+import { initColorizer } from './dialogue-colorizer.js';
 
 (function () {
   function initApp() {
@@ -31,6 +32,7 @@ import { themeEngine } from './theme-engine.js';
     positionAnchor();
     initStatusBar();
     themeEngine.init();
+    initColorizer();
     createLayoutIfMissing();
     const refs = getRefs();
 
@@ -456,5 +458,15 @@ import { themeEngine } from './theme-engine.js';
   }
 
   document.body.insertAdjacentHTML('beforeend', '<div id="ptmt-settings-wrapper" style="display:none;"></div>');
+
+  // Inject Vibrant.js
+  if (!window.Vibrant) {
+    const extensionPath = import.meta.url.replace(/index\.js$/, '');
+    const script = document.createElement('script');
+    script.id = 'ptmt-vibrant-script';
+    script.src = `${extensionPath}Vibrant.min.js`;
+    document.head.appendChild(script);
+  }
+
   eventSource.on(event_types.APP_READY, () => { initApp(); });
 })();
