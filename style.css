@@ -47,7 +47,7 @@
   --ptmt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
   --ptmt-tab-border-color: color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
   --ptmt-tab-bg-color: color-mix(in srgb, var(--ST-UI-Background), transparent 20%);
-  --ptmt-tab-inactive-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 50%);
+  --ptmt-tab-inactive-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 10%);
   --ptmt-tab-hover-bg: color-mix(in srgb, var(--ST-UI-Background), var(--ptmt-adaptive-quote) 10%);
   --ptmt-shadow-soft: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 70%);
   --tts-bottom-offset: 39px;
