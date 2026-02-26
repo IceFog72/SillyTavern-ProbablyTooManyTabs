@@ -162,6 +162,20 @@ async function getCharacterColor(info, thumbSrc) {
     });
 }
 
+/**
+ * Tags a message element with its author's unique ID for CSS targeting.
+ * @param {HTMLElement} mes 
+ */
+function tagMessage(mes) {
+    const info = getAvatarFileInfo(mes);
+    if (info) {
+        const safeUid = info.uid.replace(/\W/g, '_');
+        if (mes.getAttribute('xdc-author-uid') !== safeUid) {
+            mes.setAttribute('xdc-author-uid', safeUid);
+        }
+    }
+}
+
 export async function updateStyles() {
     if (!settings.get('enableDialogueColorizer')) {
         if (colorizerStyleSheet) colorizerStyleSheet.innerHTML = '';
@@ -177,7 +191,9 @@ export async function updateStyles() {
         const info = getAvatarFileInfo(mes);
         if (info) {
             const safeUid = info.uid.replace(/\W/g, '_');
-            mes.setAttribute('xdc-author-uid', safeUid);
+            if (mes.getAttribute('xdc-author-uid') !== safeUid) {
+                mes.setAttribute('xdc-author-uid', safeUid);
+            }
 
             if (!uidsToProcess.has(info.uid)) {
                 const thumbImg = mes.querySelector(".avatar img");
@@ -199,11 +215,41 @@ export async function updateStyles() {
     colorizerStyleSheet.innerHTML = results.join('\n');
 }
 
+let chatObserver;
+
 export function initColorizer() {
     const debouncedUpdate = debounce(updateStyles, 100);
 
-    eventSource.on(event_types.CHAT_CHANGED, debouncedUpdate);
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, debouncedUpdate);
+    // Initial tagging and styling
+    updateStyles();
+
+    // Observe chat for new messages to tag them quickly
+    if (chatObserver) chatObserver.disconnect();
+    chatObserver = new MutationObserver((mutations) => {
+        let shouldUpdate = false;
+        for (const mutation of mutations) {
+            for (const node of mutation.addedNodes) {
+                if (node.nodeType === 1 && node.classList.contains('mes')) {
+                    tagMessage(node);
+                    shouldUpdate = true;
+                }
+            }
+        }
+        if (shouldUpdate) {
+            debouncedUpdate();
+        }
+    });
+
+    const chat = document.getElementById('chat');
+    if (chat) {
+        chatObserver.observe(chat, { childList: true });
+        console.log('[PTMT] Colorizer observer attached to #chat');
+    }
+
+    eventSource.on(event_types.CHAT_CHANGED, () => {
+        colorCache = {};
+        debouncedUpdate();
+    });
 
     window.addEventListener('ptmt:settingsChanged', (e) => {
         const keys = e.detail?.changed || [];
@@ -217,8 +263,7 @@ export function initColorizer() {
     });
 
     if (settings.get('enableDialogueColorizer')) {
-        console.log('[PTMT] Dialogue Colorizer enabled');
-        updateStyles();
+        console.log('[PTMT] Dialogue Colorizer initialized');
     }
 }
 
