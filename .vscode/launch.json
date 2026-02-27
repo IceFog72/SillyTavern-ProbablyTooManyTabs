@@ -46,7 +46,7 @@
             ]
         },
         {
-            "name": "Launch WebExtension",
+            "name": "Launch WebExtension ",
             "type": "firefox",
             "request": "launch",
             "reAttach": true,

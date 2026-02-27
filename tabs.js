@@ -88,7 +88,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
           tab.classList.remove('active');
         });
       }
-      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+      // No explicit layoutChanged here, rely on checkAndCollapsePaneIfAllTabsCollapsed or setPaneCollapsedView
       return;
     }
 
@@ -235,12 +235,13 @@ export function destroyTabById(pid) {
   if (panel) panel.remove();
 
   if (pane) {
-    invalidatePaneTabSizeCache(pane);
     // If the destroyed tab was active, find a new one to activate.
     if (tab && tab.classList.contains('active')) {
       setActivePanelInPane(pane);
     }
     removePaneIfEmpty(pane);
+    checkAndCollapsePaneIfAllTabsCollapsed(pane);
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'tabDestroyed', pane } }));
   }
   return true;
 }
@@ -478,7 +479,7 @@ export function moveTabIntoPaneAtIndex(panel, pane, index) {
   }
 
 
-  window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+  window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'tabMoved', pane } }));
 }
 
 export function cloneTabIntoPane(panel, pane, index = null) {

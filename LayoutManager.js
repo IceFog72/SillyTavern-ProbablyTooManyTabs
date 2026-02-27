@@ -15,6 +15,7 @@ export class LayoutManager {
             settings.update({ panelMappings: updatedMappings });
         }, 400);
         this._layoutChangeHandler = null;
+        this.indicator = el('div', { className: 'drop-indicator' });
     }
 
     createSettingsPanel() {
@@ -656,19 +657,16 @@ export class LayoutManager {
         e.dataTransfer.dropEffect = 'move';
         const target = e.target.closest('.ptmt-editor-tab');
 
-        this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
-        const indicator = el('div', { className: 'drop-indicator' });
-
         if (target) {
             const rect = target.getBoundingClientRect();
             const isAfter = e.clientY > rect.top + rect.height / 2;
             if (isAfter) {
-                target.after(indicator);
+                if (target.nextSibling !== this.indicator) target.after(this.indicator);
             } else {
-                target.before(indicator);
+                if (target.previousSibling !== this.indicator) target.before(this.indicator);
             }
         } else {
-            container.appendChild(indicator);
+            if (container.lastChild !== this.indicator) container.appendChild(this.indicator);
         }
     }
 
@@ -677,7 +675,7 @@ export class LayoutManager {
             // Allow hovering over panes as well as the tabs container directly
             const isHoveringValidTarget = this.rootElement.querySelector(':hover.ptmt-editor-tabs-container') || this.rootElement.querySelector(':hover.ptmt-editor-pane');
             if (!isHoveringValidTarget) {
-                this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+                this.indicator.remove();
             }
         }, 100);
     }
@@ -686,28 +684,20 @@ export class LayoutManager {
         e.preventDefault();
         e.stopPropagation();
         this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-        const indicator = this.rootElement.querySelector('.drop-indicator');
-
-        if (!this.draggedTabInfo || !indicator) {
-            indicator?.remove();
-            return;
-        }
-
-        const targetContainer = indicator.parentElement;
+        const targetContainer = this.indicator.parentElement;
         if (!targetContainer) {
-            indicator.remove();
+            this.indicator.remove();
             return;
         }
 
         const isTargetPending = targetContainer.dataset.isPendingList === 'true' || !!targetContainer.closest('.ptmt-pending-pane');
         const isTargetHidden = targetContainer.dataset.isHiddenList === 'true' || !!targetContainer.closest('.ptmt-hidden-pane');
 
-        // FIX: Include indicator in the filter to get the correct index
-        const children = Array.from(targetContainer.children).filter(c => c.classList.contains('ptmt-editor-tab') || c === indicator);
-        let newIndex = children.indexOf(indicator);
+        const children = Array.from(targetContainer.children).filter(c => c.classList.contains('ptmt-editor-tab') || c === this.indicator);
+        let newIndex = children.indexOf(this.indicator);
         if (newIndex === -1) newIndex = children.length;
 
-        indicator.remove();
+        this.indicator.remove();
 
         // Routing based on Source AND Target
         const info = this.draggedTabInfo;

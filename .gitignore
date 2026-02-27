@@ -2,3 +2,5 @@
 .agent/
 AGENTS.md
 EXTENSION_MAP.md
+/.vscode
+/.agent

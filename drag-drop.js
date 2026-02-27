@@ -10,18 +10,19 @@ import { getPanelById, throttle, getRefs } from './utils.js';
 
 // --- Drag Session Cache ---
 let dragSession = null;
+let lastIndex = -1;
 
 function clearDragSession() {
   dragSession = null;
+  lastIndex = -1;
 }
 
-function updateDragSession(paneUnder) {
+function updateDragSession(paneUnder, mainBodyRect) {
   if (!paneUnder) return;
   const tabStrip = paneUnder._tabStrip;
   if (!tabStrip) return;
 
   const refs = getRefs();
-  const mainBodyRect = refs.mainBody.getBoundingClientRect();
   const tsRect = tabStrip.getBoundingClientRect();
   const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
   const tabRects = tabs.map(t => t.getBoundingClientRect());
@@ -52,14 +53,13 @@ function relativePanePos(pane, clientX, clientY) {
   return { rect, x, y, rx: x / Math.max(1, rect.width), ry: y / Math.max(1, rect.height) };
 }
 
-function getDragContext(ev) {
+function getDragContext(ev, elUnder) {
   const pid = getDragPidFromEvent(ev);
   if (!pid) return null;
 
   const clientX = ev.clientX;
   const clientY = ev.clientY;
 
-  const elUnder = document.elementFromPoint(clientX, clientY) || null;
   const paneUnder = elUnder?.closest('.ptmt-pane') || getActivePane();
   const overTabStrip = !!(elUnder?.closest('.ptmt-tabStrip'));
   const wantsCopy = ev.ctrlKey || ev.metaKey || ev.altKey;
@@ -67,12 +67,24 @@ function getDragContext(ev) {
   return { pid, elUnder, paneUnder, overTabStrip, wantsCopy, clientX, clientY };
 }
 
+let lastElementUnder = null;
+
 function processDragEvent(ev, { performDrop = false } = {}) {
   if (ev.cancelable) ev.preventDefault();
 
   const clientX = ev.clientX;
   const clientY = ev.clientY;
+
+  // Call elementFromPoint once
   const elUnder = document.elementFromPoint(clientX, clientY);
+
+  if (elUnder === lastElementUnder && !performDrop && dragSession) {
+    // If we're over the same literal element and not dropping, 
+    // we can likely still reuse everything unless we're in a high-precision zone (tab strip)
+    if (!dragSession.overTabStrip) return;
+  }
+  lastElementUnder = elUnder;
+
   const isOverSettingsPanel = elUnder?.closest('.ptmt-settings-panel, #ptmt-unified-editor');
 
   if (isOverSettingsPanel) {
@@ -81,7 +93,7 @@ function processDragEvent(ev, { performDrop = false } = {}) {
     return;
   }
 
-  const ctx = getDragContext(ev);
+  const ctx = getDragContext(ev, elUnder);
 
   if (!ctx || !ctx.pid) {
     hideDropIndicator();
@@ -89,9 +101,11 @@ function processDragEvent(ev, { performDrop = false } = {}) {
     return;
   }
 
-  // Optimize: Only refresh session if pane changed
+  // Optimize: Only refresh session if pane changed or we don't have one
   if (!dragSession || dragSession.pane !== ctx.paneUnder) {
-    updateDragSession(ctx.paneUnder);
+    const refs = getRefs();
+    const mainBodyRect = refs.mainBody.getBoundingClientRect();
+    updateDragSession(ctx.paneUnder, mainBodyRect);
   }
 
   if (ctx.overTabStrip) {
@@ -135,8 +149,9 @@ function handleTabStripDrop(ctx, ev, performDrop) {
 function handlePaneSplitDrop(ctx, ev, performDrop) {
   const { paneUnder } = ctx;
 
-  // Pos calculation can still use direct rect if session is for tabs
-  const rect = dragSession?.tsRect || paneUnder.getBoundingClientRect();
+  // Splitting a pane should always use the full panel container's area for calculating relative position
+  const container = paneUnder._panelContainer || paneUnder;
+  const rect = container.getBoundingClientRect();
   const x = ctx.clientX - rect.left;
   const y = ctx.clientY - rect.top;
   const rx = x / Math.max(1, rect.width);
@@ -146,11 +161,17 @@ function handlePaneSplitDrop(ctx, ev, performDrop) {
   const layers = getPaneLayerCount(paneUnder);
   const canSplit = layers < MAX_PANE_LAYERS;
 
-  if (!canSplit || (rx > edgeThresh && rx < 1 - edgeThresh && ry > edgeThresh && ry < 1 - edgeThresh)) {
+  const dx = Math.min(rx, 1 - rx);
+  const dy = Math.min(ry, 1 - ry);
+
+  // If we are not near any edge, or if we are strictly in the "middle" zone
+  if (dx > edgeThresh && dy > edgeThresh) {
     return false;
   }
 
-  const vertical = (rx < edgeThresh || rx > 1 - edgeThresh);
+  // Pick the dimension where we are CLOSER to the edge.
+  // This handles thin panels much better.
+  const vertical = dx < dy;
   const first = vertical ? (rx < 0.5) : (ry < 0.5);
 
   if (!performDrop) {
@@ -190,6 +211,9 @@ function computeDropIndexFromSession(clientX, clientY) {
 function showDropIndicatorFromSession(index) {
   const refs = getRefs();
   if (!refs.dropIndicator || !dragSession) return;
+
+  if (index === lastIndex) return;
+  lastIndex = index;
 
   const { vertical, tsRect, tabRects, mainBodyRect } = dragSession;
   const style = { display: 'block', width: '', height: '', left: '', top: '', transform: '' };

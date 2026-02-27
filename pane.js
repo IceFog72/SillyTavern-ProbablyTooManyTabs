@@ -558,13 +558,8 @@ export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
       updateSplitCollapsedState(parentSplit);
     }
 
-    if (allCollapsed) {
-      recalculateAllSplitsRecursively();
-    }
-
-    recalculateColumnSizes();
-
-    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+    // Rely on ptmt:layoutChanged for batching
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'paneCollapsed', pane } }));
 
   } catch (e) {
     console.warn('checkAndCollapsePaneIfAllTabsCollapsed error:', e);
@@ -602,9 +597,9 @@ export function updateSplitCollapsedState(split) {
   const parentSplit = split.parentElement;
   if (parentSplit?.classList.contains('ptmt-split')) {
     updateSplitCollapsedState(parentSplit);
-    recalculateColumnSizes(); // Ensure column checks happen as we bubble up
   } else {
-    recalculateColumnSizes();
+    // Only top level split finished bubbling, layout is now stable
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'splitStructuralChange' } }));
   }
 }
 
@@ -624,46 +619,34 @@ export function openViewSettingsDialog(pane) {
     return sel;
   };
 
-  const dialogStyles = {
-    position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-    background: 'var(--ST-UI-Background)', padding: '20px', borderRadius: '8px',
-    border: '1px solid #556', boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
-    zIndex: '10000', minWidth: '300px'
-  };
-
-  const buttonStyles = {
-    marginLeft: '10px', padding: '5px 10px', borderRadius: '4px', border: '1px solid #556',
-    background: '#3b4d61', color: '#eee', cursor: 'pointer'
-  };
-
-  const dialog = el('div', { id: 'ptmt-view-settings-dialog', style: dialogStyles },
-    el('div', { style: { fontFamily: 'sans-serif' } },
-      el('h3', { style: { marginTop: '0', marginBottom: '20px' } }, 'Pane Settings'),
-      el('div', { style: { marginBottom: '12px' } },
+  const dialog = el('div', { id: 'ptmt-view-settings-dialog' },
+    el('div', null,
+      el('h3', null, 'Pane Settings'),
+      el('div', { className: 'ptmt-vs-row' },
         el('label', { for: 'ptmt-vs-minimal-panel' }, 'Min. Panel Size (px): '),
         el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'ptmt-vs-minimal-panel', className: 'text_edit' })
       ),
-      el('div', { style: { marginBottom: '12px' } },
+      el('div', { className: 'ptmt-vs-row' },
         el('label', { for: 'ptmt-vs-default' }, 'Default orientation: '),
         createSelect('ptmt-vs-default', [
           { value: 'auto', label: 'Auto' }, { value: 'horizontal', label: 'Horizontal' }, { value: 'vertical', label: 'Vertical' },
         ], vs.defaultOrientation || 'auto')
       ),
-      el('div', { style: { marginBottom: '12px' } },
+      el('div', { className: 'ptmt-vs-row' },
         el('label', { for: 'ptmt-vs-collapsed' }, 'Collapsed orientation: '),
         createSelect('ptmt-vs-collapsed', [
           { value: 'auto', label: 'Auto' }, { value: 'horizontal', label: 'Horizontal' }, { value: 'vertical', label: 'Vertical' },
         ], vs.collapsedOrientation || 'auto')
       ),
-      el('div', { style: { marginBottom: '20px' } },
+      el('div', { className: 'ptmt-vs-row' },
         el('label', { for: 'ptmt-vs-flow' }, 'Content Flow: '),
         createSelect('ptmt-vs-flow', [
           { value: 'default', label: 'Default (Tabs First)' }, { value: 'reversed', label: 'Reversed (Content First)' },
         ], vs.contentFlow || 'default')
       ),
-      el('div', { style: { textAlign: 'right', marginTop: '10px' } },
-        el('button', { id: 'ptmt-vs-save', style: { ...buttonStyles, background: '#3b82f6' } }, 'Save'),
-        el('button', { id: 'ptmt-vs-cancel', style: buttonStyles }, 'Cancel')
+      el('div', { className: 'ptmt-vs-footer' },
+        el('button', { id: 'ptmt-vs-save', className: 'ptmt-vs-button primary' }, 'Save'),
+        el('button', { id: 'ptmt-vs-cancel', className: 'ptmt-vs-button' }, 'Cancel')
       )
     )
   );

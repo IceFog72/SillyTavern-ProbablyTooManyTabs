@@ -58,7 +58,6 @@ export function generateLayoutSnapshot() {
                 };
             });
 
-            const computedStyle = getComputedStyle(element);
             const isCollapsed = element.classList.contains('view-collapsed');
 
             return {
@@ -68,8 +67,8 @@ export function generateLayoutSnapshot() {
                 lastFlex: element.dataset.lastFlex || null,
                 minWidth: element.style.minWidth || null,
                 minHeight: element.style.minHeight || null,
-                actualWidth: isCollapsed ? (element.dataset.lastWidth || computedStyle.width) : computedStyle.width,
-                actualHeight: isCollapsed ? (element.dataset.lastHeight || computedStyle.height) : computedStyle.height,
+                actualWidth: isCollapsed ? (element.dataset.lastWidth || `${element.offsetWidth}px`) : `${element.offsetWidth}px`,
+                actualHeight: isCollapsed ? (element.dataset.lastHeight || `${element.offsetHeight}px`) : `${element.offsetHeight}px`,
                 viewSettings: {
                     ...readPaneViewSettings(element),
                     appliedOrientation: element.dataset.appliedOrientation || null,
@@ -102,7 +101,6 @@ export function generateLayoutSnapshot() {
                 return (100 / structuralChildren.length);
             });
 
-            const computedStyle = getComputedStyle(element);
             const isCollapsed = element.classList.contains('ptmt-container-collapsed');
 
             return {
@@ -116,8 +114,8 @@ export function generateLayoutSnapshot() {
                 children: children.filter(Boolean),
                 splitRatios: splitRatios,
 
-                actualWidth: isCollapsed ? (element.dataset.lastWidth || computedStyle.width) : computedStyle.width,
-                actualHeight: isCollapsed ? (element.dataset.lastHeight || computedStyle.height) : computedStyle.height,
+                actualWidth: isCollapsed ? (element.dataset.lastWidth || `${element.offsetWidth}px`) : `${element.offsetWidth}px`,
+                actualHeight: isCollapsed ? (element.dataset.lastHeight || `${element.offsetHeight}px`) : `${element.offsetHeight}px`,
                 isCollapsed: isCollapsed,
                 columnLocation: parentColumn
             };
@@ -438,8 +436,9 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 if (pid) {
                     const tabEl = pane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);
                     if (tabEl) {
-                        // FIX: If the pane is collapsed, tabs should also be collapsed unless explicitly active
-                        if (t.collapsed || (isPaneCollapsed && !t.active)) tabEl.classList.add('collapsed');
+                        // Ensure all tabs are collapsed if the pane is collapsed, 
+                        // or if the tab specifically was saved as collapsed.
+                        if (t.collapsed || isPaneCollapsed) tabEl.classList.add('collapsed');
                         if (t.active) activePid = pid;
                         if (t.isDefault) {
                             defaultPid = pid;
@@ -453,14 +452,14 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             }
         }
 
-        // FIX: When pane is collapsed, preserveCollapsedState=true to set active panel
-        // without modifying collapsed classes (which would expand the pane)
         if (activePid) {
             setActivePanelInPane(pane, activePid, isPaneCollapsed);
         } else if (defaultPid) {
             setActivePanelInPane(pane, defaultPid, isPaneCollapsed);
-        } else {
-            setActivePanelInPane(pane, null, isPaneCollapsed);
+        } else if (!isPaneCollapsed) {
+            // Only force-activate a tab if the pane is actually expanded.
+            // If it's collapsed and no activePid was found, we should leave it with 0 active tabs.
+            setActivePanelInPane(pane, null, false);
         }
     };
 

@@ -13,23 +13,15 @@ An extension that transforms the SillyTavern interface into a flexible tabbed wo
 * [https://github.com/SillyTavern/Extension-TopInfoBar](https://github.com/SillyTavern/Extension-TopInfoBar)
 * [https://github.com/muyoou/st-memory-enhancement](https://github.com/muyoou/st-memory-enhancement)
 * [https://github.com/RivelleDays/SillyTavern-MoonlitEchoesTheme](https://github.com/RivelleDays/SillyTavern-MoonlitEchoesTheme) popup window
+* [https://github.com/Tyranomaster/expressions-plus](https://github.com/Tyranomaster/expressions-plus)
 * For additional requests, reach out to me on mine or main ST Discord.
 
-* popup window - you need to press popup button in Extension settings
+* popup window - you need to press popup button of extension
 ---
 
 ## Requirements 
 
 * ST at staging branch
-
----
-
-## Known Issues
-
-* Resizing the navigation panel with character cards may lag on Chrome-based browsers.
-  * Workaround → Enable *"Hide some content on resize (for Chrome users)"* in **Layout Settings**.
-
-* If you encounter a UI bug or have suggestions, please leave a message in my Discord channel — either in the extension thread or in **st-general**.
 
 ---
 

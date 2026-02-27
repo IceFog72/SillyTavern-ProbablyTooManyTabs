@@ -141,13 +141,22 @@ import { initColorizer } from './dialogue-colorizer.js';
     };
     window.ptmtTabs = api;
 
-    const debouncedLayoutReaction = debounce((reason) => {
-      if (reason !== 'snapshotApplied') {
-        applyColumnVisibility();
-        if (reason !== 'manualResize' && reason !== 'tabSwitch') {
-          recalculateColumnSizes();
-        }
+    const debouncedLayoutReaction = debounce((event) => {
+      const reason = event.detail?.reason || 'unknown';
+      if (reason === 'snapshotApplied') return;
+
+      console.log(`[PTMT Layout] 🔄 debouncedLayoutReaction executing. Reason: ${reason}`);
+
+      // First apply layout/orientation classes so sizes can be calculated correctly
+      document.querySelectorAll('.ptmt-split').forEach(applySplitOrientation);
+      document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
+
+      applyColumnVisibility();
+
+      if (reason !== 'manualResize' && reason !== 'tabSwitch') {
+        recalculateColumnSizes();
       }
+
       updateResizerDisabledStates();
       saveCurrentLayoutDebounced();
     }, 50);
@@ -155,28 +164,15 @@ import { initColorizer } from './dialogue-colorizer.js';
     window.addEventListener('ptmt:layoutChanged', (event) => {
       const reason = event.detail?.reason || 'unknown';
 
-      // First apply layout/orientation classes so sizes can be calculated correctly
-      // These are relatively cheap
-      document.querySelectorAll('.ptmt-split').forEach(applySplitOrientation);
-      document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
-
-      console.log(`[PTMT Layout] 🔄 layoutChanged triggered. Reason: ${reason}`);
-
-      if (reason === 'tabSwitch') {
-        // Tab switching is high frequency. Recalculate column sizes ONLY if the pane was empty/filled
-        // which applyColumnVisibility handles. Full column redistribution is usually overkill here.
-        debouncedLayoutReaction(reason);
+      // Always update orientations immediately (cheap, no reflow usually)
+      if (event.detail?.pane) {
+        applyPaneOrientation(event.detail.pane);
       } else {
-        // For structural changes, we can be more synchronous but still careful
-        if (reason !== 'snapshotApplied') {
-          applyColumnVisibility();
-          if (reason !== 'manualResize') {
-            recalculateColumnSizes();
-          }
-        }
-        updateResizerDisabledStates();
-        saveCurrentLayoutDebounced();
+        document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
       }
+
+      // Batch everything else
+      debouncedLayoutReaction(event);
     }, { passive: true });
 
     const extensionPath = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs';
