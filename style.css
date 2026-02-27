@@ -127,6 +127,9 @@
 
 #completion_prompt_manager_popup {
   position: absolute !important;
+  z-index: 10000 !important;
+  max-height: 100% !important;
+  top: 0 !important;
 }
 
 #tts-bar {
