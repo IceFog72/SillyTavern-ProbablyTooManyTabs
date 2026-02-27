@@ -746,13 +746,21 @@ body,
 }
 
 .ptmt-settings-panel fieldset {
-  margin-bottom: 10px;
-  padding: 10px;
-  border-radius: 4px;
+  margin-bottom: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  border: 1px solid var(--ST-UI-Border);
+  background: color-mix(in srgb, var(--ST-UI-Background), transparent 70%);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .ptmt-settings-panel legend {
-  padding: 0 5px;
+  padding: 0 8px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ptmt-adaptive-quote);
 }
 
 .ptmt-settings-panel {
@@ -783,6 +791,19 @@ body,
   margin: 0;
   overflow: hidden;
 
+  border: 1px solid var(--ST-UI-Border);
+  padding: 12px;
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--ST-UI-Background), transparent 85%);
+}
+
+.ptmt-editor-column legend {
+  padding: 0 8px;
+  font-weight: bold;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ptmt-adaptive-em);
 }
 
 .ptmt-editor-column.ptmt-editor-column-hidden {

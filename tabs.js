@@ -5,6 +5,7 @@ import { setPaneCollapsedView, removePaneIfEmpty, checkAndCollapsePaneIfAllTabsC
 import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
 import { invalidatePaneTabSizeCache } from './resizer.js';
 import { runTabAction } from './tab-actions.js';
+import { settings } from './settings.js';
 
 /** @typedef {import('./types.js').PTMTAPI} PTMTAPI */
 /** @typedef {import('./types.js').TabData} TabData */
@@ -286,7 +287,8 @@ export function createTabFromContent(content, options = {}, target = null) {
     return null;
   }
 
-  const panelTitle = title || node?.getAttribute('data-panel-title') || node?.id || 'Panel';
+  const mapping = (settings.get('panelMappings') || []).find(m => m.id === effectiveSourceId) || {};
+  const panelTitle = title || mapping.title || node?.getAttribute('data-panel-title') || node?.id || 'Panel';
   let panel = effectiveSourceId ? getPanelBySourceId(effectiveSourceId) : null;
   let pid;
 

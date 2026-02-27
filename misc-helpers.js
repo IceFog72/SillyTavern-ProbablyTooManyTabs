@@ -67,96 +67,101 @@ export function moveBgDivs(ids = ['bg_custom', 'bg1']) {
   return found;*/
 }
 
+/**
+ * Moves specified elements to the #movingDivs container.
+ * @param {string[]} ids List of element IDs to move.
+ */
+export function moveToMovingDivs(ids = ['expression-plus-wrapper']) {
+  if (!document?.body) return [];
+  let movingDivs = document.getElementById('movingDivs');
+  if (!movingDivs) {
+    movingDivs = document.createElement('div');
+    movingDivs.id = 'movingDivs';
+    document.body.appendChild(movingDivs);
+  }
 
+  const found = ids.map(id => document.getElementById(id)).filter(Boolean);
+  found.forEach(eln => {
+    if (eln.parentElement !== movingDivs) {
+      console.log(`[PTMT] Moving ${eln.id} to #movingDivs`);
+      movingDivs.appendChild(eln);
+    }
+  });
+  return found;
+}
 
 export function overrideDelegatedEventHandler(eventType, selector, findFunction, newHandler) {
-    if (!window.jQuery || !jQuery._data) {
-        console.warn('[PTMT] Cannot override event handler: jQuery or jQuery._data not available.');
-        return;
+  if (!window.jQuery || !jQuery._data) {
+    console.warn('[PTMT] Cannot override event handler: jQuery or jQuery._data not available.');
+    return;
+  }
+
+  try {
+    const delegatedEvents = jQuery._data(document, 'events');
+    if (!delegatedEvents || !delegatedEvents[eventType]) {
+      return;
     }
 
-    try {
-        const delegatedEvents = jQuery._data(document, 'events');
-        if (!delegatedEvents || !delegatedEvents[eventType]) {
-            return; 
-        }
+    const handlersForType = delegatedEvents[eventType];
+    let handlerToRemove = null;
 
-        const handlersForType = delegatedEvents[eventType];
-        let handlerToRemove = null;
+    for (const handler of handlersForType) {
 
-        for (const handler of handlersForType) {
-           
-            if (handler.selector === selector && findFunction(handler.handler.toString())) {
-                handlerToRemove = handler.handler;
-                break; 
-            }
-        }
-
-        if (handlerToRemove) {
-            console.log(`[PTMT] Overriding delegated '${eventType}' event on selector '${selector}'.`);
-           
-            $(document).off(eventType, selector, handlerToRemove);
-            
-          
-            $(document).on(eventType, selector, newHandler);
-        }
-    } catch (e) {
-        console.error('[PTMT] Error while overriding event handler:', e);
+      if (handler.selector === selector && findFunction(handler.handler.toString())) {
+        handlerToRemove = handler.handler;
+        break;
+      }
     }
+
+    if (handlerToRemove) {
+      console.log(`[PTMT] Overriding delegated '${eventType}' event on selector '${selector}'.`);
+
+      $(document).off(eventType, selector, handlerToRemove);
+
+
+      $(document).on(eventType, selector, newHandler);
+    }
+  } catch (e) {
+    console.error('[PTMT] Error while overriding event handler:', e);
+  }
 }
 
 /**
  * Watches for drawers being closed and immediately re-opens them.
  */
 export function initDrawerObserver() {
-    // Disconnect existing observer to prevent memory leaks
-    if (drawerObserver) {
-        drawerObserver.disconnect();
-        drawerObserver = null;
-    }
+  // Disconnect existing observer to prevent memory leaks
+  if (drawerObserver) {
+    drawerObserver.disconnect();
+    drawerObserver = null;
+  }
 
-    drawerObserver = new MutationObserver((mutationsList) => {
-        for (const mutation of mutationsList) {
-            if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                const target = mutation.target;
-                if (target.nodeType === 1 && target.classList.contains('closedDrawer')) {
-                    target.classList.remove('closedDrawer');
-                    target.classList.add('openDrawer');
-                }
-            }
+  drawerObserver = new MutationObserver((mutationsList) => {
+    for (const mutation of mutationsList) {
+      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+        const target = mutation.target;
+        if (target.nodeType === 1 && target.classList.contains('closedDrawer')) {
+          target.classList.remove('closedDrawer');
+          target.classList.add('openDrawer');
         }
-    });
+      }
+    }
+  });
 
-    drawerObserver.observe(document.body, {
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['class'],
-    });
+  drawerObserver.observe(document.body, {
+    subtree: true,
+    attributes: true,
+    attributeFilter: ['class'],
+  });
 
-    console.log('[PTMT] Drawer state observer initialized.');
-    return drawerObserver;
+  console.log('[PTMT] Drawer state observer initialized.');
+  return drawerObserver;
 }
 
 export function cleanupDrawerObserver() {
-    if (drawerObserver) {
-        drawerObserver.disconnect();
-        drawerObserver = null;
-        console.log('[PTMT] Drawer state observer cleaned up.');
-    }
+  if (drawerObserver) {
+    drawerObserver.disconnect();
+    drawerObserver = null;
+    console.log('[PTMT] Drawer state observer cleaned up.');
+  }
 }
-
-/*
-export function hideTemplatesAndPopupsWrapper() {
-    try {
-        const wrapper = document.querySelector('div[name="templatesAndPopupsWrapper"]');
-        if (wrapper) {
-            wrapper.style.cssText += 'display: none !important;';
-            console.log('[PTMT] Hid templatesAndPopupsWrapper.');
-            return true;
-        }
-        return false;
-    } catch (e) {
-        console.error('[PTMT] Error hiding templatesAndPopupsWrapper:', e);
-        return false;
-    }
-}*/

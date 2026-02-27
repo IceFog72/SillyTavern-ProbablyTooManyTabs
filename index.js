@@ -19,7 +19,7 @@ import {
 } from './tabs.js';
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively, validateAndCorrectAllMinSizes, checkPaneForIconMode } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
-import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
+import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 import { positionAnchor } from './positionAnchor.js';
 import { initStatusBar } from './context-status-bar.js';
@@ -28,6 +28,7 @@ import { initColorizer } from './dialogue-colorizer.js';
 
 (function () {
   function initApp() {
+    let isPTMTResetting = false;
     let isHydrating = true;
     positionAnchor();
     initStatusBar();
@@ -43,6 +44,10 @@ import { initColorizer } from './dialogue-colorizer.js';
     }
 
     const saveCurrentLayoutDebounced = debounce(() => {
+      if (isPTMTResetting) {
+        console.log(`[PTMT Layout] 🛡️ Save blocked due to active reset.`);
+        return;
+      }
       if (isHydrating) {
         console.log(`[PTMT Layout] 🛡️ Save skipped during hydration.`);
         return;
@@ -79,14 +84,9 @@ import { initColorizer } from './dialogue-colorizer.js';
         }
       },
       resetLayout: () => {
-        if (confirm("Are you sure you want to reset the current layout to default? This will reload the page.")) {
-          const isMobile = settings.get('isMobile');
-          const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
-
-          // Force reset to factory default
-          const factoryDefault = isMobile ? SettingsManager.defaultSettings.mobileLayout : SettingsManager.defaultSettings.defaultLayout;
-          settings.update({ [key]: factoryDefault }, true); // Force synchronous save
-
+        if (confirm("Are you sure you want to ALL SETTINGS to factory default? This will reload the page.")) {
+          isPTMTResetting = true;
+          settings.reset(true);
           window.location.reload();
         }
       },
@@ -219,6 +219,7 @@ import { initColorizer } from './dialogue-colorizer.js';
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     }, 150));
 
+    moveToMovingDivs();
     const isMobile = settings.get('isMobile');
     const savedLayout = isMobile ? settings.get('savedLayoutMobile') : settings.get('savedLayoutDesktop');
     const defaultLayout = settings.get('defaultLayout');

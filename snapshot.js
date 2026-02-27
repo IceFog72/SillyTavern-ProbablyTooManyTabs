@@ -20,7 +20,7 @@ import { initPendingTabsManager } from './pending-tabs.js';
 /** @typedef {import('./types.js').GhostTab} GhostTab */
 /** @typedef {import('./types.js').HiddenTab} HiddenTab */
 
-const SNAPSHOT_VERSION = 13;
+const SNAPSHOT_VERSION = 14;
 
 const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },

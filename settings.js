@@ -21,14 +21,15 @@ export class SettingsManager {
         hideContentWhileResizing: false,
         showContextStatusBar: true,
         enableOverride1: false,
-        enableDialogueColorizer: false,
+        enableDialogueColorizer: true,
         dialogueColorizerSource: 'avatar_vibrant',
         dialogueColorizerStaticColor: '#e18a24',
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: '🧭' },
             { id: 'right-nav-panel', title: 'Inspector', icon: '🔍' },
-            { id: 'expression-wrapper', title: 'Expression', icon: '💬' },
+            { id: 'expression-wrapper', title: 'Expression', icon: '😑' },
+            { id: 'expression-plus-wrapper', title: 'Expression Plus', icon: '😐' },
             { id: 'AdvancedFormatting', title: 'Adv. Formatting', icon: '✨' },
             { id: 'rm_api_block', title: 'API Connections', icon: '🔌' },
             { id: 'Backgrounds', title: 'Backgrounds', icon: '🖼️' },
@@ -37,12 +38,12 @@ export class SettingsManager {
             { id: 'WorldInfo', title: 'World Info', icon: '🌍' },
             { id: 'notebookPanel', title: 'Notebook', icon: '📓' },
             { id: 'gallery', title: 'Gallery', icon: '🏞️' },
-            { id: 'zoomed_avatar', title: 'Avatar', icon: '🏞️' },
+            { id: 'zoomed_avatar', title: 'Avatar', icon: '🖼️' },
             { id: 'galleryImageDraggable', title: 'Avatar', icon: '🗂️' },
             { id: 'character_popup', title: 'Adv. Definitions', icon: '👤' },
             { id: 'user-settings-block', title: 'User Settings', icon: '⚙️' },
             { id: 'floatingPrompt', title: 'Author\'s Note', icon: '📓' },
-            { id: 'PersonaManagement', title: 'Persona Management', icon: '👤' },
+            { id: 'PersonaManagement', title: 'Persona Management', icon: '🪪' },
             { id: 'objectiveExtensionPopout', title: 'Objective', icon: '🧭' },
             { id: 'cfgConfig', title: 'Chat CFG', icon: '🧭' },
             { id: 'logprobsViewer', title: 'Token Probabilities', icon: '✨' },
@@ -54,6 +55,8 @@ export class SettingsManager {
             { id: 'groupMemberListPopout', title: 'Group Member List', icon: '📃' },
             { id: 'ctsi-drawerPopout', title: 'CustomInputs', icon: '📃' },
             { id: 'qr--popout', title: 'QR Popout', icon: '⚡' },
+            { id: 'injectManagerSideBar', title: 'Inject Manager', icon: '🗄️' },
+            { id: 'ptmt-settings-wrapper-content', title: 'Layout Settings', icon: '🔧' },
             { id: 'sheld', title: 'Main', icon: '🏠' }
         ],
 
@@ -62,7 +65,7 @@ export class SettingsManager {
         savedLayoutMobile: null,
 
         defaultLayout: {
-            version: 13,
+            version: 14,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],
@@ -86,7 +89,8 @@ export class SettingsManager {
                             { sourceId: "rm_api_block" },
                             { sourceId: "cfgConfig" },
                             { sourceId: "logprobsViewer" },
-                            { sourceId: "extensionSideBar" }
+                            { sourceId: "extensionSideBar" },
+                            { sourceId: "injectManagerSideBar" }
                         ]
                     },
                     ghostTabs: [
@@ -124,7 +128,8 @@ export class SettingsManager {
                                 tabs: [
                                     { sourceId: "WorldInfo" },
                                     { sourceId: "stqrd--drawer-v2" },
-                                    { sourceId: "expression-wrapper" }
+                                    { sourceId: "expression-wrapper" },
+                                    { sourceId: "expression-plus-wrapper" }
                                 ]
                             }
                         ]
@@ -173,7 +178,7 @@ export class SettingsManager {
         },
 
         mobileLayout: {
-            version: 13,
+            version: 14,
             showLeft: false,
             showRight: false,
             hiddenTabs: [],
@@ -209,11 +214,13 @@ export class SettingsManager {
                             { sourceId: "WorldInfo" },
                             { sourceId: "stqrd--drawer-v2" },
                             { sourceId: "expression-wrapper" },
+                            { sourceId: "expression-plus-wrapper" },
                             { sourceId: "right-nav-panel" },
                             { sourceId: "PersonaManagement" },
                             { sourceId: "character_popup" },
                             { sourceId: "floatingPrompt" },
-                            { sourceId: "dupeFinderPanel" }
+                            { sourceId: "dupeFinderPanel" },
+                            { sourceId: "injectManagerSideBar" }
                         ]
                     },
                     ghostTabs: [
@@ -334,7 +341,23 @@ export class SettingsManager {
             extension_settings.PTMT = {};
         }
         const loadedSettings = extension_settings.PTMT;
-        extension_settings.PTMT = { ...SettingsManager.defaultSettings, ...loadedSettings };
+
+        // Merge panel mappings by ID instead of overwriting
+        const defaultMappings = SettingsManager.defaultSettings.panelMappings || [];
+        const loadedMappings = loadedSettings.panelMappings || [];
+        const mergedMappings = [...loadedMappings];
+
+        defaultMappings.forEach(defM => {
+            if (!mergedMappings.some(m => m.id === defM.id)) {
+                mergedMappings.push(defM);
+            }
+        });
+
+        extension_settings.PTMT = {
+            ...SettingsManager.defaultSettings,
+            ...loadedSettings,
+            panelMappings: mergedMappings
+        };
     }
 
     getActiveLayoutKey() {
@@ -384,10 +407,22 @@ export class SettingsManager {
         }
     }
 
-    reset() {
-        const defaultSettingsCopy = JSON.parse(JSON.stringify(SettingsManager.defaultSettings));
-        extension_settings.PTMT = defaultSettingsCopy;
-        saveSettings();
+    reset(full = false) {
+        if (full) {
+            console.log('[PTMT Settings] 🧨 Performing full factory reset.');
+            const defaultSettingsCopy = JSON.parse(JSON.stringify(SettingsManager.defaultSettings));
+            extension_settings.PTMT = defaultSettingsCopy;
+        } else {
+            // Layout-only reset: Clear saved snapshots to force fallback to current factory defaults
+            extension_settings.PTMT.savedLayoutDesktop = null;
+            extension_settings.PTMT.savedLayoutMobile = null;
+            // Also clear overridden defaults if they exist
+            if (extension_settings.PTMT.defaultLayout) delete extension_settings.PTMT.defaultLayout;
+            if (extension_settings.PTMT.mobileLayout) delete extension_settings.PTMT.mobileLayout;
+            // Clear mappings too to ensure icons/titles refresh
+            if (extension_settings.PTMT.panelMappings) delete extension_settings.PTMT.panelMappings;
+        }
+        this.save(true);
     }
 }
 

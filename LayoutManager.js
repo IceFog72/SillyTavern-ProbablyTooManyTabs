@@ -629,8 +629,14 @@ export class LayoutManager {
         if (this.draggedTabInfo) {
             const isSettingsTab = this.draggedTabInfo.sourceId === 'ptmt-settings-wrapper-content';
 
-            // PROTECTION: Don't allow dragging settings tab into hidden/pending sections
-            if (isSettingsTab && (isTargetPendingList || isTargetHiddenList)) {
+            // PROTECTION: Don't allow dragging settings tab OR pending tabs into hidden/pending sections
+            if ((isSettingsTab || this.draggedTabInfo.isPending) && isTargetHiddenList) {
+                e.dataTransfer.dropEffect = 'none';
+                this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+                return;
+            }
+
+            if (isSettingsTab && isTargetPendingList) {
                 e.dataTransfer.dropEffect = 'none';
                 this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
                 return;
@@ -969,6 +975,11 @@ export class LayoutManager {
         }
 
         // PROTECTION: Only allow regular tabs (those with sourceId) or already-hidden tabs
+        if (info.isPending) {
+            alert("Pending tabs cannot be moved to hidden storage.");
+            return;
+        }
+
         if (!sourceId && !info.isHidden) {
             alert("Only regular tabs can be moved to the Hidden Tabs column.");
             return;
