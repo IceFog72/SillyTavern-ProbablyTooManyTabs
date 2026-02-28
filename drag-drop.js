@@ -11,10 +11,12 @@ import { getPanelById, throttle, getRefs } from './utils.js';
 // --- Drag Session Cache ---
 let dragSession = null;
 let lastIndex = -1;
+let currentDraggingPid = null;
 
 function clearDragSession() {
   dragSession = null;
   lastIndex = -1;
+  currentDraggingPid = null;
 }
 
 function updateDragSession(paneUnder, mainBodyRect) {
@@ -22,10 +24,11 @@ function updateDragSession(paneUnder, mainBodyRect) {
   const tabStrip = paneUnder._tabStrip;
   if (!tabStrip) return;
 
-  const refs = getRefs();
   const tsRect = tabStrip.getBoundingClientRect();
   const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
   const tabRects = tabs.map(t => t.getBoundingClientRect());
+  const container = paneUnder._panelContainer || paneUnder;
+  const paneRect = container.getBoundingClientRect();
 
   dragSession = {
     pane: paneUnder,
@@ -33,16 +36,21 @@ function updateDragSession(paneUnder, mainBodyRect) {
     tsRect,
     tabs,
     tabRects,
+    paneRect,
     mainBodyRect,
     vertical: tabStrip.classList.contains('vertical')
   };
 }
 // --------------------------
 
-function getDragPidFromEvent(ev) {
-  try {
-    return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-ptmt-tab') || '';
-  } catch { return ''; }
+function getDragPidFromEvent(ev, isDropEvent = false) {
+  if (currentDraggingPid) return currentDraggingPid;
+  if (isDropEvent) {
+    try {
+      return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-ptmt-tab') || '';
+    } catch { return ''; }
+  }
+  return '';
 }
 
 function relativePanePos(pane, clientX, clientY) {
@@ -53,8 +61,8 @@ function relativePanePos(pane, clientX, clientY) {
   return { rect, x, y, rx: x / Math.max(1, rect.width), ry: y / Math.max(1, rect.height) };
 }
 
-function getDragContext(ev, elUnder) {
-  const pid = getDragPidFromEvent(ev);
+function getDragContext(ev, elUnder, isDropEvent = false) {
+  const pid = getDragPidFromEvent(ev, isDropEvent);
   if (!pid) return null;
 
   const clientX = ev.clientX;
@@ -75,8 +83,9 @@ function processDragEvent(ev, { performDrop = false } = {}) {
   const clientX = ev.clientX;
   const clientY = ev.clientY;
 
-  // Call elementFromPoint once
-  const elUnder = document.elementFromPoint(clientX, clientY);
+  // Optimize: use ev.target instead of expensive elementFromPoint
+  // dragover events naturally bubble up with the target being the element directly under the mouse
+  const elUnder = ev.target;
 
   if (elUnder === lastElementUnder && !performDrop && dragSession) {
     // If we're over the same literal element and not dropping, 
@@ -93,7 +102,7 @@ function processDragEvent(ev, { performDrop = false } = {}) {
     return;
   }
 
-  const ctx = getDragContext(ev, elUnder);
+  const ctx = getDragContext(ev, elUnder, performDrop);
 
   if (!ctx || !ctx.pid) {
     hideDropIndicator();
@@ -102,10 +111,16 @@ function processDragEvent(ev, { performDrop = false } = {}) {
   }
 
   // Optimize: Only refresh session if pane changed or we don't have one
+  const refs = getRefs();
   if (!dragSession || dragSession.pane !== ctx.paneUnder) {
-    const refs = getRefs();
     const mainBodyRect = refs.mainBody.getBoundingClientRect();
     updateDragSession(ctx.paneUnder, mainBodyRect);
+  }
+
+  // Double check if we're technically over a settings panel via coordinates 
+  // (sometimes elementFromPoint hits the overlay but we want a small margin)
+  if (ctx.clientX > dragSession.mainBodyRect.right - 10) {
+    hideDropIndicator(); hideSplitOverlay(); return;
   }
 
   if (ctx.overTabStrip) {
@@ -118,61 +133,65 @@ function processDragEvent(ev, { performDrop = false } = {}) {
     return;
   }
 
+  // Fallback: If not splitting (e.g., max layers reached), fallback to adding as tab
   handleTabStripDrop(ctx, ev, performDrop);
 }
 
 function handleTabStripDrop(ctx, ev, performDrop) {
   const { paneUnder } = ctx;
-  hideSplitOverlay();
 
-  // Use cached session data for index calculation
+  // Use cached session data for index calculation if over tab strip
   const index = computeDropIndexFromSession(ctx.clientX, ctx.clientY);
 
   if (!performDrop) {
+    hideSplitOverlay();
     showDropIndicatorFromSession(index);
     return;
   }
 
   const panel = getPanelById(ctx.pid);
-  if (!panel) { hideDropIndicator(); return; }
+  if (!panel) { hideDropIndicator(); hideSplitOverlay(); return; }
+
+  // Use precise index
+  const dropIndex = index;
 
   if (ctx.wantsCopy) {
-    cloneTabIntoPane(panel, paneUnder, index);
+    cloneTabIntoPane(panel, paneUnder, dropIndex);
   } else {
-    moveTabIntoPaneAtIndex(panel, paneUnder, index);
+    moveTabIntoPaneAtIndex(panel, paneUnder, dropIndex);
   }
 
   hideDropIndicator();
+  hideSplitOverlay();
   openTab(panel.dataset.panelId);
 }
 
 function handlePaneSplitDrop(ctx, ev, performDrop) {
   const { paneUnder } = ctx;
+  if (!dragSession) return false;
 
-  // Splitting a pane should always use the full panel container's area for calculating relative position
-  const container = paneUnder._panelContainer || paneUnder;
-  const rect = container.getBoundingClientRect();
+  const rect = dragSession.paneRect;
   const x = ctx.clientX - rect.left;
   const y = ctx.clientY - rect.top;
-  const rx = x / Math.max(1, rect.width);
-  const ry = y / Math.max(1, rect.height);
 
-  const edgeThresh = 0.2;
+  // Use pixel distances for more intuitive edge detection on thin/wide panels
+  const distLeft = x;
+  const distRight = rect.width - x;
+  const distTop = y;
+  const distBottom = rect.height - y;
+
   const layers = getPaneLayerCount(paneUnder);
   const canSplit = layers < MAX_PANE_LAYERS;
 
-  const dx = Math.min(rx, 1 - rx);
-  const dy = Math.min(ry, 1 - ry);
-
-  // If we are not near any edge, or if we are strictly in the "middle" zone
-  if (dx > edgeThresh && dy > edgeThresh) {
+  // If we can't split, fallback to returning false so it gets added as a tab
+  if (!canSplit) {
     return false;
   }
 
-  // Pick the dimension where we are CLOSER to the edge.
-  // This handles thin panels much better.
-  const vertical = dx < dy;
-  const first = vertical ? (rx < 0.5) : (ry < 0.5);
+  // Which dimension are we physically closer to?
+  const isHorizontalProximity = Math.min(distLeft, distRight) < Math.min(distTop, distBottom);
+  const vertical = isHorizontalProximity; // if closer to left/right, we split vertically
+  const first = vertical ? (distLeft < distRight) : (distTop < distBottom);
 
   if (!performDrop) {
     showSplitOverlayForPane(paneUnder, vertical, first);
@@ -235,10 +254,9 @@ export const hideDropIndicator = () => {
 
 const showSplitOverlayForPane = (pane, vertical, first) => {
   const refs = getRefs();
-  if (!refs.splitOverlay || !pane || !pane._panelContainer || !refs.mainBody) return;
+  if (!refs.splitOverlay || !pane || !dragSession) return;
 
-  const mainBodyRect = refs.mainBody.getBoundingClientRect();
-  const r = pane._panelContainer.getBoundingClientRect();
+  const { mainBodyRect, paneRect: r } = dragSession;
 
   let x = r.left - mainBodyRect.left;
   let y = r.top - mainBodyRect.top;
@@ -263,12 +281,20 @@ export const hideSplitOverlay = () => {
 
 export function enableInteractions() {
   const refs = getRefs();
+
+  document.addEventListener('dragstart', ev => {
+    const tabEl = ev.target.closest('.ptmt-tab');
+    if (tabEl) {
+      currentDraggingPid = tabEl.dataset.for;
+    }
+  });
+
   document.addEventListener('dragover', ev => {
     ev.preventDefault();
     try { ev.dataTransfer.dropEffect = 'move'; } catch { }
   });
 
-  const throttledProcessDrag = throttle(ev => processDragEvent(ev, { performDrop: false }), 24);
+  const throttledProcessDrag = throttle(ev => processDragEvent(ev, { performDrop: false }), 16);
 
   refs.mainBody.addEventListener('dragover', throttledProcessDrag);
 
