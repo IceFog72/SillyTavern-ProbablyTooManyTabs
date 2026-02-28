@@ -87,17 +87,15 @@ export function generateLayoutSnapshot() {
 
             const children = structuralChildren.map(child => buildNodeTree(child, parentColumn));
 
-            // FIX: Regex now looks for the number specifically attached to a % sign
+            // Capture ratios using lastFlex (user intent) as priority, then style.flex (current state)
             const splitRatios = structuralChildren.map(child => {
-                const flexString = child.style.flex || '';
-                // Look for '1 1 49.5%' -> matches 49.5
-                const percentMatch = flexString.match(/(\d+(?:\.\d+)?)%/);
+                const flexString = child.dataset.lastFlex || child.style.flex || '';
+                const percentMatch = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
                 if (percentMatch) {
                     return parseFloat(percentMatch[1]);
                 }
 
-                // Fallback: If no percent found (e.g. 'flex: 1'), assumes equal distribution or specific logic
-                // But usually split children have percentages. 
+                // Fallback: If no percent found, assumes equal distribution
                 return (100 / structuralChildren.length);
             });
 
@@ -153,12 +151,17 @@ export function generateLayoutSnapshot() {
         showRight: refs.rightBody.style.display !== 'none',
 
         columnSizes: {
-            left: refs.leftBody.style.flex || refs.leftBody.dataset.lastFlex || "1 1 20%",
+            left: refs.leftBody.dataset.isColumnCollapsed === 'true'
+                ? (refs.leftBody.dataset.lastFlex || refs.leftBody.style.flex || "1 1 20%")
+                : (refs.leftBody.style.flex || refs.leftBody.dataset.lastFlex || "1 1 20%"),
             center: refs.centerBody.style.flex || "1 1 60%",
-            right: refs.rightBody.style.flex || refs.rightBody.dataset.lastFlex || "1 1 20%",
+            right: refs.rightBody.dataset.isColumnCollapsed === 'true'
+                ? (refs.rightBody.dataset.lastFlex || refs.rightBody.style.flex || "1 1 20%")
+                : (refs.rightBody.style.flex || refs.rightBody.dataset.lastFlex || "1 1 20%"),
             leftCollapsed: refs.leftBody.dataset.isColumnCollapsed === 'true',
             rightCollapsed: refs.rightBody.dataset.isColumnCollapsed === 'true',
             leftLastFlex: refs.leftBody.dataset.lastFlex,
+            centerLastFlex: refs.centerBody.dataset.lastFlex,
             rightLastFlex: refs.rightBody.dataset.lastFlex
         },
 
@@ -259,13 +262,16 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     });
 
     if (snapshot.columnSizes) {
+        // Restore lastFlex first so column expansion/size logic has correct values
+        if (snapshot.columnSizes.leftLastFlex) refs.leftBody.dataset.lastFlex = snapshot.columnSizes.leftLastFlex;
+        if (snapshot.columnSizes.centerLastFlex) refs.centerBody.dataset.lastFlex = snapshot.columnSizes.centerLastFlex;
+        if (snapshot.columnSizes.rightLastFlex) refs.rightBody.dataset.lastFlex = snapshot.columnSizes.rightLastFlex;
+
+        // Apply the saved column sizes (for collapsed columns this is the lastFlex expanded size,
+        // not 0 0 36px — the delayed recalculateColumnSizes will correct collapsed ones)
         refs.leftBody.style.flex = snapshot.columnSizes.left;
         refs.centerBody.style.flex = snapshot.columnSizes.center;
         refs.rightBody.style.flex = snapshot.columnSizes.right;
-
-        // Restore lastFlex for all columns so resizing persists through collapses/reloads
-        if (snapshot.columnSizes.leftLastFlex) refs.leftBody.dataset.lastFlex = snapshot.columnSizes.leftLastFlex;
-        if (snapshot.columnSizes.rightLastFlex) refs.rightBody.dataset.lastFlex = snapshot.columnSizes.rightLastFlex;
 
         if (snapshot.columnSizes.leftCollapsed) {
             refs.leftBody.dataset.isColumnCollapsed = 'true';
@@ -379,14 +385,13 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
                 const childEl = rebuildNodeTree(childNode, split);
 
-                // FIX: Do not overwrite the flex if the child node explicitly provided it.
-                // Only use splitRatios as a fallback if explicit flex is missing.
                 if (childEl) {
-                    const explicitFlex = childNode.flex;
-                    const isExplicitValid = explicitFlex && explicitFlex.indexOf('%') > -1;
-
-                    if (!isExplicitValid && node.splitRatios?.[index]) {
+                    // splitRatios is the most reliable memory of the split's internal proportions (lastFlex).
+                    // Apply it if it exists to ensure correct baseline (e.g. 20%/80%) before any logic runs.
+                    if (node.splitRatios?.[index]) {
                         childEl.style.flex = `1 1 ${node.splitRatios[index]}%`;
+                    } else if (childNode.flex) {
+                        childEl.style.flex = childNode.flex;
                     }
                 }
             });

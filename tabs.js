@@ -40,7 +40,7 @@ export function createPanelElement(title) {
   return panel;
 }
 
-export function setTabCollapsed(pid, collapsed) {
+export function setTabCollapsed(pid, collapsed, skipEvent = false) {
   const tab = getTabById(pid);
   if (!tab) return;
   const isCurrentlyCollapsed = tab.classList.contains('collapsed');
@@ -52,6 +52,11 @@ export function setTabCollapsed(pid, collapsed) {
 
   const sourceId = panel?.dataset.sourceId;
   runTabAction(sourceId, collapsed ? 'onCollapse' : 'onOpen', panel);
+
+  // Trigger a save so the collapsed/active tab state is persisted immediately
+  if (!skipEvent) {
+    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'tabCollapse' } }));
+  }
 }
 
 
@@ -88,7 +93,8 @@ export function createTabElement(title, pid, icon = null, options = {}) {
           tab.classList.remove('active');
         });
       }
-      // No explicit layoutChanged here, rely on checkAndCollapsePaneIfAllTabsCollapsed or setPaneCollapsedView
+      // Dispatch a save event so the pane collapse/expand state is persisted
+      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'paneToggle', pane } }));
       return;
     }
 

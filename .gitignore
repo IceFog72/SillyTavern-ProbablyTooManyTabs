@@ -4,3 +4,5 @@ AGENTS.md
 EXTENSION_MAP.md
 /.vscode
 /.agent
+specs.md
+.vscode/launch.json

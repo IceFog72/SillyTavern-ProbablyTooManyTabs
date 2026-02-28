@@ -79,6 +79,14 @@ export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = nul
                     const distB = Math.abs(activeColumns.indexOf(b.col) - actorIndex);
                     return distA - distB;
                 });
+            } else {
+                // If there's an unexpected large debt overall and no actor caused it
+                // (e.g. hydration overlaps), steal from centerBody first since it acts as the fluid sink
+                donors.sort((a, b) => {
+                    if (a.col.id === 'ptmt-centerBody') return -1;
+                    if (b.col.id === 'ptmt-centerBody') return 1;
+                    return 0;
+                });
             }
 
             // Distribute debt to preferred donors first
@@ -107,12 +115,11 @@ export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = nul
         }
     }
 
-    // Only update lastFlex if it's a reasonably large size to avoid saving 'starved' states
+    // Apply the final sizes to style.flex only.
+    // lastFlex is intentionally NOT updated here — it is user-intent memory
+    // that should only be written at drag-end or when a column explicitly collapses/expands.
     columnData.forEach(d => {
         d.col.style.flex = `1 1 ${d.basis.toFixed(4)}%`;
-        if (d.col.dataset.isColumnCollapsed !== 'true' && d.basis > 5) {
-            d.col.dataset.lastFlex = d.col.style.flex;
-        }
     });
 }
 
@@ -253,26 +260,34 @@ export function recalculateColumnSizes() {
             const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
             const basis = basisMatch ? parseFloat(basisMatch[1]) : 0;
 
-            if (currentWidth < minWidth || basis >= 99.9) {
-                const parentWidth = col.parentElement.getBoundingClientRect().width;
-                const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
-                    .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
-                const availableWidth = parentWidth - totalResizerWidth;
-                if (availableWidth > 0) {
-                    const minBasisPercent = (minWidth / availableWidth) * 100;
-                    col.dataset.lastFlex = `1 1 ${minBasisPercent.toFixed(4)}%`;
-                }
-            } else {
-                if (currentFlex && currentFlex.includes('%')) {
-                    col.dataset.lastFlex = currentFlex;
-                } else {
+            // Only update lastFlex if it's not already a meaningful expanded value.
+            // Don't overwrite a good lastFlex with a tiny/transitional flex value.
+            const existingLastFlex = col.dataset.lastFlex;
+            const existingBasisMatch = existingLastFlex ? existingLastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
+            const existingBasis = existingBasisMatch ? parseFloat(existingBasisMatch[1]) : 0;
+            // Only recalculate lastFlex if the existing one is missing or tiny (<= 5%)
+            if (existingBasis <= 5) {
+                if (currentWidth < minWidth || basis >= 99.9) {
                     const parentWidth = col.parentElement.getBoundingClientRect().width;
                     const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
                         .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
                     const availableWidth = parentWidth - totalResizerWidth;
-                    if (availableWidth > 0 && currentWidth > 0) {
-                        const basisPercent = (currentWidth / availableWidth) * 100;
-                        col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
+                    if (availableWidth > 0) {
+                        const minBasisPercent = (minWidth / availableWidth) * 100;
+                        col.dataset.lastFlex = `1 1 ${minBasisPercent.toFixed(4)}%`;
+                    }
+                } else {
+                    if (currentFlex && currentFlex.includes('%') && basis > 5) {
+                        col.dataset.lastFlex = currentFlex;
+                    } else {
+                        const parentWidth = col.parentElement.getBoundingClientRect().width;
+                        const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
+                            .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+                        const availableWidth = parentWidth - totalResizerWidth;
+                        if (availableWidth > 0 && currentWidth > 5) {
+                            const basisPercent = (currentWidth / availableWidth) * 100;
+                            col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
+                        }
                     }
                 }
             }
@@ -296,19 +311,15 @@ export function recalculateColumnSizes() {
                 .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
             const availableWidth = parentWidth - totalResizerWidth;
 
-            if (availableWidth > 0) {
-                const minBasisPercent = (minWidth / availableWidth) * 100;
-                const lastBasisMatch = lastFlex ? lastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
-                const lastBasisPercent = lastBasisMatch ? parseFloat(lastBasisMatch[1]) : 0;
-
-                // Fix: If lastFlex is unreasonably small (less than minBasisPercent or < 5%),
-                // it was likely saved incorrectly during collapse - use a sensible default
-                const MIN_REASONABLE_PERCENT = 15.0; // Minimum reasonable column width
-                if (lastBasisPercent < Math.max(minBasisPercent, MIN_REASONABLE_PERCENT)) {
+            // Only recalculate if lastFlex is completely missing or unparseable
+            if (!lastFlex || !lastFlex.includes('%')) {
+                if (availableWidth > 0) {
+                    const minBasisPercent = (minWidth / availableWidth) * 100;
                     const siblings = visibleColumns.filter(c => c !== col);
                     const totalSiblingLastFlex = siblings.reduce((sum, s) => {
-                        if (s.dataset.lastFlex) {
-                            const match = s.dataset.lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
+                        const flexString = s.dataset.lastFlex || s.style.flex;
+                        if (flexString) {
+                            const match = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
                             return sum + (match ? parseFloat(match[1]) : 0);
                         }
                         return sum;
@@ -319,7 +330,6 @@ export function recalculateColumnSizes() {
                         targetBasis = Math.max(targetBasis, minBasisPercent);
                         lastFlex = `1 1 ${targetBasis.toFixed(4)}%`;
                     } else {
-                        // Fallback to equal distribution if no sibling data
                         lastFlex = `1 1 ${100 / visibleColumns.length}%`;
                     }
                 }

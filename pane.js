@@ -268,36 +268,47 @@ export function setPaneCollapsedView(pane, collapsed) {
   const parentSplit = pane.parentElement;
 
   if (collapsed) {
-    const currentFlex = pane.style.flex;
     const vs = readPaneViewSettings(pane);
     const minSizePx = vs.minimalPanelSize || 250;
     const rect = pane.getBoundingClientRect();
+    const currentFlex = pane.style.flex;
     const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
     const currentBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
 
-    let shouldResetToMin = false;
-    if (parentSplit?.classList.contains('ptmt-split')) {
-      const isHorizontal = parentSplit.classList.contains('horizontal');
-      const currentSize = isHorizontal ? rect.height : rect.width;
-      if (currentSize < minSizePx || currentBasisPercent >= 99.9) {
+    // Only update lastFlex if it's currently missing or "poisoned" (e.g. 50% default during rebuild)
+    // and we have a better value to save.
+    const existingLastFlex = pane.dataset.lastFlex;
+    const existingBasisMatch = existingLastFlex ? existingLastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
+    const existingBasisPercent = existingBasisMatch ? parseFloat(existingBasisMatch[1]) : 0;
+
+    // Rule: If we have a meaningful existing lastFlex (> 5%), do NOT overwrite it
+    // during a collapse operation. The collapse operation is often a side-effect,
+    // and we don't want to lose the user's carefully adjusted size.
+    if (existingBasisPercent <= 5) {
+      let shouldResetToMin = false;
+      if (parentSplit?.classList.contains('ptmt-split')) {
+        const isHorizontal = parentSplit.classList.contains('horizontal');
+        const currentSize = isHorizontal ? rect.height : rect.width;
+        if (currentSize < minSizePx || currentBasisPercent >= 99.9) {
+          shouldResetToMin = true;
+        }
+      } else if (currentBasisPercent >= 99.9) { // Is the only pane in a column
         shouldResetToMin = true;
       }
-    } else if (currentBasisPercent >= 99.9) { // Is the only pane in a column
-      shouldResetToMin = true;
-    }
 
-    if (shouldResetToMin && parentSplit?.classList.contains('ptmt-split')) {
-      const isHorizontal = parentSplit.classList.contains('horizontal');
-      const parentRect = parentSplit.getBoundingClientRect();
-      const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
-      if (totalParentSize > 0) {
-        const minBasisPercent = (minSizePx / totalParentSize) * 100;
-        pane.dataset.lastFlex = `1 1 ${Math.min(100, minBasisPercent).toFixed(4)}%`;
-      } else {
-        pane.dataset.lastFlex = '1 1 30%'; // Fallback
+      if (shouldResetToMin && parentSplit?.classList.contains('ptmt-split')) {
+        const isHorizontal = parentSplit.classList.contains('horizontal');
+        const parentRect = parentSplit.getBoundingClientRect();
+        const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
+        if (totalParentSize > 0) {
+          const minBasisPercent = (minSizePx / totalParentSize) * 100;
+          pane.dataset.lastFlex = `1 1 ${Math.min(100, minBasisPercent).toFixed(4)}%`;
+        } else if (!pane.dataset.lastFlex) {
+          pane.dataset.lastFlex = '1 1 30%'; // Fallback only if missing
+        }
+      } else if (currentFlex && currentBasisPercent > 5) {
+        pane.dataset.lastFlex = currentFlex;
       }
-    } else if (currentFlex) {
-      pane.dataset.lastFlex = currentFlex;
     }
 
     pane.classList.add('view-collapsed');

@@ -44,20 +44,28 @@ import { initColorizer } from './dialogue-colorizer.js';
     }
 
     const saveCurrentLayoutDebounced = debounce(() => {
-      if (isPTMTResetting) {
-        console.log(`[PTMT Layout] 🛡️ Save blocked due to active reset.`);
-        return;
+      const doSave = () => {
+        if (isPTMTResetting) {
+          console.log(`[PTMT Layout] 🛡️ Save blocked due to active reset.`);
+          return;
+        }
+        if (isHydrating) {
+          console.log(`[PTMT Layout] 🛡️ Save skipped during hydration.`);
+          return;
+        }
+        const layout = generateLayoutSnapshot();
+        const isMobile = settings.get('isMobile');
+        const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+        console.log(`[PTMT Layout] 💾 Auto-saving ${isMobile ? 'Mobile' : 'Desktop'} layout to ${key}.`);
+        settings.update({ [key]: layout });
+      };
+      // Run during browser idle time to avoid blocking UI interactions
+      if (typeof requestIdleCallback === 'function') {
+        requestIdleCallback(doSave, { timeout: 800 });
+      } else {
+        setTimeout(doSave, 0);
       }
-      if (isHydrating) {
-        console.log(`[PTMT Layout] 🛡️ Save skipped during hydration.`);
-        return;
-      }
-      const layout = generateLayoutSnapshot();
-      const isMobile = settings.get('isMobile');
-      const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
-      console.log(`[PTMT Layout] 💾 Auto-saving ${isMobile ? 'Mobile' : 'Desktop'} layout to ${key}. Snapshot:`, layout);
-      settings.update({ [key]: layout });
-    }, 750);
+    }, 300);
 
     const api = {
       createTabFromContent, moveNodeIntoTab, listTabs,

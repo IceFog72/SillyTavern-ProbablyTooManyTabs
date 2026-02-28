@@ -511,11 +511,25 @@ export function recalculateSplitSizes(split, actor = null) {
     }
 
     if (activeChildren.length < children.length) {
+        // Normalize open children's flex so they fill the available space,
+        // but preserve their existing proportions (lastFlex or current flex) instead
+        // of blindly resetting to equal distribution.
+        const totalOpenFlex = activeChildren.reduce((sum, child) => {
+            const flexStr = child.dataset.lastFlex || child.style.flex || '';
+            const m = flexStr.match(/(\d+(?:\.\d+)?)\s*%/);
+            return sum + (m ? parseFloat(m[1]) : (100 / activeChildren.length));
+        }, 0);
+
         children.forEach(child => {
             if (child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')) {
                 child.style.flex = '0 0 auto';
             } else {
-                setFlexBasisPercent(child, 100 / (activeChildren.length || 1));
+                // Restore the child's last known flex, scaled so all open children sum to 100%
+                const flexStr = child.dataset.lastFlex || child.style.flex || '';
+                const m = flexStr.match(/(\d+(?:\.\d+)?)\s*%/);
+                const rawBasis = m ? parseFloat(m[1]) : (100 / activeChildren.length);
+                const scaled = totalOpenFlex > 0 ? (rawBasis / totalOpenFlex) * 100 : (100 / activeChildren.length);
+                setFlexBasisPercent(child, scaled);
             }
         });
         return;
@@ -532,9 +546,14 @@ export function recalculateSplitSizes(split, actor = null) {
     const contentAvailableSize = Math.max(0, totalAvailableSize - totalResizerSize);
 
     const childrenInfo = activeChildren.map(child => {
-        const flexValue = child.style.flex;
+        const flexValue = child.dataset.lastFlex || child.style.flex;
         const basisMatch = flexValue && flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        return { el: child, minSize: calculateElementMinWidth(child), flexBasisPercent: basisMatch ? parseFloat(basisMatch[1]) : (100 / activeChildren.length) };
+        const flexBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : (100 / activeChildren.length);
+        return {
+            el: child,
+            minSize: calculateElementMinWidth(child),
+            flexBasisPercent
+        };
     });
 
     const totalMinSize = childrenInfo.reduce((sum, info) => sum + info.minSize, 0);
