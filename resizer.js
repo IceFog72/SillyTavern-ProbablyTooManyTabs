@@ -413,6 +413,7 @@ export function attachColumnResizer(resizer) {
             const { leftBody, centerBody, rightBody } = state.refs;
             [leftBody, centerBody, rightBody].forEach(col => {
                 if (col && col.style.display !== 'none' && col.style.flex) {
+                    if (col.dataset.isColumnCollapsed === 'true') return; // Do not overwrite healthy memory with tiny collapsed flex
                     col.dataset.lastFlex = col.style.flex;
                     console.log(`[PTMT Layout] 📍 Fixated ${col.id} size to ${col.style.flex}`);
                 }
