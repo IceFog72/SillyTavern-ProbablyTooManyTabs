@@ -30,14 +30,28 @@ export const updateStatusBar = debounce(async function () {
         return;
     }
 
-    const thisPromptSet = findItemizedPromptSet(itemizedPrompts, lastMesId);
+    // Attempt to find the exact matching set for the current last message
+    let thisPromptSet = findItemizedPromptSet(itemizedPrompts, lastMesId);
+
+    // Fallback: If no exact match (e.g. while typing), find the LATEST available set
+    if (thisPromptSet === undefined) {
+        let maxId = -1;
+        for (let i = 0; i < itemizedPrompts.length; i++) {
+            if (itemizedPrompts[i].mesId > maxId) {
+                maxId = itemizedPrompts[i].mesId;
+                thisPromptSet = i;
+            }
+        }
+    }
+
     if (thisPromptSet === undefined) {
         statusBarElement.style.display = 'none';
         return;
     }
 
     try {
-        const params = await itemizedParams(itemizedPrompts, thisPromptSet, lastMesId);
+        const foundMesId = itemizedPrompts[thisPromptSet].mesId;
+        const params = await itemizedParams(itemizedPrompts, thisPromptSet, foundMesId);
 
         // Optimization: only re-render if token data has changed
         const currentData = JSON.stringify({
@@ -69,15 +83,16 @@ export const updateStatusBar = debounce(async function () {
         let usedTokens = 0;
 
         const createSegment = (tokens, colorClass, label) => {
-            if (tokens <= 0) return;
-            const percentage = (tokens / maxContext) * 100;
-            usedTokens += tokens;
+            const numTokens = Number(tokens) || 0;
+            if (numTokens <= 0) return;
+            const percentage = (numTokens / maxContext) * 100;
+            usedTokens += numTokens;
 
             const segment = document.createElement('div');
             segment.className = `csb-segment ${colorClass}`;
             segment.style.width = `${percentage}%`;
 
-            segment.title = `${label}: ${tokens} tokens (${percentage.toFixed(1)}%)`;
+            segment.title = `${label}: ${numTokens} tokens (${percentage.toFixed(1)}%)`;
 
             scaleBar.appendChild(segment);
         };
@@ -118,8 +133,6 @@ export function initStatusBar() {
     if (!statusBarElement) {
         statusBarElement = document.createElement('div');
         statusBarElement.id = 'context-status-bar';
-        statusBarElement.style.setProperty('width', '100%', 'important');
-        statusBarElement.style.setProperty('position', 'inherit', 'important');
         formSheld.before(statusBarElement);
     }
 

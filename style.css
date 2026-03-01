@@ -1023,13 +1023,23 @@ body,
 /* Context Status Bar */
 #context-status-bar {
   display: none;
-  height: 4px;
+  height: 4px !important;
+  min-height: 4px !important;
   background-color: rgba(150, 150, 150, 0.3);
   flex-direction: row;
   width: 100% !important;
-  position: inherit !important;
+  position: relative !important;
   z-index: 10;
   box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.5);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+#context-scale-bar {
+  display: flex;
+  flex-direction: row;
+  width: 100%;
+  height: 100%;
 }
 
 .csb-segment {
