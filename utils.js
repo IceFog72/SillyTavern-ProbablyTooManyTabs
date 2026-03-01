@@ -123,3 +123,16 @@ export function setFlexBasisPercent(elem, percent, grow = 1, shrink = 1) {
         }
     }
 }
+
+export function createIconElement(icon, className = 'ptmt-tab-icon') {
+    if (!icon) return null;
+    const iconEl = document.createElement('span');
+    iconEl.className = className;
+    if (icon.startsWith('fa-')) {
+        iconEl.classList.add('fa-solid');
+        iconEl.classList.add(icon);
+    } else {
+        iconEl.textContent = icon;
+    }
+    return iconEl;
+}

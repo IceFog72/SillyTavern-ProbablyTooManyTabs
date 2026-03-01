@@ -1,7 +1,8 @@
 // LayoutManager.js
 
 import { settings } from './settings.js';
-import { el, debounce, getPanelBySourceId } from './utils.js';
+import { el, debounce, getPanelBySourceId, createIconElement } from './utils.js';
+import { showFontAwesomePicker } from '../../../utils.js';
 import { getTabIdentifier } from './pending-tabs.js';
 
 export class LayoutManager {
@@ -16,6 +17,54 @@ export class LayoutManager {
         }, 400);
         this._layoutChangeHandler = null;
         this.indicator = el('div', { className: 'drop-indicator' });
+    }
+
+    async pickIcon(btn, sourceId, tabElement) {
+        const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
+        const currentIcon = mapping.icon || '';
+
+        const selectedIcon = await showFontAwesomePicker();
+        if (selectedIcon) {
+            this.updateIconBtn(btn, selectedIcon);
+            this.saveIconToMapping(sourceId, tabElement, selectedIcon);
+        }
+    }
+
+    updateIconBtn(btn, iconName) {
+        if (!btn) return;
+        if (iconName.startsWith('fa-')) {
+            btn.innerHTML = `<i class="fa-solid ${iconName}"></i>`;
+        } else {
+            btn.textContent = iconName || '';
+        }
+    }
+
+    saveIconToMapping(sourceId, tabElement, iconName) {
+        const mappings = settings.get('panelMappings').slice();
+        const mapping = mappings.find(m => m.id === sourceId);
+        if (mapping) {
+            mapping.icon = iconName;
+            this.debouncedSettingsUpdate(mappings);
+        }
+        if (tabElement) {
+            let iconEl = tabElement.querySelector('.ptmt-tab-icon');
+            if (iconName) {
+                if (!iconEl) {
+                    iconEl = createIconElement(iconName);
+                    if (iconEl) tabElement.prepend(iconEl);
+                } else {
+                    iconEl.className = 'ptmt-tab-icon';
+                    if (iconName.startsWith('fa-')) {
+                        iconEl.classList.add('fa-solid', iconName);
+                        iconEl.textContent = '';
+                    } else {
+                        iconEl.textContent = iconName;
+                    }
+                }
+            } else if (iconEl) {
+                iconEl.remove();
+            }
+        }
     }
 
     createSettingsPanel() {
@@ -248,7 +297,7 @@ export class LayoutManager {
 
         const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
         const title = mapping.title || sourceId;
-        const icon = mapping.icon || '🚫';
+        const icon = mapping.icon || 'fa-ban';
 
         const container = el('div', {
             className: 'ptmt-editor-tab',
@@ -260,11 +309,11 @@ export class LayoutManager {
         });
 
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to restore' }, '☰');
-        const iconSpan = el('span', { className: 'ptmt-tab-icon' }, icon);
+        const iconSpan = createIconElement(icon);
         const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
         const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15));
 
-        container.append(handle, iconSpan, titleSpan, idLabel);
+        container.append(handle, ...(iconSpan ? [iconSpan] : []), titleSpan, idLabel);
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e));
 
@@ -425,44 +474,40 @@ export class LayoutManager {
         });
 
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder' }, '☰');
-        const iconInput = el('input', { type: 'text', value: mapping.icon || '', placeholder: 'Icon', 'data-prop': 'icon' });
+
+        const iconBtn = el('button', {
+            className: 'ptmt-icon-picker-btn',
+            type: 'button',
+            title: 'Choose icon'
+        });
+        const currentIcon = mapping.icon || '';
+        if (currentIcon.startsWith('fa-')) {
+            iconBtn.innerHTML = `<i class="fa-solid ${currentIcon}"></i>`;
+        } else {
+            iconBtn.textContent = currentIcon || '';
+        }
+
+        iconBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.pickIcon(iconBtn, sourceId, tabElement);
+        });
+
         const titleInput = el('input', { type: 'text', value: tabElement.querySelector('.ptmt-tab-label').textContent, placeholder: 'Title', 'data-prop': 'title' });
         const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15) || 'N/A');
 
 
-        container.append(handle, iconInput, titleInput, idLabel);
+        container.append(handle, iconBtn, titleInput, idLabel);
 
 
-        [iconInput, titleInput].forEach(input => {
-            input.addEventListener('input', () => {
-                const prop = input.dataset.prop;
-                const newVal = input.value.trim();
-
-
-                const mappings = settings.get('panelMappings').slice();
-                const mapping = mappings.find(m => m.id === sourceId);
-
-                if (mapping) {
-                    mapping[prop] = newVal;
-                    this.debouncedSettingsUpdate(mappings);
-                }
-
-                if (prop === 'title') {
-                    tabElement.querySelector('.ptmt-tab-label').textContent = newVal || sourceId;
-                }
-                if (prop === 'icon') {
-                    let iconEl = tabElement.querySelector('.ptmt-tab-icon');
-                    if (newVal) {
-                        if (!iconEl) {
-                            iconEl = el('span', { className: 'ptmt-tab-icon' });
-                            tabElement.prepend(iconEl);
-                        }
-                        iconEl.textContent = newVal;
-                    } else if (iconEl) {
-                        iconEl.remove();
-                    }
-                }
-            });
+        titleInput.addEventListener('input', () => {
+            const newVal = titleInput.value.trim();
+            const mappings = settings.get('panelMappings').slice();
+            const mapping = mappings.find(m => m.id === sourceId);
+            if (mapping) {
+                mapping.title = newVal;
+                this.debouncedSettingsUpdate(mappings);
+            }
+            tabElement.querySelector('.ptmt-tab-label').textContent = newVal || sourceId;
         });
 
 
@@ -551,7 +596,7 @@ export class LayoutManager {
         const sourceId = tabInfo.searchId || tabInfo.sourceId || tabInfo.searchClass;
         const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
         const title = mapping.title || sourceId || tabInfo.searchClass;
-        const icon = mapping.icon || '👻';
+        const icon = mapping.icon || 'fa-ghost';
 
         const identifier = tabInfo.searchId ? `ID: ${tabInfo.searchId}` : `Class: ${tabInfo.searchClass}`;
 
@@ -569,11 +614,11 @@ export class LayoutManager {
 
 
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder or move' }, '☰');
-        const iconSpan = el('span', { className: 'ptmt-tab-icon' }, icon);
+        const iconSpan = createIconElement(icon);
         const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
         const idLabel = el('span', { className: 'ptmt-editor-id', title: identifier }, identifier);
 
-        container.append(handle, iconSpan, titleSpan, idLabel);
+        container.append(handle, ...(iconSpan ? [iconSpan] : []), titleSpan, idLabel);
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e));
         container.addEventListener('drop', (e) => this.handleDrop(e));

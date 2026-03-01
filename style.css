@@ -1195,3 +1195,35 @@ body.ptmt-is-resizing #rm_print_characters_block {
     font-size: 1.4em;
   }
 }
+
+.ptmt-icon-picker-btn {
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  background: var(--ST-UI-Background) !important;
+  border: 1px solid var(--ST-UI-Border) !important;
+  border-radius: 4px;
+  cursor: pointer !important;
+  font-size: 1.1em;
+  color: var(--ST-Main-Text) !important;
+  box-sizing: border-box;
+}
+
+.ptmt-icon-picker-btn:hover {
+  background: color-mix(in srgb, var(--ST-UI-Background), var(--ST-Main-Text) 15%) !important;
+  border-radius: 4px;
+  color: var(--ST-Main-Text);
+  box-sizing: border-box;
+}
+
+.ptmt-custom-icon-input:focus {
+  outline: none;
+  border-color: var(--ST-Quote-Text);
+}
+
+.popup[open]::backdrop {
+  backdrop-filter: none !important;
+}

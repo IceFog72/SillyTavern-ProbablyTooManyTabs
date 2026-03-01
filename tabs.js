@@ -1,6 +1,6 @@
 // tabs.js
 
-import { el, isElement, getPanelBySourceId, getPanelById, getTabById, getRefs } from './utils.js';
+import { el, isElement, getPanelBySourceId, getPanelById, getTabById, getRefs, createIconElement } from './utils.js';
 import { setPaneCollapsedView, removePaneIfEmpty, checkAndCollapsePaneIfAllTabsCollapsed, splitPaneWithPane } from './pane.js';
 import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
 import { invalidatePaneTabSizeCache } from './resizer.js';
@@ -69,8 +69,8 @@ export function createTabElement(title, pid, icon = null, options = {}) {
   t.dataset.for = pid;
 
   if (icon) {
-    const iconEl = el('span', { className: 'ptmt-tab-icon' }, icon);
-    t.appendChild(iconEl);
+    const iconEl = createIconElement(icon);
+    if (iconEl) t.appendChild(iconEl);
   }
   t.appendChild(labelEl);
 
@@ -311,9 +311,30 @@ export function createTabFromContent(content, options = {}, target = null) {
   if (targetPane) {
     targetPane._panelContainer.appendChild(panel);
     // Ensure tab exists in this pane
-    if (!targetPane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`)) {
-      const tab = createTabElement(panelTitle, pid, icon, { collapsed: options.collapsed });
+    const existingTab = targetPane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);
+    const tabIcon = icon || mapping.icon || null;
+    if (!existingTab) {
+      const tab = createTabElement(panelTitle, pid, tabIcon, { collapsed: options.collapsed });
       targetPane._tabStrip.appendChild(tab);
+    } else {
+      // Tab exists but might not have icon - update it
+      let iconEl = existingTab.querySelector('.ptmt-tab-icon');
+      if (tabIcon) {
+        if (!iconEl) {
+          iconEl = createIconElement(tabIcon);
+          if (iconEl) existingTab.prepend(iconEl);
+        } else {
+          // Icon element exists but might be empty
+          const hasFaIcon = Array.from(iconEl.classList).some(c => c.startsWith('fa-'));
+          const hasText = iconEl.textContent.trim().length > 0;
+          if (!hasFaIcon && !hasText) {
+            // Replace with proper icon
+            iconEl.remove();
+            iconEl = createIconElement(tabIcon);
+            if (iconEl) existingTab.prepend(iconEl);
+          }
+        }
+      }
     }
 
     // If the user explicitly requested uncollapsed state, apply it now
@@ -335,7 +356,7 @@ export function createTabFromContent(content, options = {}, target = null) {
   return panel;
 }
 
-export function createTabForBodyContent({ title = 'Main', icon = '📝', setAsDefault = true, collapsed = false } = {}, targetPane = null) {
+export function createTabForBodyContent({ title = 'Main', icon = 'fa-house', setAsDefault = true, collapsed = false } = {}, targetPane = null) {
   const PROTECTED_IDS = new Set(['ptmt-main', 'ptmt-staging-area', 'ptmt-settings-wrapper']);
 
   const toMove = Array.from(document.body.childNodes).filter(n => {

@@ -20,7 +20,7 @@ import { initPendingTabsManager } from './pending-tabs.js';
 /** @typedef {import('./types.js').GhostTab} GhostTab */
 /** @typedef {import('./types.js').HiddenTab} HiddenTab */
 
-const SNAPSHOT_VERSION = 14;
+const SNAPSHOT_VERSION = 15;
 
 const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },
@@ -48,7 +48,15 @@ export function generateLayoutSnapshot() {
                     panelId: pid || null,
                     sourceId: sourceId,
                     title: tabEl.querySelector('.ptmt-tab-label')?.textContent?.trim() || panel?.dataset?.title || null,
-                    icon: tabEl.querySelector('.ptmt-tab-icon')?.textContent || null,
+                    icon: (() => {
+                        const iconEl = tabEl.querySelector('.ptmt-tab-icon');
+                        if (!iconEl) return null;
+                        if (iconEl.classList.contains('fa-solid') || Array.from(iconEl.classList).some(c => c.startsWith('fa-'))) {
+                            const faStyles = new Set(['fa-solid', 'fa-regular', 'fa-light', 'fa-thin', 'fa-duotone', 'fa-brands', 'fa-sharp']);
+                            return Array.from(iconEl.classList).find(c => c.startsWith('fa-') && !faStyles.has(c)) || null;
+                        }
+                        return iconEl.textContent || null;
+                    })(),
                     collapsed: tabEl.classList.contains('collapsed'),
                     active: tabEl.classList.contains('active'),
                     order: index,
@@ -416,9 +424,10 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
                 if (t.sourceId) {
                     const mapping = (settings.get('panelMappings') || []).find(m => m.id === t.sourceId) || {};
+                    const iconToUse = t.icon || mapping.icon || 'fa-tab';
                     panel = createTabFromContent(t.sourceId, {
                         title: t.title || mapping.title,
-                        icon: t.icon || mapping.icon,
+                        icon: iconToUse,
                         makeActive: false
                     }, pane);
 
@@ -434,7 +443,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     });
                     pid = registerPanelDom(panel, t.title);
                     pane._panelContainer.appendChild(panel);
-                    const tab = createTabElement(t.title, pid, t.icon);
+                    const tab = createTabElement(t.title, pid, t.icon || 'fa-layer-group');
                     pane._tabStrip.appendChild(tab);
                 }
 
@@ -561,7 +570,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         if (!settingsTab && centerPane) {
             const settingsPanel = createTabFromContent(settingsWrapperId, {
                 title: 'Layout Settings',
-                icon: '🔧',
+                icon: 'fa-screwdriver-wrench',
                 makeActive: false
             }, centerPane);
 
@@ -610,8 +619,11 @@ function validateSnapshot(snapshot) {
     if (!snapshot.columns || typeof snapshot.columns !== 'object') return false;
 
     if (!snapshot.version || snapshot.version < SNAPSHOT_VERSION) {
-        console.warn(`[PTMT] Snapshot version ${snapshot.version} is older than current version ${SNAPSHOT_VERSION}. Continuing with caution.`);
-        // Don't return false here, let orphan recovery handle it if it breaks
+        console.warn(`[PTMT] Snapshot version ${snapshot.version} is older than current version ${SNAPSHOT_VERSION}. Auto-resetting to default.`);
+        if (typeof window.toastr !== 'undefined') {
+            window.toastr.info("PTMT Layout has been updated and reset to defaults to ensure compatibility.", "Layout Updated");
+        }
+        return false;
     }
 
     const hasContent = ['left', 'center', 'right'].some(col =>
