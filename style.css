@@ -4,6 +4,11 @@
 :root {
   --ptmt-radius: 0px;
 
+  /* Tab Colors - Icon and label share the same color */
+  --ptmt-tab-default-color: var(--ptmt-adaptive-em);
+  --ptmt-tab-hover-color: var(--ptmt-adaptive-quote);
+  --ptmt-tab-active-color: var(--ptmt-adaptive-text);
+
   /* Base Theme Aliases - Mapped to SillyTavern's SmartTheme system */
   --ST-Main-Text: var(--SmartThemeBodyColor);
   --ST-Italics-Text: var(--SmartThemeEmColor);
@@ -17,14 +22,26 @@
   --ST-Bot-Message-Background: var(--SmartThemeBotMesBlurTintColor);
   --ST-Blur-Strength: var(--SmartThemeBlurStrength);
 
+  /* UI Background Luminance for adaptive contrast (0-100, where 50 = neutral) */
+  --ST-UI-Background-luminance: 50;
+
   /* Isolated Global Adaptive Text Variables */
   --ptmt-adaptive-bw: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1);
 
-  --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 60%);
-  --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 60%);
-  --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 60%);
-  --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 60%);
-  --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 60%);
+  --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 70%);
+
+
+  /* Create a theme-aware danger color by mixing the theme body color with red */
+  --ptmt-danger-color: color-mix(in srgb, var(--ptmt-adaptive-text), var(--ptmt-adaptive-quote) 70%);
+
+  --button-outline-danger-background: color-mix(in srgb, var(--ptmt-danger-color) 15%, transparent);
+  --button-outline-danger-background-hover: color-mix(in srgb, var(--ptmt-danger-color) 25%, transparent);
+  --button-outline-danger-background-active: color-mix(in srgb, var(--ptmt-danger-color) 35%, transparent);
+
 
   --ST-Code-Background: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * 100, 0.15) 0 0 / 0.7);
   --ST-Code-Text: oklch(from var(--ST-Code-Background) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
@@ -34,9 +51,10 @@
   --ptmt-code-text: var(--ST-Code-Text);
 
   --ptmt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
+  --shadowWidth: 8;
   --ptmt-tab-border-color: color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
-  --ptmt-tab-bg-color: color-mix(in srgb, var(--ST-UI-Background), transparent 20%);
-  --ptmt-tab-inactive-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 10%);
+  --ptmt-tab-bg-color: color-mix(in srgb, var(--ST-UI-Background), transparent 30%);
+  --ptmt-tab-inactive-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 60%);
   --ptmt-tab-hover-bg: color-mix(in srgb, var(--ST-UI-Background), var(--ptmt-adaptive-quote) 10%);
   --ptmt-shadow-soft: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 70%);
   --tts-bottom-offset: 39px;
@@ -296,7 +314,7 @@ body,
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  min-width: 36px;
+  min-width: 38px;
 }
 
 .ptmt-resizer-vertical,
@@ -365,23 +383,23 @@ body,
 
 .ptmt-pane-grid.grid-horizontal {
   grid-template-columns: 1fr;
-  grid-template-rows: 36px 1fr;
+  grid-template-rows: 38px 1fr;
   grid-template-areas: "tabs" "content";
 }
 
 .ptmt-pane-grid.grid-horizontal.flow-reversed {
-  grid-template-rows: 1fr 36px;
+  grid-template-rows: 1fr 38px;
   grid-template-areas: "content" "tabs";
 }
 
 .ptmt-pane-grid.grid-vertical {
-  grid-template-columns: 36px 1fr;
+  grid-template-columns: 38px 1fr;
   grid-template-rows: 1fr;
   grid-template-areas: "tabs content";
 }
 
 .ptmt-pane-grid.grid-vertical.flow-reversed {
-  grid-template-columns: 1fr 36px;
+  grid-template-columns: 1fr 38px;
   grid-template-areas: "content tabs";
 }
 
@@ -429,23 +447,95 @@ body,
   max-height: unset !important;
 }
 
+/* Select/Dropdown Styling */
+select {
+  background-color: var(--ST-UI-Background) !important;
+  color: var(--ST-Main-Text) !important;
+  border: 1px solid var(--ST-UI-Border) !important;
+}
+
+select option {
+  background-color: var(--ST-Chat-Background) !important;
+  color: var(--ST-Main-Text) !important;
+}
+
 /* ==========================================================================
    4. TAB SYSTEM
    ========================================================================== */
+
+/* Tab Base Styles */
+.ptmt-tab {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 6px;
+  cursor: grab;
+  user-select: none;
+  gap: 6px;
+  white-space: nowrap;
+  background: var(--ptmt-tab-inactive-bg);
+  border-left: none;
+  border-right: 1px solid var(--ptmt-tab-border-color);
+  min-height: 38px;
+  min-width: 38px;
+  flex-shrink: 0;
+  position: relative;
+  transition: all var(--ptmt-transition);
+  line-height: 1;
+  text-overflow: ellipsis;
+  color: var(--ptmt-tab-default-color);
+}
+
+.ptmt-tab:hover:not(.active) {
+  background: var(--ptmt-tab-hover-bg);
+  filter: brightness(1.1);
+}
+
+y .ptmt-tab.active {
+  cursor: default;
+  background: var(--ptmt-tab-bg-color);
+  border-bottom-color: transparent;
+}
+
+/* Tab Icon */
+.ptmt-tab-icon .fa-solid::before {
+  color: var(--ptmt-tab-default-color);
+}
+
+/* Tab Label */
+.ptmt-tab-label {
+  line-height: 1;
+  max-width: 200px;
+  text-overflow: ellipsis;
+}
+
+/* Hover State */
+.ptmt-tab:hover:not(.active) {
+  color: var(--ptmt-tab-hover-color);
+}
+
+/* Active State */
+.ptmt-tab.active {
+  color: var(--ptmt-tab-active-color);
+}
+
+/* Tab Strip */
 .ptmt-tabStrip {
   display: flex;
-  align-items: flex-end;
-  color: var(--ST-Main-Text);
+  align-items: stretch;
   min-width: 0;
   box-sizing: border-box;
   background: color-mix(in srgb, var(--ST-UI-Background), transparent 80%);
-  backdrop-filter: blur(calc(var(--ST-Blur-Strength) / 2));
   will-change: backdrop-filter;
   overflow-x: auto;
   overflow-y: hidden;
   flex-wrap: nowrap;
   scrollbar-width: thin;
   scrollbar-color: color-mix(in srgb, var(--ST-Quote-Text), transparent 50%) transparent;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 100%;
+  border-left: 1px solid var(--ptmt-tab-border-color);
+  border-right: 1px solid var(--ptmt-tab-border-color);
 }
 
 .ptmt-tabStrip::-webkit-scrollbar {
@@ -455,7 +545,6 @@ body,
 
 .ptmt-tabStrip::-webkit-scrollbar-thumb {
   background: color-mix(in srgb, var(--ST-Quote-Text), transparent 50%);
-  border-radius: 2px;
 }
 
 .ptmt-tabStrip::-webkit-scrollbar-track {
@@ -469,51 +558,17 @@ body,
   overflow-y: auto;
   overflow-x: hidden;
   padding-right: 0;
+  border-left: none;
+  border-right: none;
+  border-top: 1px solid var(--ptmt-tab-border-color);
+  border-bottom: 1px solid var(--ptmt-tab-border-color);
 }
 
 .ptmt-tabStrip.vertical.ptmt-has-overflow {
   padding-bottom: 60px;
 }
 
-.ptmt-tab {
-  display: inline-flex;
-  align-items: center;
-  justify-content: flex-start;
-  padding: 8px 12px;
-  cursor: grab;
-  user-select: none;
-  gap: 6px;
-  white-space: nowrap;
-  background: var(--ptmt-tab-inactive-bg);
-  border-left: 1px solid var(--ptmt-tab-border-color);
-  border-right: 1px solid var(--ptmt-tab-border-color);
-  min-height: 20px;
-  min-width: 20px;
-  flex-shrink: 0;
-  position: relative;
-  transition: background var(--ptmt-transition);
-}
-
-.ptmt-tab:hover:not(.active) {
-  background: var(--ptmt-tab-hover-bg) !important;
-}
-
-.ptmt-tab:focus {
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active {
-  border-top-color: transparent;
-  border-bottom-color: transparent;
-}
-
-/* Active/Hover states */
-.ptmt-tab.active {
-  cursor: default;
-  background: var(--ptmt-tab-bg-color);
-  border-bottom-color: transparent;
-}
-
+/* Active indicator */
 .ptmt-tab.active::after {
   content: "";
   position: absolute;
@@ -522,8 +577,7 @@ body,
   right: 10%;
   height: 2px;
   background: var(--ptmt-adaptive-quote);
-  box-shadow: 0 0 8px 1px var(--ptmt-adaptive-quote);
-  border-radius: 2px;
+  box-shadow: 0 0 12px 2px var(--ptmt-adaptive-quote);
 }
 
 .ptmt-tab:hover::after {
@@ -534,16 +588,20 @@ body,
   right: 10%;
   height: 2px;
   background: var(--ptmt-adaptive-shadow);
-  box-shadow: 0 0 8px 1px var(--ptmt-adaptive-shadow);
-  border-radius: 2px;
+  box-shadow: 0 0 12px 2px var(--ptmt-adaptive-shadow);
 }
 
 .ptmt-tab.active:hover::after {
-  background: var(--ST-Main-Text) !important;
-  box-shadow: 0 0 8px 1px var(--ST-Main-Text) !important;
+  background: var(--ST-Main-Text);
+  box-shadow: 0 0 12px 2px var(--ST-Main-Text);
 }
 
 /* Horizontal - Bottom (Flow Reversed) Indicator Fix */
+.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active {
+  border-top-color: transparent;
+  border-bottom-color: transparent;
+}
+
 .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab::after {
   bottom: auto;
   top: 0;
@@ -559,11 +617,10 @@ body,
 }
 
 .ptmt-tab[style*="fixed"] {
-  background: var(--ST-Chat-Background) !important;
-  border: 1px solid var(--ST-UI-Border) !important;
+  background: var(--ST-Chat-Background);
+  border: 1px solid var(--ST-UI-Border);
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-  border-radius: 4px;
-  padding: 8px;
+  padding: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -571,26 +628,24 @@ body,
   z-index: 20000;
 }
 
-.ptmt-tab.collapsed {
-  /* Future transition hooks */
-}
-
-/* Vertical Tab Strip Specifics */
+/* Vertical Tab Strip */
 .ptmt-tabStrip.vertical .ptmt-tab {
-  width: auto;
+  width: 100%;
+  height: auto;
+  min-height: 38px;
   justify-content: center;
-  padding: 12px 7px;
+  padding: 6px;
   white-space: normal;
-  border-radius: 0;
   background: var(--ptmt-tab-inactive-bg);
   border: none;
-  border-bottom: 1px solid var(--ptmt-tab-border-color) !important;
-  border-top: 1px solid var(--ptmt-tab-border-color) !important;
+  border-bottom: 1px solid var(--ptmt-tab-border-color);
   flex-direction: column;
+  transition: all var(--ptmt-transition);
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab:hover:not(.active) {
   background: var(--ptmt-tab-hover-bg) !important;
+  filter: brightness(1.1);
 }
 
 .ptmt-pane-grid.grid-vertical .ptmt-tab {
@@ -616,7 +671,6 @@ body,
   width: 2px;
   height: auto;
   left: auto;
-  border-radius: 2px;
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab.active::after {
@@ -629,8 +683,7 @@ body,
   height: auto;
   left: auto;
   background: var(--ptmt-adaptive-quote);
-  box-shadow: 0 0 8px 1px var(--ptmt-adaptive-quote);
-  border-radius: 2px;
+  box-shadow: 0 0 12px 2px var(--ptmt-adaptive-quote);
 }
 
 /* Vertical - Right (Flow Reversed) */
@@ -644,33 +697,16 @@ body,
   border-right-color: transparent;
 }
 
-/* Tab Labels & Contrast */
-.ptmt-tab .ptmt-tab-label {
-  line-height: 1;
-  max-width: 200px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  mix-blend-mode: difference;
-  color: var(--ST-Main-Text);
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab:hover,
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active {
+  text-shadow: -1px 0px calc(var(--shadowWidth) * 1px) var(--ptmt-panel-bg) !important;
 }
 
+/* Vertical Tab Label (for writing mode) */
 .ptmt-tabStrip.vertical .ptmt-tab .ptmt-tab-label {
   writing-mode: vertical-rl;
   text-orientation: mixed;
   font-size: 0.85em;
-}
-
-/* Automatic Contrast Enhancement */
-.ptmt-tab.active .ptmt-tab-label {
-  /* Fallback incorporating background image luminance for transparent UIs */
-  color: oklch(from var(--ptmt-tab-bg-color) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) !important;
-  mix-blend-mode: normal;
-}
-
-.ptmt-tab:not(.active) .ptmt-tab-label {
-  /* Fallback incorporating background image luminance for transparent UIs */
-  color: color-mix(in oklch, var(--ST-Quote-Text), oklch(from var(--ptmt-tab-inactive-bg) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1) 30%) !important;
-  mix-blend-mode: normal;
 }
 
 /* Icons-Only Mode Utilities */
@@ -681,9 +717,19 @@ body,
 }
 
 #ptmt-main.ptmt-global-icons-only .ptmt-tab {
-  padding: 8px 12px;
+  padding: 6px;
   min-width: 40px;
   justify-content: center;
+}
+
+.ptmt-tabStrip.vertical .ptmt-tab:hover .fa-solid::before,
+.ptmt-tabStrip.vertical .ptmt-tab.active .fa-solid::before {
+  text-shadow: 1px 0px calc(var(--shadowWidth) * 1px) var(--ptmt-panel-bg) !important;
+}
+
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab:hover .fa-solid::before,
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active .fa-solid::before {
+  text-shadow: 1px 0px calc(var(--shadowWidth) * 1px) var(--ptmt-panel-bg) !important;
 }
 
 .ptmt-pane.ptmt-pane-icons-only .ptmt-tab {
@@ -762,7 +808,7 @@ body,
 .ptmt-vs-button {
   margin-left: 10px;
   padding: 5px 15px;
-  border-radius: 4px;
+  border-radius: 0.5rem !important;
   border: 1px solid var(--ST-UI-Border);
   background: var(--ST-Chat-Background);
   color: var(--ST-Main-Text);
@@ -785,7 +831,7 @@ body,
   background: color-mix(in srgb, var(--ST-UI-Background), transparent 60%);
   border: 1px solid var(--ST-UI-Border);
   color: var(--ST-Main-Text);
-  border-radius: 0.5rem;
+  border-radius: 0.5rem !important;
   padding: 4px 8px;
   outline: none;
   transition: all 0.2s ease;
@@ -810,7 +856,7 @@ body,
 
 /* Layout Editor Components */
 .ptmt-settings-panel {
-  border: 1px solid var(--ST-UI-Border);
+  border-top: 1px solid var(--ST-UI-Border);
   padding: 6px;
   background-color: var(--ST-UI-Background);
 }
@@ -818,7 +864,7 @@ body,
 .ptmt-settings-panel fieldset {
   margin-bottom: 12px;
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 0.5rem !important;
   border: 1px solid var(--ST-UI-Border);
   background: color-mix(in srgb, var(--ST-UI-Background), transparent 70%);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
@@ -854,7 +900,7 @@ body,
   overflow: hidden;
   border: 1px solid var(--ST-UI-Border);
   padding: 12px;
-  border-radius: 8px;
+  border-radius: 0.5rem !important;
   background: color-mix(in srgb, var(--ST-UI-Background), transparent 85%);
 }
 
@@ -888,7 +934,7 @@ body,
 .ptmt-reset-button {
   margin: 5px !important;
   padding: 5px 15px !important;
-  border-radius: 4px !important;
+  border-radius: 0.5rem !important;
   color: var(--ST-Main-Text);
   transition: all 0.2s ease-in-out;
 }
@@ -906,9 +952,9 @@ body,
 .ptmt-editor-split,
 .ptmt-editor-pane {
   border: 1px dashed var(--ST-Quote-Text);
-  padding: 8px;
+  padding: 4px;
   margin-top: 4px !important;
-  border-radius: 4px;
+  border-radius: 0.5rem !important;
 }
 
 .ptmt-editor-pane.ptmt-pending-pane {
@@ -930,10 +976,10 @@ body,
 
 .ptmt-editor-title select,
 .ptmt-editor-title button {
-  background: var(--ST-Quote-Text);
-  border: 1px solid var(--ST-UI-Border);
-  color: var(--ST-Main-Text);
-  border-radius: 4px;
+  background: var(--ST-Quote-Text) !important;
+  border: 1px solid var(--ST-UI-Border) !important;
+  color: var(--ST-Main-Text) !important;
+  border-radius: 0.5rem !important;
   padding: 2px 5px;
   font-size: 12px;
 }
@@ -945,7 +991,7 @@ body,
 }
 
 .ptmt-editor-children {
-  padding-left: 15px;
+  padding-left: 10px;
 }
 
 .ptmt-editor-tabs-container .drop-indicator {
@@ -960,7 +1006,7 @@ body,
   gap: 5px;
   margin-bottom: 4px;
   background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  border-radius: 0.5rem !important;
   min-height: 20px;
   user-select: none;
   -webkit-user-select: none;
@@ -978,9 +1024,10 @@ body,
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 3px;
+  border-radius: 0.5rem !important;
   background: rgba(255, 255, 255, 0.05);
   margin-right: 4px;
+  margin-left: 4px;
   height: 100%;
   touch-action: none;
   user-select: none;
@@ -1001,13 +1048,13 @@ body,
   border: 1px solid var(--ST-UI-Border);
   color: var(--ST-Main-Text);
   padding: 2px 4px;
-  border-radius: 0.5rem;
-  min-width: 36px;
+  border-radius: 0.5rem !important;
+  min-width: 38px;
   flex: 1;
 }
 
 .ptmt-editor-tab input[data-prop="icon"] {
-  flex: 0 0 36px;
+  flex: 0 0 38px;
 }
 
 .ptmt-editor-id {
@@ -1018,6 +1065,7 @@ body,
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 160px;
+  margin-right: 4px;
 }
 
 /* Context Status Bar */
@@ -1125,14 +1173,13 @@ body.ptmt-is-resizing #rm_print_characters_block {
   background: linear-gradient(135deg,
       color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 80%),
       color-mix(in srgb, var(--ptmt-adaptive-bw), transparent 95%));
-  backdrop-filter: blur(4px);
   border: 2px solid var(--ptmt-adaptive-quote);
   box-shadow: 0 0 20px -5px var(--ptmt-adaptive-quote),
     inset 0 0 15px -5px var(--ptmt-adaptive-bw);
   pointer-events: none;
   z-index: 9999;
   display: none;
-  border-radius: 4px;
+  border-radius: 0.5rem !important;
   box-sizing: border-box;
   opacity: 0.9;
 }
@@ -1188,7 +1235,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 @media screen and (max-width: 800px) {
   .ptmt-tab {
-    padding: 10px 15px;
+    padding: 6px;
   }
 
   .ptmt-tab-icon {
@@ -1197,15 +1244,15 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .ptmt-icon-picker-btn {
-  width: 36px;
-  height: 36px;
+  width: 38px;
+  height: 38px;
   padding: 0;
   display: inline-flex !important;
   align-items: center;
   justify-content: center;
   background: var(--ST-UI-Background) !important;
   border: 1px solid var(--ST-UI-Border) !important;
-  border-radius: 4px;
+  border-radius: 0.5rem !important;
   cursor: pointer !important;
   font-size: 1.1em;
   color: var(--ST-Main-Text) !important;
@@ -1214,7 +1261,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .ptmt-icon-picker-btn:hover {
   background: color-mix(in srgb, var(--ST-UI-Background), var(--ST-Main-Text) 15%) !important;
-  border-radius: 4px;
+  border-radius: 0.5rem !important;
   color: var(--ST-Main-Text);
   box-sizing: border-box;
 }

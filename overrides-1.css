@@ -1,26 +1,4 @@
-/* ========================================= */
-/* 1. GLOBAL VARIABLES & THEME               */
-/* ========================================= */
-:root {
-    /* Create a theme-aware danger color by mixing the theme body color with red */
-    --ptmt-danger-color: color-mix(in srgb, var(--ptmt-adaptive-text), var(--ptmt-adaptive-quote) 70%);
-
-    --button-outline-danger-background: color-mix(in srgb, var(--ptmt-danger-color) 15%, transparent);
-    --button-outline-danger-background-hover: color-mix(in srgb, var(--ptmt-danger-color) 25%, transparent);
-    --button-outline-danger-background-active: color-mix(in srgb, var(--ptmt-danger-color) 35%, transparent);
-
-    /* Isolated Global Adaptive Text Variables (Calculated against UI Background + JS-sampled Image Luminance) */
-    /* Pure adaptive black/white (intermediate — used to shift base colors toward readable) */
-    --ptmt-adaptive-bw: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ptmt-bg-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1);
-
-    /* Base ST color + adaptive B/W blend — preserves hue, shifts lightness for contrast */
-    --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 30%);
-    --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 30%);
-    --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 20%);
-    --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 30%);
-    --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 30%);
-    --ST-Code-Text: oklch(from var(--ST-Code-Background) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
-}
+ 
 
 
 /* Comprehensive Adaptive Contrast Overrides (Targeting specific ST default.css hardcoded colors) */
@@ -145,13 +123,13 @@ body.big-avatars .mes_block .ch_name {
 .mes {
     /*
      * Three-layer blending:
-     *   Layer 1: Wallpaper  (--ptmt-bg-luminance — JS-sampled, 0–100)
+     *   Layer 1: Wallpaper  (--ST-UI-Background-luminance — JS-sampled, 0–100)
      *   Layer 2: Chat Tint  (--ST-Chat-Background — has its own l and alpha)
      *   Layer 3: Msg Tint   (--ST-Bot-Message-Background — has its own l and alpha)
      *
      * Step 1: Blend the chat tint over the wallpaper to get an intermediate luminance.
      *         intermediate_L = chatL * chatAlpha + wallpaperL * (1 - chatAlpha)
-     *         We express wallpaperL as: var(--ptmt-bg-luminance, 45) / 100
+     *         We express wallpaperL as: var(--ST-UI-Background-luminance, 45) / 100
      *
      * Step 2: Use that intermediate as the "background" when blending the message tint.
      *         We store this in --ptmt-mes-bg-L as a pure number for the final oklch clamp.
@@ -161,7 +139,7 @@ body.big-avatars .mes_block .ch_name {
      */
 
     /* Intermediate: chat tint blended over wallpaper (used by oklch as the pre-message luminance) */
-    --ptmt-chat-bg-composite: color-mix(in srgb, var(--ST-Chat-Background), oklch(calc(var(--ptmt-bg-luminance, 45) / 100) 0 0));
+    --ptmt-chat-bg-composite: color-mix(in srgb, var(--ST-Chat-Background), oklch(calc(var(--ST-UI-Background-luminance, 45) / 100) 0 0));
 
     /* Final composite: message tint blended over the chat+wallpaper composite */
     --mes-bg-composite: color-mix(in srgb, var(--ST-Bot-Message-Background), var(--ptmt-chat-bg-composite));
@@ -170,12 +148,12 @@ body.big-avatars .mes_block .ch_name {
     /* Pure adaptive B/W intermediate for this message scope */
     --ptmt-mes-bw: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
 
-    --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 30%);
+    --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 70%);
     /* Base ST color + message-local adaptive B/W — preserves hue, shifts lightness */
-    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 40%);
-    --ptmt-mes-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-mes-bw) 30%);
-    --ptmt-mes-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-mes-bw) 20%);
-    --ptmt-mes-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-mes-bw) 30%);
+    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 70%);
+    --ptmt-mes-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-mes-bw) 70%);
+    --ptmt-mes-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-mes-bw) 60%);
+    --ptmt-mes-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-mes-bw) 70%);
     --ptmt-mes-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-mes-bw) 30%);
 
     /* Code block adaptive variables */
@@ -196,7 +174,7 @@ body.big-avatars .mes_block .ch_name {
 }
 
 #chat {
-    --ptmt-chat-bg-composite: color-mix(in srgb, var(--ST-Chat-Background), oklch(calc(var(--ptmt-bg-luminance, 45) / 100) 0 0));
+    --ptmt-chat-bg-composite: color-mix(in srgb, var(--ST-Chat-Background), oklch(calc(var(--ST-UI-Background-luminance, 45) / 100) 0 0));
     --mes-bg-composite: color-mix(in srgb, var(--ST-Bot-Message-Background), var(--ptmt-chat-bg-composite));
     --ptmt-mes-bw: oklch(from var(--mes-bg-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
     --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 30%);
@@ -403,6 +381,8 @@ body.big-avatars .mes .mesAvatarWrapper .avatar img {
     width: 28px;
     font-size: calc(var(--mainFontSize) * 1.2);
     filter: drop-shadow(0px 0px 2px var(--ST-Text-Shadow));
+    color: var(--ST-Main-Text) !important;
+    text-shadow: none !important;
 }
 
 .mes_button:hover {
@@ -585,11 +565,6 @@ body.charListGrid {
     background-color: var(--crimson70a) !important;
 }
 
-select,
-span {
-    text-shadow: none !important;
-}
-
 input,
 select,
 textarea {
@@ -597,6 +572,11 @@ textarea {
     padding: 6px 8px !important;
     border-radius: 0.5rem !important;
 }
+
+#extensionTopBar input{
+    border: none !important;
+}
+
 
 input:disabled,
 select:disabled,
@@ -641,7 +621,6 @@ textarea:disabled {
     border-color: color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 50%) !important;
 }
 
-.menu_button:active {}
 
 .menu_button>small {
     color: color-mix(in srgb, var(--ptmt-adaptive-text) 50%, white 30%);
@@ -668,7 +647,6 @@ input[type="checkbox"] {
     border-radius: 72px;
     border-style: none;
     flex-shrink: 0;
-    height: 16px;
     margin: 0;
     position: relative;
     width: 26px;

@@ -68,7 +68,13 @@ export class ThemeEngine {
             this.analyzeImage(bgUrl);
         } else {
             this.lastUrl = null;
-            this.analyzeColor(bgColor);
+            // Check if background is transparent
+            if (bgColor === 'rgba(0,0,0,0)' || bgColor === 'rgba(0, 0, 0, 0)') {
+                console.log('[PTMT] Background is transparent, using neutral luminance');
+                this.applyLuminance(0.5); // Neutral fallback for transparent
+            } else {
+                this.analyzeColor(bgColor);
+            }
         }
     }
 
@@ -120,7 +126,7 @@ export class ThemeEngine {
     applyLuminance(lum) {
         // Set as percentage for CSS (0 to 100)
         const lPercent = Math.round(lum * 100);
-        document.documentElement.style.setProperty('--ptmt-bg-luminance', lPercent);
+        document.documentElement.style.setProperty('--ST-UI-Background-luminance', lPercent);
         console.log(`[PTMT] Background Luminance: ${lPercent}%`);
     }
 }
