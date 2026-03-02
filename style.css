@@ -491,7 +491,7 @@ select option {
   filter: brightness(1.1);
 }
 
-y .ptmt-tab.active {
+.ptmt-tab.active {
   cursor: default;
   background: var(--ptmt-tab-bg-color);
   border-bottom-color: transparent;
