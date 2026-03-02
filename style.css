@@ -34,6 +34,10 @@
   --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 70%);
 
+  /* Reverse Adaptive Variables */
+  --ptmt-adaptive-bw-reverse: oklch(from var(--ptmt-adaptive-bw) calc(1 - l) 0 0 / 1);
+  --ptmt-adaptive-shadow-reverse: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw-reverse) 70%);
+
 
   /* Create a theme-aware danger color by mixing the theme body color with red */
   --ptmt-danger-color: color-mix(in srgb, var(--ptmt-adaptive-text), var(--ptmt-adaptive-quote) 70%);
@@ -493,7 +497,7 @@ select option {
 
 .ptmt-tab.active {
   cursor: default;
-  background: var(--ptmt-tab-bg-color);
+  background: var(--ptmt-tab-bg-color) !important;
   border-bottom-color: transparent;
 }
 
@@ -568,7 +572,7 @@ select option {
   padding-bottom: 60px;
 }
 
-/* Active indicator */
+/* Active indicator & Lamp Shadow */
 .ptmt-tab.active::after {
   content: "";
   position: absolute;
@@ -592,8 +596,17 @@ select option {
 }
 
 .ptmt-tab.active:hover::after {
-  background: var(--ST-Main-Text);
+  background: var(--ST-Quote-Text);
   box-shadow: 0 0 12px 2px var(--ST-Main-Text);
+}
+
+/* Lamp Text Shadow - Directional based on indicator position */
+/* Horizontal Default (Bottom Indicator -> Casts Up) */
+.ptmt-tab:hover,
+.ptmt-tab:hover *,
+.ptmt-tab.active,
+.ptmt-tab.active * {
+  text-shadow: 0px -2px 4px var(--ptmt-adaptive-shadow-reverse) !important;
 }
 
 /* Horizontal - Bottom (Flow Reversed) Indicator Fix */
@@ -605,6 +618,19 @@ select option {
 .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab::after {
   bottom: auto;
   top: 0;
+}
+
+.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active:hover::after {
+  background: var(--ST-Quote-Text) !important;
+  box-shadow: 0 0 12px 2px var(--ST-Main-Text) !important;
+}
+
+/* Horizontal Reversed (Top Indicator -> Casts Down) */
+.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab:hover,
+.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab:hover *,
+.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active,
+.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active * {
+  text-shadow: 0px 2px 4px var(--ptmt-adaptive-shadow-reverse) !important;
 }
 
 .ptmt-tab.dragging {
@@ -658,7 +684,7 @@ select option {
 
 .ptmt-tabStrip.vertical .ptmt-tab.active {
   cursor: default;
-  background: var(--ptmt-tab-bg-color);
+  background: var(--ptmt-tab-bg-color) !important;
   border-right-color: transparent;
 }
 
@@ -686,6 +712,19 @@ select option {
   box-shadow: 0 0 12px 2px var(--ptmt-adaptive-quote);
 }
 
+.ptmt-tabStrip.vertical .ptmt-tab.active:hover::after {
+  background: var(--ST-Quote-Text) !important;
+  box-shadow: 0 0 12px 2px var(--ST-Main-Text) !important;
+}
+
+/* Vertical Default (Right Indicator -> Casts Left) */
+.ptmt-tabStrip.vertical .ptmt-tab:hover,
+.ptmt-tabStrip.vertical .ptmt-tab:hover *,
+.ptmt-tabStrip.vertical .ptmt-tab.active,
+.ptmt-tabStrip.vertical .ptmt-tab.active * {
+  text-shadow: -2px 0px 4px var(--ptmt-adaptive-shadow-reverse) !important;
+}
+
 /* Vertical - Right (Flow Reversed) */
 .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab::after {
   right: auto;
@@ -698,8 +737,10 @@ select option {
 }
 
 .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab:hover,
-.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active {
-  text-shadow: -1px 0px calc(var(--shadowWidth) * 1px) var(--ptmt-panel-bg) !important;
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab:hover *,
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active,
+.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active * {
+  text-shadow: 2px 0px 4px var(--ptmt-adaptive-shadow-reverse) !important;
 }
 
 /* Vertical Tab Label (for writing mode) */
