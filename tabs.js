@@ -6,6 +6,7 @@ import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
 import { invalidatePaneTabSizeCache } from './resizer.js';
 import { runTabAction } from './tab-actions.js';
 import { settings } from './settings.js';
+import { showContextMenu } from './context-menu.js';
 
 /** @typedef {import('./types.js').PTMTAPI} PTMTAPI */
 /** @typedef {import('./types.js').TabData} TabData */
@@ -62,6 +63,12 @@ export function setTabCollapsed(pid, collapsed, skipEvent = false) {
 
 export function createTabElement(title, pid, icon = null, options = {}) {
   const t = el('div', { className: 'ptmt-tab', draggable: true, tabindex: 0 });
+  const bg = el('div', { className: 'ptmt-tab-bg' });
+  t.appendChild(bg);
+
+  if (options.color) {
+    bg.style.backgroundColor = options.color;
+  }
   if (options.collapsed) {
     t.classList.add('collapsed');
   }
@@ -129,6 +136,24 @@ export function createTabElement(title, pid, icon = null, options = {}) {
     t.classList.remove('dragging');
     hideDropIndicator();
     hideSplitOverlay();
+  });
+
+  t.addEventListener('contextmenu', (e) => {
+    const panel = getPanelById(pid);
+    const sourceId = panel?.dataset.sourceId;
+    if (!sourceId) return;
+
+    showContextMenu(e, [
+      {
+        label: 'Edit Tab',
+        icon: '⚙',
+        onClick: () => {
+          window.dispatchEvent(new CustomEvent('ptmt:openTabSettings', {
+            detail: { sourceId, tabElement: t, tabRow: null }
+          }));
+        }
+      }
+    ]);
   });
 
   return t;
@@ -314,9 +339,15 @@ export function createTabFromContent(content, options = {}, target = null) {
     const existingTab = targetPane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);
     const tabIcon = icon || mapping.icon || null;
     if (!existingTab) {
-      const tab = createTabElement(panelTitle, pid, tabIcon, { collapsed: options.collapsed });
+      const tabColor = options.color || mapping.color || null;
+      const tab = createTabElement(panelTitle, pid, tabIcon, { collapsed: options.collapsed, color: tabColor });
       targetPane._tabStrip.appendChild(tab);
     } else {
+      // Apply color if it changed
+      const tabBg = existingTab.querySelector('.ptmt-tab-bg');
+      if (tabBg) {
+        tabBg.style.backgroundColor = options.color || mapping.color || '';
+      }
       // Tab exists but might not have icon - update it
       let iconEl = existingTab.querySelector('.ptmt-tab-icon');
       if (tabIcon) {

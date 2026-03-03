@@ -575,13 +575,17 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             }, centerPane);
 
             if (settingsPanel) {
+                if (api.manager) api.manager.cleanup();
                 const layoutManager = new LayoutManager(api, settings);
+                api.manager = layoutManager;
                 const settingsUI = layoutManager.createSettingsPanel();
                 settingsPanel.querySelector('.ptmt-panel-content').appendChild(settingsUI);
             }
         } else if (settingsTab) {
             // Re-initialize manager on existing panel
+            if (api.manager) api.manager.cleanup();
             const layoutManager = new LayoutManager(api, settings);
+            api.manager = layoutManager;
             const settingsUI = layoutManager.createSettingsPanel();
             const content = settingsTab.querySelector('.ptmt-panel-content');
             if (content) {

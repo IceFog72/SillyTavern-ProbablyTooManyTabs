@@ -630,9 +630,13 @@ export function openViewSettingsDialog(pane) {
     return sel;
   };
 
-  const dialog = el('div', { id: 'ptmt-view-settings-dialog' },
+  const dialog = el('div', { id: 'ptmt-view-settings-dialog', className: 'ptmt-view-settings-dialog' },
     el('div', null,
       el('h3', null, 'Pane Settings'),
+      el('div', { className: 'ptmt-vs-row', style: { opacity: '0.6', fontSize: '0.9em', marginBottom: '10px' } },
+        el('label', null, 'Internal ID: '),
+        el('span', { className: 'ptmt-vs-id-value', style: { fontFamily: 'monospace' } }, pane.dataset.panelId || pane.id)
+      ),
       el('div', { className: 'ptmt-vs-row' },
         el('label', { for: 'ptmt-vs-minimal-panel' }, 'Min. Panel Size (px): '),
         el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'ptmt-vs-minimal-panel', className: 'text_edit' })

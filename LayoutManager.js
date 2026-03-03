@@ -17,6 +17,12 @@ export class LayoutManager {
         }, 400);
         this._layoutChangeHandler = null;
         this.indicator = el('div', { className: 'drop-indicator' });
+
+        this._openSettingsHandler = (e) => {
+            const { sourceId, tabElement, tabRow } = e.detail;
+            this.openTabSettingsDialog(sourceId, tabElement, tabRow, false);
+        };
+        window.addEventListener('ptmt:openTabSettings', this._openSettingsHandler);
     }
 
     async pickIcon(btn, sourceId, tabElement) {
@@ -64,6 +70,12 @@ export class LayoutManager {
             } else if (iconEl) {
                 iconEl.remove();
             }
+        }
+
+        // Also update any icon picker buttons in the editor UI for this sourceId
+        if (this.rootElement) {
+            const editorBtns = this.rootElement.querySelectorAll(`.ptmt-editor-tab[data-source-id="${sourceId}"] .ptmt-icon-picker-btn`);
+            editorBtns.forEach(btn => this.updateIconBtn(btn, iconName));
         }
     }
 
@@ -295,9 +307,10 @@ export class LayoutManager {
         const isActive = typeof entry === 'object' ? entry.active : false;
         const isCollapsed = typeof entry === 'object' ? entry.collapsed : false;
 
-        const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
+        const mapping = (settings.get('panelMappings') || []).find(m => m.id === sourceId) || {};
         const title = mapping.title || sourceId;
         const icon = mapping.icon || 'fa-ban';
+        const color = mapping.color || null;
 
         const container = el('div', {
             className: 'ptmt-editor-tab',
@@ -309,11 +322,20 @@ export class LayoutManager {
         });
 
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to restore' }, '☰');
+        const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: color } : {} });
         const iconSpan = createIconElement(icon);
         const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
-        const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15));
+        const settingsBtn = el('button', {
+            className: 'ptmt-tab-config-btn',
+            title: 'Tab Settings (rename, color, etc.)',
+        }, '⚙');
 
-        container.append(handle, ...(iconSpan ? [iconSpan] : []), titleSpan, idLabel);
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openTabSettingsDialog(sourceId, null, container, true);
+        });
+
+        container.append(bg, handle, ...(iconSpan ? [iconSpan] : []), titleSpan, settingsBtn);
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e));
 
@@ -425,7 +447,6 @@ export class LayoutManager {
 
         const titleDiv = el('div', { className: 'ptmt-editor-title' });
         const titleSpan = el('span', {}, 'Pane');
-        const idSpan = el('span', { className: 'ptmt-editor-id', style: { marginLeft: '8px', opacity: '0.6', fontSize: '0.85em' }, title: element.dataset.paneId }, `[${element.dataset.paneId}]`);
         const settingsBtn = el('button', {
             className: 'ptmt-pane-config-btn',
             title: 'Configure this pane (size, flow, etc.)',
@@ -436,7 +457,7 @@ export class LayoutManager {
             this.appApi.openViewSettingsDialog(element);
         });
 
-        titleDiv.append(titleSpan, idSpan, settingsBtn);
+        titleDiv.append(titleSpan, settingsBtn);
         container.appendChild(titleDiv);
 
 
@@ -461,8 +482,9 @@ export class LayoutManager {
     renderTab(tabElement, paneElement) {
         const pid = tabElement.dataset.for;
         const panel = this.appApi.getPanelById(pid);
-        const sourceId = panel.dataset.sourceId;
-        const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
+        const sourceId = panel?.dataset?.sourceId || pid;
+        const mapping = (settings.get('panelMappings') || []).find(m => m.id === sourceId) || {};
+        const color = mapping.color || null;
 
         const container = el('div', {
             className: 'ptmt-editor-tab',
@@ -473,6 +495,7 @@ export class LayoutManager {
             'data-is-collapsed': tabElement.classList.contains('collapsed').toString()
         });
 
+        const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: color } : {} });
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder' }, '☰');
 
         const iconBtn = el('button', {
@@ -492,23 +515,19 @@ export class LayoutManager {
             this.pickIcon(iconBtn, sourceId, tabElement);
         });
 
-        const titleInput = el('input', { type: 'text', value: tabElement.querySelector('.ptmt-tab-label').textContent, placeholder: 'Title', 'data-prop': 'title' });
-        const idLabel = el('span', { className: 'ptmt-editor-id', title: sourceId }, sourceId?.substring(0, 15) || 'N/A');
+        const titleSpan = el('span', { className: 'ptmt-tab-label' }, tabElement.querySelector('.ptmt-tab-label').textContent);
+        const settingsBtn = el('button', {
+            className: 'ptmt-tab-config-btn',
+            title: 'Tab Settings (rename, color, etc.)',
+        }, '⚙');
 
-
-        container.append(handle, iconBtn, titleInput, idLabel);
-
-
-        titleInput.addEventListener('input', () => {
-            const newVal = titleInput.value.trim();
-            const mappings = settings.get('panelMappings').slice();
-            const mapping = mappings.find(m => m.id === sourceId);
-            if (mapping) {
-                mapping.title = newVal;
-                this.debouncedSettingsUpdate(mappings);
-            }
-            tabElement.querySelector('.ptmt-tab-label').textContent = newVal || sourceId;
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openTabSettingsDialog(sourceId, tabElement, container, false);
         });
+
+
+        container.append(bg, handle, iconBtn, titleSpan, settingsBtn);
 
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e, pid));
@@ -548,8 +567,7 @@ export class LayoutManager {
 
         const titleDiv = el('div', { className: 'ptmt-editor-title' });
         const titleSpan = el('span', {}, 'Pane');
-        const idSpan = el('span', { className: 'ptmt-editor-id', style: { marginLeft: '8px', opacity: '0.6', fontSize: '0.85em' }, title: paneId }, `[${paneId}]`);
-        titleDiv.append(titleSpan, idSpan);
+        titleDiv.append(titleSpan);
         container.appendChild(titleDiv);
 
         const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container' });
@@ -594,9 +612,10 @@ export class LayoutManager {
 
     renderPendingTab(tabInfo) {
         const sourceId = tabInfo.searchId || tabInfo.sourceId || tabInfo.searchClass;
-        const mapping = settings.get('panelMappings').find(m => m.id === sourceId) || {};
+        const mapping = (settings.get('panelMappings') || []).find(m => m.id === sourceId) || {};
         const title = mapping.title || sourceId || tabInfo.searchClass;
         const icon = mapping.icon || 'fa-ghost';
+        const color = mapping.color || null;
 
         const identifier = tabInfo.searchId ? `ID: ${tabInfo.searchId}` : `Class: ${tabInfo.searchClass}`;
 
@@ -614,11 +633,20 @@ export class LayoutManager {
 
 
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder or move' }, '☰');
+        const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: color } : {} });
         const iconSpan = createIconElement(icon);
         const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
-        const idLabel = el('span', { className: 'ptmt-editor-id', title: identifier }, identifier);
+        const settingsBtn = el('button', {
+            className: 'ptmt-tab-config-btn',
+            title: 'Tab Settings (rename, color, etc.)',
+        }, '⚙');
 
-        container.append(handle, ...(iconSpan ? [iconSpan] : []), titleSpan, idLabel);
+        settingsBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openTabSettingsDialog(identifier, null, container, true);
+        });
+
+        container.append(bg, handle, ...(iconSpan ? [iconSpan] : []), titleSpan, settingsBtn);
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e));
         container.addEventListener('drop', (e) => this.handleDrop(e));
@@ -1218,11 +1246,136 @@ export class LayoutManager {
         return container;
     }
 
+    openTabSettingsDialog(sourceId, tabElement, tabRow, isPendingOrHidden = false) {
+        if (!sourceId) return;
+
+        // Remove ANY existing PTMT dialog to prevent overlap
+        const existing = document.getElementById('ptmt-view-settings-dialog') || document.getElementById('ptmt-tab-settings-dialog');
+        if (existing) existing.remove();
+
+        const mappings = settings.get('panelMappings');
+        const mapping = mappings.find(m => m.id === sourceId) || { id: sourceId, title: sourceId };
+        const currentTitle = mapping.title || sourceId;
+        const currentColor = mapping.color || '#00000000'; // Transparent default handling depends on ST CSS usually
+
+        const dialog = el('div', { id: 'ptmt-view-settings-dialog', className: 'ptmt-view-settings-dialog' },
+            el('div', null,
+                el('h3', null, 'Tab Settings'),
+                el('div', { className: 'ptmt-vs-row', style: { opacity: '0.6', fontSize: '0.9em', marginBottom: '10px' } },
+                    el('label', null, 'Internal ID: '),
+                    el('span', { className: 'ptmt-vs-id-value', style: { fontFamily: 'monospace' } }, sourceId)
+                ),
+                el('div', { className: 'ptmt-vs-row' },
+                    el('label', { for: 'ptmt-ts-title' }, 'Tab Title: '),
+                    el('input', { type: 'text', value: currentTitle, id: 'ptmt-ts-title', className: 'text_edit', placeholder: 'Enter tab name...' })
+                ),
+                el('div', { className: 'ptmt-vs-row' },
+                    el('label', { for: 'ptmt-ts-icon' }, 'Tab Icon: '),
+                    el('button', { className: 'ptmt-icon-picker-btn', id: 'ptmt-ts-icon-btn', type: 'button', title: 'Choose icon' })
+                ),
+                el('div', { className: 'ptmt-vs-row' },
+                    el('label', { for: 'ptmt-ts-color' }, 'Tab Color (Tint): '),
+                    el('input', { type: 'color', value: (currentColor && currentColor.length === 7) ? currentColor : '#000000', id: 'ptmt-ts-color', className: 'text_edit' }),
+                    el('button', { className: 'ptmt-vs-button', style: { marginLeft: '5px' }, id: 'ptmt-ts-color-reset' }, 'Reset')
+                ),
+                el('div', { className: 'ptmt-vs-footer' },
+                    el('button', { id: 'ptmt-ts-save', className: 'ptmt-vs-button primary' }, 'Save'),
+                    el('button', { id: 'ptmt-ts-cancel', className: 'ptmt-vs-button' }, 'Cancel')
+                )
+            )
+        );
+
+        document.body.appendChild(dialog);
+        const input = dialog.querySelector('#ptmt-ts-title');
+        if (input) {
+            input.focus();
+            input.select();
+        }
+
+        const iconBtn = dialog.querySelector('#ptmt-ts-icon-btn');
+        const currentIcon = mapping.icon || '';
+        this.updateIconBtn(iconBtn, currentIcon);
+
+        iconBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.pickIcon(iconBtn, sourceId, tabElement);
+        });
+
+        const colorInput = dialog.querySelector('#ptmt-ts-color');
+        let colorReset = !mapping.color;
+        dialog.querySelector('#ptmt-ts-color-reset').addEventListener('click', () => {
+            colorInput.value = '#000000';
+            colorReset = true;
+        });
+        colorInput.addEventListener('input', () => { colorReset = false; });
+
+        const saveBtn = dialog.querySelector('#ptmt-ts-save');
+        const cancelBtn = dialog.querySelector('#ptmt-ts-cancel');
+
+        if (cancelBtn) cancelBtn.addEventListener('click', () => dialog.remove());
+        if (saveBtn) saveBtn.addEventListener('click', () => {
+            const newTitle = input.value.trim();
+            const newColor = colorReset ? null : colorInput.value;
+
+            if (newTitle !== currentTitle || newColor !== mapping.color) {
+                const updatedMappings = settings.get('panelMappings').slice();
+                let m = updatedMappings.find(item => item.id === sourceId);
+                if (!m) {
+                    m = { id: sourceId, title: newTitle, color: newColor };
+                    updatedMappings.push(m);
+                } else {
+                    m.title = newTitle;
+                    m.color = newColor;
+                }
+                this.debouncedSettingsUpdate(updatedMappings);
+
+                // Update UI immediately for ALL matching elements
+                const liveTabs = document.querySelectorAll(`.ptmt-tab[data-for]`);
+                liveTabs.forEach(liveTab => {
+                    const pid = liveTab.dataset.for;
+                    const panel = this.appApi.getPanelById(pid);
+                    if (panel?.dataset.sourceId === sourceId) {
+                        const lbl = liveTab.querySelector('.ptmt-tab-label');
+                        if (lbl) lbl.textContent = newTitle || sourceId;
+                        const bg = liveTab.querySelector('.ptmt-tab-bg');
+                        if (bg) bg.style.backgroundColor = newColor;
+
+                        const iconEl = liveTab.querySelector('.ptmt-tab-icon');
+                        // Refresh icon as well if needed? For now we only have name/color in this dialog 
+                        // but icon button updates mapping live.
+                    }
+                });
+
+                // Update any editor rows as well
+                const editorRows = document.querySelectorAll(`.ptmt-editor-tab[data-source-id="${sourceId}"]`);
+                editorRows.forEach(row => {
+                    const lbl = row.querySelector('.ptmt-tab-label');
+                    if (lbl) lbl.textContent = newTitle || sourceId;
+                    const bg = row.querySelector('.ptmt-tab-bg');
+                    if (bg) bg.style.backgroundColor = newColor;
+                });
+            }
+            dialog.remove();
+        });
+
+        // Close on Escape or Save on Enter
+        if (input) {
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Escape') dialog.remove();
+                if (e.key === 'Enter') saveBtn?.click();
+            });
+        }
+    }
+
     cleanup() {
         // Remove event listener to prevent memory leaks
         if (this._layoutChangeHandler) {
             window.removeEventListener('ptmt:layoutChanged', this._layoutChangeHandler);
             this._layoutChangeHandler = null;
+        }
+        if (this._openSettingsHandler) {
+            window.removeEventListener('ptmt:openTabSettings', this._openSettingsHandler);
+            this._openSettingsHandler = null;
         }
         // Clean up touch drag ghost if it exists
         if (this.touchDragGhost) {

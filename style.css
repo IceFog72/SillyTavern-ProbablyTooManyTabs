@@ -488,6 +488,16 @@ select option {
   line-height: 1;
   text-overflow: ellipsis;
   color: var(--ptmt-tab-default-color);
+  z-index: 1;
+  overflow: hidden;
+}
+
+.ptmt-tab-bg {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.3;
+  transition: background-color 0.3s ease;
 }
 
 .ptmt-tab:hover:not(.active) {
@@ -511,6 +521,11 @@ select option {
   line-height: 1;
   max-width: 200px;
   text-overflow: ellipsis;
+}
+
+.ptmt-tab-label,
+.ptmt-tab-icon {
+  z-index: 10;
 }
 
 /* Hover State */
@@ -811,7 +826,7 @@ select option {
    ========================================================================== */
 
 /* Settings Dialog */
-#ptmt-view-settings-dialog {
+.ptmt-view-settings-dialog {
   color: var(--ST-Main-Text);
   z-index: 100000;
   min-width: 300px;
@@ -821,19 +836,19 @@ select option {
   transform: translate(-50%, -50%);
   background: var(--ST-UI-Background);
   padding: 20px;
-  border-radius: var(--ptmt-radius, 8px);
+  border-radius: 0.5rem;
   border: 1px solid var(--ST-UI-Border);
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   font-family: var(--SmartThemeFontFamily, sans-serif);
 }
 
-#ptmt-view-settings-dialog h3 {
+.ptmt-view-settings-dialog h3 {
   margin-top: 0;
   margin-bottom: 20px;
   color: var(--ptmt-adaptive-quote);
 }
 
-#ptmt-view-settings-dialog .ptmt-vs-row {
+.ptmt-view-settings-dialog .ptmt-vs-row {
   margin-bottom: 12px;
   display: flex;
   align-items: center;
@@ -841,34 +856,50 @@ select option {
   gap: 10px;
 }
 
-#ptmt-view-settings-dialog .ptmt-vs-footer {
+.ptmt-view-settings-dialog .ptmt-vs-footer {
   text-align: right;
   margin-top: 20px;
 }
 
 .ptmt-vs-button {
   margin-left: 10px;
-  padding: 5px 15px;
+  padding: 6px 18px;
   border-radius: 0.5rem !important;
   border: 1px solid var(--ST-UI-Border);
   background: var(--ST-Chat-Background);
   color: var(--ST-Main-Text);
   cursor: pointer;
-  transition: filter 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
+  letter-spacing: 0.02em;
 }
 
 .ptmt-vs-button:hover {
-  filter: brightness(1.2);
+  background: color-mix(in srgb, var(--ST-Chat-Background), var(--ST-Main-Text) 10%);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.ptmt-vs-button:active {
+  transform: translateY(0);
 }
 
 .ptmt-vs-button.primary {
-  background: var(--ptmt-adaptive-quote);
-  color: var(--ST-Main-Text);
-  border-color: transparent;
+  background: linear-gradient(135deg, var(--ptmt-adaptive-quote) 0%, color-mix(in srgb, var(--ptmt-adaptive-quote), black 20%) 100%);
+  color: #fff;
+  /* Force white for depth on primary */
+  border: none;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 60%);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
 }
 
-#ptmt-view-settings-dialog input.text_edit,
-#ptmt-view-settings-dialog select {
+.ptmt-vs-button.primary:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ptmt-adaptive-quote), white 10%) 0%, color-mix(in srgb, var(--ptmt-adaptive-quote), black 10%) 100%);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 40%);
+}
+
+.ptmt-view-settings-dialog input.text_edit,
+.ptmt-view-settings-dialog select {
   background: color-mix(in srgb, var(--ST-UI-Background), transparent 60%);
   border: 1px solid var(--ST-UI-Border);
   color: var(--ST-Main-Text);
@@ -878,17 +909,17 @@ select option {
   transition: all 0.2s ease;
 }
 
-#ptmt-view-settings-dialog input.text_edit:focus,
-#ptmt-view-settings-dialog select:focus {
+.ptmt-view-settings-dialog input.text_edit:focus,
+.ptmt-view-settings-dialog select:focus {
   border-color: var(--ST-Quote-Text);
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--ST-Quote-Text), transparent 80%);
 }
 
-#ptmt-view-settings-dialog input[type="number"] {
+.ptmt-view-settings-dialog input[type="number"] {
   width: 80px;
 }
 
-#ptmt-view-settings-dialog label {
+.ptmt-view-settings-dialog label {
   display: inline-block;
   min-width: 160px;
   font-size: 0.95em;
@@ -993,8 +1024,8 @@ select option {
 .ptmt-editor-split,
 .ptmt-editor-pane {
   border: 1px dashed var(--ST-Quote-Text);
-  padding: 4px;
-  margin-top: 4px !important;
+  padding: 2px;
+  margin-top: 2px !important;
   border-radius: 0.5rem !important;
 }
 
@@ -1006,9 +1037,13 @@ select option {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
   font-weight: bold;
   color: var(--ST-Italics-Text);
+  padding: 2px 6px;
+  font-size: 0.85em;
+  background: var(--ST-Secondary-Background);
+  border-bottom: 1px solid var(--ST-UI-Border);
 }
 
 .ptmt-editor-title>span {
@@ -1025,32 +1060,77 @@ select option {
   font-size: 12px;
 }
 
-.ptmt-editor-title button:hover {
-  background: var(--ST-Text-Shadow);
+.ptmt-editor-title button:hover,
+.ptmt-tab-config-btn:hover,
+.ptmt-pane-config-btn:hover {
+  background: color-mix(in srgb, var(--ST-Quote-Text), white 20%);
   border-color: var(--ST-Italics-Text);
+  transform: scale(1.1);
   cursor: pointer;
 }
 
+/* Glassmorphism Configuration Buttons */
+.ptmt-pane-config-btn,
+.ptmt-tab-config-btn {
+  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 40%) !important;
+  backdrop-filter: blur(4px);
+  border: 1px solid color-mix(in srgb, var(--ST-UI-Border), white 10%) !important;
+  color: var(--ST-Main-Text) !important;
+  border-radius: 0.5rem !important;
+  padding: 2px;
+  font-size: 14px;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  margin-right: 4px;
+  height: 24px;
+  width: 24px;
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .ptmt-editor-children {
-  padding-left: 10px;
+  padding-left: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.ptmt-editor-tabs-container {
+  padding: 4px;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: flex-start;
 }
 
 .ptmt-editor-tabs-container .drop-indicator {
-  height: 2px;
+  width: 2px;
+  height: 24px;
   background-color: var(--ptmt-adaptive-quote);
-  margin: 2px 0;
+  margin: 0 2px;
+  align-self: center;
 }
 
 .ptmt-editor-tab {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 5px;
-  margin-bottom: 4px;
-  background: rgba(255, 255, 255, 0.05);
+  gap: 4px;
+  background: color-mix(in srgb, var(--ST-UI-Background), white 5%);
+  border: 1px solid var(--ST-UI-Border);
   border-radius: 0.5rem !important;
-  min-height: 20px;
+  min-height: 26px;
+  max-width: fit-content;
   user-select: none;
-  -webkit-user-select: none;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.ptmt-editor-tab:hover {
+  background: color-mix(in srgb, var(--ST-UI-Background), white 10%);
+  border-color: var(--ST-Quote-Text);
 }
 
 .ptmt-editor-tab.dragging {
@@ -1060,8 +1140,8 @@ select option {
 .ptmt-drag-handle {
   cursor: grab;
   color: var(--ST-Italics-Text);
-  padding: 4px 8px;
-  font-size: 1.2em;
+  padding: 2px 6px;
+  font-size: 1.1em;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1083,6 +1163,17 @@ select option {
 .ptmt-drag-handle:active {
   cursor: grabbing;
 }
+
+.ptmt-editor-tab .ptmt-tab-label {
+  /* flex: 1 removed to avoid too much free space */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  padding: 2px 8px 2px 4px;
+  max-width: 150px;
+}
+
+/* Handled by unified glassmorphism style above */
 
 .ptmt-editor-tab input {
   background: var(--ST-UI-Background);
@@ -1181,13 +1272,6 @@ select option {
 .ptmt-panel-content::-webkit-scrollbar {
   height: 10px;
   width: 10px;
-}
-
-button:focus,
-input:focus,
-select:focus {
-  outline: 2px solid var(--ptmt-adaptive-quote);
-  outline-offset: 1px;
 }
 
 body.ptmt-is-resizing #rm_print_characters_block {
@@ -1310,6 +1394,62 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-custom-icon-input:focus {
   outline: none;
   border-color: var(--ST-Quote-Text);
+}
+
+/* Context Menu */
+.ptmt-context-menu {
+  position: absolute;
+  z-index: 10000;
+  background: var(--ST-UI-Background);
+  border: 1px solid var(--ST-UI-Border);
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+  padding: 5px 0;
+  min-width: 200px;
+  animation: ptmt-fade-in 0.15s ease-out;
+  backdrop-filter: blur(10px);
+}
+
+.ptmt-context-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  cursor: pointer;
+  color: var(--ST-Main-Text);
+  font-size: 0.95em;
+  transition: all 0.1s ease;
+  gap: 12px;
+}
+
+.ptmt-context-menu-item:hover {
+  background: color-mix(in srgb, var(--ST-Highlight-Background, var(--ST-Quote-Text)), transparent 80%);
+  padding-left: 20px;
+}
+
+.ptmt-context-menu-icon {
+  width: 18px;
+  text-align: center;
+  opacity: 0.9;
+  font-size: 1.1em;
+}
+
+.ptmt-context-menu-separator {
+  height: 1px;
+  background: var(--ST-UI-Border);
+  margin: 6px 0;
+  opacity: 0.3;
+}
+
+@keyframes ptmt-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
 }
 
 .popup[open]::backdrop {
