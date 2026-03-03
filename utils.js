@@ -1,4 +1,6 @@
 // utils.js
+import { SELECTORS, LAYOUT } from './constants.js';
+
 
 let _refs = null;
 
@@ -6,21 +8,21 @@ export const isElement = (v) => v && (v.nodeType === 1 || v === document);
 
 // Moved here to prevent circular dependency cycles between layout.js and pane.js
 export function getRefs() {
-  if (_refs) {
-    const ok = _refs.main && document.getElementById('ptmt-main') === _refs.main && _refs.centerBody && document.getElementById('ptmt-centerBody') === _refs.centerBody;
-    if (ok) return _refs;
-    _refs = null;
-  }
-  _refs = {
-    main: document.getElementById('ptmt-main'),
-    mainBody: document.getElementById('ptmt-mainBody'),
-    leftBody: document.getElementById('ptmt-leftBody'),
-    centerBody: document.getElementById('ptmt-centerBody'),
-    rightBody: document.getElementById('ptmt-rightBody'),
-    dropIndicator: document.getElementById('ptmt-drop-indicator'),
-    splitOverlay: document.getElementById('ptmt-split-overlay')
-  };
-  return _refs;
+    if (_refs) {
+        const ok = _refs.main && document.querySelector(SELECTORS.MAIN) === _refs.main && _refs.centerBody && document.querySelector(SELECTORS.CENTER_BODY) === _refs.centerBody;
+        if (ok) return _refs;
+        _refs = null;
+    }
+    _refs = {
+        main: document.querySelector(SELECTORS.MAIN),
+        mainBody: document.querySelector(SELECTORS.MAIN_BODY),
+        leftBody: document.querySelector(SELECTORS.LEFT_BODY),
+        centerBody: document.querySelector(SELECTORS.CENTER_BODY),
+        rightBody: document.querySelector(SELECTORS.RIGHT_BODY),
+        dropIndicator: document.querySelector(SELECTORS.DROP_INDICATOR),
+        splitOverlay: document.querySelector(SELECTORS.SPLIT_OVERLAY)
+    };
+    return _refs;
 }
 
 export const getPanelById = pid => document.querySelector(`[data-panel-id="${CSS.escape(pid)}"]`);
@@ -42,13 +44,13 @@ export function throttle(func, wait) {
     let context, args, result;
     let timeout = null;
     let previous = 0;
-    const later = function() {
+    const later = function () {
         previous = Date.now();
         timeout = null;
         result = func.apply(context, args);
         if (!timeout) context = args = null;
     };
-    return function() {
+    return function () {
         const now = Date.now();
         if (!previous) previous = now;
         const remaining = wait - (now - previous);
@@ -136,3 +138,41 @@ export function createIconElement(icon, className = 'ptmt-tab-icon') {
     }
     return iconEl;
 }
+
+export const defaultViewSettings = {
+    minimalPanelSize: 250,
+    defaultOrientation: 'auto',
+    collapsedOrientation: 'auto',
+    contentFlow: 'default',
+};
+
+export function readPaneViewSettings(pane) {
+    try {
+        if (!pane) return { ...defaultViewSettings };
+        if (pane._viewSettingsCache) return pane._viewSettingsCache;
+
+        const raw = pane.dataset.viewSettings;
+        if (!raw) {
+            pane._viewSettingsCache = { ...defaultViewSettings };
+            return pane._viewSettingsCache;
+        }
+
+        pane._viewSettingsCache = { ...defaultViewSettings, ...JSON.parse(raw) };
+        return pane._viewSettingsCache;
+    } catch {
+        return { ...defaultViewSettings };
+    }
+}
+
+export function writePaneViewSettings(pane, newPaneSettings) {
+    try {
+        const currentSettings = readPaneViewSettings(pane);
+        const updated = { ...defaultViewSettings, ...currentSettings, ...newPaneSettings };
+        pane.dataset.viewSettings = JSON.stringify(updated);
+        pane._viewSettingsCache = updated;
+    } catch (e) {
+        console.warn('[PTMT] Failed to write pane settings:', e);
+    }
+}
+
+

@@ -9,6 +9,8 @@ import { LayoutManager } from './LayoutManager.js';
 import { recalculateColumnSizes } from './layout.js';
 import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
+import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
+
 
 /** @typedef {import('./types.js').LayoutSnapshot} LayoutSnapshot */
 /** @typedef {import('./types.js').PaneNode} PaneNode */
@@ -34,9 +36,10 @@ export function generateLayoutSnapshot() {
     const buildNodeTree = (element, parentColumn = null) => {
         if (!element) return null;
 
-        if (element.classList.contains('ptmt-pane')) {
-            const tabElements = Array.from(element.querySelectorAll(':scope > .ptmt-pane-grid > .ptmt-tabStrip > .ptmt-tab'));
-            const panels = Array.from(element.querySelectorAll(':scope > .ptmt-pane-grid > .ptmt-panelContainer > .ptmt-panel'));
+        if (element.classList.contains(SELECTORS.PANE.substring(1))) {
+            const tabElements = Array.from(element.querySelectorAll(`:scope > .ptmt-pane-grid > ${SELECTORS.TAB_STRIP} > ${SELECTORS.TAB}`));
+            const panels = Array.from(element.querySelectorAll(`:scope > .ptmt-pane-grid > ${SELECTORS.PANEL_CONTAINER} > ${SELECTORS.PANEL}`));
+
 
             const tabsData = tabElements.map((tabEl, index) => {
                 const pid = tabEl.dataset.for;
@@ -47,9 +50,10 @@ export function generateLayoutSnapshot() {
                 return {
                     panelId: pid || null,
                     sourceId: sourceId,
-                    title: tabEl.querySelector('.ptmt-tab-label')?.textContent?.trim() || panel?.dataset?.title || null,
+                    title: tabEl.querySelector(SELECTORS.TAB_LABEL)?.textContent?.trim() || panel?.dataset?.title || null,
                     icon: (() => {
-                        const iconEl = tabEl.querySelector('.ptmt-tab-icon');
+                        const iconEl = tabEl.querySelector(SELECTORS.TAB_ICON);
+
                         if (!iconEl) return null;
                         if (iconEl.classList.contains('fa-solid') || Array.from(iconEl.classList).some(c => c.startsWith('fa-'))) {
                             const faStyles = new Set(['fa-solid', 'fa-regular', 'fa-light', 'fa-thin', 'fa-duotone', 'fa-brands', 'fa-sharp']);
@@ -59,6 +63,7 @@ export function generateLayoutSnapshot() {
                     })(),
                     collapsed: tabEl.classList.contains('collapsed'),
                     active: tabEl.classList.contains('active'),
+
                     order: index,
                     isDefault: panel?.dataset?.defaultPanel === 'true',
                     customContent: isCustom ? panel?.querySelector('.ptmt-panel-content')?.innerHTML : null,
@@ -66,7 +71,8 @@ export function generateLayoutSnapshot() {
                 };
             });
 
-            const isCollapsed = element.classList.contains('view-collapsed');
+            const isCollapsed = element.classList.contains(SELECTORS.VIEW_COLLAPSED.substring(1));
+
 
             return {
                 type: 'pane',
@@ -88,10 +94,11 @@ export function generateLayoutSnapshot() {
             };
         }
 
-        if (element.classList.contains('ptmt-split')) {
+        if (element.classList.contains(SELECTORS.SPLIT.substring(1))) {
             const structuralChildren = Array.from(element.children).filter(c =>
-                c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')
+                c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1))
             );
+
 
             const children = structuralChildren.map(child => buildNodeTree(child, parentColumn));
 
@@ -107,7 +114,8 @@ export function generateLayoutSnapshot() {
                 return (100 / structuralChildren.length);
             });
 
-            const isCollapsed = element.classList.contains('ptmt-container-collapsed');
+            const isCollapsed = element.classList.contains(SELECTORS.CONTAINER_COLLAPSED.substring(1));
+
 
             return {
                 type: 'split',
@@ -132,15 +140,17 @@ export function generateLayoutSnapshot() {
 
     const captureResizerStates = () => {
         const states = [];
-        document.querySelectorAll('.ptmt-resizer-vertical, .ptmt-resizer-horizontal').forEach(resizer => {
+        document.querySelectorAll(`${SELECTORS.RESIZER_V}, ${SELECTORS.RESIZER_H}`).forEach(resizer => {
             const prev = resizer.previousElementSibling;
+
             const next = resizer.nextElementSibling;
             if (prev && next) {
                 states.push({
-                    type: resizer.classList.contains('ptmt-resizer-vertical') ? 'vertical' : 'horizontal',
+                    type: resizer.classList.contains(SELECTORS.RESIZER_V.substring(1)) ? 'vertical' : 'horizontal',
                     prevFlex: prev.style.flex,
                     nextFlex: next.style.flex,
                     disabled: resizer.classList.contains('disabled')
+
                 });
             }
         });
@@ -176,19 +186,20 @@ export function generateLayoutSnapshot() {
         columns: {
             left: {
                 flex: refs.leftBody.style.flex || null,
-                content: buildNodeTree(refs.leftBody.querySelector('.ptmt-pane, .ptmt-split'), 'left'),
+                content: buildNodeTree(refs.leftBody.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`), 'left'),
                 ghostTabs: currentLayout.columns.left.ghostTabs || []
             },
             center: {
                 flex: refs.centerBody.style.flex || null,
-                content: buildNodeTree(refs.centerBody.querySelector('.ptmt-pane, .ptmt-split'), 'center'),
+                content: buildNodeTree(refs.centerBody.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`), 'center'),
                 ghostTabs: currentLayout.columns.center.ghostTabs || []
             },
             right: {
                 flex: refs.rightBody.style.flex || null,
-                content: buildNodeTree(refs.rightBody.querySelector('.ptmt-pane, .ptmt-split'), 'right'),
+                content: buildNodeTree(refs.rightBody.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`), 'right'),
                 ghostTabs: currentLayout.columns.right.ghostTabs || []
             }
+
         },
 
         resizerStates: captureResizerStates(),
@@ -198,8 +209,9 @@ export function generateLayoutSnapshot() {
             const locations = new Map();
             ['left', 'center', 'right'].forEach(col => {
                 const column = refs[`${col}Body`];
-                column.querySelectorAll('.ptmt-panel').forEach((panel, idx) => {
+                column.querySelectorAll(SELECTORS.PANEL).forEach((panel, idx) => {
                     if (panel.dataset.sourceId) {
+
                         locations.set(panel.dataset.sourceId, {
                             column: col,
                             paneIndex: idx
@@ -233,9 +245,10 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     let settingsWrapper = document.getElementById(settingsWrapperId);
     if (!settingsWrapper) {
         settingsWrapper = el('div', { id: settingsWrapperId });
-        const stagingArea = document.getElementById('ptmt-staging-area') || document.body;
+        const stagingArea = document.querySelector(SELECTORS.STAGING_AREA) || document.body;
         stagingArea.appendChild(settingsWrapper);
     }
+
 
     const refs = getRefs();
     if (!refs || !refs.mainBody) {
@@ -243,7 +256,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         return;
     }
 
-    const stagingArea = document.getElementById('ptmt-staging-area') || document.body;
+    const stagingArea = document.querySelector(SELECTORS.STAGING_AREA) || document.body;
     [refs.leftBody, refs.centerBody, refs.rightBody].forEach(col => {
         if (col) {
             const elementsToPreserve = Array.from(col.querySelectorAll('[data-preserve="true"]'));
@@ -259,6 +272,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             elementsToPreserve.forEach(el => col.appendChild(el));
         }
     });
+
 
     refs.leftBody.style.display = snapshot.showLeft ? 'flex' : 'none';
     refs.rightBody.style.display = snapshot.showRight ? 'flex' : 'none';
@@ -289,7 +303,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         }
     }
 
-    const resizers = Array.from(refs.mainBody.querySelectorAll('.ptmt-column-resizer'));
+    const resizers = Array.from(refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER));
+
     if (resizers[0]) resizers[0].style.display = snapshot.showLeft ? 'flex' : 'none';
     if (resizers[1]) resizers[1].style.display = snapshot.showRight ? 'flex' : 'none';
 
@@ -353,7 +368,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         }
 
         if (node.type === 'split') {
-            const split = el('div', { className: 'ptmt-split' });
+            const split = el('div', { className: SELECTORS.SPLIT.substring(1) });
+
 
             if (node.isCollapsed) {
                 if (node.actualWidth) split.dataset.lastWidth = node.actualWidth;
@@ -390,6 +406,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     split.appendChild(resizer);
                     attachResizer(resizer, node.orientation);
                 }
+
 
                 const childEl = rebuildNodeTree(childNode, split);
 
@@ -448,7 +465,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 }
 
                 if (pid) {
-                    const tabEl = pane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);
+                    const tabEl = pane._tabStrip.querySelector(`${SELECTORS.TAB}[data-for="${CSS.escape(pid)}"]`);
+
                     if (tabEl) {
                         // Ensure all tabs are collapsed if the pane is collapsed, 
                         // or if the tab specifically was saved as collapsed.
@@ -485,9 +503,10 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     if (centerHasContent) rebuildNodeTree(snapshot.columns.center.content, refs.centerBody);
     if (rightHasContent) rebuildNodeTree(snapshot.columns.right.content, refs.rightBody);
 
-    if (refs.leftBody.style.display !== 'none' && !refs.leftBody.querySelector('.ptmt-pane')) refs.leftBody.appendChild(createPane({}, { deferInitialCheck: true }));
-    if (!refs.centerBody.querySelector('.ptmt-pane')) refs.centerBody.appendChild(createPane({}, { deferInitialCheck: true }));
-    if (refs.rightBody.style.display !== 'none' && !refs.rightBody.querySelector('.ptmt-pane')) refs.rightBody.appendChild(createPane({}, { deferInitialCheck: true }));
+    if (refs.leftBody.style.display !== 'none' && !refs.leftBody.querySelector(SELECTORS.PANE)) refs.leftBody.appendChild(createPane({}, { deferInitialCheck: true }));
+    if (!refs.centerBody.querySelector(SELECTORS.PANE)) refs.centerBody.appendChild(createPane({}, { deferInitialCheck: true }));
+    if (refs.rightBody.style.display !== 'none' && !refs.rightBody.querySelector(SELECTORS.PANE)) refs.rightBody.appendChild(createPane({}, { deferInitialCheck: true }));
+
 
     const allGhostTabs = [];
     ['left', 'center', 'right'].forEach(colName => {
@@ -513,13 +532,14 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             if (originalLocation) {
                 const column = refs[`${originalLocation.column}Body`];
                 if (column) {
-                    targetPane = column.querySelectorAll('.ptmt-pane')[originalLocation.paneIndex] ||
-                        column.querySelector('.ptmt-pane');
+                    targetPane = column.querySelectorAll(SELECTORS.PANE)[originalLocation.paneIndex] ||
+                        column.querySelector(SELECTORS.PANE);
                 }
             }
             if (!targetPane) {
-                targetPane = refs.centerBody.querySelector('.ptmt-pane');
+                targetPane = refs.centerBody.querySelector(SELECTORS.PANE);
             }
+
             if (targetPane) {
                 const mapping = mappings.find(m => m.id === id) || {};
                 // Double check if it actually isn't there (sometimes IDs mismatch)
@@ -547,11 +567,12 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 if (typeof setPaneCollapsedView === 'function') {
                     setPaneCollapsedView(item.el, true);
                 } else {
-                    item.el.classList.add('view-collapsed');
+                    item.el.classList.add(SELECTORS.VIEW_COLLAPSED.substring(1));
                 }
             } else if (item.type === 'split') {
-                item.el.classList.add('ptmt-container-collapsed');
+                item.el.classList.add(SELECTORS.CONTAINER_COLLAPSED.substring(1));
             }
+
         });
 
         createdPanes.forEach(pane => applyPaneOrientation(pane));
@@ -560,11 +581,13 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         let settingsWrapper = document.getElementById(settingsWrapperId);
         if (!settingsWrapper) {
             settingsWrapper = el('div', { id: settingsWrapperId });
-            const stagingArea = document.getElementById('ptmt-staging-area') || document.body;
+            const stagingArea = document.querySelector(SELECTORS.STAGING_AREA) || document.body;
             stagingArea.appendChild(settingsWrapper);
         }
 
-        const centerPane = refs.centerBody.querySelector('.ptmt-pane');
+
+        const centerPane = refs.centerBody.querySelector(SELECTORS.PANE);
+
         const settingsTab = getPanelBySourceId(settingsWrapperId);
 
         if (!settingsTab && centerPane) {
@@ -604,17 +627,18 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             recalculateAllSplitsRecursively();
             recalculateColumnSizes();
             updateResizerDisabledStates();
-            document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
+            document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
             validateAndCorrectAllMinSizes();
 
-            window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', {
+            window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED, {
                 detail: { reason: 'snapshotApplied' }
             }));
 
             setTimeout(() => {
-                document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
+                document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
             }, 300);
         }, 200);
+
     });
 }
 

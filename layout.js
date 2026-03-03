@@ -2,6 +2,8 @@ import { el, getRefs } from './utils.js'; // getRefs imported from utils
 import { createPane, findPreferredDescendentOrientation } from './pane.js';
 import { attachColumnResizer, calculateElementMinWidth } from './resizer.js';
 import { settings } from './settings.js';
+import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
+
 
 // Export getRefs from here for backward compatibility if other files import it from layout.js,
 // OR update all other files to import from utils.js. 
@@ -37,15 +39,17 @@ export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = nul
     // This often happens during sudden UI reflows or tab switches
     if (parentWidth < 100) return;
 
-    const totalResizerWidth = Array.from(refs.mainBody.querySelectorAll('.ptmt-column-resizer')).reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+    const totalResizerWidth = Array.from(refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER)).reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+
     const availableWidth = Math.max(1, parentWidth - totalResizerWidth);
 
     // Initial pass: fix any negative or starved values
     let currentTotal = 0;
     let anyChanges = false;
     const columnData = activeColumns.map(col => {
-        const content = col.querySelector('.ptmt-pane, .ptmt-split');
+        const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`);
         const minPx = content ? calculateElementMinWidth(content) : 250;
+
         // Clamp minPercent to a reasonable range [0.001, 80] to avoid taking whole screen or div by 0
         const minPercent = Math.min(80, (minPx / availableWidth) * 100);
 
@@ -134,11 +138,12 @@ export function createLayoutIfMissing() {
     const centerBody = el('div', { id: 'ptmt-centerBody', className: 'ptmt-body-column' });
     const rightBody = el('div', { id: 'ptmt-rightBody', className: 'ptmt-body-column' });
 
-    const resizerLeftCenter = el('splitter', { className: 'ptmt-resizer-vertical ptmt-column-resizer' });
-    const resizerCenterRight = el('splitter', { className: 'ptmt-resizer-vertical ptmt-column-resizer' });
+    const resizerLeftCenter = el('splitter', { className: `${SELECTORS.RESIZER_V.substring(1)} ${SELECTORS.COLUMN_RESIZER.substring(1)}` });
+    const resizerCenterRight = el('splitter', { className: `${SELECTORS.RESIZER_V.substring(1)} ${SELECTORS.COLUMN_RESIZER.substring(1)}` });
 
     mainBody.append(leftBody, resizerLeftCenter, centerBody, resizerCenterRight, rightBody);
     main.append(topBar, mainBody);
+
 
     leftBody.appendChild(createPane());
     centerBody.appendChild(createPane());
@@ -150,9 +155,10 @@ export function createLayoutIfMissing() {
     document.body.insertBefore(main, document.body.firstChild);
 
     mainBody.append(
-        el('div', { className: 'ptmt-drop-indicator', id: 'ptmt-drop-indicator', style: { display: 'none' } }),
-        el('div', { className: 'ptmt-split-overlay', id: 'ptmt-split-overlay', style: { display: 'none' } })
+        el('div', { className: SELECTORS.DROP_INDICATOR.substring(1), id: SELECTORS.DROP_INDICATOR.substring(1), style: { display: 'none' } }),
+        el('div', { className: SELECTORS.SPLIT_OVERLAY.substring(1), id: SELECTORS.SPLIT_OVERLAY.substring(1), style: { display: 'none' } })
     );
+
     return getRefs();
 }
 
@@ -161,24 +167,27 @@ export function applyColumnVisibility() {
     const showLeft = settings.get('showLeftPane');
     const showRight = settings.get('showRightPane');
 
-    const resizers = Array.from(refs.mainBody.querySelectorAll('.ptmt-column-resizer'));
+    const resizers = Array.from(refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER));
+
     const resizerLeft = resizers[0];
     const resizerRight = resizers[1];
 
     if (refs.leftBody.style.display !== (showLeft ? 'flex' : 'none')) {
         refs.leftBody.style.display = showLeft ? 'flex' : 'none';
         if (resizerLeft) resizerLeft.style.display = showLeft ? 'flex' : 'none';
-        if (showLeft && !refs.leftBody.querySelector('.ptmt-pane')) {
+        if (showLeft && !refs.leftBody.querySelector(SELECTORS.PANE)) {
             refs.leftBody.appendChild(createPane());
         }
+
     }
 
     if (refs.rightBody.style.display !== (showRight ? 'flex' : 'none')) {
         refs.rightBody.style.display = showRight ? 'flex' : 'none';
         if (resizerRight) resizerRight.style.display = showRight ? 'flex' : 'none';
-        if (showRight && !refs.rightBody.querySelector('.ptmt-pane')) {
+        if (showRight && !refs.rightBody.querySelector(SELECTORS.PANE)) {
             refs.rightBody.appendChild(createPane());
         }
+
     }
 
     recalculateColumnSizes();
@@ -187,18 +196,20 @@ export function applyColumnVisibility() {
 
 function isColumnContentCollapsed(column) {
     if (!column || column.style.display === 'none') return true;
-    const directChildren = Array.from(column.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+    const directChildren = Array.from(column.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
     if (directChildren.length === 0) return true;
     return directChildren.every(child =>
-        child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')
+        child.classList.contains(SELECTORS.VIEW_COLLAPSED.substring(1)) || child.classList.contains(SELECTORS.CONTAINER_COLLAPSED.substring(1))
     );
+
 }
 
 export function recalculateColumnSizes() {
     const refs = getRefs();
     if (!refs || !refs.mainBody) return;
 
-    const MIN_COLLAPSED_PIXELS = 38;
+    const MIN_COLLAPSED_PIXELS = LAYOUT.MIN_COLLAPSED_PIXELS;
+
     const columns = [refs.leftBody, refs.centerBody, refs.rightBody];
     const visibleColumns = columns.filter(col => col && col.style.display !== 'none');
     if (visibleColumns.length === 0) return;
@@ -210,14 +221,15 @@ export function recalculateColumnSizes() {
     // Helper to calculate the required width of a collapsed column based on its split structure
     function calculateCollapsedColumnWidth(element) {
         // If it's a pane, it takes up MIN_COLLAPSED_PIXELS
-        if (element.classList.contains('ptmt-pane')) {
+        if (element.classList.contains(SELECTORS.PANE.substring(1))) {
             return MIN_COLLAPSED_PIXELS;
         }
 
         // If it's a split...
-        if (element.classList.contains('ptmt-split')) {
-            const children = Array.from(element.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+        if (element.classList.contains(SELECTORS.SPLIT.substring(1))) {
+            const children = Array.from(element.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
             if (children.length === 0) return MIN_COLLAPSED_PIXELS;
+
 
             // If forced horizontal (stacked), width is max of children (since they stack)
             const isHorizontal = element.classList.contains('horizontal');
@@ -254,8 +266,9 @@ export function recalculateColumnSizes() {
         const wasColumnCollapsed = col.dataset.isColumnCollapsed === 'true';
 
         if (isContentFullyCollapsed && !wasColumnCollapsed) {
-            const minWidth = calculateElementMinWidth(col.querySelector('.ptmt-pane, .ptmt-split'));
+            const minWidth = calculateElementMinWidth(col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`));
             const currentWidth = col.getBoundingClientRect().width;
+
             const currentFlex = col.style.flex;
             const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
             const basis = basisMatch ? parseFloat(basisMatch[1]) : 0;
@@ -298,18 +311,20 @@ export function recalculateColumnSizes() {
                 col.style.flex = col.dataset.lastFlex || '1 1 20%';
             } else {
                 // Determine layout content to calculate proper width
-                const content = col.querySelector('.ptmt-pane, .ptmt-split'); // helper to find root
+                const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`); // helper to find root
                 const width = content ? calculateCollapsedColumnWidth(content) : MIN_COLLAPSED_PIXELS;
                 col.style.flex = `0 0 ${width}px`;
             }
+
             collapsedColumn = col; // This column just collapsed.
         } else if (!isContentFullyCollapsed && wasColumnCollapsed) {
             let lastFlex = col.dataset.lastFlex;
-            const minWidth = calculateElementMinWidth(col.querySelector('.ptmt-pane, .ptmt-split'));
+            const minWidth = calculateElementMinWidth(col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`));
             const parentWidth = col.parentElement.getBoundingClientRect().width;
-            const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
+            const totalResizerWidth = Array.from(col.parentElement.querySelectorAll(SELECTORS.COLUMN_RESIZER))
                 .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
             const availableWidth = parentWidth - totalResizerWidth;
+
 
             // Only recalculate if lastFlex is completely missing or unparseable
             if (!lastFlex || !lastFlex.includes('%')) {
@@ -340,10 +355,11 @@ export function recalculateColumnSizes() {
             protectedColumn = col; // This column just re-opened.
         } else if (isContentFullyCollapsed && wasColumnCollapsed) {
             // If already collapsed, ensure the width is correct (in case orientation or content changed)
-            const content = col.querySelector('.ptmt-pane, .ptmt-split');
+            const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`);
             const width = content ? calculateCollapsedColumnWidth(content) : MIN_COLLAPSED_PIXELS;
             col.style.flex = `0 0 ${width}px`;
         }
+
     });
 
     const activeColumns = visibleColumns.filter(col => col.dataset.isColumnCollapsed !== 'true');

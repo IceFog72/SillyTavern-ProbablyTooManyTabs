@@ -1,18 +1,18 @@
-// pane.js
-import { el, getSplitOrientation, getPanelById, getTabById, getRefs } from './utils.js'; // Changed import
+import { el, getSplitOrientation, getPanelById, getTabById, getRefs } from './utils.js';
 import { showContextMenu } from './context-menu.js';
 import { settings } from './settings.js';
 import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
 import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation, invalidateMinWidthCache } from './resizer.js';
+import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 
 /** @typedef {import('./types.js').ViewSettings} ViewSettings */
 /** @typedef {import('./types.js').PaneNode} PaneNode */
 /** @typedef {import('./types.js').SplitNode} SplitNode */
 /** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
 
-export const MAX_PANE_LAYERS = 3;
-export const NARROW_PANE_THRESHOLD_PX = 120;
+export const MAX_PANE_LAYERS = LAYOUT.MAX_PANE_LAYERS;
+export const NARROW_PANE_THRESHOLD_PX = LAYOUT.NARROW_PANE_THRESHOLD_PX;
 
 export const defaultViewSettings = {
   minimalPanelSize: 250,
@@ -34,13 +34,13 @@ const tabStripOverflowObserver = new ResizeObserver(entries => {
 
 export function findPreferredDescendentOrientation(element) {
   if (!element) return null;
-  if (element.classList.contains('ptmt-pane')) {
+  if (element.classList.contains(SELECTORS.PANE.substring(1))) {
     const vs = readPaneViewSettings(element);
     if (vs.collapsedOrientation && vs.collapsedOrientation !== 'auto') {
       return vs.collapsedOrientation;
     }
   }
-  const panes = element.querySelectorAll('.ptmt-pane');
+  const panes = element.querySelectorAll(SELECTORS.PANE);
   for (const p of panes) {
     const vs = readPaneViewSettings(p);
     if (vs.collapsedOrientation && vs.collapsedOrientation !== 'auto') {
@@ -53,13 +53,13 @@ export function findPreferredDescendentOrientation(element) {
 export function applySplitOrientation(split) {
   if (!split) return;
 
-  const parentColumn = split.closest('.ptmt-body-column');
+  const parentColumn = split.closest(SELECTORS.COLUMN);
   const isParentColumnCollapsed = parentColumn?.dataset.isColumnCollapsed === 'true';
 
   // Check if ALL children are collapsed
-  const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+  const children = Array.from(split.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
   const allChildrenCollapsed = children.length > 0 && children.every(child =>
-    child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')
+    child.classList.contains(SELECTORS.VIEW_COLLAPSED.substring(1)) || child.classList.contains(SELECTORS.CONTAINER_COLLAPSED.substring(1))
   );
 
   let targetOrientation;
@@ -82,7 +82,6 @@ export function applySplitOrientation(split) {
         }
       }
     }
-
   } else if (isParentColumnCollapsed) {
     // Splits in collapsed sidebars MUST be horizontal to stack panes vertically
     targetOrientation = 'horizontal';
@@ -105,15 +104,14 @@ export function applySplitOrientation(split) {
   setSplitOrientation(split, targetOrientation);
 
   // After rotation, children might need to re-evaluate their internal orientation (e.g. tabstrip flip)
-  const childPanesArr = split.querySelectorAll('.ptmt-pane');
+  const childPanesArr = split.querySelectorAll(SELECTORS.PANE);
   childPanesArr.forEach(p => applyPaneOrientation(p));
 }
 
-
 export function createPane(initialSettings = {}, options = {}) {
-  const pane = el('div', { className: 'ptmt-pane', style: { position: 'relative', display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden' } });
-  const tabStrip = el('div', { className: 'ptmt-tabStrip' });
-  const panelContainer = el('div', { className: 'ptmt-panelContainer' });
+  const pane = el('div', { className: SELECTORS.PANE.substring(1), style: { position: 'relative', display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden' } });
+  const tabStrip = el('div', { className: SELECTORS.TAB_STRIP.substring(1) });
+  const panelContainer = el('div', { className: SELECTORS.PANEL_CONTAINER.substring(1) });
   const grid = el('div', { className: 'ptmt-pane-grid', style: { width: '100%', height: '100%' } });
 
   pane.dataset.paneId = `ptmt-pane-${Date.now().toString(36)}-${Math.random().toString(36).substring(2, 7)}`;
@@ -165,7 +163,7 @@ export function getPaneLayerCount(pane) {
   while (eln && eln.parentElement && eln.parentElement !== refs.mainBody) {
     eln = eln.parentElement;
     if (!eln) break;
-    if (eln.classList?.contains('ptmt-split')) splitCount++;
+    if (eln.classList?.contains(SELECTORS.SPLIT.substring(1))) splitCount++;
   }
   return splitCount + 1;
 }
@@ -202,40 +200,30 @@ export function writePaneViewSettings(pane, newPaneSettings) {
 export function getParentSplitOrientation(pane) {
   if (!pane) return null;
   const parentSplit = pane.parentElement;
-  if (!parentSplit || !parentSplit.classList?.contains('ptmt-split')) {
+  if (!parentSplit || !parentSplit.classList?.contains(SELECTORS.SPLIT.substring(1))) {
     return null;
   }
   return getSplitOrientation(parentSplit);
 }
 
-
 function findGoverningOrientation(pane) {
-  // 1. Primary rule: "Eliminate empty space" via Aspect Ratio / Dimensions
-  // If the pane is narrow (e.g. width < 120px) or taller than it is wide, use Vertical (tabs on side).
-  // If the pane is wide, use Horizontal (tabs on top).
   const rect = (pane._panelContainer || pane).getBoundingClientRect();
 
-  // Handling for initialization or hidden state where rect is 0
   if (rect.width > 0 && rect.height > 0) {
-    if (rect.width < NARROW_PANE_THRESHOLD_PX) return 'vertical'; // Force vertical for very narrow strips regardless of height
+    if (rect.width < NARROW_PANE_THRESHOLD_PX) return 'vertical';
     return (rect.width >= rect.height) ? 'horizontal' : 'vertical';
   }
 
-  // 2. Fallback: Column-level heuristics for collapsed columns (when dimensions are 0/hidden)
-  const column = pane.closest('.ptmt-body-column');
+  const column = pane.closest(SELECTORS.COLUMN);
   if (column?.dataset.isColumnCollapsed === 'true') {
-    // Check if there's an explicit preference in this column/pane
     const preferred = findPreferredDescendentOrientation(pane);
     if (preferred && preferred !== 'auto') return preferred;
     return 'vertical';
   }
 
-  // 3. Fallback: Split hierarchy (legacy logic, mostly for hidden states)
   let current = pane.parentElement;
-  while (current && !current.classList.contains('ptmt-body-column')) {
-    if (current.classList.contains('ptmt-split')) {
-      // Only default to split orientation if we really don't know anything else
-      // But usually we prefer vertical default for safety in unknown narrow contexts
+  while (current && !current.classList.contains(SELECTORS.COLUMN.substring(1))) {
+    if (current.classList.contains(SELECTORS.SPLIT.substring(1))) {
       return current.classList.contains('horizontal') ? 'horizontal' : 'vertical';
     }
     current = current.parentElement;
@@ -247,7 +235,7 @@ function findGoverningOrientation(pane) {
 export function applyPaneOrientation(pane) {
   if (!pane) return;
   const vs = readPaneViewSettings(pane) || {};
-  const isCollapsed = pane.classList.contains('view-collapsed');
+  const isCollapsed = pane.classList.contains(SELECTORS.VIEW_COLLAPSED.substring(1));
   let orientation;
 
   if (isCollapsed) {
@@ -273,7 +261,6 @@ export function applyPaneOrientation(pane) {
   gridEl.classList.toggle('flow-reversed', vs.contentFlow === 'reversed');
 }
 
-
 export function setPaneCollapsedView(pane, collapsed) {
   if (!pane) return;
 
@@ -281,34 +268,29 @@ export function setPaneCollapsedView(pane, collapsed) {
 
   if (collapsed) {
     const vs = readPaneViewSettings(pane);
-    const minSizePx = vs.minimalPanelSize || 250;
+    const minSizePx = vs.minimalPanelSize || LAYOUT.DEFAULT_MIN_PANEL_SIZE_PX;
     const rect = pane.getBoundingClientRect();
     const currentFlex = pane.style.flex;
     const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
     const currentBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
 
-    // Only update lastFlex if it's currently missing or "poisoned" (e.g. 50% default during rebuild)
-    // and we have a better value to save.
     const existingLastFlex = pane.dataset.lastFlex;
     const existingBasisMatch = existingLastFlex ? existingLastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
     const existingBasisPercent = existingBasisMatch ? parseFloat(existingBasisMatch[1]) : 0;
 
-    // Rule: If we have a meaningful existing lastFlex (> 5%), do NOT overwrite it
-    // during a collapse operation. The collapse operation is often a side-effect,
-    // and we don't want to lose the user's carefully adjusted size.
     if (existingBasisPercent <= 5) {
       let shouldResetToMin = false;
-      if (parentSplit?.classList.contains('ptmt-split')) {
+      if (parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1))) {
         const isHorizontal = parentSplit.classList.contains('horizontal');
         const currentSize = isHorizontal ? rect.height : rect.width;
         if (currentSize < minSizePx || currentBasisPercent >= 99.9) {
           shouldResetToMin = true;
         }
-      } else if (currentBasisPercent >= 99.9) { // Is the only pane in a column
+      } else if (currentBasisPercent >= 99.9) {
         shouldResetToMin = true;
       }
 
-      if (shouldResetToMin && parentSplit?.classList.contains('ptmt-split')) {
+      if (shouldResetToMin && parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1))) {
         const isHorizontal = parentSplit.classList.contains('horizontal');
         const parentRect = parentSplit.getBoundingClientRect();
         const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
@@ -316,26 +298,26 @@ export function setPaneCollapsedView(pane, collapsed) {
           const minBasisPercent = (minSizePx / totalParentSize) * 100;
           pane.dataset.lastFlex = `1 1 ${Math.min(100, minBasisPercent).toFixed(4)}%`;
         } else if (!pane.dataset.lastFlex) {
-          pane.dataset.lastFlex = '1 1 30%'; // Fallback only if missing
+          pane.dataset.lastFlex = '1 1 30%';
         }
       } else if (currentFlex && currentBasisPercent > 5) {
         pane.dataset.lastFlex = currentFlex;
       }
     }
 
-    pane.classList.add('view-collapsed');
-    if (parentSplit?.classList.contains('ptmt-split')) {
+    pane.classList.add(SELECTORS.VIEW_COLLAPSED.substring(1));
+    if (parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1))) {
       updateSplitCollapsedState(parentSplit);
     }
   } else {
-    pane.classList.remove('view-collapsed');
+    pane.classList.remove(SELECTORS.VIEW_COLLAPSED.substring(1));
 
     let lastFlex = pane.dataset.lastFlex;
-    const isFlexInvalid = parentSplit?.classList.contains('ptmt-split') && lastFlex && /\s0+(\.0*)?%$/.test(lastFlex);
+    const isFlexInvalid = parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1)) && lastFlex && /\s0+(\.0*)?%$/.test(lastFlex);
     const vs = readPaneViewSettings(pane);
-    const minSizePx = vs.minimalPanelSize || 250;
+    const minSizePx = vs.minimalPanelSize || LAYOUT.DEFAULT_MIN_PANEL_SIZE_PX;
 
-    if (parentSplit?.classList.contains('ptmt-split')) {
+    if (parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1))) {
       const isHorizontal = parentSplit.classList.contains('horizontal');
       const parentRect = parentSplit.getBoundingClientRect();
       const totalParentSize = isHorizontal ? parentRect.height : parentRect.width;
@@ -346,7 +328,7 @@ export function setPaneCollapsedView(pane, collapsed) {
         const lastBasisPercent = lastBasisMatch ? parseFloat(lastBasisMatch[1]) : 0;
 
         if (Math.abs(lastBasisPercent - minBasisPercent) < 0.1) {
-          const siblings = Array.from(parentSplit.children).filter(c => c !== pane && (c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')));
+          const siblings = Array.from(parentSplit.children).filter(c => c !== pane && (c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1))));
           const totalSiblingLastFlex = siblings.reduce((sum, s) => {
             if (s.dataset.lastFlex) {
               const match = s.dataset.lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
@@ -375,20 +357,20 @@ export function setPaneCollapsedView(pane, collapsed) {
         }
         pane.style.flex = `1 1 ${Math.min(100, targetBasisPercent).toFixed(4)}%`;
       } else {
-        pane.style.flex = (lastFlex && !isFlexInvalid) ? lastFlex : '1 1 50%';
+        pane.style.flex = (lastFlex && !isFlexInvalid) ? lastFlex : LAYOUT.DEFAULT_PANE_FLEX_BASIS;
       }
     } else {
-      pane.style.flex = '1 1 100%';
+      pane.style.flex = LAYOUT.DEFAULT_PANE_FLEX_BASIS_FULL;
     }
 
-    if (parentSplit?.classList.contains('ptmt-split')) {
+    if (parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1))) {
       recalculateSplitSizes(parentSplit, pane);
     }
   }
 
   applyPaneOrientation(pane);
 
-  if (parentSplit?.classList.contains('ptmt-split')) {
+  if (parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1))) {
     updateSplitCollapsedState(parentSplit);
     recalculateAllSplitsRecursively();
   }
@@ -406,22 +388,21 @@ export function cleanupPaneObservers(pane) {
 
 export function removePaneIfEmpty(pane, depth = 0) {
   if (!pane?.parentElement || depth > 10) return;
-  const tabs = pane._tabStrip?.querySelectorAll('.ptmt-tab');
-  const panels = pane._panelContainer?.querySelectorAll('.ptmt-panel');
+  const tabs = pane._tabStrip?.querySelectorAll(SELECTORS.TAB);
+  const panels = pane._panelContainer?.querySelectorAll(SELECTORS.PANEL);
   if (tabs?.length || panels?.length) return;
 
-  // Clean up observers before removing the pane to prevent memory leaks
   cleanupPaneObservers(pane);
 
   const parent = pane.parentElement;
   if (!parent) return;
 
-  const column = pane.closest('.ptmt-body-column');
+  const column = pane.closest(SELECTORS.COLUMN);
   const wasInLeftColumn = column?.id === 'ptmt-leftBody';
   const wasInRightColumn = column?.id === 'ptmt-rightBody';
 
-  if (parent.classList.contains('ptmt-split')) {
-    const structuralChildren = Array.from(parent.children).filter(c => c !== pane && (c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')));
+  if (parent.classList.contains(SELECTORS.SPLIT.substring(1))) {
+    const structuralChildren = Array.from(parent.children).filter(c => c !== pane && (c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1))));
     const grand = parent.parentElement;
 
     if (structuralChildren.length === 0) {
@@ -431,7 +412,7 @@ export function removePaneIfEmpty(pane, depth = 0) {
       const remaining = structuralChildren[0];
       if (grand) {
         grand.replaceChild(remaining, parent);
-        if (grand.classList.contains('ptmt-split')) {
+        if (grand.classList.contains(SELECTORS.SPLIT.substring(1))) {
           recalculateSplitSizes(grand);
         } else {
           normalizeLiftedElement(remaining);
@@ -448,7 +429,7 @@ export function removePaneIfEmpty(pane, depth = 0) {
     pane.remove();
   }
 
-  if ((wasInLeftColumn || wasInRightColumn) && !column.querySelector('.ptmt-pane, .ptmt-split')) {
+  if ((wasInLeftColumn || wasInRightColumn) && !column.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`)) {
     if (wasInLeftColumn) {
       settings.update({ showLeftPane: false });
     } else {
@@ -457,11 +438,11 @@ export function removePaneIfEmpty(pane, depth = 0) {
   }
 
   const refs = getRefs();
-  if (!refs.centerBody.querySelector('.ptmt-pane')) {
+  if (!refs.centerBody.querySelector(SELECTORS.PANE)) {
     refs.centerBody.appendChild(createPane());
   }
 
-  try { window.dispatchEvent(new CustomEvent('ptmt:layoutChanged')); } catch (e) {
+  try { window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED)); } catch (e) {
     console.warn('[PTMT] Failed :', e);
   }
 }
@@ -469,9 +450,9 @@ export function removePaneIfEmpty(pane, depth = 0) {
 export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newFirst = true) {
   if (!targetPane || !movingPanel) return;
 
-  const column = targetPane.closest('.ptmt-body-column');
+  const column = targetPane.closest(SELECTORS.COLUMN);
   const columnKey = column.id.replace('ptmt-', '').replace('Body', '');
-  const maxLayers = settings.get(`maxLayers${columnKey.charAt(0).toUpperCase() + columnKey.slice(1)}`) || 3;
+  const maxLayers = settings.get(`maxLayers${columnKey.charAt(0).toUpperCase() + columnKey.slice(1)}`) || LAYOUT.MAX_PANE_LAYERS;
 
   const layers = getPaneLayerCount(targetPane);
   if (layers >= maxLayers) {
@@ -479,13 +460,12 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
     return;
   }
 
-
   const originalSettings = readPaneViewSettings(targetPane);
 
   const srcPane = getPaneForPanel(movingPanel);
   const parent = targetPane.parentElement;
 
-  const split = el('div', { className: 'ptmt-split' });
+  const split = el('div', { className: SELECTORS.SPLIT.substring(1) });
   split.dataset.naturalOrientation = vertical ? 'vertical' : 'horizontal';
   split.dataset.orientationExpanded = vertical ? 'vertical' : 'horizontal';
   split.dataset.orientationCollapsed = 'auto';
@@ -494,13 +474,11 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
     split.classList.add('horizontal');
   }
 
-
   const pane1 = createPane(originalSettings);
   const pane2 = createPane(originalSettings);
 
-
   const existingPanels = Array.from(targetPane._panelContainer.children);
-  const existingTabs = Array.from(targetPane._tabStrip.children).filter(c => c.classList.contains('ptmt-tab'));
+  const existingTabs = Array.from(targetPane._tabStrip.children).filter(c => c.classList.contains(SELECTORS.TAB.substring(1)));
 
   const destinationPaneForExisting = newFirst ? pane2 : pane1;
   existingPanels.forEach(p => destinationPaneForExisting._panelContainer.appendChild(p));
@@ -508,7 +486,7 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
 
   parent.replaceChild(split, targetPane);
 
-  const resizer = el('splitter', { className: vertical ? 'ptmt-resizer-vertical' : 'ptmt-resizer-horizontal' });
+  const resizer = el('splitter', { className: vertical ? SELECTORS.RESIZER_V.substring(1) : SELECTORS.RESIZER_H.substring(1) });
   split.append(pane1, resizer, pane2);
 
   attachResizer(resizer, vertical ? 'vertical' : 'horizontal');
@@ -523,30 +501,30 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
       removePaneIfEmpty(srcPane);
     }
     recalculateAllSplitsRecursively();
-    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+    window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
   });
 }
 
 function updateTabsOrientation(pane, vertical) {
-  pane._tabStrip.querySelectorAll('.ptmt-tab').forEach(t => t.classList.toggle('vertical', vertical));
+  pane._tabStrip.querySelectorAll(SELECTORS.TAB).forEach(t => t.classList.toggle('vertical', vertical));
 }
 
 function normalizeLiftedElement(el) {
   if (!el) return;
   try {
-    if (el.classList.contains('ptmt-pane')) {
+    if (el.classList.contains(SELECTORS.PANE.substring(1))) {
       el.style.flex = '1 1 0%';
-      el.querySelectorAll('.ptmt-pane').forEach(p => {
+      el.querySelectorAll(SELECTORS.PANE).forEach(p => {
         p.style.flex = p.style.flex?.indexOf('0 0') === 0 ? '1 1 0%' : p.style.flex;
       });
       return;
     }
 
-    if (el.classList.contains('ptmt-split')) {
+    if (el.classList.contains(SELECTORS.SPLIT.substring(1))) {
       el.style.flex = '1 1 0%';
       Array.from(el.children).forEach(c => {
         if (!c) return;
-        if (c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split')) {
+        if (c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1))) {
           if (!c.style.flex || c.style.flex.includes('0 0') === false) {
             c.style.flex = '1 1 0%';
           }
@@ -569,60 +547,55 @@ function normalizeLiftedElement(el) {
 export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
   try {
     if (!pane) return;
-    const tabs = Array.from(pane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
+    const tabs = Array.from(pane._tabStrip.querySelectorAll(`${SELECTORS.TAB}:not(.ptmt-view-settings)`));
     const allCollapsed = tabs.length > 0 && tabs.every(tab => tab.classList.contains('collapsed'));
 
-    const wasCollapsed = pane.classList.contains('view-collapsed');
+    const wasCollapsed = pane.classList.contains(SELECTORS.VIEW_COLLAPSED.substring(1));
     if (allCollapsed === wasCollapsed) return;
 
     setPaneCollapsedView(pane, allCollapsed);
     const parentSplit = pane.parentElement;
-    if (parentSplit?.classList.contains('ptmt-split')) {
+    if (parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1))) {
       updateSplitCollapsedState(parentSplit);
     }
 
-    // Rely on ptmt:layoutChanged for batching
-    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'paneCollapsed', pane } }));
-
+    window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED, { detail: { reason: 'paneCollapsed', pane } }));
   } catch (e) {
     console.warn('checkAndCollapsePaneIfAllTabsCollapsed error:', e);
   }
 }
 
 export function updateSplitCollapsedState(split) {
-  if (!split || !split.classList.contains('ptmt-split')) return;
+  if (!split || !split.classList.contains(SELECTORS.SPLIT.substring(1))) return;
 
-  const children = Array.from(split.children).filter(c => c.classList.contains('ptmt-pane') || c.classList.contains('ptmt-split'));
+  const children = Array.from(split.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
   if (children.length === 0) return;
 
   const allChildrenCollapsed = children.every(child =>
-    child.classList.contains('view-collapsed') || child.classList.contains('ptmt-container-collapsed')
+    child.classList.contains(SELECTORS.VIEW_COLLAPSED.substring(1)) || child.classList.contains(SELECTORS.CONTAINER_COLLAPSED.substring(1))
   );
-  const isCurrentlyCollapsed = split.classList.contains('ptmt-container-collapsed');
+  const isCurrentlyCollapsed = split.classList.contains(SELECTORS.CONTAINER_COLLAPSED.substring(1));
 
   if (allChildrenCollapsed && !isCurrentlyCollapsed) {
     const currentFlex = split.style.flex;
     if (currentFlex && currentFlex.includes('%')) {
       split.dataset.lastFlex = currentFlex;
     }
-    split.classList.add('ptmt-container-collapsed');
+    split.classList.add(SELECTORS.CONTAINER_COLLAPSED.substring(1));
     applySplitOrientation(split);
-
   } else if (!allChildrenCollapsed && isCurrentlyCollapsed) {
-    split.style.flex = split.dataset.lastFlex || '1 1 100%';
-    split.classList.remove('ptmt-container-collapsed');
+    split.style.flex = split.dataset.lastFlex || LAYOUT.DEFAULT_PANE_FLEX_BASIS_FULL;
+    split.classList.remove(SELECTORS.CONTAINER_COLLAPSED.substring(1));
     applySplitOrientation(split);
   } else {
-    // Orientation update for cases where children changed but top-level collapsed state hasn't
     applySplitOrientation(split);
   }
 
   const parentSplit = split.parentElement;
-  if (parentSplit?.classList.contains('ptmt-split')) {
+  if (parentSplit?.classList.contains(SELECTORS.SPLIT.substring(1))) {
     updateSplitCollapsedState(parentSplit);
   } else {
-    // Only top level split finished bubbling, layout is now stable
-    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', { detail: { reason: 'splitStructuralChange' } }));
+    window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED, { detail: { reason: 'splitStructuralChange' } }));
   }
 }
 
@@ -647,7 +620,7 @@ export function openViewSettingsDialog(pane) {
       el('h3', null, 'Pane Settings'),
       el('div', { className: 'ptmt-vs-row ptmt-vs-id-row' },
         el('label', null, 'Internal ID: '),
-        el('span', { className: 'ptmt-vs-id-value' }, pane.dataset.panelId || pane.id)
+        el('span', { className: 'ptmt-vs-id-value' }, pane.dataset.paneId || pane.id)
       ),
       el('div', { className: 'ptmt-vs-row' },
         el('label', { for: 'ptmt-vs-minimal-panel' }, 'Min. Panel Size (px): '),
@@ -695,6 +668,6 @@ export function openViewSettingsDialog(pane) {
     });
     applyPaneOrientation(pane);
     dialog.remove();
-    window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+    window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
   });
 }

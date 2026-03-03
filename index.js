@@ -2,7 +2,9 @@
 
 import { eventSource, event_types, characters, animation_duration, swipe, isSwipingAllowed } from '../../../../script.js';
 import { SWIPE_DIRECTION, SWIPE_SOURCE } from '../../../../scripts/constants.js';
+import { SELECTORS, EVENTS } from './constants.js';
 import { power_user } from '../../../power-user.js';
+
 import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
 import { settings, SettingsManager } from './settings.js';
@@ -37,11 +39,12 @@ import { initColorizer } from './dialogue-colorizer.js';
     createLayoutIfMissing();
     const refs = getRefs();
 
-    let stagingArea = document.getElementById('ptmt-staging-area');
+    let stagingArea = document.querySelector(SELECTORS.STAGING_AREA);
     if (!stagingArea) {
-      stagingArea = el('div', { id: 'ptmt-staging-area', style: { display: 'none' } });
+      stagingArea = el('div', { id: SELECTORS.STAGING_AREA.substring(1), style: { display: 'none' } });
       document.body.appendChild(stagingArea);
     }
+
 
     const saveCurrentLayoutDebounced = debounce(() => {
       const doSave = () => {
@@ -156,8 +159,9 @@ import { initColorizer } from './dialogue-colorizer.js';
       console.log(`[PTMT Layout] 🔄 debouncedLayoutReaction executing. Reason: ${reason}`);
 
       // First apply layout/orientation classes so sizes can be calculated correctly
-      document.querySelectorAll('.ptmt-split').forEach(applySplitOrientation);
-      document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
+      document.querySelectorAll(SELECTORS.SPLIT).forEach(applySplitOrientation);
+      document.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
+
 
       applyColumnVisibility();
 
@@ -169,15 +173,17 @@ import { initColorizer } from './dialogue-colorizer.js';
       saveCurrentLayoutDebounced();
     }, 50);
 
-    window.addEventListener('ptmt:layoutChanged', (event) => {
+    window.addEventListener(EVENTS.LAYOUT_CHANGED, (event) => {
+
       const reason = event.detail?.reason || 'unknown';
 
       // Always update orientations immediately (cheap, no reflow usually)
       if (event.detail?.pane) {
         applyPaneOrientation(event.detail.pane);
       } else {
-        document.querySelectorAll('.ptmt-pane').forEach(applyPaneOrientation);
+        document.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
       }
+
 
       // Batch everything else
       debouncedLayoutReaction(event);
@@ -186,11 +192,11 @@ import { initColorizer } from './dialogue-colorizer.js';
     const extensionPath = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs';
     const applyOverrides = () => {
       const enabled = settings.get('enableOverride1');
-      let link = document.getElementById('ptmt-overrides-1');
+      let link = document.querySelector(SELECTORS.OVERRIDES_LINK);
       if (enabled) {
         if (!link) {
           link = document.createElement('link');
-          link.id = 'ptmt-overrides-1';
+          link.id = SELECTORS.OVERRIDES_LINK.substring(1);
           link.rel = 'stylesheet';
           link.href = `${extensionPath}/overrides-1.css`;
           document.head.appendChild(link);
@@ -200,7 +206,9 @@ import { initColorizer } from './dialogue-colorizer.js';
       }
     };
 
-    window.addEventListener('ptmt:settingsChanged', (event) => {
+
+    window.addEventListener(EVENTS.SETTINGS_CHANGED, (event) => {
+
       const { changed } = event.detail || {};
       const showIconsOnly = settings.get('showIconsOnly');
       const isMobile = settings.get('isMobile');
@@ -212,9 +220,10 @@ import { initColorizer } from './dialogue-colorizer.js';
       }
 
       applyOverrides();
-      document.querySelectorAll('.ptmt-pane').forEach(checkPaneForIconMode);
-      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+      document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
+      window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
     });
+
 
     initGlobalResizeObserver();
 
@@ -294,12 +303,13 @@ import { initColorizer } from './dialogue-colorizer.js';
 
       // Find the swipe button in the active pane to use as event target
       const direction = e.key === 'ArrowRight' ? SWIPE_DIRECTION.RIGHT : SWIPE_DIRECTION.LEFT;
-      const swipeBtn = activePane.querySelector(e.key === 'ArrowRight' ? '.swipe_right' : '.swipe_left');
+      const swipeBtn = activePane.querySelector(e.key === 'ArrowRight' ? SELECTORS.ST_SWIPE_RIGHT : SELECTORS.ST_SWIPE_LEFT);
 
       console.log(`[PTMT] Keyboard swipe ${e.key === 'ArrowRight' ? 'right' : 'left'} triggered on active pane`);
 
       // Call swipe function directly - if no button exists, pass the pane as target
       await swipe({ target: swipeBtn || activePane }, direction, { source: SWIPE_SOURCE.KEYBOARD });
+
     });
     // ------------------------------------
 
@@ -314,21 +324,23 @@ import { initColorizer } from './dialogue-colorizer.js';
       if (typeof Popup !== 'undefined' && Popup.util?.isPopupOpen()) return;
 
       // Only handle swipes within the chat area
-      if (!$(e.target).closest('#sheld').length) return;
+      if (!$(e.target).closest(SELECTORS.ST_CHAT_CONTAINER).length) return;
 
       // Don't swipe while in text edit mode
-      if ($('#curEditTextarea').length) return;
+      if ($(SELECTORS.ST_TEXTAREA).length) return;
+
 
       // Get the active pane
       const activePane = getActivePane();
       if (!activePane) return;
 
       // Check if the swipe originated from within a .mes element in the active pane
-      const targetMes = $(e.target).closest('.mes')[0];
+      const targetMes = $(e.target).closest(SELECTORS.ST_MESSAGE)[0];
       if (!targetMes || !activePane.contains(targetMes)) return;
 
       // Find the swipe button in the active pane
-      const swipeBtn = activePane.querySelector('.swipe_right');
+      const swipeBtn = activePane.querySelector(SELECTORS.ST_SWIPE_RIGHT);
+
       if (!swipeBtn || !$(swipeBtn).is(':visible')) return;
 
       console.log('[PTMT] Touch swipe left (swipe right) triggered on active pane');
@@ -342,21 +354,23 @@ import { initColorizer } from './dialogue-colorizer.js';
       if (typeof Popup !== 'undefined' && Popup.util?.isPopupOpen()) return;
 
       // Only handle swipes within the chat area
-      if (!$(e.target).closest('#sheld').length) return;
+      if (!$(e.target).closest(SELECTORS.ST_CHAT_CONTAINER).length) return;
 
       // Don't swipe while in text edit mode
-      if ($('#curEditTextarea').length) return;
+      if ($(SELECTORS.ST_TEXTAREA).length) return;
+
 
       // Get the active pane
       const activePane = getActivePane();
       if (!activePane) return;
 
       // Check if the swipe originated from within a .mes element in the active pane
-      const targetMes = $(e.target).closest('.mes')[0];
+      const targetMes = $(e.target).closest(SELECTORS.ST_MESSAGE)[0];
       if (!targetMes || !activePane.contains(targetMes)) return;
 
       // Find the swipe button in the active pane
-      const swipeBtn = activePane.querySelector('.swipe_left');
+      const swipeBtn = activePane.querySelector(SELECTORS.ST_SWIPE_LEFT);
+
       if (!swipeBtn || !$(swipeBtn).is(':visible')) return;
 
       console.log('[PTMT] Touch swipe right (swipe left) triggered on active pane');
@@ -367,12 +381,13 @@ import { initColorizer } from './dialogue-colorizer.js';
 
     overrideDelegatedEventHandler(
       'click',
-      '.mes .avatar',
+      `${SELECTORS.ST_MESSAGE} ${SELECTORS.ST_AVATAR}`,
       (handlerString) => {
-        return handlerString.includes("$('#zoomed_avatar_template').html()");
+        return handlerString.includes(`$('${SELECTORS.ST_ZOOMED_AVATAR_TEMPLATE}').html()`);
       },
       function () {
-        const messageElement = $(this).closest('.mes');
+        const messageElement = $(this).closest(SELECTORS.ST_MESSAGE);
+
         const thumbURL = $(this).children('img').attr('src');
         const charsPath = '/characters/';
         const targetAvatarImg = thumbURL.substring(thumbURL.lastIndexOf('=') + 1);
@@ -380,7 +395,7 @@ import { initColorizer } from './dialogue-colorizer.js';
         const isValidCharacter = characters.some(x => x.avatar === decodeURIComponent(targetAvatarImg));
 
         if (!power_user.movingUI) {
-          $('.zoomed_avatar').each(function () {
+          $(SELECTORS.ST_ZOOMED_AVATAR).each(function () {
             const currentForChar = $(this).attr('forChar');
             if (currentForChar !== charname && typeof currentForChar !== 'undefined') {
               console.debug(`Removing zoomed avatar for character: ${currentForChar}`);
@@ -389,30 +404,33 @@ import { initColorizer } from './dialogue-colorizer.js';
           });
         }
 
+
         const avatarSrc = (isDataURL(thumbURL) || /^\/?img\/(?:.+)/.test(thumbURL)) ? thumbURL : charsPath + targetAvatarImg;
-        if ($(`.zoomed_avatar[forChar="${charname}"]`).length) {
+        if ($(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"]`).length) {
           console.debug('removing container as it already existed');
-          $(`.zoomed_avatar[forChar="${charname}"]`).fadeOut(animation_duration, () => {
-            $(`.zoomed_avatar[forChar="${charname}"]`).remove();
+          $(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"]`).fadeOut(animation_duration, () => {
+            $(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"]`).remove();
           });
         } else {
           console.debug('making new container from template');
-          const template = $('#zoomed_avatar_template').html();
+          const template = $(SELECTORS.ST_ZOOMED_AVATAR_TEMPLATE).html();
           const newElement = $(template);
+
           newElement.attr('forChar', charname);
           newElement.attr('id', `zoomFor_${charname}`);
           newElement.addClass('draggable');
-          newElement.find('.drag-grabber').attr('id', `zoomFor_${charname}header`);
+          newElement.find(SELECTORS.ST_DRAG_GRABBER).attr('id', `zoomFor_${charname}header`);
 
-          let movingDivsContainer = $('#movingDivs');
+          let movingDivsContainer = $(SELECTORS.ST_MOVING_DIVS);
           if (movingDivsContainer.length === 0) {
-            movingDivsContainer = $('<div id="movingDivs"></div>');
+            movingDivsContainer = $(`<div id="${SELECTORS.ST_MOVING_DIVS.split(',')[0].trim().substring(1)}"></div>`);
             $('body').append(movingDivsContainer);
           }
           movingDivsContainer.append(newElement);
 
           newElement.fadeIn(animation_duration);
-          const zoomedAvatarImgElement = $(`.zoomed_avatar[forChar="${charname}"] img`);
+          const zoomedAvatarImgElement = $(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"] img`);
+
           if (messageElement.attr('is_user') == 'true' || (messageElement.attr('is_system') == 'true' && !isValidCharacter)) {
             const isValidPersona = decodeURIComponent(targetAvatarImg) in power_user.personas;
             if (isValidPersona) {
@@ -428,20 +446,21 @@ import { initColorizer } from './dialogue-colorizer.js';
             zoomedAvatarImgElement.attr('data-izoomify-url', avatarSrc);
           }
           //loadMovingUIState();
-          $(`.zoomed_avatar[forChar="${charname}"]`).css('display', 'flex');
+          $(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"]`).css('display', 'flex');
           //dragElement(newElement);
 
           if (power_user.zoomed_avatar_magnification) {
-            $('.zoomed_avatar_container').izoomify();
+            $(`${SELECTORS.ST_ZOOMED_AVATAR}_container`).izoomify();
           }
 
           newElement.on('click touchend', (e) => {
-            if (e.target.closest('.dragClose')) {
+            if (e.target.closest(SELECTORS.ST_DRAG_CLOSE)) {
               newElement.fadeOut(animation_duration, () => {
                 newElement.remove();
               });
             }
           });
+
 
           /*zoomedAvatarImgElement.on('dragstart', (e) => {
               console.log('saw drag on avatar!');
@@ -457,7 +476,8 @@ import { initColorizer } from './dialogue-colorizer.js';
     return api;
   }
 
-  document.body.insertAdjacentHTML('beforeend', '<div id="ptmt-settings-wrapper" style="display:none;"></div>');
+  document.body.insertAdjacentHTML('beforeend', `<div id="${SELECTORS.SETTINGS_WRAPPER.substring(1)}" style="display:none;"></div>`);
+
 
   // Inject Vibrant.js
   if (!window.Vibrant) {

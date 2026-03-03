@@ -1,6 +1,7 @@
 // misc-helpers.js
 
 import { isElement } from './utils.js';
+import { SELECTORS } from './constants.js';
 
 let drawerObserver = null;
 
@@ -29,14 +30,14 @@ export function removeMouseDownDrawerHandler() {
 export function openAllDrawersJq(context = document) {
   try {
     if (window.jQuery && jQuery) {
-      return jQuery(context).find('.closedDrawer').not('.openDrawer').removeClass('closedDrawer').addClass('openDrawer').length;
+      return jQuery(context).find(SELECTORS.ST_DRAWER_CLOSED).not(SELECTORS.ST_DRAWER_OPEN).removeClass(SELECTORS.ST_DRAWER_CLOSED.substring(1)).addClass(SELECTORS.ST_DRAWER_OPEN.substring(1)).length;
     }
     const rootEl = isElement(context) ? context : document;
     let changed = 0;
-    rootEl.querySelectorAll('.closedDrawer').forEach(e => {
-      if (!e.classList.contains('openDrawer')) {
-        e.classList.remove('closedDrawer');
-        e.classList.add('openDrawer');
+    rootEl.querySelectorAll(SELECTORS.ST_DRAWER_CLOSED).forEach(e => {
+      if (!e.classList.contains(SELECTORS.ST_DRAWER_OPEN.substring(1))) {
+        e.classList.remove(SELECTORS.ST_DRAWER_CLOSED.substring(1));
+        e.classList.add(SELECTORS.ST_DRAWER_OPEN.substring(1));
         changed++;
       }
     });
@@ -73,17 +74,17 @@ export function moveBgDivs(ids = ['bg_custom', 'bg1']) {
  */
 export function moveToMovingDivs(ids = ['expression-plus-wrapper']) {
   if (!document?.body) return [];
-  let movingDivs = document.getElementById('movingDivs');
+  let movingDivs = document.querySelector(SELECTORS.ST_MOVING_DIVS);
   if (!movingDivs) {
     movingDivs = document.createElement('div');
-    movingDivs.id = 'movingDivs';
+    movingDivs.id = SELECTORS.ST_MOVING_DIVS.split(',')[0].trim().substring(1);
     document.body.appendChild(movingDivs);
   }
 
   const found = ids.map(id => document.getElementById(id)).filter(Boolean);
   found.forEach(eln => {
     if (eln.parentElement !== movingDivs) {
-      console.log(`[PTMT] Moving ${eln.id} to #movingDivs`);
+      console.log(`[PTMT] Moving ${eln.id} to ${SELECTORS.ST_MOVING_DIVS}`);
       movingDivs.appendChild(eln);
     }
   });
@@ -140,9 +141,9 @@ export function initDrawerObserver() {
     for (const mutation of mutationsList) {
       if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
         const target = mutation.target;
-        if (target.nodeType === 1 && target.classList.contains('closedDrawer')) {
-          target.classList.remove('closedDrawer');
-          target.classList.add('openDrawer');
+        if (target.nodeType === 1 && target.classList.contains(SELECTORS.ST_DRAWER_CLOSED.substring(1))) {
+          target.classList.remove(SELECTORS.ST_DRAWER_CLOSED.substring(1));
+          target.classList.add(SELECTORS.ST_DRAWER_OPEN.substring(1));
         }
       }
     }

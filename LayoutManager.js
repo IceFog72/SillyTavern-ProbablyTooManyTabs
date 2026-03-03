@@ -1,9 +1,9 @@
-// LayoutManager.js
-
 import { settings } from './settings.js';
 import { el, debounce, getPanelBySourceId, createIconElement } from './utils.js';
 import { showFontAwesomePicker } from '../../../utils.js';
 import { getTabIdentifier } from './pending-tabs.js';
+import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
+
 
 export class LayoutManager {
     constructor(appApi, settings) {
@@ -16,13 +16,15 @@ export class LayoutManager {
             settings.update({ panelMappings: updatedMappings });
         }, 400);
         this._layoutChangeHandler = null;
-        this.indicator = el('div', { className: 'drop-indicator' });
+        this.indicator = el('div', { className: SELECTORS.DROP_INDICATOR_CLASS.substring(1) });
+
 
         this._openSettingsHandler = (e) => {
             const { sourceId, tabElement, tabRow } = e.detail;
             this.openTabSettingsDialog(sourceId, tabElement, tabRow, false);
         };
-        window.addEventListener('ptmt:openTabSettings', this._openSettingsHandler);
+        window.addEventListener(EVENTS.OPEN_TAB_SETTINGS, this._openSettingsHandler);
+
     }
 
     async pickIcon(btn, sourceId, tabElement) {
@@ -53,13 +55,15 @@ export class LayoutManager {
             this.debouncedSettingsUpdate(mappings);
         }
         if (tabElement) {
-            let iconEl = tabElement.querySelector('.ptmt-tab-icon');
+            let iconEl = tabElement.querySelector(SELECTORS.TAB_ICON);
+
             if (iconName) {
                 if (!iconEl) {
                     iconEl = createIconElement(iconName);
                     if (iconEl) tabElement.prepend(iconEl);
                 } else {
-                    iconEl.className = 'ptmt-tab-icon';
+                    iconEl.className = SELECTORS.TAB_ICON.substring(1);
+
                     if (iconName.startsWith('fa-')) {
                         iconEl.classList.add('fa-solid', iconName);
                         iconEl.textContent = '';
@@ -74,9 +78,10 @@ export class LayoutManager {
 
         // Also update any icon picker buttons in the editor UI for this sourceId
         if (this.rootElement) {
-            const editorBtns = this.rootElement.querySelectorAll(`.ptmt-editor-tab[data-source-id="${sourceId}"] .ptmt-icon-picker-btn`);
+            const editorBtns = this.rootElement.querySelectorAll(`${SELECTORS.EDITOR_TAB}[data-source-id="${sourceId}"] ${SELECTORS.ICON_PICKER_BTN}`);
             editorBtns.forEach(btn => this.updateIconBtn(btn, iconName));
         }
+
     }
 
     createSettingsPanel() {
@@ -231,21 +236,23 @@ export class LayoutManager {
 
         // Avoid duplicate event listeners - remove old one if exists
         if (this._layoutChangeHandler) {
-            window.removeEventListener('ptmt:layoutChanged', this._layoutChangeHandler);
+            window.removeEventListener(EVENTS.LAYOUT_CHANGED, this._layoutChangeHandler);
         }
         this._layoutChangeHandler = () => this.renderUnifiedEditor();
-        window.addEventListener('ptmt:layoutChanged', this._layoutChangeHandler);
+        window.addEventListener(EVENTS.LAYOUT_CHANGED, this._layoutChangeHandler);
+
         return panel;
     }
 
     renderUnifiedEditor() {
-        let editorRoot = this.rootElement.querySelector('#ptmt-unified-editor');
+        let editorRoot = this.rootElement.querySelector(SELECTORS.UNIFIED_EDITOR);
         if (editorRoot) {
             editorRoot.innerHTML = '';
         } else {
-            editorRoot = el('div', { id: 'ptmt-unified-editor' });
+            editorRoot = el('div', { id: SELECTORS.UNIFIED_EDITOR.substring(1) });
             this.rootElement.appendChild(editorRoot);
         }
+
 
         const refs = this.appApi._refs();
         const columns = [
@@ -313,7 +320,7 @@ export class LayoutManager {
         const color = mapping.color || null;
 
         const container = el('div', {
-            className: 'ptmt-editor-tab',
+            className: SELECTORS.EDITOR_TAB.substring(1),
             draggable: 'true',
             'data-is-hidden-item': 'true',
             'data-source-id': sourceId,
@@ -324,11 +331,12 @@ export class LayoutManager {
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to restore' }, '☰');
         const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: color } : {} });
         const iconSpan = createIconElement(icon);
-        const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
+        const titleSpan = el('span', { className: SELECTORS.TAB_LABEL.substring(1) }, title);
         const settingsBtn = el('button', {
-            className: 'ptmt-tab-config-btn',
+            className: SELECTORS.TAB_CONFIG_BTN.substring(1),
             title: 'Tab Settings (rename, color, etc.)',
         }, '⚙');
+
 
         settingsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -360,14 +368,16 @@ export class LayoutManager {
 
         container.appendChild(legend);
 
-        const tree = this.renderTreeElement(element.querySelector('.ptmt-pane, .ptmt-split'));
+        const tree = this.renderTreeElement(element.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`));
+
         if (tree) container.appendChild(tree);
 
         const pendingContainer = el('div', { className: 'ptmt-editor-pending' });
         const pendingTitle = el('div', { className: 'ptmt-editor-title', style: { paddingTop: '8px' } }, el('span', {}, 'Pending Tabs'));
         pendingContainer.appendChild(pendingTitle);
 
-        const pendingTree = this.renderPendingTreeElement(element.querySelector('.ptmt-pane, .ptmt-split'), name);
+        const pendingTree = this.renderPendingTreeElement(element.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`), name);
+
         if (pendingTree) pendingContainer.appendChild(pendingTree);
 
         container.appendChild(pendingContainer);
@@ -377,16 +387,17 @@ export class LayoutManager {
     }
 
     renderTreeElement(element) {
-        if (!element || element.classList.contains('ptmt-resizer-vertical')) return null;
+        if (!element || element.classList.contains(SELECTORS.RESIZER_V.substring(1))) return null;
 
-        if (element.classList.contains('ptmt-split')) {
+        if (element.classList.contains(SELECTORS.SPLIT.substring(1))) {
             return this.renderSplit(element);
         }
-        if (element.classList.contains('ptmt-pane')) {
+        if (element.classList.contains(SELECTORS.PANE.substring(1))) {
             return this.renderPane(element);
         }
         return null;
     }
+
 
 
     renderSplit(element) {
@@ -448,9 +459,10 @@ export class LayoutManager {
         const titleDiv = el('div', { className: 'ptmt-editor-title' });
         const titleSpan = el('span', {}, 'Pane');
         const settingsBtn = el('button', {
-            className: 'ptmt-pane-config-btn',
+            className: SELECTORS.PANE_CONFIG_BTN.substring(1),
             title: 'Configure this pane (size, flow, etc.)',
         }, '⚙');
+
 
         settingsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
@@ -464,7 +476,8 @@ export class LayoutManager {
         const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container' });
         // MOVED listeners to parent container
 
-        const tabs = Array.from(element.querySelectorAll('.ptmt-tab'));
+        const tabs = Array.from(element.querySelectorAll(SELECTORS.TAB));
+
         tabs.forEach(tab => {
             tabsContainer.appendChild(this.renderTab(tab, element));
         });
@@ -487,7 +500,7 @@ export class LayoutManager {
         const color = mapping.color || null;
 
         const container = el('div', {
-            className: 'ptmt-editor-tab',
+            className: SELECTORS.EDITOR_TAB.substring(1),
             draggable: 'true',
             'data-pid': pid,
             'data-source-id': sourceId,
@@ -499,10 +512,11 @@ export class LayoutManager {
         const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder' }, '☰');
 
         const iconBtn = el('button', {
-            className: 'ptmt-icon-picker-btn',
+            className: SELECTORS.ICON_PICKER_BTN.substring(1),
             type: 'button',
             title: 'Choose icon'
         });
+
         const currentIcon = mapping.icon || '';
         if (currentIcon.startsWith('fa-')) {
             iconBtn.innerHTML = `<i class="fa-solid ${currentIcon}"></i>`;
@@ -798,10 +812,11 @@ export class LayoutManager {
     handleLiveToLiveDrop(targetContainer, newIndex) {
         const info = this.draggedTabInfo;
         const sourcePanel = this.appApi.getPanelById(info.pid);
-        const targetColumnEl = targetContainer.closest('.ptmt-editor-column');
+        const targetColumnEl = targetContainer.closest(SELECTORS.EDITOR_TAB) || targetContainer.closest('.ptmt-editor-column'); // Fallback if needed
         const targetPaneEl = targetContainer.closest('.ptmt-editor-pane');
         const targetPaneId = targetPaneEl?.dataset?.paneId;
-        const targetPane = targetPaneId ? document.querySelector(`.ptmt-pane[data-pane-id="${targetPaneId}"]`) : null;
+        const targetPane = targetPaneId ? document.querySelector(`${SELECTORS.PANE}[data-pane-id="${targetPaneId}"]`) : null;
+
 
         if (sourcePanel && targetPane) {
             // PROTECTION: Don't allow dropping settings tab into hidden columns
@@ -825,7 +840,8 @@ export class LayoutManager {
 
             // Re-sync icon mode and layout
             this.appApi.checkPaneForIconMode(targetPane);
-            window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
+            window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
+
 
         } else {
             console.warn("[PTMT] Could not execute live tab move: source panel or target pane not found.", { sourcePanel, targetPane });
@@ -836,7 +852,8 @@ export class LayoutManager {
         const info = this.draggedTabInfo;
         const targetPaneEl = targetContainer.closest('.ptmt-editor-pane');
         const targetPaneId = targetPaneEl?.dataset?.paneId;
-        const targetPane = targetPaneId ? document.querySelector(`.ptmt-pane[data-pane-id="${targetPaneId}"]`) : null;
+        const targetPane = targetPaneId ? document.querySelector(`${SELECTORS.PANE}[data-pane-id="${targetPaneId}"]`) : null;
+
         const sourceId = info.sourceId;
 
         if (!targetPane || !sourceId) return;
@@ -874,7 +891,8 @@ export class LayoutManager {
         const targetColumnName = targetContainer.dataset.columnName || targetContainer.closest('.ptmt-editor-column')?.dataset.columnName;
         const targetPaneEl = targetContainer.closest('.ptmt-editor-pane');
         const targetPaneId = targetPaneEl?.dataset?.paneId || targetContainer.dataset.paneId;
-        const targetPane = targetPaneId ? document.querySelector(`.ptmt-pane[data-pane-id="${targetPaneId}"]`) : null;
+        const targetPane = targetPaneId ? document.querySelector(`${SELECTORS.PANE}[data-pane-id="${targetPaneId}"]`) : null;
+
         const { searchId, searchClass, sourceId } = info;
 
         if (!targetPane) return;
@@ -1063,10 +1081,11 @@ export class LayoutManager {
             const panel = this.appApi.getPanelById(pid);
             const content = panel?.querySelector('.ptmt-panel-content > *:not(script)');
             if (content) {
-                let stagingArea = document.getElementById('ptmt-staging-area');
+                let stagingArea = document.querySelector(SELECTORS.STAGING_AREA);
                 if (!stagingArea) {
                     stagingArea = document.createElement('div');
-                    stagingArea.id = 'ptmt-staging-area';
+                    stagingArea.id = SELECTORS.STAGING_AREA.substring(1);
+
                     stagingArea.style.display = 'none';
                     document.body.appendChild(stagingArea);
                 }
@@ -1137,6 +1156,7 @@ export class LayoutManager {
         if (!elUnder) return;
 
         const targetPane = elUnder.closest('.ptmt-editor-pane') || elUnder.closest('.ptmt-editor-tabs-container');
+
         if (targetPane) {
             // Simulate dragover logic
             const fakeEvent = {
@@ -1156,7 +1176,8 @@ export class LayoutManager {
         if (this.touchDragGhost) {
             if (e.cancelable) e.preventDefault();
 
-            const indicator = this.rootElement.querySelector('.drop-indicator');
+            const indicator = this.rootElement.querySelector(SELECTORS.DROP_INDICATOR_CLASS);
+
             if (indicator) {
                 const fakeEvent = {
                     preventDefault: () => { },
@@ -1169,7 +1190,8 @@ export class LayoutManager {
             this.touchDragGhost.remove();
             this.touchDragGhost = null;
             this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-            this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+            this.rootElement.querySelectorAll(SELECTORS.DROP_INDICATOR_CLASS).forEach(i => i.remove());
+
         }
     }
 
@@ -1181,7 +1203,8 @@ export class LayoutManager {
         }
         if (this.rootElement) {
             this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-            this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+            this.rootElement.querySelectorAll(SELECTORS.DROP_INDICATOR_CLASS).forEach(i => i.remove());
+
         }
     }
 
@@ -1330,30 +1353,34 @@ export class LayoutManager {
                 this.debouncedSettingsUpdate(updatedMappings);
 
                 // Update UI immediately for ALL matching elements
-                const liveTabs = document.querySelectorAll(`.ptmt-tab[data-for]`);
+                const liveTabs = document.querySelectorAll(SELECTORS.TAB);
+
                 liveTabs.forEach(liveTab => {
                     const pid = liveTab.dataset.for;
                     const panel = this.appApi.getPanelById(pid);
                     if (panel?.dataset.sourceId === sourceId) {
-                        const lbl = liveTab.querySelector('.ptmt-tab-label');
+                        const lbl = liveTab.querySelector(SELECTORS.TAB_LABEL);
                         if (lbl) lbl.textContent = newTitle || sourceId;
                         const bg = liveTab.querySelector('.ptmt-tab-bg');
                         if (bg) bg.style.backgroundColor = newColor;
 
-                        const iconEl = liveTab.querySelector('.ptmt-tab-icon');
+                        const iconEl = liveTab.querySelector(SELECTORS.TAB_ICON);
+
                         // Refresh icon as well if needed? For now we only have name/color in this dialog 
                         // but icon button updates mapping live.
                     }
                 });
 
                 // Update any editor rows as well
-                const editorRows = document.querySelectorAll(`.ptmt-editor-tab[data-source-id="${sourceId}"]`);
+                const editorRows = document.querySelectorAll(SELECTORS.EDITOR_TAB);
                 editorRows.forEach(row => {
-                    const lbl = row.querySelector('.ptmt-tab-label');
+                    if (row.dataset.sourceId !== sourceId) return;
+                    const lbl = row.querySelector(SELECTORS.TAB_LABEL);
                     if (lbl) lbl.textContent = newTitle || sourceId;
                     const bg = row.querySelector('.ptmt-tab-bg');
                     if (bg) bg.style.backgroundColor = newColor;
                 });
+
             }
             dialog.remove();
         });
@@ -1370,13 +1397,14 @@ export class LayoutManager {
     cleanup() {
         // Remove event listener to prevent memory leaks
         if (this._layoutChangeHandler) {
-            window.removeEventListener('ptmt:layoutChanged', this._layoutChangeHandler);
+            window.removeEventListener(EVENTS.LAYOUT_CHANGED, this._layoutChangeHandler);
             this._layoutChangeHandler = null;
         }
         if (this._openSettingsHandler) {
-            window.removeEventListener('ptmt:openTabSettings', this._openSettingsHandler);
+            window.removeEventListener(EVENTS.OPEN_TAB_SETTINGS, this._openSettingsHandler);
             this._openSettingsHandler = null;
         }
+
         // Clean up touch drag ghost if it exists
         if (this.touchDragGhost) {
             this.touchDragGhost.remove();
