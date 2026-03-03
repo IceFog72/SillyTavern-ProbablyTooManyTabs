@@ -1,7 +1,7 @@
 // resizer.js
-import { $$, getElementDepth, setFlexBasisPercent, throttle, getRefs } from './utils.js'; // Changed import
-import { recalculateColumnSizes, normalizeFlexBasis } from './layout.js';
-import { readPaneViewSettings, defaultViewSettings, applyPaneOrientation } from './pane.js';
+import { $$, getElementDepth, setFlexBasisPercent, throttle, debounce, getRefs } from './utils.js'; // Changed import
+import { recalculateColumnSizes, normalizeFlexBasis, getBasis } from './layout.js';
+import { readPaneViewSettings, defaultViewSettings, applyPaneOrientation, setPaneCollapsedView } from './pane.js';
 import { settings } from './settings.js';
 
 
@@ -621,13 +621,42 @@ export function recalculateSplitSizes(split, actor = null) {
     }
 }
 
-export function validateAndCorrectAllMinSizes() {
+export function validateAndCorrectAllMinSizes(isResize = false) {
     let needsRecalculation = false;
     const allPanes = Array.from(document.querySelectorAll('.ptmt-pane:not(.view-collapsed)'));
 
     const refs = getRefs();
     if (refs && refs.mainBody) {
         const columns = [refs.leftBody, refs.centerBody, refs.rightBody].filter(c => c && c.style.display !== 'none' && c.dataset.isColumnCollapsed !== 'true');
+
+        // NEW: Auto-collapse columns if they are smaller than their minimum width during a resize
+        if (isResize && columns.length > 1) {
+            const parentRect = refs.mainBody.getBoundingClientRect();
+            const availableWidth = parentRect.width;
+
+            // Check columns from right to left (excluding center)
+            const sideColumns = [];
+            if (refs.rightBody && refs.rightBody.style.display !== 'none' && refs.rightBody.dataset.isColumnCollapsed !== 'true') sideColumns.push(refs.rightBody);
+            if (refs.leftBody && refs.leftBody.style.display !== 'none' && refs.leftBody.dataset.isColumnCollapsed !== 'true') sideColumns.push(refs.leftBody);
+
+            for (const col of sideColumns) {
+                const colRect = col.getBoundingClientRect();
+                const content = col.querySelector('.ptmt-pane, .ptmt-split');
+                const minWidth = content ? calculateElementMinWidth(content) : 250;
+
+                // If the column is smaller than its minimum allowed width, collapse it
+                if (colRect.width < minWidth - 5) { // 5px tolerance
+                    console.log(`[PTMT] Auto-collapsing ${col.id} due to insufficient space (Width: ${colRect.width.toFixed(1)}px < Min: ${minWidth}px)`);
+                    const panes = Array.from(col.querySelectorAll('.ptmt-pane:not(.view-collapsed)'));
+                    panes.forEach(pane => setPaneCollapsedView(pane, true));
+                    needsRecalculation = true;
+                    // Re-filter columns for normalization below
+                    const index = columns.indexOf(col);
+                    if (index !== -1) columns.splice(index, 1);
+                }
+            }
+        }
+
         if (columns.length > 0) {
             normalizeFlexBasis(columns);
         }
@@ -667,4 +696,42 @@ export function validateAndCorrectAllMinSizes() {
         recalculateAllSplitsRecursively();
         recalculateColumnSizes();
     }
+}
+
+/**
+ * Initializes a MutationObserver on the main container to detect size changes
+ * and trigger layout recalculations. This replaces the window 'resize' listener
+ * for better efficiency and to detect internal UI changes.
+ */
+export function initGlobalResizeObserver() {
+    const refs = getRefs();
+    if (!refs || !refs.mainBody) {
+        console.warn('[PTMT] ResizeObserver failed: mainBody not found.');
+        return;
+    }
+
+    const debouncedResize = debounce(() => {
+        console.log('[PTMT] ResizeObserver triggered: Recalculating layout.');
+        // Clear orientation cache so panes can adapt to new space
+        document.querySelectorAll('.ptmt-pane').forEach(pane => delete pane.dataset.appliedOrientation);
+
+        recalculateAllSplitsRecursively();
+        validateAndCorrectAllMinSizes(true);
+
+        // Notify others that layout has changed due to container resize
+        window.dispatchEvent(new CustomEvent('ptmt:layoutChanged', {
+            detail: { reason: 'containerResize' }
+        }));
+    }, 150);
+
+    const observer = new ResizeObserver((entries) => {
+        for (const entry of entries) {
+            if (entry.target === refs.mainBody) {
+                debouncedResize();
+            }
+        }
+    });
+
+    observer.observe(refs.mainBody);
+    console.log('[PTMT] Global ResizeObserver initialized on mainBody.');
 }

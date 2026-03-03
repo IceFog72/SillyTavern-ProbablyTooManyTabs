@@ -17,7 +17,7 @@ import {
   moveTabIntoPaneAtIndex, destroyTabById,
   setActivePanelInPane, setTabCollapsed, getActivePane,
 } from './tabs.js';
-import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively, validateAndCorrectAllMinSizes, checkPaneForIconMode } from './resizer.js';
+import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively, validateAndCorrectAllMinSizes, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
@@ -216,12 +216,7 @@ import { initColorizer } from './dialogue-colorizer.js';
       window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
     });
 
-    window.addEventListener('resize', debounce(() => {
-      document.querySelectorAll('.ptmt-pane').forEach(pane => delete pane.dataset.appliedOrientation);
-      recalculateAllSplitsRecursively();
-      validateAndCorrectAllMinSizes();
-      window.dispatchEvent(new CustomEvent('ptmt:layoutChanged'));
-    }, 150));
+    initGlobalResizeObserver();
 
     moveToMovingDivs();
     const isMobile = settings.get('isMobile');
