@@ -1261,9 +1261,9 @@ export class LayoutManager {
         const dialog = el('div', { id: 'ptmt-view-settings-dialog', className: 'ptmt-view-settings-dialog' },
             el('div', null,
                 el('h3', null, 'Tab Settings'),
-                el('div', { className: 'ptmt-vs-row', style: { opacity: '0.6', fontSize: '0.9em', marginBottom: '10px' } },
+                el('div', { className: 'ptmt-vs-row ptmt-vs-id-row' },
                     el('label', null, 'Internal ID: '),
-                    el('span', { className: 'ptmt-vs-id-value', style: { fontFamily: 'monospace' } }, sourceId)
+                    el('span', { className: 'ptmt-vs-id-value' }, sourceId)
                 ),
                 el('div', { className: 'ptmt-vs-row' },
                     el('label', { for: 'ptmt-ts-title' }, 'Tab Title: '),

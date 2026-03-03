@@ -484,7 +484,6 @@ select option {
   min-width: 38px;
   flex-shrink: 0;
   position: relative;
-  transition: all var(--ptmt-transition);
   line-height: 1;
   text-overflow: ellipsis;
   color: var(--ptmt-tab-default-color);
@@ -497,7 +496,6 @@ select option {
   inset: 0;
   pointer-events: none;
   opacity: 0.3;
-  transition: background-color 0.3s ease;
 }
 
 .ptmt-tab:hover:not(.active) {
@@ -597,6 +595,7 @@ select option {
   height: 2px;
   background: var(--ptmt-adaptive-quote);
   box-shadow: 0 0 12px 2px var(--ptmt-adaptive-quote);
+  border-radius: 2px;
 }
 
 .ptmt-tab:hover::after {
@@ -608,6 +607,7 @@ select option {
   height: 2px;
   background: var(--ptmt-adaptive-shadow);
   box-shadow: 0 0 12px 2px var(--ptmt-adaptive-shadow);
+  border-radius: 2px;
 }
 
 .ptmt-tab.active:hover::after {
@@ -681,7 +681,6 @@ select option {
   border: none;
   border-bottom: 1px solid var(--ptmt-tab-border-color);
   flex-direction: column;
-  transition: all var(--ptmt-transition);
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab:hover:not(.active) {
@@ -725,6 +724,7 @@ select option {
   left: auto;
   background: var(--ptmt-adaptive-quote);
   box-shadow: 0 0 12px 2px var(--ptmt-adaptive-quote);
+  border-radius: 2px;
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab.active:hover::after {
@@ -825,106 +825,6 @@ select option {
    5. UI COMPONENTS (SETTINGS, EDITOR, STATUS BAR)
    ========================================================================== */
 
-/* Settings Dialog */
-.ptmt-view-settings-dialog {
-  color: var(--ST-Main-Text);
-  z-index: 100000;
-  min-width: 300px;
-  position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  background: var(--ST-UI-Background);
-  padding: 20px;
-  border-radius: 0.5rem;
-  border: 1px solid var(--ST-UI-Border);
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-  font-family: var(--SmartThemeFontFamily, sans-serif);
-}
-
-.ptmt-view-settings-dialog h3 {
-  margin-top: 0;
-  margin-bottom: 20px;
-  color: var(--ptmt-adaptive-quote);
-}
-
-.ptmt-view-settings-dialog .ptmt-vs-row {
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.ptmt-view-settings-dialog .ptmt-vs-footer {
-  text-align: right;
-  margin-top: 20px;
-}
-
-.ptmt-vs-button {
-  margin-left: 10px;
-  padding: 6px 18px;
-  border-radius: 0.5rem !important;
-  border: 1px solid var(--ST-UI-Border);
-  background: var(--ST-Chat-Background);
-  color: var(--ST-Main-Text);
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  font-weight: 500;
-  letter-spacing: 0.02em;
-}
-
-.ptmt-vs-button:hover {
-  background: color-mix(in srgb, var(--ST-Chat-Background), var(--ST-Main-Text) 10%);
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-}
-
-.ptmt-vs-button:active {
-  transform: translateY(0);
-}
-
-.ptmt-vs-button.primary {
-  background: linear-gradient(135deg, var(--ptmt-adaptive-quote) 0%, color-mix(in srgb, var(--ptmt-adaptive-quote), black 20%) 100%);
-  color: #fff;
-  /* Force white for depth on primary */
-  border: none;
-  box-shadow: 0 4px 12px color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 60%);
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
-}
-
-.ptmt-vs-button.primary:hover {
-  background: linear-gradient(135deg, color-mix(in srgb, var(--ptmt-adaptive-quote), white 10%) 0%, color-mix(in srgb, var(--ptmt-adaptive-quote), black 10%) 100%);
-  box-shadow: 0 6px 16px color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 40%);
-}
-
-.ptmt-view-settings-dialog input.text_edit,
-.ptmt-view-settings-dialog select {
-  background: color-mix(in srgb, var(--ST-UI-Background), transparent 60%);
-  border: 1px solid var(--ST-UI-Border);
-  color: var(--ST-Main-Text);
-  border-radius: 0.5rem !important;
-  padding: 4px 8px;
-  outline: none;
-  transition: all 0.2s ease;
-}
-
-.ptmt-view-settings-dialog input.text_edit:focus,
-.ptmt-view-settings-dialog select:focus {
-  border-color: var(--ST-Quote-Text);
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ST-Quote-Text), transparent 80%);
-}
-
-.ptmt-view-settings-dialog input[type="number"] {
-  width: 80px;
-}
-
-.ptmt-view-settings-dialog label {
-  display: inline-block;
-  min-width: 160px;
-  font-size: 0.95em;
-  opacity: 0.9;
-}
 
 /* Layout Editor Components */
 .ptmt-settings-panel {
@@ -1008,7 +908,6 @@ select option {
   padding: 5px 15px !important;
   border-radius: 0.5rem !important;
   color: var(--ST-Main-Text);
-  transition: all 0.2s ease-in-out;
 }
 
 .ptmt-reset-button {
@@ -1052,31 +951,28 @@ select option {
 
 .ptmt-editor-title select,
 .ptmt-editor-title button {
-  background: var(--ST-Quote-Text) !important;
+  background: color-mix(in srgb, var(--ST-UI-Background), white 10%) !important;
   border: 1px solid var(--ST-UI-Border) !important;
   color: var(--ST-Main-Text) !important;
-  border-radius: 0.5rem !important;
-  padding: 2px 5px;
-  font-size: 12px;
+  border-radius: 4px !important;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
 }
 
 .ptmt-editor-title button:hover,
-.ptmt-tab-config-btn:hover,
-.ptmt-pane-config-btn:hover {
-  background: color-mix(in srgb, var(--ST-Quote-Text), white 20%);
-  border-color: var(--ST-Italics-Text);
-  transform: scale(1.1);
-  cursor: pointer;
+.ptmt-editor-title select:hover {
+  background: color-mix(in srgb, var(--ST-UI-Background), white 20%) !important;
+  border-color: var(--ST-Quote-Text) !important;
 }
 
 /* Glassmorphism Configuration Buttons */
 .ptmt-pane-config-btn,
 .ptmt-tab-config-btn {
-  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 40%) !important;
-  backdrop-filter: blur(4px);
-  border: 1px solid color-mix(in srgb, var(--ST-UI-Border), white 10%) !important;
+  background: color-mix(in srgb, var(--ST-UI-Background), white 10%) !important;
+  border: 1px solid var(--ST-UI-Border) !important;
   color: var(--ST-Main-Text) !important;
-  border-radius: 0.5rem !important;
+  border-radius: 4px !important;
   padding: 2px;
   font-size: 14px;
   display: flex !important;
@@ -1085,7 +981,6 @@ select option {
   margin-right: 4px;
   height: 24px;
   width: 24px;
-  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
@@ -1125,7 +1020,6 @@ select option {
   user-select: none;
   position: relative;
   overflow: hidden;
-  transition: all 0.2s ease;
 }
 
 .ptmt-editor-tab:hover {
@@ -1224,7 +1118,6 @@ select option {
 
 .csb-segment {
   height: 100%;
-  transition: width 0.3s ease;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1330,7 +1223,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
   pointer-events: none;
   z-index: 9998;
   box-shadow: 0 0 10px var(--ptmt-adaptive-quote);
-  transition: transform 0.15s ease, left 0.15s ease, top 0.15s ease, width 0.15s ease, height 0.15s ease;
 }
 
 @supports (-webkit-app-region: inherit) {
@@ -1417,7 +1309,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
   cursor: pointer;
   color: var(--ST-Main-Text);
   font-size: 0.95em;
-  transition: all 0.1s ease;
   gap: 12px;
 }
 
@@ -1454,4 +1345,110 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .popup[open]::backdrop {
   backdrop-filter: none !important;
+}
+
+/* Settings Dialog */
+.ptmt-view-settings-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  /* Forced Opaque Background - strips alpha from theme variable */
+  background: var(--ST-UI-Background);
+  background: rgb(from var(--ST-UI-Background) r g b / 1);
+  border: 1px solid var(--ST-UI-Border);
+  border-radius: 0.5rem;
+  padding: 24px;
+  z-index: 20000;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+  min-width: 320px;
+  max-width: 90vw;
+  color: var(--ST-Main-Text);
+  font-family: var(--SmartThemeFontFamily, sans-serif);
+}
+
+.ptmt-view-settings-dialog h3 {
+  margin-top: 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--ST-UI-Border);
+  padding-bottom: 10px;
+  color: var(--ptmt-adaptive-quote);
+}
+
+.ptmt-vs-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 15px;
+}
+
+.ptmt-vs-row label {
+  flex: 1;
+  font-weight: 500;
+  font-size: 0.95em;
+}
+
+.ptmt-vs-row input,
+.ptmt-vs-row select {
+  flex: 1.5;
+  background: rgba(0, 0, 0, 0.2);
+  border: 1px solid var(--ST-UI-Border);
+  color: var(--ST-Main-Text);
+  border-radius: 6px;
+  padding: 5px 10px;
+}
+
+.ptmt-vs-row input:focus,
+.ptmt-vs-row select:focus {
+  border-color: var(--ST-Quote-Text);
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--ST-Quote-Text), transparent 80%);
+}
+
+.ptmt-vs-footer {
+  margin-top: 25px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.ptmt-vs-button {
+  padding: 8px 20px;
+  border: 1px solid var(--ST-UI-Border);
+  background: var(--ST-Chat-Background);
+  color: var(--ST-Main-Text);
+  border-radius: 0.4rem;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.ptmt-vs-button:hover {
+  background: color-mix(in srgb, var(--ST-Chat-Background), var(--ST-Main-Text) 10%);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.ptmt-vs-button:active {
+  transform: translateY(0);
+}
+
+.ptmt-vs-button.primary {
+  background: linear-gradient(135deg, var(--ptmt-adaptive-quote) 0%, color-mix(in srgb, var(--ptmt-adaptive-quote), black 20%) 100%) !important;
+  color: #fff !important;
+  border: none;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 60%);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.ptmt-vs-button.primary:hover {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--ptmt-adaptive-quote), white 10%) 0%, color-mix(in srgb, var(--ptmt-adaptive-quote), black 10%) 100%) !important;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 40%);
+}
+
+.ptmt-vs-id-value {
+  color: var(--ST-Italics-Text);
+  font-family: var(--SmartThemeMonoFontFamily, monospace);
+  font-size: 0.9em;
+  opacity: 0.8;
 }
