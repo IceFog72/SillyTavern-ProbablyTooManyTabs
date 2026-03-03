@@ -1,5 +1,6 @@
 // pane.js
 import { el, getSplitOrientation, getPanelById, getTabById, getRefs } from './utils.js'; // Changed import
+import { showContextMenu } from './context-menu.js';
 import { settings } from './settings.js';
 import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
@@ -130,6 +131,17 @@ export function createPane(initialSettings = {}, options = {}) {
       e.preventDefault();
     }
   }, { passive: false });
+
+  tabStrip.addEventListener('contextmenu', (e) => {
+    if (e.target !== tabStrip) return;
+    showContextMenu(e, [
+      {
+        label: 'Edit Pane',
+        icon: '⚙',
+        onClick: () => openViewSettingsDialog(pane)
+      }
+    ]);
+  });
 
   tabStripOverflowObserver.observe(tabStrip);
 
