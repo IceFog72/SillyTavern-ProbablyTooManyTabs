@@ -94,10 +94,10 @@ import { initColorizer } from './dialogue-colorizer.js';
           alert(`No saved ${isMobile ? 'mobile' : 'desktop'} layout found.`);
         }
       },
-      resetLayout: () => {
+      resetLayout: async () => {
         if (confirm("Are you sure you want to ALL SETTINGS to factory default? This will reload the page.")) {
           isPTMTResetting = true;
-          settings.reset(true);
+          await settings.reset(true);
           window.location.reload();
         }
       },
@@ -136,13 +136,13 @@ import { initColorizer } from './dialogue-colorizer.js';
         settings.update({ showIconsOnly: false });
         applyLayoutSnapshot(desktopLayout, api, settings);
       },
-      toggleMobileMode: () => {
+      toggleMobileMode: async () => {
         const currentSnapshot = generateLayoutSnapshot();
         const isMobile = settings.get('isMobile');
         const oldKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
 
         // Save current to old slot and toggle mode
-        settings.update({
+        await settings.update({
           [oldKey]: currentSnapshot,
           isMobile: !isMobile
         }, true); // Force sync save

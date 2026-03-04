@@ -298,11 +298,11 @@ export function createTabFromContent(content, options = {}, target = null) {
     stagingArea.appendChild(node);
   }
 
-  if (!node) {
-    return null;
-  }
+  // Allow proceeding even without a node so we can create placeholders.
+  // The element might be injected later by ST or extensions.
 
-  const effectiveSourceId = sourceId || node.id;
+  const effectiveSourceId = sourceId || (node ? node.id : null);
+  if (!effectiveSourceId) return null;
 
   let targetPane;
   const refs = getRefs();

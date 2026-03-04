@@ -1,6 +1,6 @@
 // pending-tabs.js
 import { getRefs } from './layout.js';
-import { createTabFromContent, destroyTabById } from './tabs.js';
+import { createTabFromContent, destroyTabById, openTab } from './tabs.js';
 import { settings } from './settings.js';
 import { getPanelBySourceId } from './utils.js';
 
@@ -96,8 +96,19 @@ function hydrateTab(tabInfo, foundElement) {
 
     const existingPanel = getPanelBySourceId(identifier);
     if (existingPanel) {
-        console.log(`[PTMT-Pending] Found new content for ${identifier}. Replacing existing tab.`);
-        destroyTabById(existingPanel.dataset.panelId);
+        const contentNode = existingPanel.querySelector('.ptmt-panel-content');
+        if (contentNode && contentNode.childElementCount === 0) {
+            console.log(`[PTMT-Pending] Found new content for ${identifier}. Injecting into existing empty tab.`);
+            contentNode.appendChild(foundElement);
+
+            // Optionally trigger the init logic if needed
+            // But since it's already an existing panel, just opening it is sufficient.
+            openTab(existingPanel.dataset.panelId);
+            return;
+        } else {
+            console.log(`[PTMT-Pending] Found new content for ${identifier}. Replacing existing populated tab.`);
+            destroyTabById(existingPanel.dataset.panelId);
+        }
     }
 
     console.log(`[PTMT-Pending] Hydrating tab: ${identifier}`);

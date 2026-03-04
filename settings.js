@@ -229,7 +229,7 @@ export class SettingsManager {
                         { searchId: "qr--popout", searchClass: "", paneId: "ptmt-default-center-pane" },
                         { searchId: "ctsi-drawerPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
                         { searchId: "gallery", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "galleryImageDraggable", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "", searchClass: "galleryImageDraggable", paneId: "ptmt-default-center-pane" },
                         { searchId: "objectiveExtensionPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
                         { searchId: "moonlit_echoes_popout", searchClass: "", paneId: "ptmt-default-center-pane" },
                         { searchId: "zoomed_avatar", searchClass: "", paneId: "ptmt-default-center-pane" }
@@ -382,7 +382,7 @@ export class SettingsManager {
         return SettingsManager.defaultSettings[key];
     }
 
-    update(newSettings, force = false) {
+    async update(newSettings, force = false) {
         const changedKeys = [];
         for (const key in newSettings) {
             if (SettingsManager.defaultSettings.hasOwnProperty(key)) {
@@ -391,7 +391,7 @@ export class SettingsManager {
             }
         }
         if (changedKeys.length > 0) {
-            this.save(force);
+            await this.save(force);
             const isLayoutSave = changedKeys.some(k => k === 'savedLayoutDesktop' || k === 'savedLayoutMobile');
             if (!isLayoutSave) {
                 window.dispatchEvent(new CustomEvent('ptmt:settingsChanged', { detail: { changed: changedKeys, allSettings: extension_settings.PTMT } }));
@@ -399,15 +399,15 @@ export class SettingsManager {
         }
     }
 
-    save(force = false) {
+    async save(force = false) {
         if (force) {
-            saveSettings();
+            await saveSettings();
         } else {
             saveSettingsDebounced();
         }
     }
 
-    reset(full = false) {
+    async reset(full = false) {
         if (full) {
             console.log('[PTMT Settings] 🧨 Performing full factory reset.');
             const defaultSettingsCopy = JSON.parse(JSON.stringify(SettingsManager.defaultSettings));
@@ -422,7 +422,7 @@ export class SettingsManager {
             // Clear mappings too to ensure icons/titles refresh
             if (extension_settings.PTMT.panelMappings) delete extension_settings.PTMT.panelMappings;
         }
-        this.save(true);
+        await this.save(true);
     }
 }
 

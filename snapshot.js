@@ -557,6 +557,32 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         });
     }
 
+    document.querySelectorAll('.ptmt-panel').forEach(panel => {
+        const content = panel.querySelector('.ptmt-panel-content');
+        if (content && content.childElementCount === 0) {
+            const sourceId = panel.dataset.sourceId;
+            if (sourceId) {
+                const isClass = sourceId.startsWith('class:');
+                const isId = sourceId.startsWith('id:');
+                const rawId = isClass || isId ? sourceId.split(':')[1] : sourceId;
+
+                const searchId = isClass ? '' : rawId;
+                const searchClass = isClass ? rawId : '';
+
+                const existing = allGhostTabs.find(t => t.searchId === searchId && t.searchClass === searchClass);
+                if (!existing) {
+                    allGhostTabs.push({
+                        sourceId,
+                        searchId,
+                        searchClass,
+                        paneId: panel.closest('.ptmt-pane')?.dataset.paneId,
+                        column: panel.closest('.ptmt-body-column')?.id.replace('ptmt-', '').replace('Body', '') || 'center'
+                    });
+                }
+            }
+        }
+    });
+
     initPendingTabsManager(allGhostTabs);
 
     requestAnimationFrame(() => {
