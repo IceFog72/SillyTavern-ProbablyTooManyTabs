@@ -445,7 +445,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     panel = createTabFromContent(t.sourceId, {
                         title: t.title || mapping.title,
                         icon: iconToUse,
-                        makeActive: false
+                        makeActive: false,
+                        color: mapping.color || t.color
                     }, pane);
 
                     if (panel) {
@@ -547,6 +548,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     createTabFromContent(id, {
                         title: mapping.title,
                         icon: mapping.icon,
+                        color: mapping.color,
                         makeActive: false
                     }, targetPane);
                     placedPanelIds.add(id);

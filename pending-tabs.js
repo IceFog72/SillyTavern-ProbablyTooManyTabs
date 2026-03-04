@@ -116,7 +116,8 @@ function hydrateTab(tabInfo, foundElement) {
         icon: tabInfo.icon || mapping.icon || 'fa-tab',
         makeActive: true, // Always auto-open per user request
         collapsed: false, // Ensure it's not collapsed
-        sourceId: identifier
+        sourceId: identifier,
+        color: mapping.color
     }, targetPane);
 
     // CRITICAL: Once hydrated, stop looking for this element to prevent performance leaks

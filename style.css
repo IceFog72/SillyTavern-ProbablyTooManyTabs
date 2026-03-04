@@ -767,7 +767,6 @@ select option {
 
 /* Icons-Only Mode Utilities */
 #ptmt-main.ptmt-global-icons-only .ptmt-tab .ptmt-tab-label,
-.ptmt-global-icons-only .ptmt-tab-label,
 .ptmt-pane.ptmt-pane-icons-only .ptmt-tab .ptmt-tab-label {
   display: none !important;
 }

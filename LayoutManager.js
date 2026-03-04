@@ -657,7 +657,7 @@ export class LayoutManager {
 
         settingsBtn.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.openTabSettingsDialog(identifier, null, container, true);
+            this.openTabSettingsDialog(sourceId, null, container, true);
         });
 
         container.append(bg, handle, ...(iconSpan ? [iconSpan] : []), titleSpan, settingsBtn);
@@ -867,7 +867,8 @@ export class LayoutManager {
             title: mapping.title,
             icon: mapping.icon,
             makeActive: info.isActive,
-            collapsed: info.isCollapsed
+            collapsed: info.isCollapsed,
+            color: mapping.color
         }, targetPane);
 
         if (panel) {
@@ -914,7 +915,8 @@ export class LayoutManager {
                 icon: mapping.icon,
                 makeActive: info.isActive,
                 collapsed: info.isCollapsed,
-                sourceId: sourceId
+                sourceId: sourceId,
+                color: mapping.color
             }, targetPane);
 
             if (panel) {
