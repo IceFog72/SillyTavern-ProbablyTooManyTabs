@@ -126,7 +126,9 @@ export class LayoutManager {
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
             createSettingCheckbox('Show Context Status Bar', 'showContextStatusBar'),
             createSettingCheckbox('Extension CSS Overrides', 'enableOverride1'),
-            createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
+            createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing'),
+            createSettingCheckbox('Disable Mobile CSS (≤800px tab overrides)', 'disableMobileCSS'),
+            createSettingCheckbox('Enable Mobile Viewport Fix (100dvh)', 'enableMobileViewportFix')
         );
 
         const isMobile = settings.get('isMobile');

@@ -21,6 +21,8 @@ export class SettingsManager {
         hideContentWhileResizing: false,
         showContextStatusBar: true,
         enableOverride1: false,
+        disableMobileCSS: false,
+        enableMobileViewportFix: true,
         enableDialogueColorizer: true,
         dialogueColorizerSource: 'avatar_vibrant',
         dialogueColorizerStaticColor: '#e18a24',

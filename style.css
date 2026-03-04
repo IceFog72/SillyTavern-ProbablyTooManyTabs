@@ -430,18 +430,18 @@ body,
 }
 
 /* Specific Content Height Overrides based on Grid Orientation */
-.ptmt-pane-grid.grid-vertical #gallery,
-.ptmt-pane-grid.grid-vertical #WorldInfo,
-.ptmt-pane-grid.grid-vertical #stqrd--drawer-v2,
-.ptmt-pane-grid.grid-vertical #sheld {
+.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-vertical #gallery,
+.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-vertical #WorldInfo,
+.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-vertical #stqrd--drawer-v2,
+.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-vertical #sheld {
   height: 100% !important;
   max-height: calc(100dvh - 1px) !important;
 }
 
-.ptmt-pane-grid.grid-horizontal #gallery,
-.ptmt-pane-grid.grid-horizontal #WorldInfo,
-.ptmt-pane-grid.grid-horizontal #stqrd--drawer-v2,
-.ptmt-pane-grid.grid-horizontal #sheld {
+.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-horizontal #gallery,
+.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-horizontal #WorldInfo,
+.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-horizontal #stqrd--drawer-v2,
+.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-horizontal #sheld {
   height: 100% !important;
   max-height: calc(100dvh - calc(var(--topBarBlockSize) - 1px)) !important;
 }
@@ -1257,6 +1257,15 @@ body.ptmt-is-resizing #rm_print_characters_block {
   .ptmt-tab-icon {
     font-size: 1.4em;
   }
+}
+
+/* When "Disable Mobile CSS" is toggled ON, cancel the ≤800px overrides */
+#ptmt-main.ptmt-disable-mobile-css .ptmt-tab {
+  padding: var(--ptmt-tab-padding, 4px 8px);
+}
+
+#ptmt-main.ptmt-disable-mobile-css .ptmt-tab-icon {
+  font-size: 1em;
 }
 
 .ptmt-icon-picker-btn {

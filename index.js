@@ -217,6 +217,8 @@ import { initColorizer } from './dialogue-colorizer.js';
       if (refs && refs.mainBody) {
         refs.mainBody.classList.toggle('ptmt-global-icons-only', !!showIconsOnly);
         refs.mainBody.classList.toggle('ptmt-mobile', !!isMobile);
+        refs.mainBody.classList.toggle('ptmt-disable-mobile-css', !!settings.get('disableMobileCSS'));
+        refs.mainBody.classList.toggle('ptmt-mobile-viewport-fix', !!settings.get('enableMobileViewportFix'));
       }
 
       applyOverrides();
@@ -260,6 +262,8 @@ import { initColorizer } from './dialogue-colorizer.js';
     if (refsStartup && refsStartup.mainBody) {
       refsStartup.mainBody.classList.toggle('ptmt-mobile', !!isMobile);
       refsStartup.mainBody.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
+      refsStartup.mainBody.classList.toggle('ptmt-disable-mobile-css', !!settings.get('disableMobileCSS'));
+      refsStartup.mainBody.classList.toggle('ptmt-mobile-viewport-fix', !!settings.get('enableMobileViewportFix'));
     }
 
     enableInteractions();
