@@ -50,8 +50,8 @@ export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = nul
         const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`);
         const minPx = content ? calculateElementMinWidth(content) : 250;
 
-        // Clamp minPercent to a reasonable range [0.001, 80] to avoid taking whole screen or div by 0
-        const minPercent = Math.min(80, (minPx / availableWidth) * 100);
+        // Clamp minPercent to a reasonable range [0.001, 76] to avoid taking whole screen or div by 0
+        const minPercent = Math.min(76, (minPx / availableWidth) * 100);
 
         let basis = getBasis(col);
         // Added 0.1% tolerance to prevent subpixel jitter creep
@@ -248,8 +248,8 @@ export function recalculateColumnSizes() {
                 // resizer.js uses 6px for non-disabled.
                 // But for collapsed view, splitters might be hidden? 
                 // If the split is vertical, splitters are visible.
-                const splitters = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
-                const splitterWidth = splitters.length * 4; // Approximate
+                const activeSplitters = Array.from(element.children).filter(c => c.tagName === 'SPLITTER' && !c.classList.contains('disabled'));
+                const splitterWidth = activeSplitters.length * 4; // Approximate
                 return totalWidth + splitterWidth;
             }
         }

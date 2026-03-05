@@ -26,7 +26,7 @@ const SNAPSHOT_VERSION = 15;
 
 const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },
-    split: { width: '150px', height: '80px' }
+    split: { width: '150px', height: '76px' }
 };
 
 export function generateLayoutSnapshot() {
