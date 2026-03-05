@@ -233,14 +233,24 @@ body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
 }
 
 @supports (-webkit-app-region: inherit) {
-    body.bubblechat .mes_block {
+
+    /* OPTIMIZED (ON): Ultra performance + Chrome block-style layout */
+    body.ptmt-optimize-visibility.bubblechat .mes_block {
         content-visibility: auto;
         contain-intrinsic-size: auto 500px;
         contain-intrinsic-block-size: auto 500px;
     }
+
+    /*
+       Note: We removed 'content-visibility: auto' from 'body.bubblechat .mes' for Chrome.
+       In Chrome, parent-level visibility causes jumping scrollbars in long chats.
+       OFF mode now provides perfect text-wrapping and smooth scrolling (but uses more CPU/GPU).
+    */
 }
 
 @-moz-document url-prefix() {
+
+    /* Firefox always gets efficient wrapping performance without jumping */
     body.bubblechat .mes {
         content-visibility: auto;
         contain-intrinsic-size: auto none;
@@ -253,8 +263,8 @@ body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
 /* ========================================= */
 
 .mes {
-    --avatar-base-height: 4vh;
-    --avatar-base-width: 3vw;
+    --avatar-base-height: 3.5vh;
+    --avatar-base-width: 2vw;
 }
 
 body.big-avatars .mes .mesAvatarWrapper {

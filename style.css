@@ -448,10 +448,6 @@ body,
   max-height: calc(100dvh - calc(var(--topBarBlockSize) - 1px)) !important;
 }
 
-.ptmt-mobile-viewport-fix {
-  --topBarBlockSize: - 1px;
-}
-
 .ptmt-pane-grid .drawer-content {
   height: 100% !important;
   max-height: unset !important;
@@ -1396,14 +1392,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
   }
 }
 
-/* When "Disable Mobile CSS" is toggled ON, cancel the ≤800px overrides */
-#ptmt-main.ptmt-disable-mobile-css .ptmt-tab {
-  padding: var(--ptmt-tab-padding, 4px 8px);
-}
-
-#ptmt-main.ptmt-disable-mobile-css .ptmt-tab-icon {
-  font-size: 1em;
-}
 
 .ptmt-icon-picker-btn {
   width: 38px;

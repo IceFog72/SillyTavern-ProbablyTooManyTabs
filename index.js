@@ -214,12 +214,10 @@ import { initColorizer } from './dialogue-colorizer.js';
       const isMobile = settings.get('isMobile');
 
       const refs = getRefs();
-      if (refs && refs.mainBody) {
-        refs.mainBody.classList.toggle('ptmt-global-icons-only', !!showIconsOnly);
-        refs.mainBody.classList.toggle('ptmt-mobile', !!isMobile);
-        refs.mainBody.classList.toggle('ptmt-disable-mobile-css', !!settings.get('disableMobileCSS'));
-        refs.mainBody.classList.toggle('ptmt-mobile-viewport-fix', !!settings.get('enableMobileViewportFix'));
-      }
+      document.body.classList.toggle('ptmt-global-icons-only', !!showIconsOnly);
+      document.body.classList.toggle('ptmt-mobile', !!isMobile);
+      document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
+
 
       applyOverrides();
       document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
@@ -258,13 +256,10 @@ import { initColorizer } from './dialogue-colorizer.js';
     try { removeMouseDownDrawerHandler(); } catch (e) {
       console.warn('[PTMT] Failed :', e);
     }
-    const refsStartup = getRefs();
-    if (refsStartup && refsStartup.mainBody) {
-      refsStartup.mainBody.classList.toggle('ptmt-mobile', !!isMobile);
-      refsStartup.mainBody.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
-      refsStartup.mainBody.classList.toggle('ptmt-disable-mobile-css', !!settings.get('disableMobileCSS'));
-      refsStartup.mainBody.classList.toggle('ptmt-mobile-viewport-fix', !!settings.get('enableMobileViewportFix'));
-    }
+    document.body.classList.toggle('ptmt-mobile', !!isMobile);
+    document.body.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
+    document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
+
 
     enableInteractions();
 

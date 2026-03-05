@@ -120,15 +120,27 @@ export class LayoutManager {
             return wrapper;
         };
 
+        const optimizeVisibilityCheckbox = createSettingCheckbox('Optimize Performance with Long Chat (Disables text-wrapping around avatars in Chrome)', 'optimizeMessageVisibility');
+        optimizeVisibilityCheckbox.style.marginLeft = '20px';
+        optimizeVisibilityCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
+        optimizeVisibilityCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
+
+        const overridesCheckbox = createSettingCheckbox('Extension CSS Overrides', 'enableOverride1');
+        const overridesInput = overridesCheckbox.querySelector('input');
+        overridesInput.addEventListener('change', (e) => {
+            const enabled = e.target.checked;
+            optimizeVisibilityCheckbox.style.opacity = enabled ? '1' : '0.5';
+            optimizeVisibilityCheckbox.style.pointerEvents = enabled ? 'auto' : 'none';
+        });
+
         globalSettings.append(
             createSettingCheckbox('Show Left Column', 'showLeftPane'),
             createSettingCheckbox('Show Right Column', 'showRightPane'),
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
             createSettingCheckbox('Show Context Status Bar', 'showContextStatusBar'),
-            createSettingCheckbox('Extension CSS Overrides', 'enableOverride1'),
-            createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing'),
-            createSettingCheckbox('Disable Mobile CSS', 'disableMobileCSS'),
-            createSettingCheckbox('Enable Mobile Viewport Fix', 'enableMobileViewportFix')
+            overridesCheckbox,
+            optimizeVisibilityCheckbox,
+            createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
         );
 
         const isMobile = settings.get('isMobile');
