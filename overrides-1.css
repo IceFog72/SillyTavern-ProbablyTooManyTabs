@@ -89,7 +89,6 @@
 
  body.bubblechat .mes[is_user="true"] {
      border-radius: 0.5rem 0px 0px 0.5rem !important;
-     width: unset !important;
      margin-left: 8px !important;
  }
 
@@ -308,7 +307,7 @@
      top: 0 !important;
      left: 0 !important;
      width: calc(var(--avatar-base-width) * var(--big-avatar-width-factor) * 4) !important;
-     height: calc(var(--avatar-base-height) * var(--big-avatar-height-factor) * 4) !important;
+     height: calc(var(--avatar-base-height) * var(--big-avatar-height-factor) * 3.4) !important;
      object-fit: cover !important;
  }
 
