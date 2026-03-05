@@ -196,6 +196,7 @@ body:has(#extensionTopBar) .ptmt-panel-content #sheld {
 
 #chat {
   backdrop-filter: none !important;
+  max-height: unset !important;
 }
 
 /* Typography & Base Utilities */
@@ -430,29 +431,25 @@ body,
 }
 
 
-#gallery,
-#WorldInfo,
-#stqrd--drawer-v2,
-#sheld {
-  height: 100% !important;
-  max-height: calc(100dvh - 1px) !important;
-}
-
 /* Specific Content Height Overrides based on Grid Orientation */
-.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-vertical #gallery,
-.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-vertical #WorldInfo,
-.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-vertical #stqrd--drawer-v2,
-.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-vertical #sheld {
+.ptmt-pane-grid.grid-vertical #gallery,
+.ptmt-pane-grid.grid-vertical #WorldInfo,
+.ptmt-pane-grid.grid-vertical #stqrd--drawer-v2,
+.ptmt-pane-grid.grid-vertical #sheld {
   height: 100% !important;
   max-height: calc(100dvh - 1px) !important;
 }
 
-.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-horizontal #gallery,
-.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-horizontal #WorldInfo,
-.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-horizontal #stqrd--drawer-v2,
-.ptmt-mobile-viewport-fix .ptmt-pane-grid.grid-horizontal #sheld {
+.ptmt-pane-grid.grid-horizontal #gallery,
+.ptmt-pane-grid.grid-horizontal #WorldInfo,
+.ptmt-pane-grid.grid-horizontal #stqrd--drawer-v2,
+.ptmt-pane-grid.grid-horizontal #sheld {
   height: 100% !important;
   max-height: calc(100dvh - calc(var(--topBarBlockSize) - 1px)) !important;
+}
+
+.ptmt-mobile-viewport-fix {
+  --topBarBlockSize: - 1px;
 }
 
 .ptmt-pane-grid .drawer-content {
