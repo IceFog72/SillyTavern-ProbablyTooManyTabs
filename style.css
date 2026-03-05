@@ -553,25 +553,14 @@ select option {
   overflow-x: auto;
   overflow-y: hidden;
   flex-wrap: nowrap;
-  scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--ST-Quote-Text), transparent 50%) transparent;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   height: 100%;
   border-left: 1px solid var(--ptmt-tab-border-color);
   border-right: 1px solid var(--ptmt-tab-border-color);
 }
 
-.ptmt-tabStrip::-webkit-scrollbar {
-  width: 2px;
-  height: 2px;
-}
-
-.ptmt-tabStrip::-webkit-scrollbar-thumb {
-  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 50%);
-}
-
-.ptmt-tabStrip::-webkit-scrollbar-track {
-  background: transparent;
+::-webkit-scrollbar {
+  width: 6px !important;
 }
 
 .ptmt-tabStrip.vertical {
@@ -1166,12 +1155,6 @@ select option {
    6. UTILITY, GHOSTS & MEDIA QUERIES
    ========================================================================== */
 
-.ptmt-tabStrip::-webkit-scrollbar,
-.ptmt-panel-content::-webkit-scrollbar {
-  height: 10px;
-  width: 10px;
-}
-
 body.ptmt-is-resizing #rm_print_characters_block {
   visibility: hidden;
 }
@@ -1230,21 +1213,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
   box-shadow: 0 0 10px var(--ptmt-adaptive-quote);
 }
 
-@supports (-webkit-app-region: inherit) {
-  body.bubblechat .mes_block {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 500px;
-    contain-intrinsic-block-size: auto 500px;
-  }
-}
-
-@-moz-document url-prefix() {
-  body.bubblechat .mes {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 500px;
-    contain-intrinsic-block-size: auto 500px;
-  }
-}
 
 @media (prefers-reduced-motion: reduce) {
 
