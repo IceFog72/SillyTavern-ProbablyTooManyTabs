@@ -542,7 +542,7 @@ select option {
   color: var(--ptmt-tab-active-color);
 }
 
-/* Tab Strip */
+/* Tab Strip as ArrowScrollBox */
 .ptmt-tabStrip {
   display: flex;
   align-items: stretch;
@@ -557,6 +557,168 @@ select option {
   height: 100%;
   border-left: 1px solid var(--ptmt-tab-border-color);
   border-right: 1px solid var(--ptmt-tab-border-color);
+  position: relative;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.ptmt-tabStrip::-webkit-scrollbar {
+  display: none;
+}
+
+.ptmt-scrollbutton-left,
+.ptmt-scrollbutton-right,
+.ptmt-scrollbutton-up,
+.ptmt-scrollbutton-down {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: var(--ST-UI-Background);
+  border: none;
+  color: var(--SmartThemeBodyColor);
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+  z-index: 20;
+  padding: 0;
+  flex-shrink: 0;
+  position: sticky;
+}
+
+.ptmt-scrollbutton-left,
+.ptmt-scrollbutton-right {
+  width: 24px;
+}
+
+.ptmt-scrollbutton-left {
+  left: 0;
+  order: -999;
+}
+
+.ptmt-scrollbutton-right {
+  right: 0;
+  order: 999;
+}
+
+.ptmt-scrollbutton-up,
+.ptmt-scrollbutton-down {
+  height: 24px;
+  width: 100%;
+}
+
+.ptmt-scrollbutton-up {
+  top: 0;
+  order: -999;
+}
+
+.ptmt-scrollbutton-down {
+  bottom: 0;
+  order: 999;
+}
+
+
+.ptmt-tabStrip.can-scroll-left .ptmt-scrollbutton-left,
+.ptmt-tabStrip.can-scroll-right .ptmt-scrollbutton-right,
+.ptmt-tabStrip.can-scroll-up .ptmt-scrollbutton-up,
+.ptmt-tabStrip.can-scroll-down .ptmt-scrollbutton-down {
+  display: flex;
+}
+
+/* Orientation Safety - Ensure wrong buttons never show */
+.ptmt-tabStrip.vertical .ptmt-scrollbutton-left,
+.ptmt-tabStrip.vertical .ptmt-scrollbutton-right {
+  display: none !important;
+}
+
+.ptmt-tabStrip:not(.vertical) .ptmt-scrollbutton-up,
+.ptmt-tabStrip:not(.vertical) .ptmt-scrollbutton-down {
+  display: none !important;
+}
+
+.ptmt-scrollbutton-left:hover,
+.ptmt-scrollbutton-right:hover,
+.ptmt-scrollbutton-up:hover,
+.ptmt-scrollbutton-down:hover {
+  background: color-mix(in srgb, var(--ST-UI-Background), white 10%);
+}
+
+.ptmt-scrollbutton-left:active,
+.ptmt-scrollbutton-right:active,
+.ptmt-scrollbutton-up:active,
+.ptmt-scrollbutton-down:active {
+  background: color-mix(in srgb, var(--ST-UI-Background), white 20%);
+}
+
+/* Gradient Fades attached to buttons */
+.ptmt-scrollbutton-left::after,
+.ptmt-scrollbutton-right::after,
+.ptmt-scrollbutton-up::after,
+.ptmt-scrollbutton-down::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+/* Horizontal Fades */
+.ptmt-scrollbutton-left::after {
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  width: 30px;
+  background: linear-gradient(to right, var(--ST-UI-Background), transparent);
+}
+
+.ptmt-scrollbutton-right::after {
+  top: 0;
+  bottom: 0;
+  right: 100%;
+  width: 30px;
+  background: linear-gradient(to left, var(--ST-UI-Background), transparent);
+}
+
+/* Vertical Fades */
+.ptmt-scrollbutton-up::after {
+  left: 0;
+  right: 0;
+  top: 100%;
+  height: 30px;
+  background: linear-gradient(to bottom, var(--ST-UI-Background), transparent);
+}
+
+.ptmt-scrollbutton-down::after {
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 30px;
+  background: linear-gradient(to top, var(--ST-UI-Background), transparent);
+}
+
+/* Icons */
+.ptmt-scrollbutton-left::before {
+  content: "\f104";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.ptmt-scrollbutton-right::before {
+  content: "\f105";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.ptmt-scrollbutton-up::before {
+  content: "\f106";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 14px;
+}
+
+.ptmt-scrollbutton-down::before {
+  content: "\f107";
+  font-family: "Font Awesome 6 Free";
+  font-weight: 900;
+  font-size: 14px;
 }
 
 ::-webkit-scrollbar {
@@ -577,7 +739,8 @@ select option {
 }
 
 .ptmt-tabStrip.vertical.ptmt-has-overflow {
-  padding-bottom: 60px;
+  padding-bottom: 0px;
+  /* Reset for arrows */
 }
 
 /* Active indicator & Lamp Shadow */

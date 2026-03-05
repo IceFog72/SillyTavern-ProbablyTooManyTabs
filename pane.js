@@ -24,13 +24,43 @@ export const defaultViewSettings = {
 const tabStripOverflowObserver = new ResizeObserver(entries => {
   for (const entry of entries) {
     const el = entry.target;
-    const isVertical = el.classList.contains('vertical');
+    // el is the .ptmt-tabStrip
+    const isVertical = el.classList.contains('vertical') || el.closest('.vertical');
     const hasOverflow = isVertical
       ? el.scrollHeight > el.clientHeight
       : el.scrollWidth > el.clientWidth;
+
     el.classList.toggle('ptmt-has-overflow', hasOverflow);
+    updateArrowVisibility(el);
   }
 });
+
+function updateArrowVisibility(tabStrip) {
+  const isVertical = tabStrip.classList.contains('vertical');
+  if (isVertical) {
+    const scrollTop = tabStrip.scrollTop;
+    const scrollHeight = tabStrip.scrollHeight;
+    const clientHeight = tabStrip.clientHeight;
+
+    const canScrollUp = scrollTop > 2;
+    const canScrollDown = scrollTop + clientHeight < scrollHeight - 2;
+
+    tabStrip.classList.toggle('can-scroll-up', canScrollUp);
+    tabStrip.classList.toggle('can-scroll-down', canScrollDown);
+    tabStrip.classList.remove('can-scroll-left', 'can-scroll-right');
+  } else {
+    const scrollLeft = tabStrip.scrollLeft;
+    const scrollWidth = tabStrip.scrollWidth;
+    const clientWidth = tabStrip.clientWidth;
+
+    const canScrollLeft = scrollLeft > 2;
+    const canScrollRight = scrollLeft + clientWidth < scrollWidth - 2;
+
+    tabStrip.classList.toggle('can-scroll-left', canScrollLeft);
+    tabStrip.classList.toggle('can-scroll-right', canScrollRight);
+    tabStrip.classList.remove('can-scroll-up', 'can-scroll-down');
+  }
+}
 
 export function findPreferredDescendentOrientation(element) {
   if (!element) return null;
@@ -111,6 +141,13 @@ export function applySplitOrientation(split) {
 export function createPane(initialSettings = {}, options = {}) {
   const pane = el('div', { className: SELECTORS.PANE.substring(1), style: { position: 'relative', display: 'flex', flexDirection: 'column', flex: '1 1 0', minHeight: '0', minWidth: '0', overflow: 'hidden' } });
   const tabStrip = el('div', { className: SELECTORS.TAB_STRIP.substring(1) });
+  const scrollBtnLeft = el('button', { className: 'ptmt-scrollbutton-left', title: 'Scroll Left' });
+  const scrollBtnRight = el('button', { className: 'ptmt-scrollbutton-right', title: 'Scroll Right' });
+  const scrollBtnUp = el('button', { className: 'ptmt-scrollbutton-up', title: 'Scroll Up' });
+  const scrollBtnDown = el('button', { className: 'ptmt-scrollbutton-down', title: 'Scroll Down' });
+
+  tabStrip.append(scrollBtnUp, scrollBtnLeft, scrollBtnRight, scrollBtnDown);
+
   const panelContainer = el('div', { className: SELECTORS.PANEL_CONTAINER.substring(1) });
   const grid = el('div', { className: 'ptmt-pane-grid', style: { width: '100%', height: '100%' } });
 
@@ -121,6 +158,7 @@ export function createPane(initialSettings = {}, options = {}) {
 
   pane._grid = grid;
   pane._tabStrip = tabStrip;
+  pane._tabStripOuter = tabStrip;
   pane._panelContainer = panelContainer;
 
   tabStrip.addEventListener('wheel', (e) => {
@@ -129,6 +167,16 @@ export function createPane(initialSettings = {}, options = {}) {
       e.preventDefault();
     }
   }, { passive: false });
+
+  tabStrip.addEventListener('scroll', () => {
+    updateArrowVisibility(tabStrip);
+  }, { passive: true });
+
+  const scrollStep = 200;
+  scrollBtnLeft.addEventListener('click', () => tabStrip.scrollBy({ left: -scrollStep, behavior: 'smooth' }));
+  scrollBtnRight.addEventListener('click', () => tabStrip.scrollBy({ left: scrollStep, behavior: 'smooth' }));
+  scrollBtnUp.addEventListener('click', () => tabStrip.scrollBy({ top: -scrollStep, behavior: 'smooth' }));
+  scrollBtnDown.addEventListener('click', () => tabStrip.scrollBy({ top: scrollStep, behavior: 'smooth' }));
 
   tabStrip.addEventListener('contextmenu', (e) => {
     if (e.target !== tabStrip) return;
@@ -255,10 +303,15 @@ export function applyPaneOrientation(pane) {
   }
 
   const gridEl = pane._grid || pane;
-  gridEl.classList.toggle('grid-vertical', orientation === 'vertical');
+  const tsOuter = pane._tabStripOuter || pane._tabStrip || pane;
+  const isVert = orientation === 'vertical';
+
+  gridEl.classList.toggle('grid-vertical', isVert);
   gridEl.classList.toggle('grid-horizontal', orientation === 'horizontal');
-  (pane._tabStrip || pane).classList.toggle('vertical', orientation === 'vertical');
+  tsOuter.classList.toggle('vertical', isVert);
   gridEl.classList.toggle('flow-reversed', vs.contentFlow === 'reversed');
+
+  updateArrowVisibility(tsOuter);
 }
 
 export function setPaneCollapsedView(pane, collapsed) {

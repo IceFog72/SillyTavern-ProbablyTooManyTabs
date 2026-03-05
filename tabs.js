@@ -211,6 +211,9 @@ export function setActivePanelInPane(pane, pid = null, preserveCollapsedState = 
       // 3. Tab Actions - Select
       if (isTarget && isTabSwitch) {
         runTabAction(p.dataset.sourceId, 'onSelect', p);
+
+        // Scroll into view if needed
+        t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
       }
     }
   }
