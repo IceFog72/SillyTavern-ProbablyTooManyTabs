@@ -90,6 +90,26 @@ export function createTabElement(title, pid, icon = null, options = {}) {
 
     if (isActive) {
       const wasCollapsed = pane.classList.contains('view-collapsed');
+
+      if (!wasCollapsed && settings.get('autoOpenFirstCenterTab')) {
+        const isCenterColumn = !!pane.closest('#ptmt-centerBody');
+        if (isCenterColumn) {
+          const otherOpenTabsCount = Array.from(document.querySelectorAll('#ptmt-centerBody .ptmt-tab:not(.ptmt-view-settings):not([data-for=""])'))
+            .filter(tab => tab !== t && !tab.classList.contains('collapsed'))
+            .length;
+
+          if (otherOpenTabsCount === 0) {
+            const firstTab = document.querySelector('#ptmt-centerBody .ptmt-tab:not(.ptmt-view-settings):not([data-for=""])');
+            if (firstTab && firstTab !== t) {
+              openTab(firstTab.dataset.for);
+              return;
+            } else if (firstTab === t) {
+              return; // It's the only tab, refuse to collapse
+            }
+          }
+        }
+      }
+
       setPaneCollapsedView(pane, !wasCollapsed);
 
       if (wasCollapsed) { // pane is opening
@@ -246,6 +266,27 @@ export function closeTabById(pid) {
 
   const pane = getPaneForTabElement(tab) || getPaneForPanel(panel) || getActivePane();
   if (!pane) return true;
+
+  if (settings.get('autoOpenFirstCenterTab')) {
+    const isCenterColumn = !!pane.closest('#ptmt-centerBody');
+    if (isCenterColumn) {
+      const otherOpenTabsCount = Array.from(document.querySelectorAll('#ptmt-centerBody .ptmt-tab:not(.ptmt-view-settings):not([data-for=""])'))
+        .filter(t => t.dataset.for !== pid && !t.classList.contains('collapsed'))
+        .length;
+
+      if (otherOpenTabsCount === 0) {
+        const firstTab = document.querySelector('#ptmt-centerBody .ptmt-tab:not(.ptmt-view-settings):not([data-for=""])');
+        if (firstTab && firstTab.dataset.for !== pid) {
+          if (tab) setTabCollapsed(pid, true);
+          if (panel) panel.classList.add('hidden');
+          openTab(firstTab.dataset.for);
+          return true;
+        } else if (firstTab && firstTab.dataset.for === pid) {
+          return true; // Refuse to close the only tab
+        }
+      }
+    }
+  }
 
   if (tab) setTabCollapsed(pid, true);
   if (panel) panel.classList.add('hidden');
