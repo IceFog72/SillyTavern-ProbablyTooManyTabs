@@ -23,6 +23,7 @@ export class SettingsManager {
         enableOverride1: false,
         optimizeMessageVisibility: false,
         enableDialogueColorizer: true,
+        autoOpenFirstCenterTab: true,
         dialogueColorizerSource: 'avatar_vibrant',
         dialogueColorizerStaticColor: '#e18a24',
 

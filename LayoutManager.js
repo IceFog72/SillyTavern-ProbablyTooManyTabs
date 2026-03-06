@@ -136,6 +136,7 @@ export class LayoutManager {
         globalSettings.append(
             createSettingCheckbox('Show Left Column', 'showLeftPane'),
             createSettingCheckbox('Show Right Column', 'showRightPane'),
+            createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
             createSettingCheckbox('Show Context Status Bar', 'showContextStatusBar'),
             overridesCheckbox,

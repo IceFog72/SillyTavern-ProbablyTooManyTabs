@@ -169,6 +169,21 @@ import { initColorizer } from './dialogue-colorizer.js';
         recalculateColumnSizes();
       }
 
+      if (settings.get('autoOpenFirstCenterTab') && reason !== 'snapshotApplied') {
+        const centerTabs = Array.from(document.querySelectorAll('#ptmt-centerBody .ptmt-tab:not(.ptmt-view-settings):not([data-for=""])'));
+        if (centerTabs.length > 0) {
+          const allCollapsed = centerTabs.every(t => t.classList.contains('collapsed'));
+          if (allCollapsed) {
+            // Find the first tab and open it
+            const firstTabPid = centerTabs[0].dataset.for;
+            if (firstTabPid) {
+              console.log(`[PTMT Layout] Auto-opening first center tab: ${firstTabPid}`);
+              openTab(firstTabPid);
+            }
+          }
+        }
+      }
+
       updateResizerDisabledStates();
       saveCurrentLayoutDebounced();
     }, 50);
