@@ -27,6 +27,10 @@ An extension that transforms the SillyTavern interface into a flexible tabbed wo
 
 ---
 
+## Star History
+
+[![Star History Chart](https://api.star-history.com/image?repos=IceFog72/SillyTavern-ProbablyTooManyTabs&type=date&legend=top-left)](https://www.star-history.com/?repos=IceFog72%2FSillyTavern-ProbablyTooManyTabs&type=date&legend=top-left)
+
 ## Feedback
 
 Join my Discord: [https://discord.gg/2tJcWeMjFQ](https://discord.gg/2tJcWeMjFQ)
