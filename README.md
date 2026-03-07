@@ -1,7 +1,6 @@
 # SillyTavern — ProbablyTooManyTabs
 
-An extension that transforms the SillyTavern interface into a flexible tabbed workspace, allowing you to organize all UI elements into customizable columns. <img width="2560" height="1392" alt="image" src="https://github.com/user-attachments/assets/f3b9670b-d447-46a0-9b12-6f7c8e9383fd" /><img width="2560" height="1392" alt="image" src="https://github.com/user-attachments/assets/26d48343-2939-48bd-af2f-8132e108820b" />
-
+An extension that transforms the SillyTavern interface into a flexible tabbed workspace, allowing you to organize all UI elements into customizable columns. <img width="2560" height="1392" alt="image" src="https://github.com/user-attachments/assets/f3b9670b-d447-46a0-9b12-6f7c8e9383fd" /><img width="2560" height="1392" alt="image" src="https://github.com/user-attachments/assets/12260322-ffa2-4bc0-9593-d60f186cbd67" />
 
 
 ---
