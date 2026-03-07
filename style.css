@@ -228,7 +228,7 @@ code {
   flex: auto !important;
 }
 
-.character_select {
+.character_select .avatar img {
   content-visibility: auto;
   contain-intrinsic-size: auto 150px;
 }
