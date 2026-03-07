@@ -7,3 +7,5 @@ EXTENSION_MAP.md
 specs.md
 .vscode/launch.json
 task.md
+docker-compose.yml
+mcp.json
