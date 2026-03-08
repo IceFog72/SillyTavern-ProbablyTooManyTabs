@@ -27,6 +27,7 @@ import { positionAnchor } from './positionAnchor.js';
 import { initStatusBar } from './context-status-bar.js';
 import { themeEngine } from './theme-engine.js';
 import { initColorizer } from './dialogue-colorizer.js';
+import { initAvatarExpressionSync } from './avatar-expression-sync.js';
 
 (function () {
   function initApp() {
@@ -36,6 +37,7 @@ import { initColorizer } from './dialogue-colorizer.js';
     initStatusBar();
     themeEngine.init();
     initColorizer();
+    initAvatarExpressionSync();
     createLayoutIfMissing();
     const refs = getRefs();
 

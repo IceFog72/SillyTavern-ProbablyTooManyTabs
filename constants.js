@@ -22,6 +22,7 @@ export const SELECTORS = {
     ST_DRAG_CLOSE: '.dragClose',
     ST_ZOOMED_AVATAR: '.zoomed_avatar',
     ST_ZOOMED_AVATAR_CONTAINER: '.zoomed_avatar_container',
+    ST_EXPRESSION_IMAGE: '#expression-image',
 
     // PTMT Internal Structure
     MAIN: '#ptmt-main',

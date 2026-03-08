@@ -139,6 +139,7 @@ export class LayoutManager {
             createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
             createSettingCheckbox('Show Context Status Bar', 'showContextStatusBar'),
+            createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
             overridesCheckbox,
             optimizeVisibilityCheckbox,
             createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')

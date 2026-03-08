@@ -24,6 +24,7 @@ export class SettingsManager {
         optimizeMessageVisibility: false,
         enableDialogueColorizer: true,
         autoOpenFirstCenterTab: true,
+        enableAvatarExpressionSync: false,
         dialogueColorizerSource: 'avatar_vibrant',
         dialogueColorizerStaticColor: '#e18a24',
 
@@ -428,4 +429,3 @@ export class SettingsManager {
     }
 }
 
-export const settings = new SettingsManager();
