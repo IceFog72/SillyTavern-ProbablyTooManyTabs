@@ -588,6 +588,9 @@ body.charListGrid {
     }
 }
 
+#form_sheld {
+    margin-bottom: 0px !important;
+}
 
 /* ==========================================================================
    Global
