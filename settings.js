@@ -22,6 +22,7 @@ export class SettingsManager {
         showContextStatusBar: true,
         enableOverride1: false,
         optimizeMessageVisibility: false,
+        enableAutoContrast: true,
         enableDialogueColorizer: true,
         autoOpenFirstCenterTab: true,
         enableAvatarExpressionSync: false,

@@ -24,9 +24,15 @@
 
   /* UI Background Luminance for adaptive contrast (0-100, where 50 = neutral) */
   --ST-UI-Background-luminance: 50;
+  --ptmt-bg-l: calc(var(--ST-UI-Background-luminance, 45) / 100);
+
+  /* Composite Layer 1: Wallpaper + UI Tint (Blur Tint) */
+  --ptmt-ui-tint: var(--ST-UI-Background);
+  --ptmt-ui-composite: oklch(from var(--ptmt-ui-tint) calc(l * alpha + var(--ptmt-bg-l) * (1 - alpha)) c h);
 
   /* Isolated Global Adaptive Text Variables */
-  --ptmt-adaptive-bw: oklch(from var(--ST-UI-Background) clamp(0, ((l * alpha) + (var(--ST-UI-Background-luminance, 45) / 100 * (1 - alpha)) - 0.45) * -100, 1) 0 0 / 1);
+  --ptmt-adaptive-bw: oklch(from var(--ptmt-ui-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
+  --ptmt-contrast-bw: var(--ptmt-adaptive-bw);
 
   --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 70%);
@@ -1584,4 +1590,143 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-family: var(--SmartThemeMonoFontFamily, monospace);
   font-size: 0.9em;
   opacity: 0.8;
+}
+
+/* Layout Settings UI Classes */
+.ptmt-settings-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.ptmt-settings-top-section {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+  align-items: stretch;
+  margin-bottom: 10px;
+}
+
+.ptmt-settings-fieldset {
+  flex: 1 1 300px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ptmt-setting-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ptmt-setting-sub-item {
+  margin-left: 20px;
+}
+
+.ptmt-opacity-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+
+.ptmt-opacity-slider {
+  flex: 1;
+  min-width: 0;
+}
+
+.ptmt-opacity-value {
+  min-width: 35px;
+  text-align: right;
+  opacity: 0.8;
+}
+
+.ptmt-disclaimer-container {
+  margin-top: 10px;
+  padding: 10px;
+  border-radius: 4px;
+  background: rgba(255, 229, 100, 0.1);
+  color: var(--ST-Main-Text);
+  text-align: left;
+  font-size: 0.9em;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.ptmt-disclaimer-icon {
+  font-size: 1.5em;
+}
+
+.ptmt-disclaimer-content p {
+  margin: 0;
+  opacity: 0.9;
+}
+
+.ptmt-disclaimer-content p+p {
+  margin-top: 5px;
+}
+
+.ptmt-support-footer {
+  margin-top: 20px;
+  padding-top: 15px;
+  border-top: 1px solid var(--ST-UI-Border);
+  text-align: center;
+  color: var(--ST-Main-Text);
+}
+
+.ptmt-support-links {
+  display: flex;
+  justify-content: center;
+  gap: 15px;
+  margin-top: 10px;
+  padding-bottom: 10px;
+}
+
+.ptmt-support-link {
+  display: inline-block;
+  padding: 5px 15px;
+  border-radius: 4px;
+  background: var(--ST-Chat-Background);
+  border: 1px solid var(--ST-UI-Border);
+  color: var(--ST-Italics-Text);
+  text-decoration: none;
+}
+
+.ptmt-support-link:hover {
+  background: var(--ST-Text-Shadow);
+}
+
+.ptmt-editor-title-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.ptmt-editor-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.ptmt-editor-label-small {
+  font-size: 0.8em;
+  opacity: 0.7;
+  margin-right: 5px;
+}
+
+.ptmt-editor-tabs-container-placeholder {
+  opacity: 0.5;
+  padding: 10px;
+  font-size: 0.9em;
+}
+
+.ptmt-vs-button-reset {
+  margin-left: 5px;
+}
+
+.ptmt-editor-pending-title {
+  padding-top: 8px;
 }

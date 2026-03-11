@@ -1,6 +1,5 @@
 import { settings } from './settings.js';
 import { el, debounce, getPanelBySourceId, createIconElement, clearDropIndicators } from './utils.js';
-import { clearColorizerCache } from './dialogue-colorizer.js';
 import { showFontAwesomePicker } from '../../../utils.js';
 import { getTabIdentifier } from './pending-tabs.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
@@ -114,14 +113,14 @@ export class LayoutManager {
         const panel = el('div', { className: 'ptmt-settings-panel' });
         this.rootElement = panel;
 
-        const topSection = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'stretch', marginBottom: '10px' } });
-        const globalSettings = el('fieldset', { style: { flex: LAYOUT.SETTINGS_PANEL_FLEX, margin: '0' } }, el('legend', {}, 'Global Layout'));
+        const topSection = el('div', { className: 'ptmt-settings-top-section' });
+        const globalSettings = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Global Layout'));
 
 
 
         const createSettingCheckbox = (labelText, settingKey) => {
             const id = `ptmt-global-${settingKey}`;
-            const wrapper = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' } });
+            const wrapper = el('div', { className: 'ptmt-setting-row' });
             const checkbox = el('input', { type: 'checkbox', id, checked: this.settings.get(settingKey) });
             const label = el('label', { for: id }, labelText);
 
@@ -147,9 +146,14 @@ export class LayoutManager {
         };
 
         const optimizeVisibilityCheckbox = createSettingCheckbox('Optimize Performance with Long Chat (Disables text-wrapping around avatars in Chrome)', 'optimizeMessageVisibility');
-        optimizeVisibilityCheckbox.style.marginLeft = '20px';
+        optimizeVisibilityCheckbox.classList.add('ptmt-setting-sub-item');
         optimizeVisibilityCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
         optimizeVisibilityCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
+
+        const autoContrastCheckbox = createSettingCheckbox('Auto Contrast (Adaptive Text Colors)', 'enableAutoContrast');
+        autoContrastCheckbox.classList.add('ptmt-setting-sub-item');
+        autoContrastCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
+        autoContrastCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
 
         const overridesCheckbox = createSettingCheckbox('Extension CSS Overrides', 'enableOverride1');
         const overridesInput = overridesCheckbox.querySelector('input');
@@ -157,6 +161,8 @@ export class LayoutManager {
             const enabled = e.target.checked;
             optimizeVisibilityCheckbox.style.opacity = enabled ? '1' : '0.5';
             optimizeVisibilityCheckbox.style.pointerEvents = enabled ? 'auto' : 'none';
+            autoContrastCheckbox.style.opacity = enabled ? '1' : '0.5';
+            autoContrastCheckbox.style.pointerEvents = enabled ? 'auto' : 'none';
         });
 
         globalSettings.append(
@@ -164,9 +170,10 @@ export class LayoutManager {
             createSettingCheckbox('Show Right Column', 'showRightPane'),
             createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
-            createSettingCheckbox('Show Context Status Bar', 'showContextStatusBar'),
+            createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
             createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
             overridesCheckbox,
+            autoContrastCheckbox,
             optimizeVisibilityCheckbox,
             createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
         );
@@ -194,80 +201,34 @@ export class LayoutManager {
         globalSettings.append(resetBtn);
 
         const colorizerSettings = this.createDialogueColorizerSettings();
-        colorizerSettings.style.flex = LAYOUT.SETTINGS_PANEL_FLEX;
-        colorizerSettings.style.margin = '0';
+        colorizerSettings.className = 'ptmt-settings-fieldset';
         topSection.append(globalSettings, colorizerSettings);
         panel.append(topSection);
 
         this.renderUnifiedEditor();
 
-        const disclaimerContainer = el('div', {
-            style: {
-                marginTop: '10px',
-                padding: '10px',
-                borderRadius: '4px',
-                background: 'rgba(255, 229, 100, 0.1)',
-                color: 'var(--ST-Main-Text)',
-                textAlign: 'left',
-                fontSize: '0.9em',
-                display: 'flex',
-                gap: '10px',
-                alignItems: 'center'
-            }
-        },
-            el('span', { style: { fontSize: '1.5em' } }, '⚠️'),
-            el('div', {},
+        const disclaimerContainer = el('div', { className: 'ptmt-disclaimer-container' },
+            el('span', { className: 'ptmt-disclaimer-icon' }, '⚠️'),
+            el('div', { className: 'ptmt-disclaimer-content' },
                 el('strong', {}, 'Please Note:'),
-                el('p', { style: { margin: '0', opacity: '0.9' } }, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.'),
-                el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'If you install a supported extension and its tab does not appear, you may need to reset the layout for it to be added.'),
-                el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'Pending Tabs lists extensions or panels available for columns that are not currently in active layout.'),
-                el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'For additional extension tab requests, reach out to me on Discord.'),
-                el('p', { style: { margin: '5px 0 0 0', opacity: '0.9' } }, 'Resizing the navigation panel with character cards may lag on Chrome-based browsers. -> Use Hide some content on resize (for Chrome users) toggle.')
+                el('p', {}, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.'),
+                el('p', {}, 'If you install a supported extension and its tab does not appear, you may need to reset the layout for it to be added.'),
+                el('p', {}, 'Pending Tabs lists extensions or panels available for columns that are not currently in active layout.'),
+                el('p', {}, 'For additional extension tab requests, reach out to me on Discord.'),
+                el('p', {}, 'Resizing the navigation panel with character cards may lag on Chrome-based browsers. -> Use Hide some content on resize (for Chrome users) toggle.')
             )
         );
         panel.appendChild(disclaimerContainer);
 
 
 
-        const supportLinksContainer = el('div', {
-            style: {
-                marginTop: '20px',
-                paddingTop: '15px',
-                borderTop: '1px solid var(--ST-UI-Border)',
-                textAlign: 'center',
-                color: 'var(--ST-Main-Text)'
-            }
-        }, 'Feedback/support');
+        const supportLinksContainer = el('div', { className: 'ptmt-support-footer' }, 'Feedback/support');
 
-        const linksWrapper = el('div', {
-            style: {
-                display: 'flex',
-                justifyContent: 'center',
-                gap: '15px',
-                marginTop: '10px',
-                paddingBottom: '10px'
-            }
-        });
+        const linksWrapper = el('div', { className: 'ptmt-support-links' });
 
-        const linkStyle = {
-            display: 'inline-block',
-            padding: '5px 15px',
-            borderRadius: '4px',
-            background: 'var(--ST-Chat-Background)',
-            border: '1px solid var(--ST-UI-Border)',
-            color: 'var(--ST-Italics-Text)',
-            textDecoration: 'none',
-            transition: 'background 150ms'
-        };
-
-        const discordLink = el('a', { href: 'https://discord.gg/2tJcWeMjFQ', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Discord (IceFog\'s AI Brew Bar)');
-        const patreonLink = el('a', { href: 'https://www.patreon.com/cw/IceFog72', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Patreon');
-        const kofiLink = el('a', { href: 'https://ko-fi.com/icefog72', target: '_blank', rel: 'noopener noreferrer', style: linkStyle }, 'Ko-fi');
-
-        [discordLink, patreonLink, kofiLink].forEach(link => {
-            link.addEventListener('mouseover', () => link.style.background = 'var(--ST-Text-Shadow)');
-            link.addEventListener('mouseout', () => link.style.background = 'var(--ST-Chat-Background)');
-        });
+        const discordLink = el('a', { href: 'https://discord.gg/2tJcWeMjFQ', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Discord (IceFog\'s AI Brew Bar)');
+        const patreonLink = el('a', { href: 'https://www.patreon.com/cw/IceFog72', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Patreon');
+        const kofiLink = el('a', { href: 'https://ko-fi.com/icefog72', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Ko-fi');
 
         linksWrapper.append(discordLink, patreonLink, kofiLink);
         supportLinksContainer.appendChild(linksWrapper);
@@ -325,14 +286,14 @@ export class LayoutManager {
         titleDiv.appendChild(el('span', {}, 'Storage Pane'));
         pane.appendChild(titleDiv);
 
-        const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container', style: { minHeight: '40px' } });
+        const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container' });
         tabsContainer.dataset.isHiddenList = 'true';
 
         const currentLayout = this.settings.getActiveLayout();
         const hiddenTabs = currentLayout.hiddenTabs || [];
 
         if (hiddenTabs.length === 0) {
-            const placeholder = el('div', { style: { opacity: '0.5', padding: '10px', fontSize: '0.9em' } }, 'Drag tabs here to hide');
+            const placeholder = el('div', { className: 'ptmt-editor-tabs-container-placeholder' }, 'Drag tabs here to hide');
             tabsContainer.appendChild(placeholder);
         }
 
@@ -407,7 +368,7 @@ export class LayoutManager {
         if (tree) container.appendChild(tree);
 
         const pendingContainer = el('div', { className: 'ptmt-editor-pending' });
-        const pendingTitle = el('div', { className: 'ptmt-editor-title', style: { paddingTop: '8px' } }, el('span', {}, 'Pending Tabs'));
+        const pendingTitle = el('div', { className: 'ptmt-editor-title' }, el('span', { className: 'ptmt-editor-pending-title' }, 'Pending Tabs'));
         pendingContainer.appendChild(pendingTitle);
 
         const pendingTree = this.renderPendingTreeElement(element.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`), name);
@@ -439,7 +400,7 @@ export class LayoutManager {
         const titleDiv = el('div', { className: 'ptmt-editor-title' });
         const titleSpan = el('span', {}, `Split Container`);
 
-        const createLabel = (text) => el('span', { style: { fontSize: '0.8em', opacity: '0.7', marginRight: '5px' } }, text);
+        const createLabel = (text) => el('span', { className: 'ptmt-editor-label-small' }, text);
 
         const expandedOrientation = element.dataset.orientationExpanded || element.dataset.naturalOrientation || 'auto';
         const collapsedOrientation = element.dataset.orientationCollapsed || 'auto';
@@ -464,12 +425,12 @@ export class LayoutManager {
             this.appApi.updateSplitCollapsedState(element);
         });
 
-        const controls = el('div', { style: { display: 'flex', flexDirection: 'column', gap: '4px' } });
+        const controls = el('div', { className: 'ptmt-editor-title-controls' });
 
-        const expandedRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end' } });
+        const expandedRow = el('div', { className: 'ptmt-editor-title-row' });
         expandedRow.append(createLabel('Expanded:'), expandedSelect);
 
-        const collapsedRow = el('div', { style: { display: 'flex', alignItems: 'center', justifyContent: 'flex-end' } });
+        const collapsedRow = el('div', { className: 'ptmt-editor-title-row' });
         collapsedRow.append(createLabel('Collapsed:'), collapsedSelect);
 
         controls.append(expandedRow, collapsedRow);
@@ -1228,7 +1189,7 @@ export class LayoutManager {
 
         // ── helpers ──────────────────────────────────────────────────────────
         const row = (children, extra = {}) =>
-            el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }, ...extra }, ...children);
+            el('div', { className: 'ptmt-setting-row', ...extra }, ...children);
 
         const lbl = (text, forId) => el('label', forId ? { for: forId } : {}, text);
 
@@ -1280,11 +1241,11 @@ export class LayoutManager {
         container.appendChild(row([lbl('Colorize Target', 'ptmt-col-target'), targetSel]));
 
         // Bubble Opacity
-        const opacityVal = el('span', { style: { minWidth: '35px', textAlign: 'right', opacity: '0.8' } }, `${Math.round((s.get('dialogueColorizerBubbleOpacity') ?? 0.2) * 100)}%`);
+        const opacityVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((s.get('dialogueColorizerBubbleOpacity') ?? 0.2) * 100)}%`);
         const opacitySlider = el('input', {
             type: 'range', min: '0', max: '1', step: '0.01',
             value: s.get('dialogueColorizerBubbleOpacity') ?? 0.2,
-            style: { flex: '1', minWidth: '0' }
+            className: 'ptmt-opacity-slider'
         });
         opacitySlider.addEventListener('input', () => {
             const val = parseFloat(opacitySlider.value);
@@ -1317,17 +1278,6 @@ export class LayoutManager {
         ]));
         container.appendChild(personaSection);
 
-        // Refresh Colors button
-        const refreshBtn = el('button', {
-            id: 'ptmt-colorizer-refresh',
-            class: 'menu_button',
-            style: { marginTop: '10px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }
-        }, [el('i', { class: 'fa-solid fa-sync' }), 'Refresh & Re-extract Colors']);
-        refreshBtn.addEventListener('click', () => {
-            clearColorizerCache();
-            if (window.toastr) window.toastr.success('Dialogue colors refreshed and re-extracted.');
-        });
-        container.appendChild(refreshBtn);
 
         return container;
     }
@@ -1362,7 +1312,7 @@ export class LayoutManager {
                 el('div', { className: 'ptmt-vs-row' },
                     el('label', { for: 'ptmt-ts-color' }, 'Tab Color (Tint): '),
                     el('input', { type: 'color', value: (currentColor && currentColor.length === 7) ? currentColor : '#000000', id: 'ptmt-ts-color', className: 'text_edit' }),
-                    el('button', { className: 'ptmt-vs-button', style: { marginLeft: '5px' }, id: 'ptmt-ts-color-reset' }, 'Reset')
+                    el('button', { className: 'ptmt-vs-button ptmt-vs-button-reset', id: 'ptmt-ts-color-reset' }, 'Reset')
                 ),
                 el('div', { className: 'ptmt-vs-footer' },
                     el('button', { id: 'ptmt-ts-save', className: 'ptmt-vs-button primary' }, 'Save'),

@@ -219,6 +219,7 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
       const refs = getRefs();
       document.body.classList.toggle('ptmt-global-icons-only', !!showIconsOnly);
       document.body.classList.toggle('ptmt-mobile', !!isMobile);
+      document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
       document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
 
 
@@ -261,6 +262,7 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
     }
     document.body.classList.toggle('ptmt-mobile', !!isMobile);
     document.body.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
+    document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
     document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
 
 

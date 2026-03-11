@@ -332,7 +332,7 @@ function buildCssRules(safeUid, color) {
     let css = '';
 
     if (target & 1) { // QUOTED_TEXT
-        const adaptedColor = `color-mix(in oklch, ${color}, var(--ptmt-adaptive-bw) 30%)`;
+        const adaptedColor = `color-mix(in oklch, ${color}, var(--ptmt-contrast-bw) 30%)`;
         css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { color: ${adaptedColor} !important; }\n`;
         css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { color: ${adaptedColor} !important; }\n`;
     }
