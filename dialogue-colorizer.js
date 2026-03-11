@@ -83,22 +83,119 @@ async function getVibrantColor(img) {
         return DEFAULT_RGB;
     }
     try {
+        // Create a canvas to analyze the image and detect transparency
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = img.naturalWidth || img.width;
+        canvas.height = img.naturalHeight || img.height;
+        
+        // Draw the image to the canvas
+        ctx.drawImage(img, 0, 0);
+        
+        // Get image data to check for transparency
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // Count opaque pixels vs transparent pixels
+        let opaquePixels = 0;
+        let transparentPixels = 0;
+        const threshold = 50; // Alpha threshold for considering a pixel "visible"
+        
+        for (let i = 3; i < data.length; i += 4) {
+            if (data[i] > threshold) {
+                opaquePixels++;
+            } else {
+                transparentPixels++;
+            }
+        }
+        
+        const transparencyRatio = transparentPixels / (opaquePixels + transparentPixels);
+        const hasSignificantTransparency = transparencyRatio > 0.3;
+        
+        if (hasSignificantTransparency) {
+            console.log(`[PTMT] Image has significant transparency (${(transparencyRatio * 100).toFixed(1)}%), using fallback color extraction`);
+            // For transparent images, extract dominant color from opaque pixels only
+            return extractColorFromOpaquePixels(data, canvas.width, canvas.height);
+        }
+        
+        // Use Vibrant for normal images
         const v = new Vibrant(img, 32, 3);
         const swatches = v.swatches();
         if (!swatches) {
             console.warn('[PTMT] Vibrant swatches are null');
             return DEFAULT_RGB;
         }
-        const swatch = swatches.Vibrant || swatches.Muted || swatches.DarkVibrant || null;
-        if (!swatch) {
-            console.warn('[PTMT] No swatches found for image:', img.src);
+        
+        // Prioritize swatches with better saturation for transparent images
+        let bestSwatch = null;
+        let bestScore = -1;
+        
+        const swatchOrder = [
+            swatches.Vibrant,
+            swatches.DarkVibrant,
+            swatches.LightVibrant,
+            swatches.Muted,
+            swatches.DarkMuted,
+            swatches.LightMuted
+        ].filter(Boolean);
+        
+        for (const swatch of swatchOrder) {
+            const rgb = swatch.getRgb();
+            // Score based on saturation and luminance (prefer mid-saturation, mid-luminance)
+            const [h, s, l] = ColorUtils.rgbToHsl(rgb);
+            const score = s * 0.7 + (1 - Math.abs(l - 0.5) * 2) * 0.3;
+            if (score > bestScore) {
+                bestScore = score;
+                bestSwatch = swatch;
+            }
+        }
+        
+        if (!bestSwatch) {
+            console.warn('[PTMT] No suitable swatches found for image:', img.src);
             return DEFAULT_RGB;
         }
-        return swatch.getRgb();
+        
+        return bestSwatch.getRgb();
     } catch (e) {
         console.error('[PTMT] Vibrant execution failed:', e);
         return DEFAULT_RGB;
     }
+}
+
+/**
+ * Extract dominant color from opaque pixels in an image with transparency
+ */
+function extractColorFromOpaquePixels(data, width, height) {
+    const rgbSum = [0, 0, 0];
+    let pixelCount = 0;
+    
+    // Sample pixels (skip some for performance)
+    const step = 4;
+    for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+            const i = (y * width + x) * 4;
+            const alpha = data[i + 3];
+            
+            // Only consider pixels with sufficient alpha
+            if (alpha > 100) {
+                rgbSum[0] += data[i];
+                rgbSum[1] += data[i + 1];
+                rgbSum[2] += data[i + 2];
+                pixelCount++;
+            }
+        }
+    }
+    
+    if (pixelCount === 0) {
+        console.warn('[PTMT] No opaque pixels found in transparent image');
+        return DEFAULT_RGB;
+    }
+    
+    return [
+        Math.round(rgbSum[0] / pixelCount),
+        Math.round(rgbSum[1] / pixelCount),
+        Math.round(rgbSum[2] / pixelCount)
+    ];
 }
 
 function getAvatarFileInfo(message) {
@@ -117,23 +214,51 @@ function getAvatarFileInfo(message) {
     if (type === 'character') {
         const match = src.match(/[?&]file=([^&]*)/i)?.at(1);
         fileName = match ? decodeURIComponent(match) : fileName;
+        // Use ch_name attribute for character UID if available
+        // This ensures consistent UID across expression changes
+        const chName = message.getAttribute('ch_name');
+        if (chName) {
+            return { type, fileName, uid: `${type}|${chName}` };
+        }
+        // Fallback: extract base character name without expression suffix
+        // e.g., "A_expression.png" -> "A", "A.png" -> "A"
+        const dotIndex = fileName.lastIndexOf('.');
+        const baseName = dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
+        // Remove common expression suffixes like "_expression", "_happy", etc.
+        const charName = baseName.replace(/_(expression|happy|sad|angry|surprised|neutral|normal|default).*$/i, '');
+        return { type, fileName, uid: `${type}|${charName}` };
     } else if (type === 'persona') {
         const match = src.match(/[?&]file=([^&]*)/i)?.at(1);
         fileName = match ? decodeURIComponent(match) : fileName;
+        // For personas, use the full filename as UID
+        return { type, fileName, uid: `${type}|${fileName}` };
     }
 
     return { type, fileName, uid: `${type}|${fileName}` };
 }
 
 async function getCharacterColor(info, thumbSrc) {
-    if (colorCache[info.uid]) return colorCache[info.uid];
+    // Use character UID as cache key (not full URL) for consistent colors
+    // Characters with different expressions should have the same color
+    const cacheKey = info.uid;
+    if (colorCache[cacheKey]) return colorCache[cacheKey];
 
     const source = settings.get('dialogueColorizerSource');
     if (source === 'static_color') return settings.get('dialogueColorizerStaticColor');
     if (info.type === 'system') return settings.get('dialogueColorizerStaticColor');
 
-    // Use thumbSrc directly if available, fallback to full image path if not
-    const avatarUrl = thumbSrc || (info.type === 'character' ? `/characters/${encodeURIComponent(info.fileName)}` : `/User Avatars/${encodeURIComponent(info.fileName)}`);
+    // For characters, always use base avatar URL for color extraction (not expression variants)
+    // This ensures consistent colors regardless of current expression
+    let avatarUrl;
+    if (info.type === 'character') {
+        // Extract character name from UID (removes "character|" prefix)
+        const charName = info.uid.split('|')[1];
+        // Construct base avatar URL: /characters/CharacterName.png
+        avatarUrl = `/characters/${encodeURIComponent(charName)}.png`;
+    } else {
+        // For personas/system, use thumbSrc or fallback
+        avatarUrl = thumbSrc || `/User Avatars/${encodeURIComponent(info.fileName)}`;
+    }
     console.log(`[PTMT] Attempting to load avatar for color extraction: ${avatarUrl}`);
 
     return new Promise((resolve) => {
@@ -151,7 +276,7 @@ async function getCharacterColor(info, thumbSrc) {
             const rgb = await getVibrantColor(img);
             const betterRgb = adjustColorForContrast(rgb);
             const hex = ColorUtils.rgbToHex(betterRgb);
-            colorCache[info.uid] = hex;
+            colorCache[cacheKey] = hex;
             console.log(`[PTMT] Extracted color for ${info.uid}: ${hex}`);
             resolve(hex);
         };
@@ -224,14 +349,21 @@ export function initColorizer() {
     // Initial tagging and styling
     updateStyles();
 
-    // Observe chat for new messages to tag them quickly
+    // Observe chat for new messages and avatar attribute changes
     if (chatObserver) chatObserver.disconnect();
     chatObserver = new MutationObserver((mutations) => {
         let shouldUpdate = false;
         for (const mutation of mutations) {
-            for (const node of mutation.addedNodes) {
-                if (node.nodeType === 1 && node.classList.contains('mes')) {
-                    tagMessage(node);
+            if (mutation.type === 'childList') {
+                for (const node of mutation.addedNodes) {
+                    if (node.nodeType === 1 && node.classList.contains('mes')) {
+                        tagMessage(node);
+                        shouldUpdate = true;
+                    }
+                }
+            } else if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
+                // Avatar image src changed (e.g., expression sync)
+                if (mutation.target.classList?.contains('avatar') || mutation.target.parentElement?.classList?.contains('avatar')) {
                     shouldUpdate = true;
                 }
             }
@@ -243,7 +375,7 @@ export function initColorizer() {
 
     const chat = document.getElementById('chat');
     if (chat) {
-        chatObserver.observe(chat, { childList: true });
+        chatObserver.observe(chat, { childList: true, attributes: true, attributeFilter: ['src'] });
         console.log('[PTMT] Colorizer observer attached to #chat');
     }
 
