@@ -1,9 +1,9 @@
-import { el, getSplitOrientation, getPanelById, getTabById, getRefs } from './utils.js';
+import { el, getSplitOrientation, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, defaultViewSettings, invalidateMinWidthCache } from './utils.js';
 import { showContextMenu } from './context-menu.js';
 import { settings } from './settings.js';
 import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
-import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation, invalidateMinWidthCache } from './resizer.js';
+import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation } from './resizer.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 
 /** @typedef {import('./types.js').ViewSettings} ViewSettings */
@@ -13,13 +13,6 @@ import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 
 export const MAX_PANE_LAYERS = LAYOUT.MAX_PANE_LAYERS;
 export const NARROW_PANE_THRESHOLD_PX = LAYOUT.NARROW_PANE_THRESHOLD_PX;
-
-export const defaultViewSettings = {
-  minimalPanelSize: 250,
-  defaultOrientation: 'auto',
-  collapsedOrientation: 'auto',
-  contentFlow: 'default',
-};
 
 const tabStripOverflowObserver = new ResizeObserver(entries => {
   for (const entry of entries) {
@@ -214,35 +207,6 @@ export function getPaneLayerCount(pane) {
     if (eln.classList?.contains(SELECTORS.SPLIT.substring(1))) splitCount++;
   }
   return splitCount + 1;
-}
-
-export function readPaneViewSettings(pane) {
-  try {
-    if (!pane) return { ...defaultViewSettings };
-    if (pane._viewSettingsCache) return pane._viewSettingsCache;
-
-    const raw = pane.dataset.viewSettings;
-    if (!raw) {
-      pane._viewSettingsCache = { ...defaultViewSettings };
-      return pane._viewSettingsCache;
-    }
-
-    pane._viewSettingsCache = { ...defaultViewSettings, ...JSON.parse(raw) };
-    return pane._viewSettingsCache;
-  } catch {
-    return { ...defaultViewSettings };
-  }
-}
-
-export function writePaneViewSettings(pane, newPaneSettings) {
-  try {
-    const currentSettings = readPaneViewSettings(pane);
-    const updated = { ...defaultViewSettings, ...currentSettings, ...newPaneSettings };
-    pane.dataset.viewSettings = JSON.stringify(updated);
-    pane._viewSettingsCache = updated;
-  } catch (e) {
-    console.warn('[PTMT] Failed to write pane view settings to dataset:', e);
-  }
 }
 
 export function getParentSplitOrientation(pane) {

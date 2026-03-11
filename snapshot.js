@@ -1,8 +1,8 @@
 // snapshot.js 
 
-import { getRefs } from './utils.js'; // Ensure getRefs is imported from utils
+import { getRefs, writePaneViewSettings, readPaneViewSettings } from './utils.js'; // Ensure getRefs is imported from utils
 import { getPanelById, getSplitOrientation, el, getPanelBySourceId } from './utils.js';
-import { createPane, writePaneViewSettings, readPaneViewSettings, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
+import { createPane, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
 import { setActivePanelInPane, createPanelElement, registerPanelDom, createTabElement, createTabFromContent } from './tabs.js';
 import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';

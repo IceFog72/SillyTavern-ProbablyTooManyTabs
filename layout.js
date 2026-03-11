@@ -1,6 +1,6 @@
-import { el, getRefs } from './utils.js'; // getRefs imported from utils
+import { el, getRefs, calculateElementMinWidth } from './utils.js'; // getRefs imported from utils
 import { createPane, findPreferredDescendentOrientation } from './pane.js';
-import { attachColumnResizer, calculateElementMinWidth } from './resizer.js';
+import { attachColumnResizer } from './resizer.js';
 import { settings } from './settings.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 

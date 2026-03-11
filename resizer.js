@@ -1,7 +1,7 @@
 // resizer.js
-import { $$, getElementDepth, setFlexBasisPercent, throttle, debounce, getRefs, el, $ } from './utils.js';
+import { $$, getElementDepth, setFlexBasisPercent, throttle, debounce, getRefs, el, $, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings } from './utils.js';
 import { recalculateColumnSizes, normalizeFlexBasis, getBasis } from './layout.js';
-import { readPaneViewSettings, defaultViewSettings, applyPaneOrientation, setPaneCollapsedView, applySplitOrientation, removePaneIfEmpty } from './pane.js';
+import { applyPaneOrientation, setPaneCollapsedView, applySplitOrientation, removePaneIfEmpty } from './pane.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 import { settings } from './settings.js';
 
@@ -42,44 +42,6 @@ function getOrCalculateFullTabSize(pane) {
 }
 
 export const resizerControllers = new WeakMap();
-const minWidthCache = new WeakMap();
-
-export function invalidateMinWidthCache(element) {
-    if (!element) return;
-    minWidthCache.delete(element);
-    if (element.parentElement) invalidateMinWidthCache(element.parentElement);
-}
-
-export function calculateElementMinWidth(element) {
-    if (!element) return 0;
-    if (minWidthCache.has(element)) return minWidthCache.get(element);
-
-    let minWidth = 0;
-    if (element.classList.contains(SELECTORS.PANE.substring(1))) {
-        const vs = readPaneViewSettings(element);
-        minWidth = Number(vs.minimalPanelSize) || LAYOUT.DEFAULT_MIN_PANEL_SIZE_PX;
-    } else if (element.classList.contains(SELECTORS.SPLIT.substring(1))) {
-        const children = Array.from(element.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
-        const resizers = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
-
-        if (element.classList.contains('horizontal')) {
-            let maxMinWidth = 0;
-            children.forEach(child => maxMinWidth = Math.max(maxMinWidth, calculateElementMinWidth(child)));
-            minWidth = maxMinWidth;
-        } else {
-            let totalMinWidth = 0;
-            children.forEach(child => totalMinWidth += calculateElementMinWidth(child));
-            resizers.forEach(resizer => {
-                const width = resizer.classList.contains('disabled') ? 0 : 6;
-                totalMinWidth += width;
-            });
-            minWidth = totalMinWidth;
-        }
-    }
-
-    minWidthCache.set(element, minWidth);
-    return minWidth;
-}
 
 export function checkPaneForIconMode(pane) {
     if (!pane || !pane.classList) return;
