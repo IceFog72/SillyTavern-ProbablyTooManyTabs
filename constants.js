@@ -81,6 +81,7 @@ export const LAYOUT = {
     DEFAULT_MIN_PANEL_SIZE_PX: 250,
     DEFAULT_PANE_FLEX_BASIS: '1 1 50%',
     DEFAULT_PANE_FLEX_BASIS_FULL: '1 1 100%',
+    SETTINGS_PANEL_FLEX: '1 1 300px',
 };
 
 export const MESSAGES = {

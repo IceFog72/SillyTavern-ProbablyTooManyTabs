@@ -84,12 +84,37 @@ export class LayoutManager {
 
     }
 
+    // --- Helper Methods for Event Listener Consolidation ---
+
+    attachTouchDragListeners(container, pid = null) {
+        // Attach touch event listeners for drag-and-drop functionality
+        container.addEventListener('touchstart', (e) => this.handleTouchStart(e, pid), { passive: false });
+        container.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+        container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
+        container.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), { passive: false });
+    }
+
+    attachDragListeners(container) {
+        // Attach drag event listeners for drag-and-drop functionality
+        container.addEventListener('dragover', this.handleDragOver.bind(this));
+        container.addEventListener('dragleave', this.handleDragLeave.bind(this));
+        container.addEventListener('drop', (e) => this.handleDrop(e));
+    }
+
+    attachSettingsButtonListener(button, sourceId, tabElement, container, isHidden = false) {
+        // Attach click listener to settings button
+        button.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.openTabSettingsDialog(sourceId, tabElement, container, isHidden);
+        });
+    }
+
     createSettingsPanel() {
         const panel = el('div', { className: 'ptmt-settings-panel' });
         this.rootElement = panel;
 
         const topSection = el('div', { style: { display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'stretch', marginBottom: '10px' } });
-        const globalSettings = el('fieldset', { style: { flex: '1 1 300px', margin: '0' } }, el('legend', {}, 'Global Layout'));
+        const globalSettings = el('fieldset', { style: { flex: LAYOUT.SETTINGS_PANEL_FLEX, margin: '0' } }, el('legend', {}, 'Global Layout'));
 
 
 
@@ -168,7 +193,7 @@ export class LayoutManager {
         globalSettings.append(resetBtn);
 
         const colorizerSettings = this.createDialogueColorizerSettings();
-        colorizerSettings.style.flex = '1 1 300px';
+        colorizerSettings.style.flex = LAYOUT.SETTINGS_PANEL_FLEX;
         colorizerSettings.style.margin = '0';
         topSection.append(globalSettings, colorizerSettings);
         panel.append(topSection);
@@ -318,9 +343,7 @@ export class LayoutManager {
         container.appendChild(pane);
 
         // Re-attach listeners to the tabs container for dropping
-        tabsContainer.addEventListener('dragover', this.handleDragOver.bind(this));
-        tabsContainer.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        tabsContainer.addEventListener('drop', (e) => this.handleDrop(e));
+        this.attachDragListeners(tabsContainer);
 
         return container;
     }
@@ -354,19 +377,13 @@ export class LayoutManager {
         }, '⚙');
 
 
-        settingsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.openTabSettingsDialog(sourceId, null, container, true);
-        });
+        this.attachSettingsButtonListener(settingsBtn, sourceId, null, container, true);
 
         container.append(bg, handle, ...(iconSpan ? [iconSpan] : []), titleSpan, settingsBtn);
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e));
 
-        container.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-        container.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
-        container.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), { passive: false });
+        this.attachTouchDragListeners(container);
 
         return container;
     }
@@ -501,9 +518,7 @@ export class LayoutManager {
         container.appendChild(tabsContainer);
 
         // Attach listeners to the WHOLE pane container so dropping anywhere on the pane works
-        container.addEventListener('dragover', this.handleDragOver.bind(this));
-        container.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        container.addEventListener('drop', (e) => this.handleDrop(e));
+        this.attachDragListeners(container);
 
         return container;
     }
@@ -547,26 +562,18 @@ export class LayoutManager {
 
         const titleSpan = el('span', { className: 'ptmt-tab-label' }, tabElement.querySelector('.ptmt-tab-label').textContent);
         const settingsBtn = el('button', {
-            className: 'ptmt-tab-config-btn',
+            className: SELECTORS.TAB_CONFIG_BTN.substring(1),
             title: 'Tab Settings (rename, color, etc.)',
         }, '⚙');
 
-        settingsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.openTabSettingsDialog(sourceId, tabElement, container, false);
-        });
-
+        this.attachSettingsButtonListener(settingsBtn, sourceId, tabElement, container, false);
 
         container.append(bg, handle, iconBtn, titleSpan, settingsBtn);
-
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e, pid));
         container.addEventListener('drop', (e) => this.handleDrop(e));
 
-        container.addEventListener('touchstart', (e) => this.handleTouchStart(e, pid), { passive: false });
-        container.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
-        container.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), { passive: false });
+        this.attachTouchDragListeners(container, pid);
 
         return container;
     }
@@ -633,9 +640,7 @@ export class LayoutManager {
         container.appendChild(tabsContainer);
 
         // Attach listeners to the WHOLE pane container for easier dropping
-        container.addEventListener('dragover', this.handleDragOver.bind(this));
-        container.addEventListener('dragleave', this.handleDragLeave.bind(this));
-        container.addEventListener('drop', (e) => this.handleDrop(e));
+        this.attachDragListeners(container);
 
         return container;
     }
@@ -667,24 +672,18 @@ export class LayoutManager {
         const iconSpan = createIconElement(icon);
         const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
         const settingsBtn = el('button', {
-            className: 'ptmt-tab-config-btn',
+            className: SELECTORS.TAB_CONFIG_BTN.substring(1),
             title: 'Tab Settings (rename, color, etc.)',
         }, '⚙');
 
-        settingsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            this.openTabSettingsDialog(sourceId, null, container, true);
-        });
+        this.attachSettingsButtonListener(settingsBtn, sourceId, null, container, true);
 
         container.append(bg, handle, ...(iconSpan ? [iconSpan] : []), titleSpan, settingsBtn);
 
         container.addEventListener('dragstart', (e) => this.handleDragStart(e));
         container.addEventListener('drop', (e) => this.handleDrop(e));
 
-        container.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
-        container.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
-        container.addEventListener('touchend', (e) => this.handleTouchEnd(e), { passive: false });
-        container.addEventListener('touchcancel', (e) => this.handleTouchEnd(e), { passive: false });
+        this.attachTouchDragListeners(container);
 
         return container;
     }
