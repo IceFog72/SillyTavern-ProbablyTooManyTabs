@@ -843,16 +843,13 @@ export class LayoutManager {
                 }
             }
 
-            const wasActive = info.isActive;
-            const wasCollapsed = info.isCollapsed;
-
+            // Move the tab to the new pane
+            // The tab will be automatically uncollapsed (collapsed class removed) by moveTabIntoPaneAtIndex
             this.appApi.moveTabIntoPaneAtIndex(sourcePanel, targetPane, newIndex);
 
-            if (wasActive) {
-                this.appApi.setActivePanelInPane(targetPane, info.pid);
-            } else if (wasCollapsed) {
-                this.appApi.setTabCollapsed(info.pid, true);
-            }
+            // Always make the dragged tab active in the new pane
+            // The user is explicitly moving/interacting with this tab, so it should become active
+            this.appApi.setActivePanelInPane(targetPane, info.pid);
 
             // Re-sync icon mode and layout
             this.appApi.checkPaneForIconMode(targetPane);

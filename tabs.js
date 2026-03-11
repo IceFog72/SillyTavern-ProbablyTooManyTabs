@@ -504,6 +504,11 @@ export function moveTabToPane(pid, pane) {
     if (!pane._panelContainer.contains(panel)) pane._panelContainer.appendChild(panel);
   }
 
+  // Reset collapsed state when moving to a new pane
+  // The tab/panel should be expanded in its new context
+  tab.classList.remove('collapsed');
+  if (panel) panel.classList.remove('collapsed');
+
   if (prevPane) {
     const isCurrentlyCollapsed = prevPane.classList.contains('view-collapsed');
     // Only maintain active tab if pane is OPEN and we didn't just remove the active one.
@@ -569,6 +574,12 @@ export function moveTabIntoPaneAtIndex(panel, pane, index) {
   }
   const panelInsertBefore = index >= pane._panelContainer.children.length ? null : pane._panelContainer.children[Math.min(index, pane._panelContainer.children.length - 1)];
   pane._panelContainer.insertBefore(panel, panelInsertBefore);
+
+
+  // Reset collapsed state when moving to a new pane
+  // The tab/panel should be expanded in its new context
+  tab.classList.remove('collapsed');
+  panel.classList.remove('collapsed');
 
 
   if (prevPane) {
