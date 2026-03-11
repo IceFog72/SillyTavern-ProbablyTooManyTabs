@@ -33,7 +33,8 @@ export class SettingsManager {
         // Bitmask: 1=quoted text, 2=bubbles, 3=both
         dialogueColorizerColorizeTarget: 3,
         // Opacity for bubble backgrounds (0.0 to 1.0)
-        dialogueColorizerBubbleOpacity: 0.1,
+        dialogueColorizerBubbleOpacityBot: 0.1,
+        dialogueColorizerBubbleOpacityUser: 0.1,
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: 'fa-compass' },

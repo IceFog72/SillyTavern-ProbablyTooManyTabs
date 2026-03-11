@@ -326,9 +326,10 @@ async function getCharacterColor(info) {
 
 // ─── CSS generation ───────────────────────────────────────────────────────────
 
-function buildCssRules(safeUid, color) {
+function buildCssRules(safeUid, color, type) {
     const target = settings.get('dialogueColorizerColorizeTarget') ?? 1;
-    const opacity = settings.get('dialogueColorizerBubbleOpacity') ?? 0.2;
+    const opacityKey = type === 'persona' ? 'dialogueColorizerBubbleOpacityUser' : 'dialogueColorizerBubbleOpacityBot';
+    const opacity = settings.get(opacityKey) ?? 0.1;
     let css = '';
 
     if (target & 1) { // QUOTED_TEXT
@@ -400,7 +401,7 @@ async function updateStyles() {
 
     const results = await Promise.all(Array.from(uidsInDom.values()).map(async info => {
         const color = await getCharacterColor(info);
-        const rule = buildCssRules(info.uid.replace(/\W/g, '_'), color);
+        const rule = buildCssRules(info.uid.replace(/\W/g, '_'), color, info.type);
         return { info, rule };
     }));
 
@@ -463,10 +464,10 @@ export function initColorizer() {
             'enableDialogueColorizer',
             'dialogueColorizerSource', 'dialogueColorizerStaticColor',
             'dialogueColorizerPersonaSource', 'dialogueColorizerPersonaStaticColor',
-            'dialogueColorizerColorizeTarget', 'dialogueColorizerBubbleOpacity',
+            'dialogueColorizerColorizeTarget', 'dialogueColorizerBubbleOpacityBot', 'dialogueColorizerBubbleOpacityUser',
         ];
         if (keys.some(k => colorizerKeys.includes(k))) {
-            if (!keys.includes('dialogueColorizerBubbleOpacity') && !keys.includes('dialogueColorizerColorizeTarget')) {
+            if (!keys.includes('dialogueColorizerBubbleOpacityBot') && !keys.includes('dialogueColorizerBubbleOpacityUser') && !keys.includes('dialogueColorizerColorizeTarget')) {
                 colorCache.clear();
             }
             updateStyles();

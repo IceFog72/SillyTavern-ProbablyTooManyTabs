@@ -1240,19 +1240,33 @@ export class LayoutManager {
         targetSel.value = String(s.get('dialogueColorizerColorizeTarget') ?? 1);
         container.appendChild(row([lbl('Colorize Target', 'ptmt-col-target'), targetSel]));
 
-        // Bubble Opacity
-        const opacityVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((s.get('dialogueColorizerBubbleOpacity') ?? 0.2) * 100)}%`);
-        const opacitySlider = el('input', {
+        // Bubble Opacity (Characters)
+        const opacityBotVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((s.get('dialogueColorizerBubbleOpacityBot') ?? 0.1) * 100)}%`);
+        const opacityBotSlider = el('input', {
             type: 'range', min: '0', max: '1', step: '0.01',
-            value: s.get('dialogueColorizerBubbleOpacity') ?? 0.2,
+            value: s.get('dialogueColorizerBubbleOpacityBot') ?? 0.1,
             className: 'ptmt-opacity-slider'
         });
-        opacitySlider.addEventListener('input', () => {
-            const val = parseFloat(opacitySlider.value);
-            opacityVal.textContent = `${Math.round(val * 100)}%`;
-            s.update({ dialogueColorizerBubbleOpacity: val });
+        opacityBotSlider.addEventListener('input', () => {
+            const val = parseFloat(opacityBotSlider.value);
+            opacityBotVal.textContent = `${Math.round(val * 100)}%`;
+            s.update({ dialogueColorizerBubbleOpacityBot: val });
         });
-        container.appendChild(row([lbl('Bubble Opacity', 'ptmt-bubble-opacity'), opacitySlider, opacityVal]));
+        container.appendChild(row([lbl('Char Bubble Opacity', 'ptmt-bubble-opacity-bot'), opacityBotSlider, opacityBotVal]));
+
+        // Bubble Opacity (Personas)
+        const opacityUserVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((s.get('dialogueColorizerBubbleOpacityUser') ?? 0.1) * 100)}%`);
+        const opacityUserSlider = el('input', {
+            type: 'range', min: '0', max: '1', step: '0.01',
+            value: s.get('dialogueColorizerBubbleOpacityUser') ?? 0.1,
+            className: 'ptmt-opacity-slider'
+        });
+        opacityUserSlider.addEventListener('input', () => {
+            const val = parseFloat(opacityUserSlider.value);
+            opacityUserVal.textContent = `${Math.round(val * 100)}%`;
+            s.update({ dialogueColorizerBubbleOpacityUser: val });
+        });
+        container.appendChild(row([lbl('User Bubble Opacity', 'ptmt-bubble-opacity-user'), opacityUserSlider, opacityUserVal]));
 
         // ── Characters ───────────────────────────────────────────────────────
         const charSection = el('fieldset', {}, el('legend', {}, 'Characters'));
