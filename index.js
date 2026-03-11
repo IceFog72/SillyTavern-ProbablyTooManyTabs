@@ -19,7 +19,8 @@ import {
   moveTabIntoPaneAtIndex, destroyTabById,
   setActivePanelInPane, setTabCollapsed, getActivePane,
 } from './tabs.js';
-import { attachResizer, setSplitOrientation, updateResizerDisabledStates, recalculateAllSplitsRecursively, validateAndCorrectAllMinSizes, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
+import { attachResizer, setSplitOrientation, updateResizerDisabledStates, validateAndCorrectAllMinSizes, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
+import { recalculateAllSplitsRecursively } from './layout-math.js';
 import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveBgDivs, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
@@ -479,15 +480,6 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
 
   document.body.insertAdjacentHTML('beforeend', `<div id="${SELECTORS.SETTINGS_WRAPPER.substring(1)}" style="display:none;"></div>`);
 
-
-  // Inject Vibrant.js
-  if (!window.Vibrant) {
-    const extensionPath = import.meta.url.replace(/index\.js$/, '');
-    const script = document.createElement('script');
-    script.id = 'ptmt-vibrant-script';
-    script.src = `${extensionPath}Vibrant.min.js`;
-    document.head.appendChild(script);
-  }
 
   eventSource.on(event_types.APP_READY, () => { initApp(); });
 })();

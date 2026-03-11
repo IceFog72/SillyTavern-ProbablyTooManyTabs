@@ -1,14 +1,15 @@
 // snapshot.js 
 
-import { getRefs, writePaneViewSettings, readPaneViewSettings } from './utils.js'; // Ensure getRefs is imported from utils
+import { getRefs, writePaneViewSettings, readPaneViewSettings } from './utils.js';
 import { getPanelById, getSplitOrientation, el, getPanelBySourceId } from './utils.js';
 import { createPane, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
 import { setActivePanelInPane, createPanelElement, registerPanelDom, createTabElement, createTabFromContent } from './tabs.js';
-import { attachResizer, updateResizerDisabledStates, recalculateAllSplitsRecursively, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
+import { attachResizer, updateResizerDisabledStates, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
 import { recalculateColumnSizes } from './layout.js';
 import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
+import { recalculateAllSplitsRecursively, parseFlexBasis } from './layout-math.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 
 
@@ -105,13 +106,8 @@ export function generateLayoutSnapshot() {
             // Capture ratios using lastFlex (user intent) as priority, then style.flex (current state)
             const splitRatios = structuralChildren.map(child => {
                 const flexString = child.dataset.lastFlex || child.style.flex || '';
-                const percentMatch = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
-                if (percentMatch) {
-                    return parseFloat(percentMatch[1]);
-                }
-
-                // Fallback: If no percent found, assumes equal distribution
-                return (100 / structuralChildren.length);
+                const basis = parseFlexBasis(flexString);
+                return basis ?? (100 / structuralChildren.length);
             });
 
             const isCollapsed = element.classList.contains(SELECTORS.CONTAINER_COLLAPSED.substring(1));

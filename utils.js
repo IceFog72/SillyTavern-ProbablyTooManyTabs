@@ -107,24 +107,6 @@ export function getElementDepth(element) {
     return depth;
 }
 
-export function setFlexBasisPercent(elem, percent, grow = 1, shrink = 1) {
-    const clampedPercent = Math.max(0, Math.min(100, percent));
-
-    const isResizable = elem?.classList.contains('ptmt-pane') || elem?.classList.contains('ptmt-split') || elem?.classList.contains('ptmt-body-column');
-    const isCollapsed = elem?.classList.contains('view-collapsed') || elem?.classList.contains('ptmt-container-collapsed');
-
-    if (isResizable && !isCollapsed) {
-        try {
-            elem.style.flex = `${grow} ${shrink} ${clampedPercent.toFixed(4)}%`;
-        } catch {
-            Object.assign(elem.style, {
-                flexBasis: `${clampedPercent.toFixed(4)}%`,
-                flexGrow: `${grow}`,
-                flexShrink: `${shrink}`
-            });
-        }
-    }
-}
 
 export function createIconElement(icon, className = 'ptmt-tab-icon') {
     if (!icon) return null;

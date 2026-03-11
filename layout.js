@@ -1,125 +1,15 @@
-import { el, getRefs, calculateElementMinWidth } from './utils.js'; // getRefs imported from utils
+import { el, getRefs, calculateElementMinWidth } from './utils.js';
 import { createPane, findPreferredDescendentOrientation } from './pane.js';
 import { attachColumnResizer } from './resizer.js';
 import { settings } from './settings.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
+import { getBasis, normalizeFlexBasis } from './layout-math.js';
 
 /** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
 /** @typedef {import('./types.js').ColumnLayout} ColumnLayout */
 /** @typedef {import('./types.js').PaneNode} PaneNode */
 /** @typedef {import('./types.js').SplitNode} SplitNode */
 
-
-export function getBasis(col, useLastFlex = false) {
-    if (!col || col.style.display === 'none') return 0;
-    let flexString = col.style.flex;
-    if (useLastFlex && col.dataset.isColumnCollapsed === 'true') {
-        flexString = col.dataset.lastFlex || flexString;
-    }
-    if (!useLastFlex && col.dataset.isColumnCollapsed === 'true') return 0;
-    const basisMatch = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
-    return basisMatch ? parseFloat(basisMatch[1]) : 0;
-}
-
-let lastParentWidth = 0;
-export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = null) {
-    const refs = getRefs();
-    if (!refs || !refs.mainBody || activeColumns.length === 0) return;
-
-    const parentRect = refs.mainBody.getBoundingClientRect();
-    const parentWidth = parentRect.width;
-
-    // Guard: ignore if container is hidden or too small to meaningfully calculate percentages
-    // This often happens during sudden UI reflows or tab switches
-    if (parentWidth < 100) return;
-
-    const totalResizerWidth = Array.from(refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER)).reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
-
-    const availableWidth = Math.max(1, parentWidth - totalResizerWidth);
-
-    // Initial pass: fix any negative or starved values
-    let currentTotal = 0;
-    let anyChanges = false;
-    const columnData = activeColumns.map(col => {
-        const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`);
-        const minPx = content ? calculateElementMinWidth(content) : 250;
-
-        // Clamp minPercent to a reasonable range [0.001, 76] to avoid taking whole screen or div by 0
-        const minPercent = Math.min(76, (minPx / availableWidth) * 100);
-
-        let basis = getBasis(col);
-        // Added 0.1% tolerance to prevent subpixel jitter creep
-        if (basis < minPercent - 0.1) {
-            basis = minPercent;
-            anyChanges = true;
-        }
-        currentTotal += basis;
-        return { col, minPercent, basis };
-    });
-
-    let error = currentTotal - targetTotal;
-
-    // Only apply logic if we had a forced bump or if the total error is significant
-    // OR if the viewport actually changed.
-    if (!anyChanges && Math.abs(error) <= 0.01 && parentWidth === lastParentWidth) return;
-    lastParentWidth = parentWidth;
-
-    // Iterative pass to reduce error while respecting minPercent
-    if (Math.abs(error) > 0.0001) {
-        if (error > 0) {
-            const actorIndex = actor ? activeColumns.indexOf(actor) : -1;
-            const donors = columnData.filter(d => d.col !== actor);
-
-            if (actorIndex !== -1) {
-                // Neighborhood first: Sort donors by distance from actor
-                donors.sort((a, b) => {
-                    const distA = Math.abs(activeColumns.indexOf(a.col) - actorIndex);
-                    const distB = Math.abs(activeColumns.indexOf(b.col) - actorIndex);
-                    return distA - distB;
-                });
-            } else {
-                // If there's an unexpected large debt overall and no actor caused it
-                // (e.g. hydration overlaps), steal from centerBody first since it acts as the fluid sink
-                donors.sort((a, b) => {
-                    if (a.col.id === 'ptmt-centerBody') return -1;
-                    if (b.col.id === 'ptmt-centerBody') return 1;
-                    return 0;
-                });
-            }
-
-            // Distribute debt to preferred donors first
-            for (const d of donors) {
-                const stealable = Math.max(0, d.basis - d.minPercent);
-                if (stealable > 0) {
-                    const taken = Math.min(error, stealable);
-                    d.basis -= taken;
-                    error -= taken;
-                }
-                if (error <= 0.0001) break;
-            }
-
-            // Final emergency fallback if neighbors were at min
-            if (error > 0.001) {
-                const totalBasis = columnData.reduce((sum, d) => sum + d.basis, 0);
-                const factor = targetTotal / totalBasis;
-                columnData.forEach(d => {
-                    d.basis = Math.max(0.001, d.basis * factor);
-                });
-            }
-        } else {
-            // Error is negative: we have extra space. Add it to the largest column.
-            const sorted = [...columnData].sort((a, b) => b.basis - a.basis);
-            if (sorted[0]) sorted[0].basis -= error; // error is negative, so this adds
-        }
-    }
-
-    // Apply the final sizes to style.flex only.
-    // lastFlex is intentionally NOT updated here — it is user-intent memory
-    // that should only be written at drag-end or when a column explicitly collapses/expands.
-    columnData.forEach(d => {
-        d.col.style.flex = `1 1 ${d.basis.toFixed(4)}%`;
-    });
-}
 
 export function createLayoutIfMissing() {
     if (document.getElementById('ptmt-main')) return getRefs();

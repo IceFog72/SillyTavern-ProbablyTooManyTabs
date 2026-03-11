@@ -1,5 +1,6 @@
 import { settings } from './settings.js';
 import { el, debounce, getPanelBySourceId, createIconElement, clearDropIndicators } from './utils.js';
+import { clearColorizerCache } from './dialogue-colorizer.js';
 import { showFontAwesomePicker } from '../../../utils.js';
 import { getTabIdentifier } from './pending-tabs.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
@@ -1223,62 +1224,110 @@ export class LayoutManager {
     }
 
     createDialogueColorizerSettings() {
-        const container = el('fieldset', {}, el('legend', {}, 'Dialogue Colorizer (Quoted Text Only)'));
+        const s = this.settings;
 
-        const createSettingCheckbox = (labelText, settingKey) => {
-            const id = `ptmt-colorizer-${settingKey}`;
-            const wrapper = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' } });
-            const checkbox = el('input', { type: 'checkbox', id, checked: this.settings.get(settingKey) });
-            const label = el('label', { for: id }, labelText);
+        // ── helpers ──────────────────────────────────────────────────────────
+        const row = (children, extra = {}) =>
+            el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' }, ...extra }, ...children);
 
-            checkbox.addEventListener('change', (e) => {
-                this.settings.update({ [settingKey]: e.target.checked });
-            });
+        const lbl = (text, forId) => el('label', forId ? { for: forId } : {}, text);
 
-            wrapper.append(checkbox, label);
-            return wrapper;
+        const checkbox = (id, key) => {
+            const inp = el('input', { type: 'checkbox', id, checked: s.get(key) });
+            inp.addEventListener('change', e => s.update({ [key]: e.target.checked }));
+            return inp;
         };
 
-        const createSettingDropdown = (labelText, settingKey, options) => {
-            const id = `ptmt-colorizer-${settingKey}`;
-            const wrapper = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' } });
-            const label = el('label', { for: id }, labelText);
-            const select = el('select', { id });
-
-            options.forEach(opt => {
-                select.appendChild(el('option', { value: opt.value, selected: this.settings.get(settingKey) === opt.value }, opt.label));
-            });
-
-            select.addEventListener('change', (e) => {
-                this.settings.update({ [settingKey]: e.target.value });
-            });
-
-            wrapper.append(label, select);
-            return wrapper;
+        const dropdown = (id, key, options) => {
+            const sel = el('select', { id });
+            options.forEach(o => sel.appendChild(el('option', { value: o.value, selected: s.get(key) === o.value }, o.label)));
+            sel.addEventListener('change', e => s.update({ [key]: e.target.value }));
+            // Numeric keys (like colorizeTarget) need parseInt
+            if (typeof s.get(key) === 'number') {
+                sel.addEventListener('change', e => s.update({ [key]: parseInt(e.target.value, 10) }));
+            }
+            return sel;
         };
 
-        const createColorPicker = (labelText, settingKey) => {
-            const id = `ptmt-colorizer-${settingKey}`;
-            const wrapper = el('div', { style: { display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px' } });
-            const label = el('label', { for: id }, labelText);
-            const input = el('input', { type: 'color', id, value: this.settings.get(settingKey) });
-
-            input.addEventListener('input', (e) => {
-                this.settings.update({ [settingKey]: e.target.value });
-            });
-
-            wrapper.append(label, input);
-            return wrapper;
+        const colorPicker = (id, key) => {
+            const inp = el('input', { type: 'color', id, value: s.get(key) });
+            inp.addEventListener('input', e => s.update({ [key]: e.target.value }));
+            return inp;
         };
 
-        container.append(
-            createSettingCheckbox('Enable Dialogue Colorizer', 'enableDialogueColorizer'),
-            createSettingDropdown('Color Source', 'dialogueColorizerSource', [
-                { value: 'avatar_vibrant', label: 'Avatar Vibrant' },
-                { value: 'static_color', label: 'Static Color' }
-            ]),
-            createColorPicker('Static Color', 'dialogueColorizerStaticColor')
-        );
+        const sourceOptions = [
+            { value: 'avatar_vibrant', label: 'Avatar Vibrant (auto)' },
+            { value: 'static_color', label: 'Static Color' },
+        ];
+
+        // ── Assemble ─────────────────────────────────────────────────────────
+        const container = el('fieldset', {}, el('legend', {}, 'Dialogue Colorizer'));
+
+        // Enable toggle
+        container.appendChild(row([
+            checkbox('ptmt-col-enable', 'enableDialogueColorizer'),
+            lbl('Enable Dialogue Colorizer', 'ptmt-col-enable'),
+        ]));
+
+        // Colorize target
+        const targetSel = dropdown('ptmt-col-target', 'dialogueColorizerColorizeTarget', [
+            { value: '1', label: 'Quoted Text Only' },
+            { value: '2', label: 'Chat Bubbles Only' },
+            { value: '3', label: 'Both' },
+        ]);
+        // Sync initial numeric value
+        targetSel.value = String(s.get('dialogueColorizerColorizeTarget') ?? 1);
+        container.appendChild(row([lbl('Colorize Target', 'ptmt-col-target'), targetSel]));
+
+        // Bubble Opacity
+        const opacityVal = el('span', { style: { minWidth: '35px', textAlign: 'right', opacity: '0.8' } }, `${Math.round((s.get('dialogueColorizerBubbleOpacity') ?? 0.2) * 100)}%`);
+        const opacitySlider = el('input', {
+            type: 'range', min: '0', max: '1', step: '0.01',
+            value: s.get('dialogueColorizerBubbleOpacity') ?? 0.2,
+            style: { flex: '1', minWidth: '0' }
+        });
+        opacitySlider.addEventListener('input', () => {
+            const val = parseFloat(opacitySlider.value);
+            opacityVal.textContent = `${Math.round(val * 100)}%`;
+            s.update({ dialogueColorizerBubbleOpacity: val });
+        });
+        container.appendChild(row([lbl('Bubble Opacity', 'ptmt-bubble-opacity'), opacitySlider, opacityVal]));
+
+        // ── Characters ───────────────────────────────────────────────────────
+        const charSection = el('fieldset', {}, el('legend', {}, 'Characters'));
+        charSection.appendChild(row([
+            lbl('Color Source', 'ptmt-col-charsrc'),
+            dropdown('ptmt-col-charsrc', 'dialogueColorizerSource', sourceOptions),
+        ]));
+        charSection.appendChild(row([
+            lbl('Static Color', 'ptmt-col-charstaticcolor'),
+            colorPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor'),
+        ]));
+        container.appendChild(charSection);
+
+        // ── Personas ─────────────────────────────────────────────────────────
+        const personaSection = el('fieldset', {}, el('legend', {}, 'Personas (User)'));
+        personaSection.appendChild(row([
+            lbl('Color Source', 'ptmt-col-personasrc'),
+            dropdown('ptmt-col-personasrc', 'dialogueColorizerPersonaSource', sourceOptions),
+        ]));
+        personaSection.appendChild(row([
+            lbl('Static Color', 'ptmt-col-personastaticcolor'),
+            colorPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor'),
+        ]));
+        container.appendChild(personaSection);
+
+        // Refresh Colors button
+        const refreshBtn = el('button', {
+            id: 'ptmt-colorizer-refresh',
+            class: 'menu_button',
+            style: { marginTop: '10px', width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }
+        }, [el('i', { class: 'fa-solid fa-sync' }), 'Refresh & Re-extract Colors']);
+        refreshBtn.addEventListener('click', () => {
+            clearColorizerCache();
+            if (window.toastr) window.toastr.success('Dialogue colors refreshed and re-extracted.');
+        });
+        container.appendChild(refreshBtn);
 
         return container;
     }

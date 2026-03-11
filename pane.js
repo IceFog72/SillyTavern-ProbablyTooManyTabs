@@ -3,7 +3,8 @@ import { showContextMenu } from './context-menu.js';
 import { settings } from './settings.js';
 import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
-import { recalculateAllSplitsRecursively, recalculateSplitSizes, updateResizerDisabledStates, attachResizer, setSplitOrientation } from './resizer.js';
+import { updateResizerDisabledStates, attachResizer, setSplitOrientation } from './resizer.js';
+import { recalculateSplitSizes, recalculateAllSplitsRecursively, setFlexBasisPercent } from './layout-math.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 
 /** @typedef {import('./types.js').ViewSettings} ViewSettings */
@@ -372,7 +373,7 @@ export function setPaneCollapsedView(pane, collapsed) {
         } else {
           targetBasisPercent = minBasisPercent;
         }
-        pane.style.flex = `1 1 ${Math.min(100, targetBasisPercent).toFixed(4)}%`;
+        setFlexBasisPercent(pane, Math.min(100, targetBasisPercent));
       } else {
         pane.style.flex = (lastFlex && !isFlexInvalid) ? lastFlex : LAYOUT.DEFAULT_PANE_FLEX_BASIS;
       }

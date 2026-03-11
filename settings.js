@@ -26,7 +26,13 @@ export class SettingsManager {
         autoOpenFirstCenterTab: true,
         enableAvatarExpressionSync: false,
         dialogueColorizerSource: 'avatar_vibrant',
-        dialogueColorizerStaticColor: '#e18a24',
+        dialogueColorizerStaticColor: '#da6745ff',
+        dialogueColorizerPersonaSource: 'avatar_vibrant',
+        dialogueColorizerPersonaStaticColor: '#537fddff',
+        // Bitmask: 1=quoted text, 2=bubbles, 3=both
+        dialogueColorizerColorizeTarget: 3,
+        // Opacity for bubble backgrounds (0.0 to 1.0)
+        dialogueColorizerBubbleOpacity: 0.1,
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: 'fa-compass' },

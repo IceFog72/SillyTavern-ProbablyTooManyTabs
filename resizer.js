@@ -1,7 +1,8 @@
 // resizer.js
-import { $$, getElementDepth, setFlexBasisPercent, throttle, debounce, getRefs, el, $, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings } from './utils.js';
-import { recalculateColumnSizes, normalizeFlexBasis, getBasis } from './layout.js';
+import { $$, getElementDepth, throttle, debounce, getRefs, el, $, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings } from './utils.js';
+import { normalizeFlexBasis, getBasis, setFlexBasisPercent, pxToPercent, applyIntelligentExpansion, recalculateSplitSizes, recalculateAllSplitsRecursively } from './layout-math.js';
 import { applyPaneOrientation, setPaneCollapsedView, applySplitOrientation, removePaneIfEmpty } from './pane.js';
+import { recalculateColumnSizes } from './layout.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 import { settings } from './settings.js';
 
@@ -50,8 +51,6 @@ export function checkPaneForIconMode(pane) {
 }
 
 const throttledCheckPaneForIconMode = throttle(checkPaneForIconMode, 80);
-
-const pxToPercent = (px, total) => !Number.isFinite(total) || total <= 0 ? 50 : Math.max(0, Math.min(100, (px / total) * 100));
 
 function createResizer(resizer, orientation, config) {
     const isVertical = orientation === 'vertical' || orientation === 'v';
@@ -132,46 +131,6 @@ function createResizer(resizer, orientation, config) {
             resizer.removeEventListener('pointerdown', onPointerDown);
         }
     };
-}
-
-/**
- * Applies intelligent expansion logic. If the element contains a split matching the drag
- * orientation, it locks the smallest child's size and lets larger ones grow.
- */
-function applyIntelligentExpansion(element, newTotalSize, childInfo) {
-    if (!element || !childInfo || !childInfo.element) {
-        recalculateAllSplitsRecursively(element);
-        return;
-    }
-
-    const { sizes: initialChildSizes, smallestIndex, element: splitElement } = childInfo;
-    const children = Array.from(splitElement.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
-    const smallestChildInitialSize = initialChildSizes[smallestIndex];
-
-    const newSmallestChildBasisPercent = pxToPercent(smallestChildInitialSize, newTotalSize);
-
-    let totalBasisForOthers = 0;
-    initialChildSizes.forEach((size, index) => {
-        if (index !== smallestIndex) {
-            totalBasisForOthers += size;
-        }
-    });
-
-    if (totalBasisForOthers <= 0) {
-        recalculateAllSplitsRecursively(element);
-        return;
-    }
-
-    const remainingPercent = 100 - newSmallestChildBasisPercent;
-
-    children.forEach((child, index) => {
-        if (index === smallestIndex) {
-            setFlexBasisPercent(child, newSmallestChildBasisPercent, 0, 1); // grow=0 is key
-        } else {
-            const childsProportion = initialChildSizes[index] / totalBasisForOthers;
-            setFlexBasisPercent(child, remainingPercent * childsProportion, 1, 1);
-        }
-    });
 }
 
 export function attachResizer(resizer, orientation = 'vertical') {
@@ -448,147 +407,6 @@ export function updateResizerDisabledStates() {
 }
 
 
-
-export function recalculateAllSplitsRecursively(root = getRefs().mainBody) {
-    try {
-        if (!root) return;
-        const splits = Array.from(root.querySelectorAll(SELECTORS.SPLIT));
-        splits.sort((a, b) => getElementDepth(a) - getElementDepth(b));
-        for (const split of splits) {
-            recalculateSplitSizes(split);
-        }
-    } catch (e) {
-        console.warn('recalculateAllSplitsRecursively error:', e);
-    }
-}
-
-export function recalculateSplitSizes(split, actor = null) {
-    if (!split?.classList.contains(SELECTORS.SPLIT.substring(1))) return;
-
-    const children = Array.from(split.children).filter(c =>
-        c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1))
-    );
-    if (children.length === 0) return;
-
-    let activeChildren = children.filter(c => !c.classList.contains(SELECTORS.VIEW_COLLAPSED.substring(1)) && !c.classList.contains(SELECTORS.CONTAINER_COLLAPSED.substring(1)));
-
-    // NEW: If ALL children are collapsed (e.g. inside a collapsed column), they should share the space equally
-    // instead of shrinking to '0 0 auto'. This allows correct alignment (e.g. 50/50 split of the 72px column).
-    // This also ensures that collapsed panels in the Center Column FILL the center instead of stacking on the left.
-    const allCollapsed = activeChildren.length === 0;
-    if (allCollapsed) {
-        activeChildren = children;
-    }
-
-    if (activeChildren.length < children.length) {
-        // Normalize open children's flex so they fill the available space,
-        // but preserve their existing proportions (lastFlex or current flex) instead
-        // of blindly resetting to equal distribution.
-        const totalOpenFlex = activeChildren.reduce((sum, child) => {
-            const flexStr = child.dataset.lastFlex || child.style.flex || '';
-            const m = flexStr.match(/(\d+(?:\.\d+)?)\s*%/);
-            return sum + (m ? parseFloat(m[1]) : (100 / activeChildren.length));
-        }, 0);
-
-        children.forEach(child => {
-            if (child.classList.contains(SELECTORS.VIEW_COLLAPSED.substring(1)) || child.classList.contains(SELECTORS.CONTAINER_COLLAPSED.substring(1))) {
-                child.style.flex = '0 0 auto';
-            } else {
-                // Restore the child's last known flex, scaled so all open children sum to 100%
-                const flexStr = child.dataset.lastFlex || child.style.flex || '';
-                const m = flexStr.match(/(\d+(?:\.\d+)?)\s*%/);
-                const rawBasis = m ? parseFloat(m[1]) : (100 / activeChildren.length);
-                const scaled = totalOpenFlex > 0 ? (rawBasis / totalOpenFlex) * 100 : (100 / activeChildren.length);
-                setFlexBasisPercent(child, scaled);
-            }
-        });
-        return;
-    }
-
-    const isHorizontal = split.classList.contains('horizontal');
-    const sizeProp = isHorizontal ? 'height' : 'width';
-    const splitRect = split.getBoundingClientRect();
-    const totalAvailableSize = splitRect[sizeProp];
-    if (totalAvailableSize <= 1) return;
-
-    const resizers = Array.from(split.children).filter(c => c.tagName === 'SPLITTER');
-    const totalResizerSize = resizers.reduce((sum, r) => sum + r.getBoundingClientRect()[sizeProp], 0);
-    const contentAvailableSize = Math.max(0, totalAvailableSize - totalResizerSize);
-
-    const childrenInfo = activeChildren.map(child => {
-        const flexValue = child.dataset.lastFlex || child.style.flex;
-        const basisMatch = flexValue && flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        const flexBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : (100 / activeChildren.length);
-        return {
-            el: child,
-            minSize: calculateElementMinWidth(child),
-            flexBasisPercent
-        };
-    });
-
-    const totalMinSize = childrenInfo.reduce((sum, info) => sum + info.minSize, 0);
-    let finalSizes;
-
-    if (contentAvailableSize < totalMinSize) {
-        finalSizes = (totalMinSize > 0) ? childrenInfo.map(info => contentAvailableSize * (info.minSize / totalMinSize)) : childrenInfo.map(() => contentAvailableSize / childrenInfo.length);
-    } else {
-        let idealSizes = childrenInfo.map(info => contentAvailableSize * (info.flexBasisPercent / 100));
-        let deficit = 0;
-        idealSizes.forEach((size, i) => {
-            const min = childrenInfo[i].minSize;
-            if (size < min) { deficit += min - size; idealSizes[i] = min; }
-        });
-
-        if (deficit > 0.01) {
-            const actorIndex = actor ? activeChildren.indexOf(actor) : -1;
-            const donorData = idealSizes.map((size, i) => ({ index: i, stealable: Math.max(0, size - childrenInfo[i].minSize) })).filter(d => d.index !== actorIndex);
-
-            if (actorIndex !== -1) {
-                // Neighborhood first
-                donorData.sort((a, b) => Math.abs(a.index - actorIndex) - Math.abs(b.index - actorIndex));
-            }
-
-            for (const donor of donorData) {
-                const taken = Math.min(deficit, donor.stealable);
-                idealSizes[donor.index] -= taken;
-                deficit -= taken;
-                if (deficit <= 0.01) break;
-            }
-
-            // Fallback for remaining deficit
-            if (deficit > 0.01) {
-                const stealableTotal = idealSizes.reduce((sum, size, i) => sum + Math.max(0, size - childrenInfo[i].minSize), 0);
-                if (stealableTotal > 0.1) {
-                    const factor = deficit / stealableTotal;
-                    idealSizes.forEach((size, i) => {
-                        const s = Math.max(0, size - childrenInfo[i].minSize);
-                        idealSizes[i] -= s * factor;
-                    });
-                }
-            }
-        }
-
-        const currentTotalSize = idealSizes.reduce((a, b) => a + b, 0);
-        const surplus = contentAvailableSize - currentTotalSize;
-
-        if (Math.abs(surplus) > 0.1) {
-            let largestChildIndex = -1, maxSize = -1;
-            idealSizes.forEach((size, i) => {
-                if (size > maxSize) { maxSize = size; largestChildIndex = i; }
-            });
-            if (largestChildIndex !== -1) { idealSizes[largestChildIndex] += surplus; }
-        }
-        finalSizes = idealSizes;
-    }
-
-    const totalFinalSize = finalSizes.reduce((sum, size) => sum + size, 0);
-    if (totalFinalSize > 0.1) {
-        activeChildren.forEach((child, index) => {
-            const percentage = pxToPercent(finalSizes[index], totalFinalSize);
-            setFlexBasisPercent(child, percentage);
-        });
-    }
-}
 
 export function validateAndCorrectAllMinSizes(isResize = false) {
     let needsRecalculation = false;
