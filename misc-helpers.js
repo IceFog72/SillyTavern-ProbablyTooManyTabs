@@ -60,8 +60,8 @@ export function moveBgDivs(ids = ['bg_custom', 'bg1']) {
     } catch {
       try {
         document.body.appendChild(eln);
-      } catch (e) {
-  console.warn('[PTMT] Failed :', e);
+} catch (e) {
+        console.warn('[PTMT] Failed to append element to document body:', e);
 }
     }
   });

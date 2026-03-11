@@ -241,7 +241,7 @@ export function writePaneViewSettings(pane, newPaneSettings) {
     pane.dataset.viewSettings = JSON.stringify(updated);
     pane._viewSettingsCache = updated;
   } catch (e) {
-    console.warn('[PTMT] Failed to write pane settings:', e);
+    console.warn('[PTMT] Failed to write pane view settings to dataset:', e);
   }
 }
 
@@ -496,7 +496,7 @@ export function removePaneIfEmpty(pane, depth = 0) {
   }
 
   try { window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED)); } catch (e) {
-    console.warn('[PTMT] Failed :', e);
+    console.warn('[PTMT] Failed to dispatch LAYOUT_CHANGED event:', e);
   }
 }
 
@@ -583,14 +583,14 @@ function normalizeLiftedElement(el) {
           }
         } else {
           try { c.style.flex = ''; } catch (e) {
-            console.warn('[PTMT] Failed :', e);
+            console.warn('[PTMT] Failed to clear flex style on element:', e);
           }
         }
       });
       return;
     }
     try { el.style.flex = ''; } catch (e) {
-      console.warn('[PTMT] Failed :', e);
+      console.warn('[PTMT] Failed to clear flex style on element:', e);
     }
   } catch (e) {
     console.warn('normalizeLiftedElement error', e);

@@ -171,7 +171,7 @@ export function writePaneViewSettings(pane, newPaneSettings) {
         pane.dataset.viewSettings = JSON.stringify(updated);
         pane._viewSettingsCache = updated;
     } catch (e) {
-        console.warn('[PTMT] Failed to write pane settings:', e);
+        console.warn('[PTMT] Failed to write pane view settings to dataset:', e);
     }
 }
 

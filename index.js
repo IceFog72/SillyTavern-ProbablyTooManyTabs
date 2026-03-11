@@ -2,7 +2,7 @@
 
 import { eventSource, event_types, characters, animation_duration, swipe, isSwipingAllowed } from '../../../../script.js';
 import { SWIPE_DIRECTION, SWIPE_SOURCE } from '../../../../scripts/constants.js';
-import { SELECTORS, EVENTS } from './constants.js';
+import { SELECTORS, EVENTS, MESSAGES } from './constants.js';
 import { power_user } from '../../../power-user.js';
 
 import { isDataURL } from '../../../utils.js';
@@ -84,7 +84,7 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
         const isMobile = settings.get('isMobile');
         const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
         settings.update({ [key]: layout });
-        alert(`${isMobile ? 'Mobile' : 'Desktop'} layout saved manually to ${key}.`);
+        window.toastr?.success(MESSAGES.LAYOUT_SAVED(isMobile ? 'Mobile' : 'Desktop'), 'Layout Saved');
       },
       loadLayout: () => {
         const isMobile = settings.get('isMobile');
@@ -93,11 +93,11 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
         if (layout) {
           applyLayoutSnapshot(layout, api, settings);
         } else {
-          alert(`No saved ${isMobile ? 'mobile' : 'desktop'} layout found.`);
+          window.toastr?.error(MESSAGES.LAYOUT_NOT_FOUND(isMobile ? 'mobile' : 'desktop'), 'Layout Not Found');
         }
       },
       resetLayout: async () => {
-        if (confirm("Are you sure you want to ALL SETTINGS to factory default? This will reload the page.")) {
+        if (confirm(MESSAGES.RESET_CONFIRMATION)) {
           isPTMTResetting = true;
           await settings.reset(true);
           window.location.reload();
@@ -109,7 +109,7 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
         const existingPresetIndex = presets.findIndex(p => p.name === name);
         if (existingPresetIndex !== -1) {
           presets[existingPresetIndex].layout = layout;
-          alert(`Preset '${name}' has been updated.`);
+          window.toastr?.success(`Preset '${name}' has been updated.`, 'Preset Updated');
         } else {
           const newPreset = { id: Date.now().toString(), name, layout };
           presets.push(newPreset);
@@ -253,10 +253,10 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
 
 
     try { openAllDrawersJq(); } catch (e) {
-      console.warn('[PTMT] Failed :', e);
+      console.warn('[PTMT] Failed to open all drawers:', e);
     }
     try { removeMouseDownDrawerHandler(); } catch (e) {
-      console.warn('[PTMT] Failed :', e);
+      console.warn('[PTMT] Failed to remove mouse down drawer handler:', e);
     }
     document.body.classList.toggle('ptmt-mobile', !!isMobile);
     document.body.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));

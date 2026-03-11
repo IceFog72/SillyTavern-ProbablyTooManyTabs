@@ -83,3 +83,9 @@ export const LAYOUT = {
     DEFAULT_PANE_FLEX_BASIS_FULL: '1 1 100%',
 };
 
+export const MESSAGES = {
+    RESET_CONFIRMATION: 'Are you sure you want to reset ALL SETTINGS to factory default? This will reload the page.',
+    LAYOUT_SAVED: (mode) => `${mode} layout saved!`,
+    LAYOUT_NOT_FOUND: (mode) => `No saved ${mode} layout found.`
+};
+

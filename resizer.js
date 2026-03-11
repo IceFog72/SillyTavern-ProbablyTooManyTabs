@@ -141,7 +141,7 @@ function createResizer(resizer, orientation, config) {
     function onPointerUp(e) {
         if (pointerId !== null && e.pointerId === pointerId) {
             try { resizer.releasePointerCapture(pointerId); } catch (e) {
-                console.warn('[PTMT] Failed :', e);
+                console.warn('[PTMT] Failed to release pointer capture:', e);
             }
         }
         pointerId = null;
@@ -160,7 +160,7 @@ function createResizer(resizer, orientation, config) {
         try {
             window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED, { detail: { reason: 'resizeEnd' } }));
         } catch (e) {
-            console.warn('[PTMT] Failed :', e);
+            console.warn('[PTMT] Failed to dispatch LAYOUT_CHANGED event on resize end:', e);
         }
     }
 

@@ -135,11 +135,11 @@ export function createTabElement(title, pid, icon = null, options = {}) {
 
   t.addEventListener('dragstart', ev => {
     t.classList.add('dragging');
-    try {
+   try {
       ev.dataTransfer.setData('text/plain', pid);
-      ev.dataTransfer.setData('application/x-ptmt-tab', pid);
+      ev.dataTransfer.setData('application/x-ptmt_tab', pid);
     } catch (e) {
-      console.warn('[PTMT] Failed :', e);
+      console.warn('[PTMT] Failed to set drag data:', e);
     }
     const g = t.cloneNode(true);
     g.classList.add('ptmt-drag-image-hide'); // Add the new class
@@ -147,7 +147,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
     try {
       ev.dataTransfer.setDragImage(g, 10, 10);
     } catch (e) {
-      console.warn('[PTMT] Failed :', e);
+      console.warn('[PTMT] Failed to set drag image:', e);
     }
     setTimeout(() => g.remove(), 60);
   });
@@ -457,11 +457,11 @@ export function createTabForBodyContent({ title = 'Main', icon = 'fa-house', set
     if (node.nodeType === 1 && PROTECTED_IDS.has(node.id)) continue;
     if (node.tagName === 'SCRIPT' && node.dataset?.ptmtIgnore !== 'false') {
       try { document.head.appendChild(node); } catch (e) {
-        console.warn('[PTMT] Failed :', e);
+        console.warn('[PTMT] Failed to append SCRIPT element to head:', e);
       }
     } else {
       try { content.appendChild(node); } catch (e) {
-        console.warn('[PTMT] Failed :', e);
+        console.warn('[PTMT] Failed to append node to panel content:', e);
       }
     }
   }
@@ -633,6 +633,6 @@ export function setDefaultPanelById(pid) {
     const p = getPanelById(pid);
     if (p) p.dataset.defaultPanel = 'true';
   } catch (e) {
-    console.warn('[PTMT] Failed :', e);
+    console.warn('[PTMT] Failed to set default panel:', e);
   }
 }
