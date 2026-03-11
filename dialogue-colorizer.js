@@ -7,6 +7,7 @@ import { eventSource, event_types, characters, saveSettingsDebounced } from '../
 import { extension_settings, getContext } from '../../../extensions.js';
 import { power_user } from '../../../power-user.js';
 import { settings } from './settings.js';
+import { debounce } from './utils.js';
 
 // Global Vibrant instance
 const getVibrant = () => window['Vibrant'];
@@ -265,12 +266,4 @@ export function initColorizer() {
     if (settings.get('enableDialogueColorizer')) {
         console.log('[PTMT] Dialogue Colorizer initialized');
     }
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function (...args) {
-        clearTimeout(timeout);
-        timeout = setTimeout(() => func.apply(this, args), wait);
-    };
 }

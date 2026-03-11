@@ -1,5 +1,5 @@
 import { settings } from './settings.js';
-import { el, debounce, getPanelBySourceId, createIconElement } from './utils.js';
+import { el, debounce, getPanelBySourceId, createIconElement, clearDropIndicators } from './utils.js';
 import { showFontAwesomePicker } from '../../../utils.js';
 import { getTabIdentifier } from './pending-tabs.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
@@ -736,13 +736,13 @@ export class LayoutManager {
             // PROTECTION: Don't allow dragging settings tab OR pending tabs into hidden/pending sections
             if ((isSettingsTab || this.draggedTabInfo.isPending) && isTargetHiddenList) {
                 e.dataTransfer.dropEffect = 'none';
-                this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+                clearDropIndicators(this.rootElement);
                 return;
             }
 
             if (isSettingsTab && isTargetPendingList) {
                 e.dataTransfer.dropEffect = 'none';
-                this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+                clearDropIndicators(this.rootElement);
                 return;
             }
 
@@ -751,7 +751,7 @@ export class LayoutManager {
                 const targetColumn = container.closest('.ptmt-editor-column');
                 if (targetColumn && targetColumn.classList.contains('ptmt-editor-column-hidden')) {
                     e.dataTransfer.dropEffect = 'none';
-                    this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+                    clearDropIndicators(this.rootElement);
                     return;
                 }
             }
@@ -1186,7 +1186,7 @@ export class LayoutManager {
             };
             this.handleDragOver(fakeEvent);
         } else {
-            this.rootElement.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+            clearDropIndicators(this.rootElement);
         }
     }
 
@@ -1208,7 +1208,7 @@ export class LayoutManager {
             this.touchDragGhost.remove();
             this.touchDragGhost = null;
             this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-            this.rootElement.querySelectorAll(SELECTORS.DROP_INDICATOR_CLASS).forEach(i => i.remove());
+            clearDropIndicators(this.rootElement);
 
         }
     }
@@ -1221,7 +1221,7 @@ export class LayoutManager {
         }
         if (this.rootElement) {
             this.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
-            this.rootElement.querySelectorAll(SELECTORS.DROP_INDICATOR_CLASS).forEach(i => i.remove());
+            clearDropIndicators(this.rootElement);
 
         }
     }

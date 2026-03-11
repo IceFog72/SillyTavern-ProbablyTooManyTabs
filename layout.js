@@ -4,12 +4,6 @@ import { attachColumnResizer } from './resizer.js';
 import { settings } from './settings.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 
-
-// Export getRefs from here for backward compatibility if other files import it from layout.js,
-// OR update all other files to import from utils.js. 
-// For safety, we can re-export it:
-export { getRefs } from './utils.js';
-
 /** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
 /** @typedef {import('./types.js').ColumnLayout} ColumnLayout */
 /** @typedef {import('./types.js').PaneNode} PaneNode */

@@ -1,8 +1,7 @@
 // pending-tabs.js
-import { getRefs } from './layout.js';
 import { createTabFromContent, destroyTabById, openTab } from './tabs.js';
 import { settings } from './settings.js';
-import { getPanelBySourceId } from './utils.js';
+import { getPanelBySourceId, getRefs } from './utils.js';
 
 let hydrationObserver = null;
 let demotionObserver = null;

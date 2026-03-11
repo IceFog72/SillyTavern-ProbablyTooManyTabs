@@ -216,4 +216,9 @@ export function calculateElementMinWidth(element) {
     return minWidth;
 }
 
+export function clearDropIndicators(element) {
+    if (!element) return;
+    element.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+}
+
 
