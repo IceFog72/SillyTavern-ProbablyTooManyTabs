@@ -17,7 +17,10 @@ const DEFAULT_RGB = [225, 138, 36];
 
 /** @type {HTMLStyleElement} */
 let colorizerStyleSheet;
-let colorCache = {};
+// Persistent color cache: keyed by avatar UID (e.g. "persona|user.png" or "character|CharName").
+// This cache intentionally survives chat switches — the color for a given avatar never
+// changes between chats, so clearing it would only cause inconsistency via Vibrant re-runs.
+const colorCache = new Map();
 
 function initializeStyleSheet() {
     if (document.getElementById('ptmt-colorizer-styles')) {
@@ -209,11 +212,17 @@ function getAvatarFileInfo(message) {
     const isSystem = message.getAttribute("is_system") === "true" || src.includes('img/five.png');
 
     const type = isUser ? 'persona' : (isSystem ? 'system' : 'character');
+    
+    // Extract filename from the src URL
     let fileName = src.split('/').pop();
+    
+    // For thumbnail URLs like /thumbnail?type=persona&file=xxx.png, extract the file parameter
+    const fileMatch = src.match(/[?&]file=([^&]+)/i);
+    if (fileMatch) {
+        fileName = decodeURIComponent(fileMatch[1]);
+    }
 
     if (type === 'character') {
-        const match = src.match(/[?&]file=([^&]*)/i)?.at(1);
-        fileName = match ? decodeURIComponent(match) : fileName;
         // Use ch_name attribute for character UID if available
         // This ensures consistent UID across expression changes
         const chName = message.getAttribute('ch_name');
@@ -221,15 +230,12 @@ function getAvatarFileInfo(message) {
             return { type, fileName, uid: `${type}|${chName}` };
         }
         // Fallback: extract base character name without expression suffix
-        // e.g., "A_expression.png" -> "A", "A.png" -> "A"
         const dotIndex = fileName.lastIndexOf('.');
         const baseName = dotIndex > 0 ? fileName.substring(0, dotIndex) : fileName;
         // Remove common expression suffixes like "_expression", "_happy", etc.
         const charName = baseName.replace(/_(expression|happy|sad|angry|surprised|neutral|normal|default).*$/i, '');
         return { type, fileName, uid: `${type}|${charName}` };
     } else if (type === 'persona') {
-        const match = src.match(/[?&]file=([^&]*)/i)?.at(1);
-        fileName = match ? decodeURIComponent(match) : fileName;
         // For personas, use the full filename as UID
         return { type, fileName, uid: `${type}|${fileName}` };
     }
@@ -241,29 +247,33 @@ async function getCharacterColor(info, thumbSrc) {
     // Use character UID as cache key (not full URL) for consistent colors
     // Characters with different expressions should have the same color
     const cacheKey = info.uid;
-    if (colorCache[cacheKey]) return colorCache[cacheKey];
+    if (colorCache.has(cacheKey)) return colorCache.get(cacheKey);
 
     const source = settings.get('dialogueColorizerSource');
     if (source === 'static_color') return settings.get('dialogueColorizerStaticColor');
     if (info.type === 'system') return settings.get('dialogueColorizerStaticColor');
 
-    // For characters, always use base avatar URL for color extraction (not expression variants)
-    // This ensures consistent colors regardless of current expression
+    // Use the actual src from the avatar image directly
+    // For personas: /thumbnail?type=persona&file=xxx.png
+    // For characters: /characters/CharacterName.png (or expression variant)
+    // For system: the src attribute from the message
     let avatarUrl;
+    
     if (info.type === 'character') {
-        // Extract character name from UID (removes "character|" prefix)
+        // For characters, always use base avatar URL for color extraction (not expression variants)
+        // This ensures consistent colors regardless of current expression
         const charName = info.uid.split('|')[1];
-        // Construct base avatar URL: /characters/CharacterName.png
         avatarUrl = `/characters/${encodeURIComponent(charName)}.png`;
     } else {
-        // For personas/system, use thumbSrc or fallback
+        // For personas and system, use the actual src from the message
+        // The thumbnail URL is already the correct size for color extraction
         avatarUrl = thumbSrc || `/User Avatars/${encodeURIComponent(info.fileName)}`;
     }
+    
     console.log(`[PTMT] Attempting to load avatar for color extraction: ${avatarUrl}`);
 
     return new Promise((resolve) => {
         const img = new Image();
-        // Removed crossOrigin for local files as it might cause issues if ST doesn't set headers
         img.src = avatarUrl;
 
         const timeout = setTimeout(() => {
@@ -276,7 +286,7 @@ async function getCharacterColor(info, thumbSrc) {
             const rgb = await getVibrantColor(img);
             const betterRgb = adjustColorForContrast(rgb);
             const hex = ColorUtils.rgbToHex(betterRgb);
-            colorCache[cacheKey] = hex;
+            colorCache.set(cacheKey, hex);
             console.log(`[PTMT] Extracted color for ${info.uid}: ${hex}`);
             resolve(hex);
         };
@@ -380,7 +390,9 @@ export function initColorizer() {
     }
 
     eventSource.on(event_types.CHAT_CHANGED, () => {
-        colorCache = {};
+        // Do NOT clear colorCache here — colors are keyed by avatar UID and are
+        // stable across chat switches. Clearing would cause Vibrant to re-extract
+        // and potentially return a slightly different color each time.
         debouncedUpdate();
     });
 
@@ -390,7 +402,7 @@ export function initColorizer() {
             keys.includes('dialogueColorizerSource') ||
             keys.includes('dialogueColorizerStaticColor')) {
             console.log('[PTMT] Colorizer settings changed, refreshing...');
-            colorCache = {};
+            colorCache.clear();  // Settings changed (source/static color) — recompute all colors
             updateStyles();
         }
     });
