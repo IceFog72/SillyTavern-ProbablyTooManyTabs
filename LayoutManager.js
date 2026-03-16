@@ -115,8 +115,8 @@ export class LayoutManager {
 
         const topSection = el('div', { className: 'ptmt-settings-top-section' });
         const globalSettings = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Global Layout'));
-
-
+        const globalGrid = el('div', { className: 'ptmt-settings-grid' });
+        globalSettings.appendChild(globalGrid);
 
         const createSettingCheckbox = (labelText, settingKey) => {
             const id = `ptmt-global-${settingKey}`;
@@ -145,7 +145,7 @@ export class LayoutManager {
             return wrapper;
         };
 
-        const optimizeVisibilityCheckbox = createSettingCheckbox('Optimize Performance with Long Chat (Disables text-wrapping around avatars in Chrome)', 'optimizeMessageVisibility');
+        const optimizeVisibilityCheckbox = createSettingCheckbox('Optimize Performance with Long Chat', 'optimizeMessageVisibility');
         optimizeVisibilityCheckbox.classList.add('ptmt-setting-sub-item');
         optimizeVisibilityCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
         optimizeVisibilityCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
@@ -157,40 +157,106 @@ export class LayoutManager {
 
         const overridesCheckbox = createSettingCheckbox('Extension CSS Overrides', 'enableOverride1');
         const overridesInput = overridesCheckbox.querySelector('input');
-        overridesInput.addEventListener('change', (e) => {
-            const enabled = e.target.checked;
-            optimizeVisibilityCheckbox.style.opacity = enabled ? '1' : '0.5';
-            optimizeVisibilityCheckbox.style.pointerEvents = enabled ? 'auto' : 'none';
-            autoContrastCheckbox.style.opacity = enabled ? '1' : '0.5';
-            autoContrastCheckbox.style.pointerEvents = enabled ? 'auto' : 'none';
+
+        const validateCss = (val) => /^-?\d*\.?\d+\s*(?:px|vh|vw|%|em|rem|vmin|vmax)$/i.test(val.trim());
+        const createDimensionItem = (label, key) => {
+            const inp = el('input', {
+                type: 'text',
+                value: this.settings.get(key),
+                className: 'text_pole textarea_compact',
+                title: 'Valid CSS units: px, vh, vw, %, em, rem, vmin, vmax',
+                style: { width: '50px', marginLeft: '5px', marginRight: '10px' }
+            });
+            const span = el('span', { style: { display: 'flex', alignItems: 'center' } },
+                el('label', { style: { margin: 0 } }, label),
+                inp
+            );
+
+            const updateUI = (val) => {
+                if (validateCss(val)) {
+                    inp.style.borderColor = '';
+                    this.settings.update({ [key]: val.trim().toLowerCase() });
+                } else {
+                    inp.style.setProperty('border-color', 'red', 'important');
+                }
+            };
+
+            inp.addEventListener('input', (e) => updateUI(e.target.value));
+            return { span, inp };
+        };
+
+        const h = createDimensionItem('H', 'avatarBaseHeight');
+        const w = createDimensionItem('W', 'avatarBaseWidth');
+
+        const resetDimBtn = el('button', {
+            className: 'menu_button interactable',
+            style: { padding: '1px 6px', fontSize: '0.8em', width: 'fit-content' }
+        }, 'Reset');
+        resetDimBtn.addEventListener('click', () => {
+            h.inp.value = '14vh';
+            w.inp.value = '8vw';
+            this.settings.update({ avatarBaseHeight: '14vh', avatarBaseWidth: '8vw' });
+            h.inp.style.borderColor = '';
+            w.inp.style.borderColor = '';
         });
 
-        globalSettings.append(
+        const avatarRow = el('div', {
+            className: 'ptmt-setting-row ptmt-setting-sub-item',
+            style: { gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '5px' }
+        },
+            el('label', { style: { marginRight: '10px' } }, 'Avatar Size:'),
+            h.span,
+            w.span,
+            resetDimBtn
+        );
+
+        const syncVisibility = (enabled) => {
+            const display = enabled ? '' : 'none';
+            avatarRow.style.display = enabled ? 'flex' : 'none';
+            autoContrastCheckbox.style.display = display;
+            optimizeVisibilityCheckbox.style.display = display;
+        };
+        syncVisibility(this.settings.get('enableOverride1'));
+        overridesInput.addEventListener('change', (e) => syncVisibility(e.target.checked));
+
+        const overridesWrapper = el('div', {
+            className: 'ptmt-settings-grid',
+            style: { gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr' }
+        });
+        overridesCheckbox.style.gridColumn = 'span 2';
+        overridesWrapper.append(
+            overridesCheckbox,
+            avatarRow,
+            autoContrastCheckbox,
+            optimizeVisibilityCheckbox
+        );
+
+        globalGrid.append(
             createSettingCheckbox('Show Left Column', 'showLeftPane'),
             createSettingCheckbox('Show Right Column', 'showRightPane'),
             createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
             createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
             createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
             createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
-            overridesCheckbox,
-            autoContrastCheckbox,
-            optimizeVisibilityCheckbox,
-            createSettingCheckbox('Hiding some content on resize (for Chrome users)', 'hideContentWhileResizing')
+            createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing'),
+            overridesWrapper
         );
 
         const isMobile = settings.get('isMobile');
         const mobileToggleBtn = el('button', {
             class: "menu_button menu_button_icon interactable ptmt-mobile-button",
+            style: { gridColumn: 'span 2' },
             title: isMobile ? "Switch to Desktop Layout (Reloads page)" : "Switch to Mobile Layout (Reloads page)",
             tabindex: "0",
             role: "button"
         }, isMobile ? 'Switch to Desktop Layout' : 'Switch to Mobile Layout');
 
         mobileToggleBtn.addEventListener('click', () => this.appApi.toggleMobileMode());
-        globalSettings.append(mobileToggleBtn);
+        globalGrid.append(mobileToggleBtn);
 
         const resetBtn = el('button', {
             class: "menu_button menu_button_icon interactable ptmt-reset-button",
+            style: { gridColumn: 'span 2' },
             title: "Reset all layout settings and reload the UI",
             tabindex: "0",
             role: "button"
@@ -198,7 +264,7 @@ export class LayoutManager {
 
         resetBtn.addEventListener('click', () => this.appApi.resetLayout());
 
-        globalSettings.append(resetBtn);
+        globalGrid.append(resetBtn);
 
         const colorizerSettings = this.createDialogueColorizerSettings();
         colorizerSettings.className = 'ptmt-settings-fieldset';
@@ -1222,10 +1288,12 @@ export class LayoutManager {
         ];
 
         // ── Assemble ─────────────────────────────────────────────────────────
-        const container = el('fieldset', {}, el('legend', {}, 'Dialogue Colorizer'));
+        const container = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Dialogue Colorizer'));
+        const grid = el('div', { className: 'ptmt-settings-grid' });
+        container.appendChild(grid);
 
         // Enable toggle
-        container.appendChild(row([
+        grid.appendChild(row([
             checkbox('ptmt-col-enable', 'enableDialogueColorizer'),
             lbl('Enable Dialogue Colorizer', 'ptmt-col-enable'),
         ]));
@@ -1238,7 +1306,24 @@ export class LayoutManager {
         ]);
         // Sync initial numeric value
         targetSel.value = String(s.get('dialogueColorizerColorizeTarget') ?? 1);
-        container.appendChild(row([lbl('Colorize Target', 'ptmt-col-target'), targetSel]));
+        grid.appendChild(row([lbl('Colorize Target', 'ptmt-col-target'), targetSel]));
+
+        // Dialog Color Mode
+        const dialogModeSel = dropdown('ptmt-col-dialog-mode', 'dialogueColorizerDialogColorMode', [
+            { value: '1', label: '1st Dominant' },
+            { value: '2', label: '2nd Dominant' },
+        ]);
+        dialogModeSel.value = String(s.get('dialogueColorizerDialogColorMode') ?? 1);
+        grid.appendChild(row([lbl('Dialogue Color Mode', 'ptmt-col-dialog-mode'), dialogModeSel]));
+
+        // Bubble Color Mode
+        const bubbleModeSel = dropdown('ptmt-col-bubble-mode', 'dialogueColorizerBubbleColorMode', [
+            { value: '1', label: '1st Dominant' },
+            { value: '2', label: '2nd Dominant' },
+            { value: '3', label: 'Gradient' },
+        ]);
+        bubbleModeSel.value = String(s.get('dialogueColorizerBubbleColorMode') ?? 3);
+        grid.appendChild(row([lbl('Bubble Color Mode', 'ptmt-col-bubble-mode'), bubbleModeSel]));
 
         // Bubble Opacity (Characters)
         const opacityBotVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((s.get('dialogueColorizerBubbleOpacityBot') ?? 0.1) * 100)}%`);
@@ -1252,7 +1337,7 @@ export class LayoutManager {
             opacityBotVal.textContent = `${Math.round(val * 100)}%`;
             s.update({ dialogueColorizerBubbleOpacityBot: val });
         });
-        container.appendChild(row([lbl('Char Bubble Opacity', 'ptmt-bubble-opacity-bot'), opacityBotSlider, opacityBotVal]));
+        grid.appendChild(row([lbl('Char Bubble Opacity', 'ptmt-bubble-opacity-bot'), opacityBotSlider, opacityBotVal]));
 
         // Bubble Opacity (Personas)
         const opacityUserVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((s.get('dialogueColorizerBubbleOpacityUser') ?? 0.1) * 100)}%`);
@@ -1266,31 +1351,81 @@ export class LayoutManager {
             opacityUserVal.textContent = `${Math.round(val * 100)}%`;
             s.update({ dialogueColorizerBubbleOpacityUser: val });
         });
-        container.appendChild(row([lbl('User Bubble Opacity', 'ptmt-bubble-opacity-user'), opacityUserSlider, opacityUserVal]));
+        grid.appendChild(row([lbl('User Bubble Opacity', 'ptmt-bubble-opacity-user'), opacityUserSlider, opacityUserVal]));
 
         // ── Characters ───────────────────────────────────────────────────────
         const charSection = el('fieldset', {}, el('legend', {}, 'Characters'));
-        charSection.appendChild(row([
-            lbl('Color Source', 'ptmt-col-charsrc'),
+        
+        // Quoted Text Source
+        const charDialogSrc = row([
+            lbl('Dialogue Color Source', 'ptmt-col-charsrc'),
             dropdown('ptmt-col-charsrc', 'dialogueColorizerSource', sourceOptions),
-        ]));
-        charSection.appendChild(row([
-            lbl('Static Color', 'ptmt-col-charstaticcolor'),
+        ]);
+        const charDialogStatic = row([
+            lbl('Dialogue Static Color', 'ptmt-col-charstaticcolor'),
             colorPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor'),
-        ]));
-        container.appendChild(charSection);
+        ]);
+        
+        // Bubble Source
+        const charBubbleSrc = row([
+            lbl('Bubble Color Source', 'ptmt-col-charbubblesrc'),
+            dropdown('ptmt-col-charbubblesrc', 'dialogueColorizerBubbleSource', sourceOptions),
+        ]);
+        const charBubbleStatic = row([
+            lbl('Bubble Static Colors (Gradients)', 'ptmt-col-charbubblestatic'),
+            el('div', { style: 'display: flex; gap: 5px;' },
+                colorPicker('ptmt-col-charbubblestatic1', 'dialogueColorizerBubbleStaticColor1'),
+                colorPicker('ptmt-col-charbubblestatic2', 'dialogueColorizerBubbleStaticColor2')
+            ),
+        ]);
+
+        const syncCharVis = () => {
+            charDialogStatic.style.display = charDialogSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
+            charBubbleStatic.style.display = charBubbleSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
+        };
+        charDialogSrc.querySelector('select').addEventListener('change', syncCharVis);
+        charBubbleSrc.querySelector('select').addEventListener('change', syncCharVis);
+        syncCharVis();
+
+        charSection.append(charDialogSrc, charDialogStatic, charBubbleSrc, charBubbleStatic);
+        grid.appendChild(charSection);
 
         // ── Personas ─────────────────────────────────────────────────────────
         const personaSection = el('fieldset', {}, el('legend', {}, 'Personas (User)'));
-        personaSection.appendChild(row([
-            lbl('Color Source', 'ptmt-col-personasrc'),
+        
+        // Quoted Text Source
+        const personaDialogSrc = row([
+            lbl('Dialogue Color Source', 'ptmt-col-personasrc'),
             dropdown('ptmt-col-personasrc', 'dialogueColorizerPersonaSource', sourceOptions),
-        ]));
-        personaSection.appendChild(row([
-            lbl('Static Color', 'ptmt-col-personastaticcolor'),
+        ]);
+        const personaDialogStatic = row([
+            lbl('Dialogue Static Color', 'ptmt-col-personastaticcolor'),
             colorPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor'),
-        ]));
-        container.appendChild(personaSection);
+        ]);
+
+        // Bubble Source
+        const personaBubbleSrc = row([
+            lbl('Bubble Color Source', 'ptmt-col-personabubblesrc'),
+            dropdown('ptmt-col-personabubblesrc', 'dialogueColorizerPersonaBubbleSource', sourceOptions),
+        ]);
+        const personaBubbleStatic = row([
+            lbl('Bubble Static Colors (Gradients)', 'ptmt-col-personabubblestatic'),
+            el('div', { style: 'display: flex; gap: 5px;' },
+                colorPicker('ptmt-col-personabubblestatic1', 'dialogueColorizerPersonaBubbleStaticColor1'),
+                colorPicker('ptmt-col-personabubblestatic2', 'dialogueColorizerPersonaBubbleStaticColor2')
+            ),
+        ]);
+
+        const syncPersonaVis = () => {
+            personaDialogStatic.style.display = personaDialogSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
+            personaBubbleStatic.style.display = personaBubbleSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
+        };
+        personaDialogSrc.querySelector('select').addEventListener('change', syncPersonaVis);
+        personaBubbleSrc.querySelector('select').addEventListener('change', syncPersonaVis);
+        syncPersonaVis();
+
+        personaSection.append(personaDialogSrc, personaDialogStatic, personaBubbleSrc, personaBubbleStatic);
+        grid.appendChild(personaSection);
 
 
         return container;

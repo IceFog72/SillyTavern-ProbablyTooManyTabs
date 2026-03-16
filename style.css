@@ -1011,6 +1011,18 @@ select option {
   color: var(--ptmt-adaptive-quote);
 }
 
+.ptmt-settings-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 12px;
+  align-items: start;
+}
+
+.ptmt-settings-grid > .ptmt-setting-row,
+.ptmt-settings-grid > fieldset {
+  margin-bottom: 0;
+}
+
 #ptmt-unified-editor {
   display: flex;
   flex-direction: row;

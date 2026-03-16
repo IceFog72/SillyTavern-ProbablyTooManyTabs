@@ -97,7 +97,7 @@ function getDominantColor(img) {
         // Use natural dimensions — no resize, no interpolation
         const w = img.naturalWidth || img.width;
         const h = img.naturalHeight || img.height;
-        if (!w || !h) return DEFAULT_RGB;
+        if (!w || !h) return [DEFAULT_RGB];
 
         canvas.width = w;
         canvas.height = h;
@@ -168,34 +168,54 @@ function getDominantColor(img) {
             buckets[bucketIdx].count += weight;
         }
 
-        // Find bucket with largest total weight
-        let best = null;
-        let bestWeight = 0;
-        for (const b of buckets) {
-            if (b.count > bestWeight) {
-                bestWeight = b.count;
-                best = b;
-            }
-        }
+        // Sort buckets by weight and pick top 2
+        const sortedBuckets = buckets
+            .map((b, i) => ({ ...b, idx: i }))
+            .filter(b => b.count > 0)
+            .sort((a, b) => b.count - a.count);
 
-        if (best && best.count > 0) {
-            return [
+        const resultCols = [];
+
+        if (sortedBuckets.length > 0) {
+            // First dominant color
+            const best = sortedBuckets[0];
+            resultCols.push([
                 Math.round(best.rSum / best.count),
                 Math.round(best.gSum / best.count),
                 Math.round(best.bSum / best.count)
-            ];
+            ]);
+
+            // Second dominant color: Must be sufficiently distinct (hue distance check)
+            // 2 buckets = 60 degrees distance minimum
+            if (sortedBuckets.length > 1) {
+                const firstIdx = best.idx;
+                const second = sortedBuckets.find(b => {
+                    const dist = Math.min(Math.abs(b.idx - firstIdx), 12 - Math.abs(b.idx - firstIdx));
+                    return dist >= 2;
+                });
+
+                if (second) {
+                    resultCols.push([
+                        Math.round(second.rSum / second.count),
+                        Math.round(second.gSum / second.count),
+                        Math.round(second.bSum / second.count)
+                    ]);
+                }
+            }
         }
+
+        if (resultCols.length > 0) return resultCols;
 
         // Fallback to grey average
         if (greyCount > 0) {
-            return [
+            return [[
                 Math.round(greyR / greyCount),
                 Math.round(greyG / greyCount),
                 Math.round(greyB / greyCount)
-            ];
+            ]];
         }
 
-        return DEFAULT_RGB;
+        return [DEFAULT_RGB];
     } catch (e) {
         console.error('[PTMT] Color extraction failed:', e);
         return DEFAULT_RGB;
@@ -241,15 +261,14 @@ function getAvatarFileInfo(message) {
 // ─── Settings helpers ─────────────────────────────────────────────────────────
 
 function getSettingsForType(type) {
-    if (type === 'persona') {
-        return {
-            source: settings.get('dialogueColorizerPersonaSource'),
-            staticColor: settings.get('dialogueColorizerPersonaStaticColor'),
-        };
-    }
+    const isPersona = type === 'persona';
+    const prefix = isPersona ? 'dialogueColorizerPersona' : 'dialogueColorizer';
     return {
-        source: settings.get('dialogueColorizerSource'),
-        staticColor: settings.get('dialogueColorizerStaticColor'),
+        dialogSource: settings.get(`${prefix}Source`),
+        dialogStatic: settings.get(`${prefix}StaticColor`),
+        bubbleSource: settings.get(`${prefix}BubbleSource`),
+        bubbleStatic1: settings.get(`${prefix}BubbleStaticColor1`),
+        bubbleStatic2: settings.get(`${prefix}BubbleStaticColor2`),
     };
 }
 
@@ -260,31 +279,33 @@ async function getCharacterColor(info) {
     if (extractionPromises.has(info.uid)) return extractionPromises.get(info.uid);
 
     const promise = (async () => {
-        const { source, staticColor } = getSettingsForType(info.type);
-        if (info.type === 'system' || source === 'static_color') {
-            colorCache.set(info.uid, staticColor);
-            return staticColor;
+        const s = getSettingsForType(info.type);
+        // Extract if it's a valid character/persona and we actually need extracted colors
+        const needsExtraction = info.type !== 'system' && (s.dialogSource === 'avatar_vibrant' || s.bubbleSource === 'avatar_vibrant');
+
+        if (!needsExtraction) {
+            const colors = [DEFAULT_RGB];
+            colorCache.set(info.uid, colors);
+            return colors;
         }
 
         // Skip extraction if it's the silhouette or missing
         if (!info.domAvatarUrl || info.domAvatarUrl.includes('img/five.png') || info.domAvatarUrl.length < 10) {
-            return staticColor;
+            return [DEFAULT_RGB];
         }
 
         // Use the actual DOM <img> element directly — its decoded bitmap is stable.
-        // Creating new Image() and re-fetching the URL produces different pixel data
-        // on each decode, which causes non-deterministic color extraction.
         const domImg = info.domImgElement;
         if (domImg && domImg.complete && domImg.naturalWidth > 0) {
             try {
-                const rgb = await getDominantColor(domImg);
-                const hex = ColorUtils.rgbToHex(rgb);
-                colorCache.set(info.uid, hex);
-                console.log(`[PTMT] Extracted color for ${info.uid}: ${hex}`);
-                return hex;
+                const rgbs = await getDominantColor(domImg);
+                const hexes = rgbs.map(rgb => ColorUtils.rgbToHex(rgb));
+                colorCache.set(info.uid, hexes);
+                console.log(`[PTMT] Extracted colors for ${info.uid}: ${hexes.join(', ')}`);
+                return hexes;
             } catch (e) {
                 console.warn(`[PTMT] DOM extraction failed for ${info.uid}, using static color`, e);
-                return staticColor;
+                return [staticColor];
             }
         }
 
@@ -296,24 +317,24 @@ async function getCharacterColor(info) {
 
             const timeout = setTimeout(() => {
                 console.warn(`[PTMT] Extraction timeout for ${info.uid}`);
-                resolve(staticColor);
+                resolve([DEFAULT_RGB]);
             }, 10000);
 
             img.onload = async () => {
                 clearTimeout(timeout);
                 try {
-                    const rgb = await getDominantColor(img);
-                    const hex = ColorUtils.rgbToHex(rgb);
-                    colorCache.set(info.uid, hex);
-                    console.log(`[PTMT] Extracted color for ${info.uid} (fallback): ${hex}`);
-                    resolve(hex);
+                    const rgbs = await getDominantColor(img);
+                    const hexes = rgbs.map(rgb => ColorUtils.rgbToHex(rgb));
+                    colorCache.set(info.uid, hexes);
+                    console.log(`[PTMT] Extracted colors for ${info.uid} (fallback): ${hexes.join(', ')}`);
+                    resolve(hexes);
                 } catch (e) {
-                    resolve(staticColor);
+                    resolve([DEFAULT_RGB]);
                 }
             };
             img.onerror = () => {
                 clearTimeout(timeout);
-                resolve(staticColor);
+                resolve([DEFAULT_RGB]);
             };
         });
     })();
@@ -326,21 +347,63 @@ async function getCharacterColor(info) {
 
 // ─── CSS generation ───────────────────────────────────────────────────────────
 
-function buildCssRules(safeUid, color, type) {
+function buildCssRules(safeUid, extractedColors, type) {
+    const s = getSettingsForType(type);
     const target = settings.get('dialogueColorizerColorizeTarget') ?? 1;
     const opacityKey = type === 'persona' ? 'dialogueColorizerBubbleOpacityUser' : 'dialogueColorizerBubbleOpacityBot';
     const opacity = settings.get(opacityKey) ?? 0.1;
     let css = '';
 
+    const dialogMode = settings.get('dialogueColorizerDialogColorMode') ?? 1;
+    const bubbleMode = settings.get('dialogueColorizerBubbleColorMode') ?? 3;
+
+    // 1. Resolve Dialogue Color
+    let dialogColor;
+    if (s.dialogSource === 'static_color') {
+        dialogColor = s.dialogStatic;
+    } else {
+        const prim = extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
+        const sec = extractedColors[1] || prim;
+        dialogColor = dialogMode === 2 ? sec : prim;
+    }
+
+    // 2. Resolve Bubble Colors
+    let bPrim, bSec;
+    if (s.bubbleSource === 'static_color') {
+        bPrim = s.bubbleStatic1;
+        bSec = s.bubbleStatic2;
+    } else {
+        bPrim = extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
+        bSec = extractedColors[1] || bPrim;
+    }
+
     if (target & 1) { // QUOTED_TEXT
-        const adaptedColor = `color-mix(in oklch, ${color}, var(--ptmt-contrast-bw) 30%)`;
-        css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { color: ${adaptedColor} !important; }\n`;
-        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { color: ${adaptedColor} !important; }\n`;
+        // Standard rule: Pure extracted color
+        const standardRule = `color: ${dialogColor} !important;`;
+        // Adaptive rule: Only active when .ptmt-auto-contrast is on the body
+        const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) 50%) !important;`;
+        
+        css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${standardRule} }\n`;
+        css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${adaptiveRule} }\n`;
+        
+        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${standardRule} }\n`;
+        css += `.ptmt-auto-contrast .bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${adaptiveRule} }\n`;
     }
     if (target & 2) { // BUBBLES
-        const rgbaBg = ColorUtils.hexToRgba(color, opacity);
-        const rgbaBorder = ColorUtils.hexToRgba(color, Math.min(1.0, opacity * 2.5 + 0.1));
-        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background-color: ${rgbaBg} !important; border-color: ${rgbaBorder} !important; }\n`;
+        const rgbaBg1 = ColorUtils.hexToRgba(bPrim, opacity);
+        const rgbaBg2 = ColorUtils.hexToRgba(bSec, opacity);
+        const rgbaBorder = ColorUtils.hexToRgba(bPrim, Math.min(1.0, opacity * 2.5 + 0.1));
+
+        let background;
+        if (bubbleMode === 3) {
+            background = `linear-gradient(135deg, ${rgbaBg1}, ${rgbaBg2})`;
+        } else if (bubbleMode === 2) {
+            background = rgbaBg2;
+        } else {
+            background = rgbaBg1;
+        }
+
+        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background: ${background} !important; border-color: ${rgbaBorder} !important; }\n`;
     }
     return css;
 }
@@ -400,8 +463,8 @@ async function updateStyles() {
     const personaRules = [];
 
     const results = await Promise.all(Array.from(uidsInDom.values()).map(async info => {
-        const color = await getCharacterColor(info);
-        const rule = buildCssRules(info.uid.replace(/\W/g, '_'), color, info.type);
+        const colors = await getCharacterColor(info);
+        const rule = buildCssRules(info.uid.replace(/\W/g, '_'), colors, info.type);
         return { info, rule };
     }));
 
@@ -463,11 +526,23 @@ export function initColorizer() {
         const colorizerKeys = [
             'enableDialogueColorizer',
             'dialogueColorizerSource', 'dialogueColorizerStaticColor',
+            'dialogueColorizerBubbleSource', 'dialogueColorizerBubbleStaticColor1', 'dialogueColorizerBubbleStaticColor2',
             'dialogueColorizerPersonaSource', 'dialogueColorizerPersonaStaticColor',
+            'dialogueColorizerPersonaBubbleSource', 'dialogueColorizerPersonaBubbleStaticColor1', 'dialogueColorizerPersonaBubbleStaticColor2',
             'dialogueColorizerColorizeTarget', 'dialogueColorizerBubbleOpacityBot', 'dialogueColorizerBubbleOpacityUser',
+            'dialogueColorizerDialogColorMode', 'dialogueColorizerBubbleColorMode',
         ];
         if (keys.some(k => colorizerKeys.includes(k))) {
-            if (!keys.includes('dialogueColorizerBubbleOpacityBot') && !keys.includes('dialogueColorizerBubbleOpacityUser') && !keys.includes('dialogueColorizerColorizeTarget')) {
+            const noExtractionKeys = [
+                'dialogueColorizerBubbleOpacityBot',
+                'dialogueColorizerBubbleOpacityUser',
+                'dialogueColorizerColorizeTarget',
+                'dialogueColorizerDialogColorMode',
+                'dialogueColorizerBubbleColorMode'
+            ];
+            if (!keys.some(k => !noExtractionKeys.includes(k))) {
+                // All changed keys are visual-only, don't clear cache
+            } else {
                 colorCache.clear();
             }
             updateStyles();

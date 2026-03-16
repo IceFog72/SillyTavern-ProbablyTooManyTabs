@@ -28,13 +28,27 @@ export class SettingsManager {
         enableAvatarExpressionSync: false,
         dialogueColorizerSource: 'avatar_vibrant',
         dialogueColorizerStaticColor: '#da6745ff',
+        dialogueColorizerBubbleSource: 'avatar_vibrant',
+        dialogueColorizerBubbleStaticColor1: '#da6745ff',
+        dialogueColorizerBubbleStaticColor2: '#da6745ff',
         dialogueColorizerPersonaSource: 'avatar_vibrant',
         dialogueColorizerPersonaStaticColor: '#537fddff',
+        dialogueColorizerPersonaBubbleSource: 'avatar_vibrant',
+        dialogueColorizerPersonaBubbleStaticColor1: '#537fddff',
+        dialogueColorizerPersonaBubbleStaticColor2: '#537fddff',
         // Bitmask: 1=quoted text, 2=bubbles, 3=both
         dialogueColorizerColorizeTarget: 3,
         // Opacity for bubble backgrounds (0.0 to 1.0)
         dialogueColorizerBubbleOpacityBot: 0.1,
         dialogueColorizerBubbleOpacityUser: 0.1,
+        // Dialog color mode: 1 = 1st dominant, 2 = 2nd dominant
+        dialogueColorizerDialogColorMode: 1,
+        // Bubble color mode: 1 = 1st dominant, 2 = 2nd dominant, 3 = gradient
+        dialogueColorizerBubbleColorMode: 3,
+        // Avatar dimensions
+        avatarBaseHeight: '16vh',
+        avatarBaseWidth: '7vw',
+
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: 'fa-compass' },

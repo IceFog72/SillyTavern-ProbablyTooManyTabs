@@ -204,8 +204,15 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
           link.href = `${extensionPath}/overrides-1.css`;
           document.head.appendChild(link);
         }
+        // Apply parameterized dimensions
+        const height = settings.get('avatarBaseHeight') || '4vh';
+        const width = settings.get('avatarBaseWidth') || '2vw';
+        document.documentElement.style.setProperty('--ptmt-avatar-base-height', height);
+        document.documentElement.style.setProperty('--ptmt-avatar-base-width', width);
       } else if (link) {
         link.remove();
+        document.documentElement.style.removeProperty('--ptmt-avatar-base-height');
+        document.documentElement.style.removeProperty('--ptmt-avatar-base-width');
       }
     };
 
