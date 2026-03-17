@@ -9,5 +9,13 @@
     "version": "0.7.4",
     "homePage": "https://github.com/IceFog72/SillyTavern-ProbablyTooManyTabs",
     "auto_update": true,
-    "description": "PTMT - ProbablyTooManyTabs is UI Tab Manager"
+    "description": "PTMT - ProbablyTooManyTabs is UI Tab Manager",
+    "hooks": {
+        "activate": "onActivate",
+        "install": "onInstall",
+        "delete": "onDelete",
+        "enable": "onEnable",
+        "disable": "onDisable",
+        "update": "onUpdate"
+    }
 }

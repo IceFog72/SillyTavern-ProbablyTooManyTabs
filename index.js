@@ -492,3 +492,47 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
 
   eventSource.on(event_types.APP_READY, () => { initApp(); });
 })();
+
+/**
+ * Lifecycle hook: Called when the extension is activated on page load.
+ */
+export async function onActivate() {
+    console.log('[PTMT] 🚀 Extension activated');
+}
+
+/**
+ * Lifecycle hook: Called after the extension is installed.
+ */
+export async function onInstall() {
+    console.log('[PTMT] ⚙️ Extension installed');
+}
+
+/**
+ * Lifecycle hook: Called before the extension is deleted.
+ * Performs settings cleanup.
+ */
+export async function onDelete() {
+    console.log('[PTMT] 🗑️ Extension deleted, cleaning up settings');
+    await settings.cleanup();
+}
+
+/**
+ * Lifecycle hook: Called before the extension is enabled.
+ */
+export async function onEnable() {
+    console.log('[PTMT] ✅ Extension enabled');
+}
+
+/**
+ * Lifecycle hook: Called before the extension is disabled.
+ */
+export async function onDisable() {
+    console.log('[PTMT] ❌ Extension disabled');
+}
+
+/**
+ * Lifecycle hook: Called after the extension is updated.
+ */
+export async function onUpdate() {
+    console.log('[PTMT] 🆙 Extension updated');
+}

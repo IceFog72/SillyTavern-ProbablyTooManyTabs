@@ -449,6 +449,16 @@ export class SettingsManager {
         }
         await this.save(true);
     }
+
+    /**
+     * Cleans up all extension settings from SillyTavern's storage.
+     * Called during the 'delete' lifecycle hook.
+     */
+    async cleanup() {
+        console.log('[PTMT Settings] 🧹 Cleaning up extension settings.');
+        delete extension_settings.PTMT;
+        await this.save(true);
+    }
 }
 
 export const settings = new SettingsManager();
