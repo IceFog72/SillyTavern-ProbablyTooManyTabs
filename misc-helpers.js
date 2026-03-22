@@ -1,13 +1,17 @@
 // misc-helpers.js
 
-import { isElement } from './utils.js';
+import { isElement, registerBodyObserver } from './utils.js';
 import { SELECTORS } from './constants.js';
 
-let drawerObserver = null;
-
+/**
+ * Removes SillyTavern's drawer mousedown handler.
+ * NOTE: Uses jQuery._data() which is a private API. This is a best-effort
+ * approach — if jQuery is unavailable or the API changes, it silently degrades.
+ */
 export function removeMouseDownDrawerHandler() {
   try {
-    if (window.jQuery && jQuery && jQuery._data) {
+    // Guard: jQuery._data is a private API removed in jQuery 4.x
+    if (window.jQuery && typeof jQuery._data === 'function') {
       const evs = jQuery._data(document.documentElement, 'events') || {};
       ['touchstart', 'mousedown'].forEach(type => {
         const handlersToRemove = (evs[type] || []).filter(h => {
@@ -26,6 +30,47 @@ export function removeMouseDownDrawerHandler() {
     return false;
   }
 }
+
+let drawerUnregister = null;
+
+/**
+ * Watches for drawers being closed and immediately re-opens them.
+ * Uses the unified body observer for efficiency.
+ */
+export function initDrawerObserver() {
+  // Clean up previous registration
+  if (drawerUnregister) {
+    drawerUnregister();
+    drawerUnregister = null;
+  }
+
+  drawerUnregister = registerBodyObserver(
+    'drawer-observer',
+    { attributes: true, attributeFilter: ['class'] },
+    (mutations) => {
+      for (const mutation of mutations) {
+        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+          const target = mutation.target;
+          if (target.nodeType === 1 && target.classList.contains(SELECTORS.ST_DRAWER_CLOSED.substring(1))) {
+            target.classList.remove(SELECTORS.ST_DRAWER_CLOSED.substring(1));
+            target.classList.add(SELECTORS.ST_DRAWER_OPEN.substring(1));
+          }
+        }
+      }
+    }
+  );
+
+  console.log('[PTMT] Drawer state observer initialized.');
+}
+
+export function cleanupDrawerObserver() {
+  if (drawerUnregister) {
+    drawerUnregister();
+    drawerUnregister = null;
+    console.log('[PTMT] Drawer state observer cleaned up.');
+  }
+}
+
 
 export function openAllDrawersJq(context = document) {
   try {
@@ -49,23 +94,8 @@ export function openAllDrawersJq(context = document) {
 
 export function moveBgDivs(ids = ['bg_custom', 'bg1']) {
   if (!document?.body) return [];
-  /*const found = ids.map(id => document.getElementById(id)).filter(Boolean);
-  if (!found.length) return [];
-  const mainEl = document.getElementById('ptmt-main');
-  const insertBeforeNode = mainEl || document.body.firstChild;
-  found.reverse().forEach(eln => {
-    if (eln.parentElement !== document.body) document.body.appendChild(eln);
-    try {
-      document.body.insertBefore(eln, insertBeforeNode);
-    } catch {
-      try {
-        document.body.appendChild(eln);
-} catch (e) {
-        console.warn('[PTMT] Failed to append element to document body:', e);
-}
-    }
-  });
-  return found;*/
+  // Background div repositioning is currently disabled.
+  return [];
 }
 
 /**
@@ -127,42 +157,4 @@ export function overrideDelegatedEventHandler(eventType, selector, findFunction,
   }
 }
 
-/**
- * Watches for drawers being closed and immediately re-opens them.
- */
-export function initDrawerObserver() {
-  // Disconnect existing observer to prevent memory leaks
-  if (drawerObserver) {
-    drawerObserver.disconnect();
-    drawerObserver = null;
-  }
-
-  drawerObserver = new MutationObserver((mutationsList) => {
-    for (const mutation of mutationsList) {
-      if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-        const target = mutation.target;
-        if (target.nodeType === 1 && target.classList.contains(SELECTORS.ST_DRAWER_CLOSED.substring(1))) {
-          target.classList.remove(SELECTORS.ST_DRAWER_CLOSED.substring(1));
-          target.classList.add(SELECTORS.ST_DRAWER_OPEN.substring(1));
-        }
-      }
-    }
-  });
-
-  drawerObserver.observe(document.body, {
-    subtree: true,
-    attributes: true,
-    attributeFilter: ['class'],
-  });
-
-  console.log('[PTMT] Drawer state observer initialized.');
-  return drawerObserver;
-}
-
-export function cleanupDrawerObserver() {
-  if (drawerObserver) {
-    drawerObserver.disconnect();
-    drawerObserver = null;
-    console.log('[PTMT] Drawer state observer cleaned up.');
-  }
-}
+// ── public API ───────────────────────────────────────────────

@@ -3,7 +3,7 @@ import { createPane, findPreferredDescendentOrientation } from './pane.js';
 import { attachColumnResizer } from './resizer.js';
 import { settings } from './settings.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
-import { getBasis, normalizeFlexBasis } from './layout-math.js';
+import { parseFlexBasis, getBasis, normalizeFlexBasis } from './layout-math.js';
 
 /** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
 /** @typedef {import('./types.js').ColumnLayout} ColumnLayout */
@@ -127,13 +127,9 @@ export function recalculateColumnSizes() {
                 let totalWidth = 0;
                 children.forEach(child => totalWidth += calculateCollapsedColumnWidth(child));
 
-                // Add splitters (approx 4px or 6px depending on CSS, using 4px to be safe/tight)
-                // Actually resizer logic uses 6px usually? Let's check resizer.js or use a safe constant.
-                // resizer.js uses 6px for non-disabled.
-                // But for collapsed view, splitters might be hidden? 
-                // If the split is vertical, splitters are visible.
+                // Add splitters — CSS defines 6px per splitter (.ptmt-resizer-vertical { flex: 0 0 6px })
                 const activeSplitters = Array.from(element.children).filter(c => c.tagName === 'SPLITTER' && !c.classList.contains('disabled'));
-                const splitterWidth = activeSplitters.length * 4; // Approximate
+                const splitterWidth = activeSplitters.length * 6;
                 return totalWidth + splitterWidth;
             }
         }
@@ -154,21 +150,20 @@ export function recalculateColumnSizes() {
             const currentWidth = col.getBoundingClientRect().width;
 
             const currentFlex = col.style.flex;
-            const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
-            const basis = basisMatch ? parseFloat(basisMatch[1]) : 0;
+            const basis = parseFlexBasis(currentFlex) ?? 0;
 
             // Only update lastFlex if it's not already a meaningful expanded value.
             // Don't overwrite a good lastFlex with a tiny/transitional flex value.
             const existingLastFlex = col.dataset.lastFlex;
-            const existingBasisMatch = existingLastFlex ? existingLastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
-            const existingBasis = existingBasisMatch ? parseFloat(existingBasisMatch[1]) : 0;
+            const existingBasis = parseFlexBasis(existingLastFlex) ?? 0;
             // Only recalculate lastFlex if the existing one is missing or tiny (<= 5%)
             if (existingBasis <= 5) {
+                const parentWidth = col.parentElement.getBoundingClientRect().width;
+                const resizerCount = col.parentElement.querySelectorAll('.ptmt-column-resizer').length;
+                const totalResizerWidth = resizerCount * LAYOUT.RESIZER_WIDTH;
+                const availableWidth = parentWidth - totalResizerWidth;
+
                 if (currentWidth < minWidth || basis >= 99.9) {
-                    const parentWidth = col.parentElement.getBoundingClientRect().width;
-                    const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
-                        .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
-                    const availableWidth = parentWidth - totalResizerWidth;
                     if (availableWidth > 0) {
                         const minBasisPercent = (minWidth / availableWidth) * 100;
                         col.dataset.lastFlex = `1 1 ${minBasisPercent.toFixed(4)}%`;
@@ -177,10 +172,6 @@ export function recalculateColumnSizes() {
                     if (currentFlex && currentFlex.includes('%') && basis > 5) {
                         col.dataset.lastFlex = currentFlex;
                     } else {
-                        const parentWidth = col.parentElement.getBoundingClientRect().width;
-                        const totalResizerWidth = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'))
-                            .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
-                        const availableWidth = parentWidth - totalResizerWidth;
                         if (availableWidth > 0 && currentWidth > 5) {
                             const basisPercent = (currentWidth / availableWidth) * 100;
                             col.dataset.lastFlex = `1 1 ${basisPercent.toFixed(4)}%`;
@@ -205,8 +196,8 @@ export function recalculateColumnSizes() {
             let lastFlex = col.dataset.lastFlex;
             const minWidth = calculateElementMinWidth(col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`));
             const parentWidth = col.parentElement.getBoundingClientRect().width;
-            const totalResizerWidth = Array.from(col.parentElement.querySelectorAll(SELECTORS.COLUMN_RESIZER))
-                .reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+            const resizerCount = col.parentElement.querySelectorAll(SELECTORS.COLUMN_RESIZER).length;
+            const totalResizerWidth = resizerCount * LAYOUT.RESIZER_WIDTH;
             const availableWidth = parentWidth - totalResizerWidth;
 
 
@@ -217,11 +208,7 @@ export function recalculateColumnSizes() {
                     const siblings = visibleColumns.filter(c => c !== col);
                     const totalSiblingLastFlex = siblings.reduce((sum, s) => {
                         const flexString = s.dataset.lastFlex || s.style.flex;
-                        if (flexString) {
-                            const match = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
-                            return sum + (match ? parseFloat(match[1]) : 0);
-                        }
-                        return sum;
+                        return sum + (parseFlexBasis(flexString) ?? 0);
                     }, 0);
 
                     if (totalSiblingLastFlex > 0 && totalSiblingLastFlex < 100) {

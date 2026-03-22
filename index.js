@@ -9,7 +9,7 @@ import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
 import { settings, SettingsManager } from './settings.js';
 
-import { el, debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings } from './utils.js';
+import { el, debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
 import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
 import { applyPaneOrientation, applySplitOrientation, openViewSettingsDialog, updateSplitCollapsedState } from './pane.js';
@@ -176,7 +176,7 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
       saveCurrentLayoutDebounced();
     }, 50);
 
-    window.addEventListener(EVENTS.LAYOUT_CHANGED, (event) => {
+    const handleLayoutChanged = (event) => {
 
       const reason = event.detail?.reason || 'unknown';
 
@@ -190,7 +190,9 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
 
       // Batch everything else
       debouncedLayoutReaction(event);
-    }, { passive: true });
+    };
+    window.addEventListener(EVENTS.LAYOUT_CHANGED, handleLayoutChanged, { passive: true });
+    trackListener(window, EVENTS.LAYOUT_CHANGED, handleLayoutChanged, { passive: true });
 
     const extensionPath = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs';
     const applyOverrides = () => {
@@ -217,7 +219,7 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
     };
 
 
-    window.addEventListener(EVENTS.SETTINGS_CHANGED, (event) => {
+    const handleSettingsChanged = (event) => {
 
       const { changed } = event.detail || {};
       const showIconsOnly = settings.get('showIconsOnly');
@@ -233,7 +235,9 @@ import { initAvatarExpressionSync } from './avatar-expression-sync.js';
       applyOverrides();
       document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
       window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
-    });
+    };
+    window.addEventListener(EVENTS.SETTINGS_CHANGED, handleSettingsChanged);
+    trackListener(window, EVENTS.SETTINGS_CHANGED, handleSettingsChanged);
 
 
     initGlobalResizeObserver();
@@ -513,6 +517,7 @@ export async function onInstall() {
  */
 export async function onDelete() {
     console.log('[PTMT] 🗑️ Extension deleted, cleaning up settings');
+    cleanupAllObservers();
     await settings.cleanup();
 }
 
@@ -528,6 +533,7 @@ export async function onEnable() {
  */
 export async function onDisable() {
     console.log('[PTMT] ❌ Extension disabled');
+    cleanupAllObservers();
 }
 
 /**

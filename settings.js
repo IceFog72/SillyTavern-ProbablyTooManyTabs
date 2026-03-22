@@ -407,6 +407,15 @@ export class SettingsManager {
         return SettingsManager.defaultSettings[key];
     }
 
+    /**
+     * Looks up a panel mapping by source ID.
+     * Replaces the repeated `(settings.get('panelMappings') || []).find(m => m.id === sourceId) || {}` pattern.
+     */
+    getMapping(sourceId) {
+        if (!sourceId) return {};
+        return (this.get('panelMappings') || []).find(m => m.id === sourceId) || {};
+    }
+
     async update(newSettings, force = false) {
         const changedKeys = [];
         for (const key in newSettings) {
@@ -456,7 +465,9 @@ export class SettingsManager {
      */
     async cleanup() {
         console.log('[PTMT Settings] 🧹 Cleaning up extension settings.');
-        delete extension_settings.PTMT;
+        extension_settings.PTMT = {};
+        // Re-initialize with defaults so get() doesn't crash after cleanup
+        this.initializeSettings();
         await this.save(true);
     }
 }

@@ -1,5 +1,5 @@
 // resizer.js
-import { $$, getElementDepth, throttle, debounce, getRefs, el, $, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings } from './utils.js';
+import { $$, getElementDepth, throttle, debounce, getRefs, el, $, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings, trackObserver } from './utils.js';
 import { normalizeFlexBasis, getBasis, setFlexBasisPercent, pxToPercent, applyIntelligentExpansion, recalculateSplitSizes, recalculateAllSplitsRecursively } from './layout-math.js';
 import { applyPaneOrientation, setPaneCollapsedView, applySplitOrientation, removePaneIfEmpty } from './pane.js';
 import { recalculateColumnSizes } from './layout.js';
@@ -151,6 +151,11 @@ export function attachResizer(resizer, orientation = 'vertical') {
             const bElemIndex = flexSiblings.indexOf(bElem);
             const parentRectAtStart = resizerEl.parentElement?.getBoundingClientRect();
 
+            // Cache total resizer size once at drag start — resizer sizes are CSS-constants (6px)
+            const totalResizerSize = Array.from(resizerEl.parentElement.children)
+                .filter(c => !c.classList.contains(SELECTORS.PANE.substring(1)) && !c.classList.contains(SELECTORS.SPLIT.substring(1)))
+                .reduce((sum, r) => sum + r.getBoundingClientRect()[sizeProp], 0);
+
             const getChildInfo = (elem) => {
                 if (!elem.classList.contains(SELECTORS.SPLIT.substring(1))) return { element: null, sizes: null, smallestIndex: -1 };
 
@@ -172,7 +177,7 @@ export function attachResizer(resizer, orientation = 'vertical') {
                 return { element: elem, sizes, smallestIndex };
             };
 
-            return { flexSiblings, initialSizes, aElemIndex, bElemIndex, minSizeA, minSizeB, parentRectAtStart, sizeProp, aChildInfo: getChildInfo(aElem), bChildInfo: getChildInfo(bElem) };
+            return { flexSiblings, initialSizes, aElemIndex, bElemIndex, minSizeA, minSizeB, parentRectAtStart, totalResizerSize, sizeProp, aChildInfo: getChildInfo(aElem), bChildInfo: getChildInfo(bElem) };
         },
 
         onDragMove: (delta, state) => {
@@ -199,8 +204,7 @@ export function attachResizer(resizer, orientation = 'vertical') {
             const newSizeA = initialSizeA + clampedDelta;
             const newSizeB = initialSizeB - clampedDelta;
 
-            const totalResizerSize = Array.from(state.flexSiblings[0].parentElement.children).filter(c => !c.classList.contains(SELECTORS.PANE.substring(1)) && !c.classList.contains(SELECTORS.SPLIT.substring(1))).reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
-            const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
+            const totalAvailable = state.parentRectAtStart[state.sizeProp] - (state.totalResizerSize || 0);
 
             if (totalAvailable <= 0) return;
 
@@ -279,7 +283,11 @@ export function attachColumnResizer(resizer) {
             const aKey = aElem.id.replace('ptmt-', '').replace('Body', '');
             const bKey = bElem.id.replace('ptmt-', '').replace('Body', '');
 
-            return { refs, initialSizes, minWidthA, minWidthB, aKey, bKey, parentRectAtStart, sizeProp, aChildInfo: getChildInfo(aElem), bChildInfo: getChildInfo(bElem) };
+            // Cache total column resizer size once at drag start
+            const totalResizerSize = $$(SELECTORS.COLUMN_RESIZER, refs.mainBody)
+                .reduce((sum, r) => sum + r.getBoundingClientRect()[sizeProp], 0);
+
+            return { refs, initialSizes, minWidthA, minWidthB, aKey, bKey, parentRectAtStart, totalResizerSize, sizeProp, aChildInfo: getChildInfo(aElem), bChildInfo: getChildInfo(bElem) };
         },
 
         onDragMove: (delta, state) => {
@@ -302,8 +310,7 @@ export function attachColumnResizer(resizer) {
             newSizes[state.aKey] += clampedDelta;
             newSizes[state.bKey] -= clampedDelta;
 
-            const totalResizerSize = $$(SELECTORS.COLUMN_RESIZER, state.refs.mainBody).reduce((sum, r) => sum + r.getBoundingClientRect()[state.sizeProp], 0);
-            const totalAvailable = state.parentRectAtStart[state.sizeProp] - totalResizerSize;
+            const totalAvailable = state.parentRectAtStart[state.sizeProp] - (state.totalResizerSize || 0);
 
             if (totalAvailable <= 0) return;
 
@@ -511,13 +518,13 @@ export function initGlobalResizeObserver() {
         }));
     }, 150);
 
-    const observer = new ResizeObserver((entries) => {
+    const observer = trackObserver(new ResizeObserver((entries) => {
         for (const entry of entries) {
             if (entry.target === refs.mainBody) {
                 debouncedResize();
             }
         }
-    });
+    }));
 
     observer.observe(refs.mainBody);
     console.log('[PTMT] Global ResizeObserver initialized on mainBody.');

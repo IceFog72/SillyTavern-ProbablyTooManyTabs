@@ -82,6 +82,7 @@ export const LAYOUT = {
     DEFAULT_PANE_FLEX_BASIS: '1 1 50%',
     DEFAULT_PANE_FLEX_BASIS_FULL: '1 1 100%',
     SETTINGS_PANEL_FLEX: '1 1 300px',
+    RESIZER_WIDTH: 6, // matches CSS: .ptmt-resizer-vertical { flex: 0 0 6px }
 };
 
 export const MESSAGES = {

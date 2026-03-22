@@ -359,11 +359,11 @@ export function createTabFromContent(content, options = {}, target = null) {
   }
 
   if (!targetPane) {
-    console.warn(`[SFT] Could not find a target pane for content.`);
+    console.warn(`[PTMT] Could not find a target pane for content.`);
     return null;
   }
 
-  const mapping = (settings.get('panelMappings') || []).find(m => m.id === effectiveSourceId) || {};
+  const mapping = settings.getMapping(effectiveSourceId);
   const panelTitle = title || mapping.title || node?.getAttribute('data-panel-title') || node?.id || 'Panel';
   let panel = effectiveSourceId ? getPanelBySourceId(effectiveSourceId) : null;
   let pid;
@@ -443,7 +443,7 @@ export function createTabForBodyContent({ title = 'Main', icon = 'fa-house', set
 
   const pane = targetPane || getActivePane();
   if (!pane) {
-    console.error('[SFT] createTabForBodyContent failed: Could not find a target pane.');
+    console.error('[PTMT] createTabForBodyContent failed: Could not find a target pane.');
     return null;
   }
 
@@ -599,7 +599,13 @@ export function cloneTabIntoPane(panel, pane, index = null) {
   const title = panel.dataset.title || 'Tab';
   const newPanel = createPanelElement(title);
   const newPid = registerPanelDom(newPanel, title);
-  newPanel.querySelector('.ptmt-panel-content').innerHTML = panel.querySelector('.ptmt-panel-content').innerHTML;
+  const srcContent = panel.querySelector('.ptmt-panel-content');
+  const dstContent = newPanel.querySelector('.ptmt-panel-content');
+  if (srcContent && dstContent) {
+    Array.from(srcContent.childNodes).forEach(child => {
+      dstContent.appendChild(child.cloneNode(true));
+    });
+  }
   index ??= pane._tabStrip.querySelectorAll('.ptmt-tab').length;
   pane._panelContainer.appendChild(newPanel);
   const tab = createTabElement(title, newPid);

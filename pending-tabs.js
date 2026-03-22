@@ -1,7 +1,7 @@
 // pending-tabs.js
 import { createTabFromContent, destroyTabById, openTab } from './tabs.js';
 import { settings } from './settings.js';
-import { getPanelBySourceId, getRefs } from './utils.js';
+import { getPanelBySourceId, getRefs, trackObserver } from './utils.js';
 
 let hydrationObserver = null;
 let demotionObserver = null;
@@ -131,7 +131,7 @@ function hydrateTab(tabInfo, foundElement) {
     }, targetPane);
 
     // CRITICAL: Once hydrated, stop looking for this element to prevent performance leaks
-    //pendingTabsMap.delete(identifier);
+    pendingTabsMap.delete(identifier);
 }
 
 function checkForPendingTabs(nodes) {
@@ -200,7 +200,7 @@ export function initPendingTabsManager(allGhostTabs) {
     let nodesToCheck = new Set();
     let hydrationTimeout = null;
 
-    hydrationObserver = new MutationObserver((mutationsList) => {
+    hydrationObserver = trackObserver(new MutationObserver((mutationsList) => {
         let structuralChange = false;
         for (const mutation of mutationsList) {
             if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
@@ -224,7 +224,7 @@ export function initPendingTabsManager(allGhostTabs) {
                 checkForPendingTabs(batch);
             }, 100);
         }
-    });
+    }));
 
     const observeTarget = document.getElementById('movingDivs') || document.body;
     hydrationObserver.observe(observeTarget, { childList: true, subtree: true });
@@ -275,7 +275,7 @@ export function initDemotionObserver(api) {
             }
         }
     };
-    demotionObserver = new MutationObserver(callback);
+    demotionObserver = trackObserver(new MutationObserver(callback));
     demotionObserver.observe(target, { childList: true, subtree: true });
 }
 

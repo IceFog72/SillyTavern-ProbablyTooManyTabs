@@ -21,8 +21,7 @@ export function getBasis(col, useLastFlex = false) {
         flexString = col.dataset.lastFlex || flexString;
     }
     if (!useLastFlex && col.dataset.isColumnCollapsed === 'true') return 0;
-    const basisMatch = flexString.match(/(\d+(?:\.\d+)?)\s*%/);
-    return basisMatch ? parseFloat(basisMatch[1]) : 0;
+    return parseFlexBasis(flexString) ?? 0;
 }
 
 
@@ -83,7 +82,8 @@ export function applyIntelligentExpansion(element, newTotalSize, childInfo) {
 }
 
 
-export function recalculateAllSplitsRecursively(root = getRefs().mainBody) {
+export function recalculateAllSplitsRecursively(root = null) {
+    root = root || getRefs().mainBody;
     try {
         if (!root) return;
         const splits = Array.from(root.querySelectorAll(SELECTORS.SPLIT));
@@ -98,6 +98,14 @@ export function recalculateAllSplitsRecursively(root = getRefs().mainBody) {
 
 
 export function recalculateSplitSizes(split, actor = null) {
+    try {
+        _recalculateSplitSizesImpl(split, actor);
+    } catch (e) {
+        console.warn('[PTMT] recalculateSplitSizes error:', e);
+    }
+}
+
+function _recalculateSplitSizesImpl(split, actor = null) {
     if (!split?.classList.contains(SELECTORS.SPLIT.substring(1))) return;
 
     const children = Array.from(split.children).filter(c =>
@@ -113,10 +121,10 @@ export function recalculateSplitSizes(split, actor = null) {
     }
 
     if (activeChildren.length < children.length) {
+        const def = 100 / activeChildren.length;
         const totalOpenFlex = activeChildren.reduce((sum, child) => {
             const flexStr = child.dataset.lastFlex || child.style.flex || '';
-            const m = flexStr.match(/(\d+(?:\.\d+)?)\s*%/);
-            return sum + (m ? parseFloat(m[1]) : (100 / activeChildren.length));
+            return sum + (parseFlexBasis(flexStr) ?? def);
         }, 0);
 
         children.forEach(child => {
@@ -124,9 +132,8 @@ export function recalculateSplitSizes(split, actor = null) {
                 child.style.flex = '0 0 auto';
             } else {
                 const flexStr = child.dataset.lastFlex || child.style.flex || '';
-                const m = flexStr.match(/(\d+(?:\.\d+)?)\s*%/);
-                const rawBasis = m ? parseFloat(m[1]) : (100 / activeChildren.length);
-                const scaled = totalOpenFlex > 0 ? (rawBasis / totalOpenFlex) * 100 : (100 / activeChildren.length);
+                const rawBasis = parseFlexBasis(flexStr) ?? def;
+                const scaled = totalOpenFlex > 0 ? (rawBasis / totalOpenFlex) * 100 : def;
                 setFlexBasisPercent(child, scaled);
             }
         });
@@ -140,13 +147,12 @@ export function recalculateSplitSizes(split, actor = null) {
     if (totalAvailableSize <= 1) return;
 
     const resizers = Array.from(split.children).filter(c => c.tagName === 'SPLITTER');
-    const totalResizerSize = resizers.reduce((sum, r) => sum + r.getBoundingClientRect()[sizeProp], 0);
+    const totalResizerSize = resizers.length * LAYOUT.RESIZER_WIDTH;
     const contentAvailableSize = Math.max(0, totalAvailableSize - totalResizerSize);
 
     const childrenInfo = activeChildren.map(child => {
         const flexValue = child.dataset.lastFlex || child.style.flex;
-        const basisMatch = flexValue && flexValue.match(/(\d+(?:\.\d+)?)\s*%/);
-        const flexBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : (100 / activeChildren.length);
+        const flexBasisPercent = parseFlexBasis(flexValue) ?? (100 / activeChildren.length);
         return {
             el: child,
             minSize: calculateElementMinWidth(child),
@@ -220,6 +226,14 @@ export function recalculateSplitSizes(split, actor = null) {
 let lastParentWidth = 0;
 
 export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = null) {
+    try {
+        _normalizeFlexBasisImpl(activeColumns, targetTotal, actor);
+    } catch (e) {
+        console.warn('[PTMT] normalizeFlexBasis error:', e);
+    }
+}
+
+function _normalizeFlexBasisImpl(activeColumns, targetTotal = 100, actor = null) {
     const refs = getRefs();
     if (!refs || !refs.mainBody || activeColumns.length === 0) return;
 
@@ -228,7 +242,8 @@ export function normalizeFlexBasis(activeColumns, targetTotal = 100, actor = nul
 
     if (parentWidth < 100) return;
 
-    const totalResizerWidth = Array.from(refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER)).reduce((sum, r) => sum + r.getBoundingClientRect().width, 0);
+    const resizerCount = refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER).length;
+    const totalResizerWidth = resizerCount * LAYOUT.RESIZER_WIDTH;
 
     const availableWidth = Math.max(1, parentWidth - totalResizerWidth);
 

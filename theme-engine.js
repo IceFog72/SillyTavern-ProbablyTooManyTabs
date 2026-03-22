@@ -1,9 +1,11 @@
 // theme-engine.js
 
+import { registerBodyObserver } from './utils.js';
+
 export class ThemeEngine {
     constructor() {
         this.cache = new Map();
-        this.observer = null;
+        this.unregisterBody = null;
         this.canvas = document.createElement('canvas');
         this.canvas.width = 10; // Tiny for performance
         this.canvas.height = 10;
@@ -20,23 +22,20 @@ export class ThemeEngine {
     }
 
     startObserver() {
-        this.observer = new MutationObserver(() => this.refresh());
+        // Use unified body observer for attribute changes (style/class)
+        this.unregisterBody = registerBodyObserver(
+            'theme-engine',
+            { attributes: true, attributeFilter: ['style', 'class'] },
+            () => this.refresh()
+        );
 
-        // Watch body for direct background changes or the background divs
-        this.observer.observe(document.body, {
-            attributes: true,
-            attributeFilter: ['style', 'class'],
-            subtree: true
-        });
-
-        // Some backgrounds are injected into specific divs
+        // Some backgrounds are injected into specific target divs.
+        // These use separate observers because they watch non-body elements.
         this.targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                this.observer.observe(el, {
-                    attributes: true,
-                    attributeFilter: ['style']
-                });
+                const obs = new MutationObserver(() => this.refresh());
+                obs.observe(el, { attributes: true, attributeFilter: ['style'] });
             }
         });
     }

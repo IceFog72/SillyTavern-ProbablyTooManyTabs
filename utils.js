@@ -200,7 +200,119 @@ export function calculateElementMinWidth(element) {
 
 export function clearDropIndicators(element) {
     if (!element) return;
-    element.querySelectorAll('.drop-indicator').forEach(i => i.remove());
+    element.querySelectorAll(SELECTORS.DROP_INDICATOR_CLASS).forEach(i => i.remove());
 }
 
+// ─── Observer & Listener Lifecycle Tracking ──────────────────────────────────
+
+const trackedObservers = [];
+const trackedListeners = [];
+
+/**
+ * Registers an observer (MutationObserver, ResizeObserver, etc.) for cleanup.
+ * Returns the observer for chaining: `trackObserver(new MutationObserver(fn))`.
+ */
+export function trackObserver(observer) {
+    trackedObservers.push(observer);
+    return observer;
+}
+
+/**
+ * Registers a window/document event listener for cleanup.
+ * { target, event, handler, options }
+ */
+export function trackListener(target, event, handler, options) {
+    trackedListeners.push({ target, event, handler, options });
+}
+
+/**
+ * Disconnects all tracked observers and removes all tracked listeners.
+ * Call from the extension's disable/destroy lifecycle hook.
+ */
+export function cleanupAllObservers() {
+    trackedObservers.forEach(obs => {
+        try { obs.disconnect(); } catch { /* already disconnected */ }
+    });
+    trackedObservers.length = 0;
+
+    trackedListeners.forEach(({ target, event, handler, options }) => {
+        try { target.removeEventListener(event, handler, options); } catch { /* already removed */ }
+    });
+    trackedListeners.length = 0;
+
+    // Also clean up the unified body observer
+    cleanupBodyObserver();
+}
+
+// ─── Unified Body MutationObserver ────────────────────────────────────────────
+// Multiple features observe document.body with subtree:true. Instead of N
+// separate observers all firing on every DOM mutation, we use one observer
+// with a dispatcher that routes mutations to registered handlers.
+
+let bodyObserver = null;
+let bodyObserverStarted = false;
+const bodyHandlers = new Map(); // id → { filter, callback }
+
+/**
+ * Registers a handler with the unified body MutationObserver.
+ * @param {string} id - Unique ID for this handler (used for removal)
+ * @param {object} filter - MutationObserverInit options (attributes/childList/subtree/etc)
+ * @param {function} callback - Called with filtered mutations
+ * @returns {function} Unregister function
+ */
+export function registerBodyObserver(id, filter, callback) {
+    bodyHandlers.set(id, { filter, callback });
+
+    // Lazy-start the observer on first registration
+    if (bodyObserverStarted && bodyObserver) {
+        // Already observing — handler will be picked up on next mutation
+    } else if (document.body) {
+        startBodyObserver();
+    }
+
+    return () => bodyHandlers.delete(id);
+}
+
+function startBodyObserver() {
+    if (bodyObserverStarted) return;
+
+    bodyObserver = new MutationObserver((mutations) => {
+        for (const [id, { filter, callback }] of bodyHandlers) {
+            try {
+                // Filter mutations relevant to this handler
+                const relevant = mutations.filter(m => {
+                    if (filter.childList && m.type === 'childList') return true;
+                    if (filter.attributes && m.type === 'attributes') {
+                        if (filter.attributeFilter && !filter.attributeFilter.includes(m.attributeName)) return false;
+                        return true;
+                    }
+                    return false;
+                });
+                if (relevant.length > 0) {
+                    callback(relevant);
+                }
+            } catch (e) {
+                console.warn(`[PTMT] Body observer handler '${id}' error:`, e);
+            }
+        }
+    });
+
+    bodyObserver.observe(document.body, {
+        childList: true,
+        attributes: true,
+        attributeFilter: ['style', 'class'],
+        subtree: true,
+    });
+
+    bodyObserverStarted = true;
+}
+
+function cleanupBodyObserver() {
+    if (bodyObserver) {
+        bodyObserver.disconnect();
+        bodyObserver = null;
+    }
+    bodyObserverStarted = false;
+    bodyHandlers.clear();
+}
 

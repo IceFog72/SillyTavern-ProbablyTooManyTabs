@@ -436,7 +436,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 let pid = null;
 
                 if (t.sourceId) {
-                    const mapping = (settings.get('panelMappings') || []).find(m => m.id === t.sourceId) || {};
+                    const mapping = settings.getMapping(t.sourceId);
                     const iconToUse = t.icon || mapping.icon || 'fa-tab';
                     panel = createTabFromContent(t.sourceId, {
                         title: t.title || mapping.title,
@@ -669,6 +669,25 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 function validateSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return false;
     if (!snapshot.columns || typeof snapshot.columns !== 'object') return false;
+
+    // Validate column structure
+    for (const col of ['left', 'center', 'right']) {
+        const column = snapshot.columns[col];
+        if (!column || typeof column !== 'object') {
+            console.warn(`[PTMT] Snapshot missing or invalid column: ${col}`);
+            return false;
+        }
+        // Ensure content has a valid type
+        if (column.content && !['pane', 'split'].includes(column.content.type)) {
+            console.warn(`[PTMT] Invalid content type in column ${col}: ${column.content.type}`);
+            return false;
+        }
+        // Validate split nodes have children array
+        if (column.content?.type === 'split' && !Array.isArray(column.content.children)) {
+            console.warn(`[PTMT] Split node in column ${col} missing children array`);
+            return false;
+        }
+    }
 
     if (!snapshot.version || snapshot.version < SNAPSHOT_VERSION) {
         console.warn(`[PTMT] Snapshot version ${snapshot.version} is older than current version ${SNAPSHOT_VERSION}. Auto-resetting to default.`);

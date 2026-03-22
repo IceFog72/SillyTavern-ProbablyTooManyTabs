@@ -1,5 +1,6 @@
 import { settings } from './settings.js';
 import { SELECTORS } from './constants.js';
+import { trackObserver } from './utils.js';
 import { eventSource, event_types } from '../../../../script.js';
 
 let observer = null;
@@ -27,7 +28,7 @@ export function initAvatarExpressionSync() {
             return;
         }
 
-        observer = new MutationObserver((mutations) => {
+        observer = trackObserver(new MutationObserver((mutations) => {
             let shouldUpdate = false;
             for (const mutation of mutations) {
                 // If the image element was replaced (SillyTavern's fade transition)
@@ -46,7 +47,7 @@ export function initAvatarExpressionSync() {
             if (shouldUpdate) {
                 updateLastMessageAvatar();
             }
-        });
+        }));
 
         observer.observe(expressionHolder, {
             childList: true,

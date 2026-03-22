@@ -8,7 +8,7 @@ import { eventSource, event_types } from '../../../../script.js';
 import { getContext } from '../../../extensions.js';
 import { power_user } from '../../../power-user.js';
 import { settings } from './settings.js';
-import { debounce } from './utils.js';
+import { debounce, trackObserver } from './utils.js';
 
 const DEFAULT_RGB = [225, 138, 36]; // Orange
 
@@ -94,18 +94,22 @@ function getDominantColor(img) {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
-        // Use natural dimensions — no resize, no interpolation
+        // Use natural dimensions — downsample to reduce canvas memory
         const w = img.naturalWidth || img.width;
         const h = img.naturalHeight || img.height;
         if (!w || !h) return [DEFAULT_RGB];
 
-        canvas.width = w;
-        canvas.height = h;
-        ctx.drawImage(img, 0, 0, w, h);
+        // Downsample to max 100px — saves memory (16MB → 40KB for a 2000x2000 image)
+        // and we sample every 10th pixel anyway, so no quality loss
+        const MAX_DIM = 100;
+        const scale = Math.min(MAX_DIM / w, MAX_DIM / h, 1);
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-        const imageData = ctx.getImageData(0, 0, w, h);
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
-        const pixelCount = w * h;
+        const pixelCount = canvas.width * canvas.height;
 
         // Sample every 10th pixel for performance (like Color Thief quality=10)
         const quality = 10;
@@ -284,14 +288,14 @@ async function getCharacterColor(info) {
         const needsExtraction = info.type !== 'system' && (s.dialogSource === 'avatar_vibrant' || s.bubbleSource === 'avatar_vibrant');
 
         if (!needsExtraction) {
-            const colors = [DEFAULT_RGB];
+            const colors = [ColorUtils.rgbToHex(DEFAULT_RGB)];
             colorCache.set(info.uid, colors);
             return colors;
         }
 
         // Skip extraction if it's the silhouette or missing
         if (!info.domAvatarUrl || info.domAvatarUrl.includes('img/five.png') || info.domAvatarUrl.length < 10) {
-            return [DEFAULT_RGB];
+            return [ColorUtils.rgbToHex(DEFAULT_RGB)];
         }
 
         // Use the actual DOM <img> element directly — its decoded bitmap is stable.
@@ -305,7 +309,7 @@ async function getCharacterColor(info) {
                 return hexes;
             } catch (e) {
                 console.warn(`[PTMT] DOM extraction failed for ${info.uid}, using static color`, e);
-                return [staticColor];
+                return [ColorUtils.rgbToHex(DEFAULT_RGB)];
             }
         }
 
@@ -317,7 +321,7 @@ async function getCharacterColor(info) {
 
             const timeout = setTimeout(() => {
                 console.warn(`[PTMT] Extraction timeout for ${info.uid}`);
-                resolve([DEFAULT_RGB]);
+                resolve([ColorUtils.rgbToHex(DEFAULT_RGB)]);
             }, 10000);
 
             img.onload = async () => {
@@ -329,12 +333,12 @@ async function getCharacterColor(info) {
                     console.log(`[PTMT] Extracted colors for ${info.uid} (fallback): ${hexes.join(', ')}`);
                     resolve(hexes);
                 } catch (e) {
-                    resolve([DEFAULT_RGB]);
+                    resolve([ColorUtils.rgbToHex(DEFAULT_RGB)]);
                 }
             };
             img.onerror = () => {
                 clearTimeout(timeout);
-                resolve([DEFAULT_RGB]);
+                resolve([ColorUtils.rgbToHex(DEFAULT_RGB)]);
             };
         });
     })();
@@ -382,10 +386,10 @@ function buildCssRules(safeUid, extractedColors, type) {
         const standardRule = `color: ${dialogColor} !important;`;
         // Adaptive rule: Only active when .ptmt-auto-contrast is on the body
         const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) 50%) !important;`;
-        
+
         css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${standardRule} }\n`;
         css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${adaptiveRule} }\n`;
-        
+
         css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${standardRule} }\n`;
         css += `.ptmt-auto-contrast .bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${adaptiveRule} }\n`;
     }
@@ -488,7 +492,7 @@ export function initColorizer() {
     updateStyles();
 
     if (chatObserver) chatObserver.disconnect();
-    chatObserver = new MutationObserver((mutations) => {
+    chatObserver = trackObserver(new MutationObserver((mutations) => {
         let shouldUpdate = false;
         for (const mutation of mutations) {
             if (mutation.type === 'childList') {
@@ -505,7 +509,7 @@ export function initColorizer() {
             }
         }
         if (shouldUpdate) debouncedUpdate();
-    });
+    }));
 
     const chat = document.getElementById('chat');
     if (chat) chatObserver.observe(chat, { childList: true, attributes: true, attributeFilter: ['src'], subtree: true });
@@ -517,7 +521,7 @@ export function initColorizer() {
 
     const userAvatarBlock = document.getElementById('user_avatar_block');
     if (userAvatarBlock) {
-        const personaObserver = new MutationObserver(debouncedUpdate);
+        const personaObserver = trackObserver(new MutationObserver(debouncedUpdate));
         personaObserver.observe(userAvatarBlock, { subtree: true, attributeFilter: ['class'] });
     }
 

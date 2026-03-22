@@ -1,10 +1,10 @@
-import { el, getSplitOrientation, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, defaultViewSettings, invalidateMinWidthCache } from './utils.js';
+import { el, getSplitOrientation, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, defaultViewSettings, invalidateMinWidthCache, trackObserver } from './utils.js';
 import { showContextMenu } from './context-menu.js';
 import { settings } from './settings.js';
 import { recalculateColumnSizes } from './layout.js';
 import { setActivePanelInPane, getPaneForPanel, moveTabIntoPaneAtIndex } from './tabs.js';
 import { updateResizerDisabledStates, attachResizer, setSplitOrientation } from './resizer.js';
-import { recalculateSplitSizes, recalculateAllSplitsRecursively, setFlexBasisPercent } from './layout-math.js';
+import { recalculateSplitSizes, recalculateAllSplitsRecursively, setFlexBasisPercent, parseFlexBasis } from './layout-math.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 
 /** @typedef {import('./types.js').ViewSettings} ViewSettings */
@@ -15,7 +15,7 @@ import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 export const MAX_PANE_LAYERS = LAYOUT.MAX_PANE_LAYERS;
 export const NARROW_PANE_THRESHOLD_PX = LAYOUT.NARROW_PANE_THRESHOLD_PX;
 
-const tabStripOverflowObserver = new ResizeObserver(entries => {
+const tabStripOverflowObserver = trackObserver(new ResizeObserver(entries => {
   for (const entry of entries) {
     const el = entry.target;
     // el is the .ptmt-tabStrip
@@ -27,7 +27,7 @@ const tabStripOverflowObserver = new ResizeObserver(entries => {
     el.classList.toggle('ptmt-has-overflow', hasOverflow);
     updateArrowVisibility(el);
   }
-});
+}));
 
 function updateArrowVisibility(tabStrip) {
   const isVertical = tabStrip.classList.contains('vertical');
@@ -289,12 +289,10 @@ export function setPaneCollapsedView(pane, collapsed) {
     const minSizePx = vs.minimalPanelSize || LAYOUT.DEFAULT_MIN_PANEL_SIZE_PX;
     const rect = pane.getBoundingClientRect();
     const currentFlex = pane.style.flex;
-    const basisMatch = currentFlex ? currentFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
-    const currentBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
+    const currentBasisPercent = parseFlexBasis(currentFlex) ?? 0;
 
     const existingLastFlex = pane.dataset.lastFlex;
-    const existingBasisMatch = existingLastFlex ? existingLastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
-    const existingBasisPercent = existingBasisMatch ? parseFloat(existingBasisMatch[1]) : 0;
+    const existingBasisPercent = parseFlexBasis(existingLastFlex) ?? 0;
 
     if (existingBasisPercent <= 5) {
       let shouldResetToMin = false;
@@ -342,17 +340,12 @@ export function setPaneCollapsedView(pane, collapsed) {
 
       if (totalParentSize > 0) {
         const minBasisPercent = (minSizePx / totalParentSize) * 100;
-        const lastBasisMatch = lastFlex ? lastFlex.match(/(\d+(?:\.\d+)?)\s*%/) : null;
-        const lastBasisPercent = lastBasisMatch ? parseFloat(lastBasisMatch[1]) : 0;
+        const lastBasisPercent = parseFlexBasis(lastFlex) ?? 0;
 
         if (Math.abs(lastBasisPercent - minBasisPercent) < 0.1) {
           const siblings = Array.from(parentSplit.children).filter(c => c !== pane && (c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1))));
           const totalSiblingLastFlex = siblings.reduce((sum, s) => {
-            if (s.dataset.lastFlex) {
-              const match = s.dataset.lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
-              return sum + (match ? parseFloat(match[1]) : 0);
-            }
-            return sum;
+            return sum + (parseFlexBasis(s.dataset.lastFlex) ?? 0);
           }, 0);
 
           if (totalSiblingLastFlex > 0 && totalSiblingLastFlex < 100) {
@@ -367,8 +360,7 @@ export function setPaneCollapsedView(pane, collapsed) {
       if (totalParentSize > 0) {
         const minBasisPercent = (minSizePx / totalParentSize) * 100;
         if (lastFlex && !isFlexInvalid) {
-          const basisMatch = lastFlex.match(/(\d+(?:\.\d+)?)\s*%/);
-          const lastBasisPercent = basisMatch ? parseFloat(basisMatch[1]) : 0;
+          const lastBasisPercent = parseFlexBasis(lastFlex) ?? 0;
           targetBasisPercent = Math.max(minBasisPercent, lastBasisPercent);
         } else {
           targetBasisPercent = minBasisPercent;
@@ -521,10 +513,6 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
     recalculateAllSplitsRecursively();
     window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
   });
-}
-
-function updateTabsOrientation(pane, vertical) {
-  pane._tabStrip.querySelectorAll(SELECTORS.TAB).forEach(t => t.classList.toggle('vertical', vertical));
 }
 
 function normalizeLiftedElement(el) {
