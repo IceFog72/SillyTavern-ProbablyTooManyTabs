@@ -23,7 +23,57 @@ import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 /** @typedef {import('./types.js').GhostTab} GhostTab */
 /** @typedef {import('./types.js').HiddenTab} HiddenTab */
 
-const SNAPSHOT_VERSION = 15;
+const SNAPSHOT_VERSION = 15;      // Minimum supported version
+const SNAPSHOT_CURRENT_VERSION = 16; // Version written by generateLayoutSnapshot
+
+// ─── Snapshot Migration Registry ─────────────────────────────────────────────
+// Each key is a source version; the value migrates that version to (key + 1).
+// To add a future v16→v17 migration, just add `16: (snap) => { ... snap.version = 17; return snap; }`.
+// Migrations run in sequence: 15→16→17→...
+
+const SNAPSHOT_MIGRATIONS = {
+    15: (snap) => {
+        // v15→v16: No structural change. Identity migration — just bumps version.
+        // This is the template for future migrations.
+        snap.version = 16;
+        return snap;
+    },
+};
+
+/**
+ * Attempts to migrate a snapshot from its current version to SNAPSHOT_CURRENT_VERSION.
+ * Returns the migrated snapshot, or null if migration fails.
+ */
+function migrateSnapshot(snapshot) {
+    if (!snapshot || typeof snapshot !== 'object') return null;
+
+    let current = { ...snapshot };
+    let steps = 0;
+    const MAX_STEPS = 10; // safety limit
+
+    while (current.version < SNAPSHOT_CURRENT_VERSION && steps < MAX_STEPS) {
+        const migrate = SNAPSHOT_MIGRATIONS[current.version];
+        if (!migrate) {
+            console.warn(`[PTMT] No migration path from version ${current.version}`);
+            return null;
+        }
+        try {
+            console.log(`[PTMT] Migrating snapshot v${current.version} → v${current.version + 1}`);
+            current = migrate(current);
+            steps++;
+        } catch (e) {
+            console.error(`[PTMT] Migration from v${current.version} failed:`, e);
+            return null;
+        }
+    }
+
+    if (current.version !== SNAPSHOT_CURRENT_VERSION) {
+        console.warn(`[PTMT] Migration ended at v${current.version}, expected v${SNAPSHOT_CURRENT_VERSION}`);
+        return null;
+    }
+
+    return current;
+}
 
 const DEFAULT_MIN_SIZES = {
     pane: { width: '200px', height: '100px' },
@@ -158,7 +208,7 @@ export function generateLayoutSnapshot() {
     const currentLayout = settings.get(layoutKey) || settings.getActiveDefaultLayout();
 
     const snapshot = {
-        version: SNAPSHOT_VERSION,
+        version: SNAPSHOT_CURRENT_VERSION,
         timestamp: Date.now(),
         mode: isMobile ? 'mobile' : 'desktop',
         showLeft: refs.leftBody.style.display !== 'none',
@@ -224,7 +274,8 @@ export function generateLayoutSnapshot() {
 }
 
 export function applyLayoutSnapshot(snapshot, api, settings) {
-    if (!validateSnapshot(snapshot)) {
+    const validated = validateSnapshot(snapshot);
+    if (!validated) {
         console.error('[PTMT] Invalid or outdated snapshot, loading current default layout.');
         const defaultLayout = SettingsManager.defaultSettings.defaultLayout;
         if (snapshot === defaultLayout) {
@@ -236,6 +287,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         }
         return;
     }
+    snapshot = validated; // Use migrated/validated snapshot from here on
 
     const settingsWrapperId = 'ptmt-settings-wrapper-content';
     let settingsWrapper = document.getElementById(settingsWrapperId);
@@ -667,34 +719,51 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 }
 
 function validateSnapshot(snapshot) {
-    if (!snapshot || typeof snapshot !== 'object') return false;
-    if (!snapshot.columns || typeof snapshot.columns !== 'object') return false;
+    if (!snapshot || typeof snapshot !== 'object') return null;
+    if (!snapshot.columns || typeof snapshot.columns !== 'object') return null;
 
     // Validate column structure
     for (const col of ['left', 'center', 'right']) {
         const column = snapshot.columns[col];
         if (!column || typeof column !== 'object') {
             console.warn(`[PTMT] Snapshot missing or invalid column: ${col}`);
-            return false;
+            return null;
         }
         // Ensure content has a valid type
         if (column.content && !['pane', 'split'].includes(column.content.type)) {
             console.warn(`[PTMT] Invalid content type in column ${col}: ${column.content.type}`);
-            return false;
+            return null;
         }
         // Validate split nodes have children array
         if (column.content?.type === 'split' && !Array.isArray(column.content.children)) {
             console.warn(`[PTMT] Split node in column ${col} missing children array`);
-            return false;
+            return null;
         }
     }
 
+    // Version check: attempt migration if old version
     if (!snapshot.version || snapshot.version < SNAPSHOT_VERSION) {
-        console.warn(`[PTMT] Snapshot version ${snapshot.version} is older than current version ${SNAPSHOT_VERSION}. Auto-resetting to default.`);
+        console.warn(`[PTMT] Snapshot version ${snapshot.version} is below minimum supported version ${SNAPSHOT_VERSION}. Cannot migrate.`);
         if (typeof window.toastr !== 'undefined') {
             window.toastr.info("PTMT Layout has been updated and reset to defaults to ensure compatibility.", "Layout Updated");
         }
-        return false;
+        return null;
+    }
+
+    if (snapshot.version < SNAPSHOT_CURRENT_VERSION) {
+        const migrated = migrateSnapshot(snapshot);
+        if (!migrated) {
+            console.warn(`[PTMT] Migration from v${snapshot.version} failed. Resetting to default.`);
+            if (typeof window.toastr !== 'undefined') {
+                window.toastr.info("PTMT Layout has been updated and reset to defaults to ensure compatibility.", "Layout Updated");
+            }
+            return null;
+        }
+        snapshot = migrated;
+    }
+
+    if (snapshot.version > SNAPSHOT_CURRENT_VERSION) {
+        console.warn(`[PTMT] Snapshot version ${snapshot.version} is newer than supported (${SNAPSHOT_CURRENT_VERSION}). Using as-is.`);
     }
 
     const hasContent = ['left', 'center', 'right'].some(col =>
@@ -703,10 +772,10 @@ function validateSnapshot(snapshot) {
 
     if (!hasContent) {
         console.warn('[PTMT] Snapshot has no meaningful content');
-        return false;
+        return null;
     }
 
-    return true;
+    return snapshot;
 }
 
 function nodeHasMeaningfulContent(node) {

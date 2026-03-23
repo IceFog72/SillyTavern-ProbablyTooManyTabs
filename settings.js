@@ -46,8 +46,15 @@ export class SettingsManager {
         // Bubble color mode: 1 = 1st dominant, 2 = 2nd dominant, 3 = gradient
         dialogueColorizerBubbleColorMode: 3,
         // Avatar dimensions
-        avatarBaseHeight: '16vh',
-        avatarBaseWidth: '7vw',
+        avatarBaseHeight: '14vh',
+        avatarBaseWidth: '8vw',
+        avatarBaseBorderRadius: '0.5rem',
+        normalAvatarSize: '48px',
+        avatarScaleWidth: '1',
+        avatarScaleHeight: '1.6',
+        charListAvatarWidth: '4vw',
+        charListAvatarHeight: 'auto',
+        charListAvatarScale: '1',
 
 
         panelMappings: [
@@ -90,7 +97,7 @@ export class SettingsManager {
         savedLayoutMobile: null,
 
         defaultLayout: {
-            version: 15,
+            version: 16,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],
@@ -203,7 +210,7 @@ export class SettingsManager {
         },
 
         mobileLayout: {
-            version: 15,
+            version: 16,
             showLeft: false,
             showRight: false,
             hiddenTabs: [],

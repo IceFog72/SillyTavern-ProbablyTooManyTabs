@@ -130,8 +130,13 @@ function hydrateTab(tabInfo, foundElement) {
         color: mapping.color
     }, targetPane);
 
-    // CRITICAL: Once hydrated, stop looking for this element to prevent performance leaks
-    pendingTabsMap.delete(identifier);
+    // CRITICAL: Only delete ID-based tabs (one-time, unique elements).
+    // Class-based tabs can recur (e.g., ST creates new galleryImageDraggable on each zoom),
+    // so keep them in the map to catch future elements. The reuse logic above handles
+    // replacing content in the existing tab.
+    if (identifier.startsWith('id:')) {
+        pendingTabsMap.delete(identifier);
+    }
 }
 
 function checkForPendingTabs(nodes) {

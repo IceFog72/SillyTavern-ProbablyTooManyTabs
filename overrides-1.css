@@ -1,4 +1,11 @@
-/* Comprehensive Adaptive Contrast Overrides (Targeting specific ST default.css hardcoded colors) */
+/* ==========================================================================
+   PTMT Extension — Overrides & Adaptive Contrast
+   ========================================================================== */
+
+/* ========================================= */
+/* 1. AUTO-CONTRAST TEXT COLORS               */
+/* ========================================= */
+
 .ptmt-auto-contrast body,
 .ptmt-auto-contrast #bg_tabs .bg_tabs_list .bg_tab_button a,
 .ptmt-auto-contrast #completion_prompt_manager #completion_prompt_manager_list .completion_prompt_manager_prompt_name .prompt-manager-inspect-action,
@@ -45,6 +52,11 @@
     color: var(--ptmt-adaptive-em) !important;
 }
 
+.ptmt-auto-contrast input[type="range"],
+.ptmt-auto-contrast .neo-range-slider {
+    background: var(--ptmt-adaptive-text) !important;
+}
+
 body.noShadows * {
     text-shadow: none !important;
 }
@@ -53,105 +65,45 @@ body.no-blur * {
     backdrop-filter: unset !important;
 }
 
-.ptmt-auto-contrast input[type="range"],
-.ptmt-auto-contrast .neo-range-slider {
-    background: var(--ptmt-adaptive-text) !important;
-}
-
 /* ========================================= */
-/* 2. MAIN CONTAINERS & BUBBLE LAYOUT        */
+/* 2. MESSAGE LAYOUT — LUMINANCE MODEL       */
 /* ========================================= */
 
 body.big-avatars .mes {
+    padding: 0 !important;
+}
+
+/* Step 2: Chat-level tint mixing */
+.mes {
     display: flow-root !important;
     position: relative !important;
     width: 100% !important;
-    padding: 0 !important;
-    /* Default: No padding */
+
+
+    --ptmt-chat-tint-mixed: color-mix(in srgb, var(--ptmt-ui-tint), var(--ST-Chat-Background) 50%);
+    --ptmt-chat-composite: oklch(from var(--ptmt-chat-tint-mixed) calc(l * alpha + var(--ptmt-bg-l) * (1 - alpha)) c h);
+    --ptmt-chat-bw: oklch(from var(--ptmt-chat-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
+    --ptmt-contrast-bw: var(--ptmt-chat-bw);
+    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-chat-bw) 30%);
 }
 
-body.big-avatars.swipeAllMessages .mes:not(:has(.swipes-counter:empty)),
-body.big-avatars .mes.last_mes:not(:has(.swipes-counter:empty)) {
-    padding-bottom: 30px !important;
-}
-
-body.bubblechat .mes {
-    padding: 8px;
-    border-radius: unset;
-    border: unset !important;
-}
-
-body.bubblechat .mes[is_user="false"] {
-    border-radius: 0px 0.5rem 0.5rem 0px !important;
-    width: unset !important;
-    margin-right: 8px !important;
-}
-
-body.bubblechat .mes[is_user="true"] {
-    border-radius: 0.5rem 0px 0px 0.5rem !important;
-    margin-left: 8px !important;
-}
-
-/* Text Block (Allows wrapping around the floated avatar) */
-body.big-avatars .mes .mes_block {
-    display: block !important;
-    width: auto !important;
-    overflow: visible !important;
-    margin: 12px !important;
-}
-
-/* Prevent full width textareas in edit mode from dropping under massive avatars */
-body.big-avatars .mes_text:has(.edit_textarea),
-body.big-avatars .mes_reasoning:has(.reasoning_edit_textarea) {
-    display: flow-root !important;
-}
-
-.mes_reasoning {
-    overflow: visible !important;
-}
-
-.mes_block {
-    padding-top: 0;
-    padding-left: 10px;
-    width: 100%;
-    overflow-x: hidden;
-    overflow-y: clip;
-}
-
-body.big-avatars .mes_block .ch_name {
-    margin-bottom: 8px !important;
-}
-
+/* Step 3: Per-message tint mixing (bot messages) */
 .mes {
-    /*
-     * Unified Mixed Tint Model:
-     * Instead of step-by-step blending, we mix all tints into a single "composite tint"
-     * and then blend that mix over the wallpaper luminance (--ptmt-bg-l).
-     */
-
-    /* Step 3: Mix the message tint into the chat mixed tint (1/3 message, 2/3 chat-mixed) */
     --ptmt-mes-tint-mixed: color-mix(in srgb, var(--ptmt-chat-tint-mixed), var(--ST-Bot-Message-Background) 33%);
     --ptmt-mes-composite: oklch(from var(--ptmt-mes-tint-mixed) calc(l * alpha + var(--ptmt-bg-l) * (1 - alpha)) c h);
-
-    /* Local Adaptive B/W intermediate for this message scope */
     --ptmt-mes-bw: oklch(from var(--ptmt-mes-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
-
-    /* Shadow global contrast variable with local message contrast */
     --ptmt-contrast-bw: var(--ptmt-mes-bw);
-
-    /* Adaptive colors derived from the fully-blended composite */
     --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 70%);
     --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-mes-bw) 70%);
     --ptmt-mes-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-mes-bw) 70%);
     --ptmt-mes-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-mes-bw) 60%);
     --ptmt-mes-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-mes-bw) 70%);
     --ptmt-mes-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-mes-bw) 30%);
-
-    /* Code block adaptive variables */
     --ptmt-code-bg: oklch(from var(--ptmt-mes-composite) clamp(0, (l - 0.45) * 100, 0.15) 0 0 / 0.7);
     --ptmt-code-text: oklch(from var(--ptmt-code-bg) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
 }
 
+/* User message tint override */
 .mes[is_user="true"] {
     --ptmt-mes-tint-mixed: color-mix(in srgb, var(--ptmt-chat-tint-mixed), var(--ST-User-Message-Background) 33%);
     --ptmt-mes-composite: oklch(from var(--ptmt-mes-tint-mixed) calc(l * alpha + var(--ptmt-bg-l) * (1 - alpha)) c h);
@@ -159,33 +111,7 @@ body.big-avatars .mes_block .ch_name {
     --ptmt-contrast-bw: var(--ptmt-mes-bw);
 }
 
-.mes {
-    /* Step 2: Mix UI and Chat tints, then blend over wallpaper luminance */
-    --ptmt-chat-tint-mixed: color-mix(in srgb, var(--ptmt-ui-tint), var(--ST-Chat-Background) 50%);
-    --ptmt-chat-composite: oklch(from var(--ptmt-chat-tint-mixed) calc(l * alpha + var(--ptmt-bg-l) * (1 - alpha)) c h);
-
-    /* Local Adaptive B/W for the overall chat area */
-    --ptmt-chat-bw: oklch(from var(--ptmt-chat-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
-
-    /* Shadow global contrast variable for objects in chat but outside messages */
-    --ptmt-contrast-bw: var(--ptmt-chat-bw);
-
-    --ptmt-mes-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-chat-bw) 30%);
-}
-
-.ptmt-auto-contrast .mes {
-    color: var(--ptmt-mes-text) !important;
-}
-
-.ptmt-auto-contrast .mes_text q {
-    --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-contrast-bw) 30%);
-    color: var(--ptmt-adaptive-quote) !important;
-}
-
-.ptmt-auto-contrast .mes .swipes-counter {
-    color: var(--ptmt-mes-text) !important;
-}
-
+/* Auto-contrast applies the computed colors */
 .ptmt-auto-contrast .mes {
     color: var(--ptmt-mes-text);
     text-shadow: var(--ptmt-mes-shadow) !important;
@@ -204,15 +130,32 @@ body.big-avatars .mes_block .ch_name {
     color: var(--ptmt-mes-quote);
 }
 
-.mes_text {
-    padding-left: 0;
-    padding-top: 5px;
-    padding-bottom: 5px;
-    padding-right: var(--mes-right-spacing);
+.ptmt-auto-contrast .mes .swipes-counter {
+    color: var(--ptmt-mes-text) !important;
 }
 
 .ptmt-auto-contrast .mes_text {
     color: var(--ptmt-mes-text);
+}
+
+.ptmt-auto-contrast .mes_reasoning {
+    color: var(--ptmt-mes-em);
+}
+
+.ptmt-auto-contrast .mes_text q {
+    --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-contrast-bw) 30%);
+    color: var(--ptmt-adaptive-quote) !important;
+}
+
+/* ========================================= */
+/* 3. MESSAGE BLOCK & TEXT                   */
+/* ========================================= */
+
+.mes .mes_block {
+    display: block !important;
+    width: auto !important;
+    overflow: visible !important;
+    margin: 8px !important;
 }
 
 .mes_text,
@@ -223,10 +166,165 @@ body.big-avatars .mes_block .ch_name {
     overflow-wrap: anywhere;
 }
 
-.ptmt-auto-contrast .mes_reasoning {
-    color: var(--ptmt-mes-em);
+.mes .mes_block .ch_name {
+    margin-bottom: 4px !important;
 }
 
+.last_mes .mesAvatarWrapper {
+    padding-bottom: unset !important;
+}
+
+/* ========================================= */
+/* 4. AVATAR PLACEMENT                       */
+/* ========================================= */
+
+/* CSS variable declarations */
+.mes {
+    --avatar-base-height: var(--ptmt-avatar-base-height, 14vh);
+    --avatar-base-width: var(--ptmt-avatar-base-width, 8vw);
+    --avatar-base-border-radius: var(--ptmt-avatar-base-border-radius, 0.5rem);
+    --normal-avatar-size: var(--ptmt-normal-avatar-size, 48px);
+    --avatar-scale-width: var(--ptmt-avatar-scale-width, 1);
+    --avatar-scale-height: var(--ptmt-avatar-scale-height, 1);
+}
+
+/* User avatar (left) */
+.mes .mesAvatarWrapper {
+    float: left !important;
+    position: relative !important;
+    display: block !important;
+    width: var(--normal-avatar-size) !important;
+    height: var(--normal-avatar-size) !important;
+    margin: 0px 10px 5px 0px !important;
+    z-index: 10 !important;
+}
+
+.mes .mesAvatarWrapper .avatar {
+    position: absolute !important;
+    top: 0 !important;
+    left: 0 !important;
+    width: 100% !important;
+    height: 100% !important;
+    border-radius: var(--avatar-base-border-radius);
+}
+
+.mes .mesAvatarWrapper .avatar img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: cover !important;
+    border: 1px solid var(--ST-Quote-Text) !important;
+    border-radius: var(--avatar-base-border-radius);
+}
+
+/* Bot avatar (right) */
+.mes[is_user="false"] .mesAvatarWrapper {
+    float: right !important;
+    margin: 0px 0px 5px 10px !important;
+}
+
+/* Info / timer positioning */
+.mesIDDisplay,
+.mes_timer,
+.tokenCounterDisplay {
+    text-align: start !important;
+    margin-left: 6px !important;
+    position: relative !important;
+    z-index: 12 !important;
+}
+
+.mes[is_user="false"] .mesIDDisplay,
+.mes[is_user="false"] .mes_timer,
+.mes[is_user="false"] .tokenCounterDisplay {
+    text-align: end !important;
+    margin-right: 6px !important;
+    margin-left: unset !important;
+}
+
+/* ========================================= */
+/* 5. BIG AVATAR OVERRIDES                   */
+/* ========================================= */
+
+body.big-avatars .mes {
+    padding: 0 !important;
+}
+
+body.big-avatars.swipeAllMessages .mes:not(:has(.swipes-counter:empty)),
+body.big-avatars .mes.last_mes:not(:has(.swipes-counter:empty)) {
+    padding-bottom: 30px !important;
+}
+
+body.big-avatars .mes .mes_block {
+    margin: 12px !important;
+    padding-top: 0;
+    padding-left: 10px;
+    width: 100%;
+    overflow-x: hidden;
+    overflow-y: clip;
+}
+
+body.big-avatars .mes_text:has(.edit_textarea),
+body.big-avatars .mes_reasoning:has(.reasoning_edit_textarea) {
+    display: flow-root !important;
+}
+
+body.big-avatars .mes_text {
+    padding-left: 0;
+    padding-top: 5px;
+    padding-bottom: 5px;
+    padding-right: var(--mes-right-spacing);
+}
+
+body.big-avatars .mes_reasoning {
+    overflow: visible !important;
+}
+
+body.big-avatars .mes_block .ch_name {
+    margin-bottom: 8px !important;
+}
+
+/* Big avatar sizing & masks */
+body.big-avatars .mes .mesAvatarWrapper {
+    width: calc(var(--avatar-base-width) * var(--avatar-scale-width)) !important;
+    height: calc(var(--avatar-base-height) * var(--avatar-scale-height)) !important;
+    margin: 0px 15px 10px 0px !important;
+}
+
+body.big-avatars .mes .mesAvatarWrapper .avatar {
+    border-radius: var(--avatar-base-border-radius);
+    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
+    mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
+    -webkit-mask-composite: destination-in !important;
+    mask-composite: intersect !important;
+}
+
+body.big-avatars .mes .mesAvatarWrapper .avatar img {
+    width: calc(var(--avatar-base-width) * var(--avatar-scale-width)) !important;
+    height: calc(var(--avatar-base-height) * var(--avatar-scale-height)) !important;
+    border-radius: var(--avatar-base-border-radius);
+}
+
+/* Bot big avatar (flip mask direction) */
+body.big-avatars .mes[is_user="false"] .mesAvatarWrapper {
+    margin: 0px 0px 10px 15px !important;
+}
+
+body.big-avatars .mes[is_user="false"] .mesAvatarWrapper .avatar {
+    right: 0 !important;
+    left: auto !important;
+    -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
+    mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
+}
+
+/* Big avatar info */
+body.big-avatars .mesIDDisplay,
+body.big-avatars .mes_timer,
+body.big-avatars .tokenCounterDisplay {
+    mix-blend-mode: difference;
+    margin-top: 6px !important;
+    color: white;
+}
+
+/* Hidden avatar cleanup */
 body.big-avatars.hideChatAvatars .mes .mesAvatarWrapper,
 body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
     width: unset !important;
@@ -234,119 +332,107 @@ body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
     margin: 5px !important;
 }
 
-@supports (-webkit-app-region: inherit) {
-
-    /* OPTIMIZED (ON): Ultra performance + Chrome block-style layout */
-    body.ptmt-optimize-visibility.bubblechat .mes_block {
-        content-visibility: auto;
-        contain-intrinsic-size: auto 500px;
-        contain-intrinsic-block-size: auto 500px;
-    }
-
-    /*
-       Note: We removed 'content-visibility: auto' from 'body.bubblechat .mes' for Chrome.
-       In Chrome, parent-level visibility causes jumping scrollbars in long chats.
-       OFF mode now provides perfect text-wrapping and smooth scrolling (but uses more CPU/GPU).
-    */
-}
-
-@-moz-document url-prefix() {
-
-    /* Firefox always gets efficient wrapping performance without jumping */
-    body.bubblechat .mes {
-        content-visibility: auto;
-        contain-intrinsic-size: auto none;
-        contain-intrinsic-block-size: auto 500px;
-    }
+/* Hide avatar for welcome prompt messages */
+#chat .mes[type="welcome_prompt"] .mesAvatarWrapper {
+    display: none !important;
 }
 
 /* ========================================= */
-/* 2. LEFT SIDE (Default / User)             */
+/* 6. BUBBLE CHAT                            */
 /* ========================================= */
 
-.mes {
-    --avatar-base-height: var(--ptmt-avatar-base-height, 14vh);
-    --avatar-base-width: var(--ptmt-avatar-base-width, 8vw);
+body.bubblechat .mes {
+    padding: 8px;
+    border-radius: unset;
+    border: unset !important;
 }
 
-body.big-avatars .mes .mesAvatarWrapper {
-    float: left !important;
-    position: relative !important;
-    display: block !important;
-    width: calc(var(--avatar-base-width) * var(--big-avatar-width-factor)) !important;
-    height: calc(var(--avatar-base-height) * var(--big-avatar-height-factor)) !important;
-    margin: 0px 15px 10px 0px !important;
-    z-index: 10 !important;
+body.bubblechat .mes[is_user="false"] {
+    border-radius: 0px 0.5rem 0.5rem 0px !important;
+    width: unset !important;
+    margin-right: 8px !important;
 }
 
-body.big-avatars .mes .mesAvatarWrapper .avatar {
+body.bubblechat .mes[is_user="true"] {
+    border-radius: 0.5rem 0px 0px 0.5rem !important;
+    margin-left: 8px !important;
+}
+
+/* Performance: content-visibility for long chats */
+/* Per-message granularity — browser remembers each message's actual size
+   after first render, so subsequent scrolls don't jump */
+body.ptmt-optimize-visibility .mes {
+    content-visibility: auto;
+    contain-intrinsic-size: auto 300px;
+}
+
+/* ========================================= */
+/* 7. SWIPE ARROWS (big-avatars)             */
+/* ========================================= */
+
+body.big-avatars .mes .swipeRightBlock {
     position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    width: 100% !important;
-    height: 100% !important;
-    /* Fade the RIGHT side (where text is) and the BOTTOM */
-    -webkit-mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
-    mask-image: linear-gradient(to left, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
-    -webkit-mask-composite: destination-in !important;
-    mask-composite: intersect !important;
+    bottom: 10px !important;
+    right: 15px !important;
+    top: auto !important;
+    transform: none !important;
+    z-index: 25 !important;
+    display: flex !important;
+    flex-direction: row-reverse !important;
+    align-items: center !important;
+    gap: 12px !important;
+    width: auto !important;
 }
 
-/* User Info/Timer (Left Aligned) */
-body.big-avatars .mesIDDisplay,
-body.big-avatars .mes_timer,
-body.big-avatars .tokenCounterDisplay {
-    mix-blend-mode: difference;
-    text-align: start !important;
-    margin-top: 6px !important;
-    margin-left: 6px !important;
-    position: relative !important;
-    z-index: 12 !important;
-    color: white;
-}
-
-/* ========================================= */
-/* 3. RIGHT SIDE (Bot - is_user="false")     */
-/* ========================================= */
-
-body.big-avatars .mes[is_user="false"] .mesAvatarWrapper {
-    float: right !important;
-    margin: 0px 0px 10px 15px !important;
-}
-
-body.big-avatars .mes[is_user="false"] .mesAvatarWrapper .avatar {
-    right: 0 !important;
+body.big-avatars .mes .swipe_left {
+    position: absolute !important;
+    bottom: 10px !important;
     left: auto !important;
-    /* Fade the LEFT side (where text is) and the BOTTOM */
-    -webkit-mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
-    mask-image: linear-gradient(to right, rgba(0, 0, 0, 0) 0%, black 20%), linear-gradient(to top, rgba(0, 0, 0, 0) 0%, black 20%) !important;
-    -webkit-mask-composite: destination-in !important;
-    mask-composite: intersect !important;
+    right: 90px !important;
+    top: auto !important;
+    transform: none !important;
+    z-index: 25 !important;
 }
 
-/* Bot Info/Timer (Right Aligned) */
-body.big-avatars .mes[is_user="false"] .mesIDDisplay,
-body.big-avatars .mes[is_user="false"] .mes_timer,
-body.big-avatars .mes[is_user="false"] .tokenCounterDisplay {
-    text-align: end !important;
-    margin-right: 6px !important;
-    margin-left: unset !important;
+body.big-avatars .mes .swipes-counter {
+    font-size: 0.85rem !important;
+    font-family: monospace !important;
+    opacity: 0.8;
+    min-width: 40px;
+    text-align: center !important;
+    user-select: none;
+    margin: 0 !important;
 }
 
-/* Common Image Scaling */
-body.big-avatars .mes .mesAvatarWrapper .avatar img {
-    position: absolute !important;
-    top: 0 !important;
-    left: 0 !important;
-    border: 1px solid var(--ST-Quote-Text) !important;
-    width: calc(var(--avatar-base-width) * var(--big-avatar-width-factor)) !important;
-    height: calc(var(--avatar-base-height) * var(--big-avatar-height-factor)) !important;
-    object-fit: cover !important;
+body.big-avatars .mes .swipe_left,
+body.big-avatars .mes .swipe_right {
+    background: none !important;
+    border: none !important;
+    box-shadow: none !important;
+    font-size: 1.1rem !important;
+    width: auto !important;
+    height: auto !important;
+    padding: 0 !important;
+    opacity: 0.5;
+    transition: opacity 0.2s, transform 0.1s;
+    cursor: pointer;
+}
+
+body.big-avatars .mes .swipe_left:hover,
+body.big-avatars .mes .swipe_right:hover {
+    opacity: 1;
+    transform: scale(1.1);
 }
 
 /* ========================================= */
-/* 4. REASONING BLOCK                        */
+/* 8. REASONING BLOCK                        */
 /* ========================================= */
+
+.mes_reasoning {
+    border-left: 1px solid var(--reasoning-body-color) !important;
+    border-radius: 0px 0.5rem 0px 0px !important;
+    font-size: calc(var(--mainFontSize) * 0.9);
+}
 
 .mes_reasoning_header {
     background-color: unset !important;
@@ -357,7 +443,10 @@ body.big-avatars .mes .mesAvatarWrapper .avatar img {
     font-size: calc(var(--mainFontSize) * 0.7);
 }
 
-/* Border bottom only when collapsed */
+.mes_reasoning_header:has(.up) {
+    border-radius: 0.5rem 0px 0px 0px !important;
+}
+
 .mes_reasoning_details:not([open]) .mes_reasoning_header {
     border-bottom: 1px solid var(--reasoning-body-color);
 }
@@ -366,29 +455,18 @@ body.big-avatars .mes .mesAvatarWrapper .avatar img {
     top: 50%;
 }
 
-.mes_reasoning_header:has(.up) {
-    border-radius: 0.5rem 0px 0px 0px !important;
-}
-
 .mes_reasoning_details .mes_reasoning_arrow {
     right: 0px !important;
 }
 
-.mes_reasoning {
-    border-left: 1px solid var(--reasoning-body-color) !important;
-    border-radius: 0px 0.5rem 0px 0px !important;
-    font-size: calc(var(--mainFontSize) * 0.9);
-}
-
 /* ========================================= */
-/* 5. BUTTONS & UI INTERACTION               */
+/* 9. BUTTONS & UI INTERACTION               */
 /* ========================================= */
 
 .mes_buttons,
 .mes_reasoning_actions {
     border: 1px solid var(--ST-UI-Border);
-    --shadow-medium: 0 4px 8px 0 hsl(none 0% 0%/0.16);
-    box-shadow: var(--shadow-medium) !important;
+    box-shadow: 0 4px 8px 0 hsl(none 0% 0%/0.16) !important;
     background-color: var(--ST-UI-Background);
     padding: 2px;
     border-radius: 0.5rem;
@@ -432,115 +510,52 @@ body.big-avatars .mes .mesAvatarWrapper .avatar img {
 }
 
 /* ========================================= */
-/* 6. SWIPE ARROWS (Grouped < 1/1 >)         */
+/* 10. FONT                                  */
 /* ========================================= */
-
-/* The Right block: Swaps order to [ 1/1 ] [ > ] */
-body.big-avatars .mes .swipeRightBlock {
-    position: absolute !important;
-    bottom: 10px !important;
-    right: 15px !important;
-    top: auto !important;
-    transform: none !important;
-    z-index: 25 !important;
-
-    display: flex !important;
-    flex-direction: row-reverse !important;
-    /* Swaps Counter and Right Arrow */
-    align-items: center !important;
-    gap: 12px !important;
-    width: auto !important;
-}
-
-/* The Left Arrow: Positioned to the left of the counter */
-body.big-avatars .mes .swipe_left {
-    position: absolute !important;
-    bottom: 10px !important;
-    left: auto !important;
-    /* Anchored to the right to stay glued to the counter group */
-    right: 90px !important;
-    top: auto !important;
-    transform: none !important;
-    z-index: 25 !important;
-}
-
-/* Counter text: Now sits in the center between arrows */
-body.big-avatars .mes .swipes-counter {
-    font-size: 0.85rem !important;
-    font-family: monospace !important;
-    opacity: 0.8;
-    min-width: 40px;
-    /* Space for the "1/1" text */
-    text-align: center !important;
-    /* Center the text inside its box */
-    user-select: none;
-    margin: 0 !important;
-}
-
-/* UI Cleanup: Icons only, no blocks */
-body.big-avatars .mes .swipe_left,
-body.big-avatars .mes .swipe_right {
-    background: none !important;
-    border: none !important;
-    box-shadow: none !important;
-    font-size: 1.1rem !important;
-    width: auto !important;
-    height: auto !important;
-    padding: 0 !important;
-    opacity: 0.5;
-    transition: opacity 0.2s, transform 0.1s;
-    cursor: pointer;
-}
-
-body.big-avatars .mes .swipe_left:hover,
-body.big-avatars .mes .swipe_right:hover {
-    opacity: 1;
-    transform: scale(1.1);
-}
 
 @font-face {
     font-family: 'CaskaydiaCove';
     src:
-        /* 1. Check for common system names first */
         local('CaskaydiaCove Nerd Font'),
         local('CaskaydiaCove NF'),
         local('CaskaydiaCoveNerdFont-Regular'),
-
-        /* 2. Fallback to the link if not found locally */
-        url('https://www.programmingfonts.org/fonts/resources/cascadia-code/cascadia-code.woff2') format('truetype');
-
+        url('fonts/CaskaydiaCove.woff2') format('woff2');
     font-weight: normal;
     font-style: normal;
 }
 
 code,
 .world_entry_form_control textarea {
-    font-family: CaskaydiaCove Nerd Font
+    font-family: 'CaskaydiaCove', monospace;
 }
 
-/* ==========================================================================
-   CHARACTER LIST GRID (SCSS-style nesting; requires a preprocessor)
-   ========================================================================== */
+/* ========================================= */
+/* 11. CHARACTER LIST GRID                   */
+/* ========================================= */
+
 .stcm_folder_main .avatar {
     --avatar-width: 30px;
     --avatar-aspect-ratio: 1;
-
     --avatar-border-width: 1px;
     --avatar-fav-border-width: 2px;
     --avatar-padding: 5px;
-
     max-height: 30px !important;
     max-width: 30px !important;
 }
 
 html,
 body.charListGrid {
-    --avatar-width: 4.5vw;
+    --avatar-width: 4vw;
     --avatar-aspect-ratio: calc(3 / 5.0);
-
     --avatar-border-width: 1px;
     --avatar-fav-border-width: 2px;
     --avatar-padding: 5px;
+    --char-list-avatar-width: var(--ptmt-char-list-avatar-width, 4vw);
+    --char-list-avatar-height: var(--ptmt-char-list-avatar-height, auto);
+    --char-list-avatar-scale: var(--ptmt-char-list-avatar-scale, 1);
+}
+
+body.charListGrid {
 
     .character_select.is_fav .ch_name,
     .group_select.is_fav .ch_name,
@@ -556,7 +571,6 @@ body.charListGrid {
     }
 
     #rm_print_characters_block {
-
         .avatar.avatar_collage {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(50%, 1fr));
@@ -569,14 +583,17 @@ body.charListGrid {
 
         .avatar img {
             border: 0 !important;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
         }
 
         .avatar,
         .avatar_collage,
         .avatar:not(.avatar_collage) img {
-            width: var(--avatar-width);
-            width: 100%;
-            height: unset;
+            width: calc(var(--char-list-avatar-width, 4vw) * var(--char-list-avatar-scale, 1));
+            height: var(--char-list-avatar-height, auto);
             aspect-ratio: var(--avatar-aspect-ratio);
             max-height: unset;
             min-height: unset;
@@ -587,17 +604,26 @@ body.charListGrid {
         .character_select_container {
             align-self: center;
         }
+
+        .character_select,
+        .bogus_folder_select,
+        .group_select {
+            width: auto;
+            height: min-content;
+            flex-direction: column;
+            overflow: hidden;
+            max-width: calc(var(--char-list-avatar-width, 4vw) * var(--char-list-avatar-scale, 1) + 10px);
+        }
     }
 }
+
+/* ========================================= */
+/* 12. GLOBAL UI                             */
+/* ========================================= */
 
 #form_sheld {
     margin-bottom: 0px !important;
 }
-
-/* ==========================================================================
-   Global
-   ========================================================================== */
-
 
 #delete_button {
     background-color: var(--crimson70a) !important;
@@ -614,7 +640,6 @@ textarea {
     border: none !important;
 }
 
-
 input:disabled,
 select:disabled,
 textarea:disabled {
@@ -624,10 +649,10 @@ textarea:disabled {
     pointer-events: none !important;
 }
 
+/* Menu buttons */
 .menu_button>* {
     text-shadow: none !important;
     box-shadow: none !important;
-
 }
 
 .menu_button {
@@ -644,6 +669,12 @@ textarea:disabled {
     gap: 6px;
 }
 
+.menu_button:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 30%);
+    border-color: color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 50%) !important;
+}
+
 .menu_button:disabled,
 .menu_button[disabled] {
     opacity: 0.5 !important;
@@ -651,13 +682,6 @@ textarea:disabled {
     filter: saturate(0.4) brightness(0.8) !important;
     pointer-events: none !important;
 }
-
-.menu_button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 30%);
-    border-color: color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 50%) !important;
-}
-
 
 .menu_button>small {
     color: color-mix(in srgb, var(--ptmt-adaptive-text) 50%, white 30%);
@@ -671,16 +695,15 @@ small:hover {
     padding: 0em 1em 0em 0em;
 }
 
-.toast-progress {
-    filter: opacity(100%) !important;
-}
-
+/* Toast */
+.toast-progress,
 #toast-container>div:hover,
 #toast-container>div,
 .toast-close-button {
     filter: opacity(100%) !important;
 }
 
+/* Radio & checkbox */
 input[type="radio"],
 input[type="checkbox"] {
     appearance: none;
@@ -696,6 +719,7 @@ input[type="checkbox"] {
     transform: none;
     border: 1px solid var(--ST-UI-Border) !important;
     padding: unset !important;
+    cursor: default;
 }
 
 input[type="radio"]::before,
@@ -711,10 +735,6 @@ input[type="checkbox"]::before {
 input[type="radio"]::after,
 input[type="checkbox"]::after {
     transition: all 100ms ease-out;
-}
-
-input[type="radio"]::after,
-input[type="checkbox"]::after {
     background-color: var(--ST-Main-Text) !important;
     border-radius: 50%;
     content: "";
@@ -723,11 +743,6 @@ input[type="checkbox"]::after {
     position: absolute;
     top: 2px;
     width: 10px;
-}
-
-input[type="radio"],
-input[type="checkbox"] {
-    cursor: default;
 }
 
 input[type="radio"]:hover,
@@ -757,6 +772,7 @@ input[type="checkbox"]:checked:hover {
     background-color: var(--ST-Underlined-Text) !important;
 }
 
+/* Drawer */
 .drawer-toggle:has(.openIcon),
 .drawer-toggle:has(.openIcon):hover {
     border-radius: 0px 0.5rem 0.5rem 0px !important;
@@ -780,9 +796,8 @@ input[type="checkbox"]:checked:hover {
     display: flex;
     align-items: center;
     justify-content: left;
-    border: 2px solid transparent !important;
-    border-radius: 0px 0.5rem 0.5rem 0px !important;
     border: 0px;
+    border-radius: 0px 0.5rem 0.5rem 0px !important;
     height: 0px;
     width: 2px;
 }
@@ -795,7 +810,7 @@ input[type="checkbox"]:checked:hover {
     width: var(--nav-bar-width) !important;
 }
 
-
+/* Settings / drawer headers */
 #user-settings-block h4 {
     background: color-mix(in srgb, var(--ptmt-adaptive-quote) 10%, var(--ptmt-adaptive-em) 10%);
     border-radius: 0.5rem !important;
@@ -828,7 +843,7 @@ input[type="checkbox"]:checked:hover {
 .userSettingsInnerExpandable {
     background: color-mix(in srgb, var(--ptmt-adaptive-quote) 10%, var(--ptmt-adaptive-em) 10%);
     margin: unset !important;
-    padding: 4px 8px !important;
+    padding: 6px 6px !important;
     margin-bottom: 2px !important;
     border-radius: 0.5rem !important;
     border: unset !important;
@@ -840,14 +855,7 @@ input[type="checkbox"]:checked:hover {
     border-radius: 0.5rem 0.5rem 0px 0px !important;
 }
 
-#extensions_settings .inline-drawer-toggle.inline-drawer-header,
-#extensions_settings2 .inline-drawer-toggle.inline-drawer-header,
-.inline-drawer-toggle.inline-drawer-header,
-.standoutHeader,
-.userSettingsInnerExpandable {
-    padding: 6px 6px !important;
-}
-
+/* Range sliders */
 .neo-range-slider {
     border-radius: 0.5rem 0.5rem 0 0 !important;
 }

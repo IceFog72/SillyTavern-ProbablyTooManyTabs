@@ -1,5 +1,6 @@
 import { el } from '../utils.js';
 import { EVENTS } from '../constants.js';
+import { SettingsManager } from '../settings.js';
 
 export function createSettingsPanel(manager) {
     const { settings, appApi } = manager;
@@ -42,6 +43,12 @@ export function createSettingsPanel(manager) {
     optimizeVisibilityCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
     optimizeVisibilityCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
 
+    const optimizeNotice = document.createElement('div');
+    optimizeNotice.className = 'ptmt-setting-notice';
+    optimizeNotice.textContent = 'Minor scroll jumps possible until messages are viewed once.';
+    optimizeNotice.style.cssText = 'font-size:0.75em;opacity:0.6;margin-top:-4px;margin-bottom:8px;padding-left:28px;';
+    optimizeVisibilityCheckbox.appendChild(optimizeNotice);
+
     const autoContrastCheckbox = createSettingCheckbox('Auto Contrast (Adaptive Text Colors)', 'enableAutoContrast');
     autoContrastCheckbox.classList.add('ptmt-setting-sub-item');
     autoContrastCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
@@ -57,10 +64,10 @@ export function createSettingsPanel(manager) {
             value: settings.get(key),
             className: 'text_pole textarea_compact',
             title: 'Valid CSS units: px, vh, vw, %, em, rem, vmin, vmax',
-            style: { width: '50px', marginLeft: '5px', marginRight: '10px' }
+            style: { width: '55px', marginLeft: '5px' }
         });
-        const span = el('span', { style: { display: 'flex', alignItems: 'center' } },
-            el('label', { style: { margin: 0 } }, label),
+        const row = el('div', { style: { display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' } },
+            el('label', { style: { margin: 0, minWidth: '140px' } }, label),
             inp
         );
 
@@ -74,32 +81,118 @@ export function createSettingsPanel(manager) {
         };
 
         inp.addEventListener('input', (e) => updateUI(e.target.value));
-        return { span, inp };
+        return { row, inp };
     };
 
-    const h = createDimensionItem('H', 'avatarBaseHeight');
-    const w = createDimensionItem('W', 'avatarBaseWidth');
+    const createFactorItem = (label, key) => {
+        const inp = el('input', {
+            type: 'number',
+            value: settings.get(key),
+            step: '0.1',
+            min: '0.1',
+            max: '5',
+            className: 'text_pole textarea_compact',
+            title: 'Multiplier (0.1 – 5)',
+            style: { width: '55px', marginLeft: '5px' }
+        });
+        const row = el('div', { style: { display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' } },
+            el('label', { style: { margin: 0, minWidth: '140px' } }, label),
+            inp
+        );
 
-    const resetDimBtn = el('button', {
+        inp.addEventListener('change', (e) => {
+            const val = parseFloat(e.target.value);
+            if (val >= 0.1 && val <= 5) {
+                inp.style.borderColor = '';
+                settings.update({ [key]: val.toString() });
+            } else {
+                inp.style.setProperty('border-color', 'red', 'important');
+            }
+        });
+        return { row, inp };
+    };
+
+    // Avatar size dialog
+    const openAvatarDialog = () => {
+        const existing = document.getElementById('ptmt-avatar-settings-dialog');
+        if (existing) { existing.remove(); return; }
+
+        const dialog = el('div', {
+            id: 'ptmt-avatar-settings-dialog',
+            className: 'ptmt-view-settings-dialog'
+        });
+        dialog.style.borderColor = 'var(--ptmt-adaptive-quote)';
+
+        const title = el('h3', {}, 'Avatar Size Settings');
+
+        // Big chat avatars section
+        const chatSection = el('div', { style: { marginBottom: '12px' } });
+        chatSection.appendChild(el('strong', { style: { fontSize: '0.9em' } }, 'Chat Messages (Big Avatars)'));
+        chatSection.appendChild(createDimensionItem('Height (base)', 'avatarBaseHeight').row);
+        chatSection.appendChild(createDimensionItem('Width (base)', 'avatarBaseWidth').row);
+        chatSection.appendChild(createFactorItem('Scale Width', 'avatarScaleWidth').row);
+        chatSection.appendChild(createFactorItem('Scale Height', 'avatarScaleHeight').row);
+
+        // Normal avatars section
+        const normalSection = el('div', { style: { marginBottom: '12px' } });
+        normalSection.appendChild(el('strong', { style: { fontSize: '0.9em' } }, 'Chat Messages (Normal)'));
+        normalSection.appendChild(createDimensionItem('Avatar Size', 'normalAvatarSize').row);
+
+        // Character list section
+        const charListSection = el('div', { style: { marginBottom: '12px' } });
+        charListSection.appendChild(el('strong', { style: { fontSize: '0.9em' } }, 'Character List'));
+        charListSection.appendChild(createDimensionItem('Avatar Width', 'charListAvatarWidth').row);
+        charListSection.appendChild(createDimensionItem('Avatar Height', 'charListAvatarHeight').row);
+        charListSection.appendChild(createFactorItem('Scale', 'charListAvatarScale').row);
+
+        // Close button
+        const closeBtn = el('button', {
+            className: 'menu_button interactable',
+            style: { padding: '4px 12px', fontSize: '0.85em', marginLeft: '8px' }
+        }, 'Close');
+        closeBtn.addEventListener('click', () => dialog.remove());
+
+        // Reset button
+        const resetBtn = el('button', {
+            className: 'menu_button interactable',
+            style: { padding: '4px 12px', fontSize: '0.85em' }
+        }, 'Reset All');
+        resetBtn.addEventListener('click', () => {
+            const defaults = SettingsManager.defaultSettings;
+            settings.update({
+                avatarBaseHeight: defaults.avatarBaseHeight,
+                avatarBaseWidth: defaults.avatarBaseWidth,
+                normalAvatarSize: defaults.normalAvatarSize,
+                avatarScaleWidth: defaults.avatarScaleWidth,
+                avatarScaleHeight: defaults.avatarScaleHeight,
+                charListAvatarWidth: defaults.charListAvatarWidth,
+                charListAvatarHeight: defaults.charListAvatarHeight,
+                charListAvatarScale: defaults.charListAvatarScale
+            });
+            dialog.remove();
+            openAvatarDialog();
+        });
+
+        const btnRow = el('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: '8px' } },
+            resetBtn, closeBtn
+        );
+
+        dialog.append(title, chatSection, normalSection, charListSection, btnRow);
+        document.body.appendChild(dialog);
+    };
+
+    const avatarDialogBtn = el('button', {
         className: 'menu_button interactable',
-        style: { padding: '1px 6px', fontSize: '0.8em', width: 'fit-content' }
-    }, 'Reset');
-    resetDimBtn.addEventListener('click', () => {
-        h.inp.value = '14vh';
-        w.inp.value = '8vw';
-        settings.update({ avatarBaseHeight: '14vh', avatarBaseWidth: '8vw' });
-        h.inp.style.borderColor = '';
-        w.inp.style.borderColor = '';
-    });
+        style: { padding: '2px 8px', fontSize: '0.8em' }
+    }, 'Avatar Sizes');
+    avatarDialogBtn.addEventListener('click', openAvatarDialog);
 
     const avatarRow = el('div', {
         className: 'ptmt-setting-row ptmt-setting-sub-item',
         style: { gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '5px' }
     },
-        el('label', { style: { marginRight: '10px' } }, 'Avatar Size:'),
-        h.span,
-        w.span,
-        resetDimBtn
+        el('label', { style: { marginRight: '10px' } }, 'Avatar Sizes:'),
+        avatarDialogBtn
     );
 
     const syncVisibility = (enabled) => {

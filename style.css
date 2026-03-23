@@ -1036,7 +1036,7 @@ select option {
   display: flex;
   flex-direction: row;
   flex-wrap: wrap;
-  gap: 15px;
+  gap: 8px;
   padding-bottom: 10px;
   width: 100%;
   box-sizing: border-box;
@@ -1422,8 +1422,8 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 
 .ptmt-icon-picker-btn {
-  width: 38px;
-  height: 38px;
+  min-width: 32px;
+  min-height: 32px;
   padding: 0;
   display: inline-flex !important;
   align-items: center;
