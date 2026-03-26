@@ -1012,6 +1012,10 @@ select option {
   z-index: auto !important;
 }
 
+#charlib-embedded-container #mobileSearchBtn {
+  display: none !important;
+}
+
 /* ==========================================================================
    5. UI COMPONENTS (SETTINGS, EDITOR, STATUS BAR)
    ========================================================================== */

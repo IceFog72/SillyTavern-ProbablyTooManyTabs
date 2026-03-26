@@ -241,6 +241,13 @@ export function setActivePanelInPane(pane, pid = null, preserveCollapsedState = 
   return targetPid !== null;
 }
 
+export function isTabHidden(sourceId) {
+  if (!sourceId) return false;
+  const activeLayout = settings.getActiveLayout();
+  const hiddenTabs = activeLayout?.hiddenTabs || [];
+  return hiddenTabs.some(h => (typeof h === 'string' ? h : h.sourceId) === sourceId);
+}
+
 export function openTab(pid) {
   const target = getPanelById(pid);
   if (!target) return false;

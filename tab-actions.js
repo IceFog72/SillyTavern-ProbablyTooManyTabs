@@ -70,6 +70,14 @@ export const tabActions = {
             //   is_advanced_char_open = true;
             $('#character_popup').css({ 'display': 'flex' }).addClass('open');
             // }
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#advanced_div')) return;
+                if (window.ptmtTabs?.isTabHidden?.('character_popup')) {
+                    alert('Adv. Definitions tab is hidden.');
+                    return;
+                }
+                window.ptmtTabs?.openTab(panel.dataset.panelId);
+            }, true);
         },
         onSelect: (panel) => {
             console.log('[PTMT-Actions] character_popup panel selected.', panel);
@@ -153,6 +161,19 @@ export const tabActions = {
                     popoutBtn.click();
                 }
             }
+        },
+    },
+    'ptmt-main-content': {
+        onInit: (panel) => {
+            console.log('[PTMT-Actions] Main panel initialized.', panel);
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('.chat-action-btn') && !e.target.closest('#editTagsBtn')) return;
+                if (window.ptmtTabs?.isTabHidden?.('sheld')) {
+                    alert('Main tab is hidden.');
+                    return;
+                }
+                window.ptmtTabs?.openTab(panel.dataset.panelId);
+            }, true);
         },
     },
     'charlib-embedded-container': {

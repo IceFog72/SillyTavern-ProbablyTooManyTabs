@@ -15,7 +15,7 @@ import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } 
 import { applyPaneOrientation, applySplitOrientation, openViewSettingsDialog, updateSplitCollapsedState } from './pane.js';
 import {
     createTabFromContent, moveNodeIntoTab, listTabs,
-    openTab, closeTabById, setDefaultPanelById,
+    openTab, closeTabById, setDefaultPanelById, isTabHidden,
     moveTabIntoPaneAtIndex, destroyTabById,
     setActivePanelInPane, setTabCollapsed, getActivePane,
 } from './tabs.js';
@@ -73,7 +73,7 @@ function createSaveHandler(state) {
 function createApi(state) {
     const api = {
         createTabFromContent, moveNodeIntoTab, listTabs,
-        openTab, closeTabById, getPanelById, getTabById, setDefaultPanelById, _refs: getRefs,
+        openTab, closeTabById, getPanelById, getTabById, setDefaultPanelById, isTabHidden, _refs: getRefs,
         moveTabIntoPaneAtIndex, openViewSettingsDialog, readPaneViewSettings, writePaneViewSettings,
         setActivePanelInPane, setTabCollapsed,
         applyPaneOrientation, attachResizer, setSplitOrientation, updateSplitCollapsedState, applySplitOrientation,
