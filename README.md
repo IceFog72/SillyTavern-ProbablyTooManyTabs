@@ -15,6 +15,7 @@ An extension that transforms the SillyTavern interface into a flexible tabbed wo
 * [https://github.com/muyoou/st-memory-enhancement](https://github.com/muyoou/st-memory-enhancement)
 * [https://github.com/RivelleDays/SillyTavern-MoonlitEchoesTheme](https://github.com/RivelleDays/SillyTavern-MoonlitEchoesTheme) popup window
 * [https://github.com/Tyranomaster/expressions-plus](https://github.com/Tyranomaster/expressions-plus)
+* [https://github.com/Sillyanonymous/SillyTavern-CharacterLibrary](https://github.com/Sillyanonymous/SillyTavern-CharacterLibrary)
 * For additional requests, reach out to me on mine or main ST Discord.
 
 * popup window - you need to press popup button of extension

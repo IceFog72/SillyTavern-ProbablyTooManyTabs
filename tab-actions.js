@@ -1,4 +1,45 @@
 // tab-actions.js
+// charlib-embedded-container start
+let _charLibListenerAttached = false;
+let _charLibEmbeddedVisible = false;
+let _charLibFirstOpen = true;
+
+function ensureCharLibCloseListener() {
+    if (_charLibListenerAttached) return;
+    _charLibListenerAttached = true;
+    window.addEventListener('message', (e) => {
+        if (e.origin !== window.location.origin) return;
+        const msg = e.data;
+        if (!msg || typeof msg !== 'object') return;
+        if (msg.source === 'character-library' && msg.type === 'cl-close') {
+            _charLibEmbeddedVisible = false;
+            window.dispatchEvent(new CustomEvent('ptmt:charlibClosed'));
+        }
+    });
+}
+
+function showCharLibEmbedded() {
+    const container = document.getElementById('charlib-embedded-container');
+    if (!container || _charLibEmbeddedVisible) return;
+    _charLibEmbeddedVisible = true;
+    container.style.display = '';
+    if (_charLibFirstOpen) {
+        _charLibFirstOpen = false;
+        const iframe = container.querySelector('iframe');
+        if (iframe && iframe.src) {
+            iframe.src = iframe.src;
+        }
+    }
+}
+
+function hideCharLibEmbedded() {
+    const container = document.getElementById('charlib-embedded-container');
+    if (!container || !_charLibEmbeddedVisible) return;
+    _charLibEmbeddedVisible = false;
+    container.style.display = 'none';
+}
+// charlib-embedded-container end
+
 export const tabActions = {
     'gallery': {
         onInit: (panel) => {
@@ -120,6 +161,52 @@ export const tabActions = {
                     popoutBtn.click();
                 }
             }
+        },
+    },
+    'charlib-embedded-container': {
+        onInit: (panel) => {
+            console.log('[PTMT-Actions] CharLib panel initialized.', panel);
+            ensureCharLibCloseListener();
+            window.addEventListener('ptmt:charlibClosed', () => {
+                const pid = panel.dataset.panelId;
+                if (pid) window.ptmtTabs?.closeTabById(pid);
+            });
+            const container = document.getElementById('charlib-embedded-container');
+            if (container) container.style.display = 'none';
+
+            const observer = new MutationObserver(() => {
+                const settingsPanel = document.getElementById('charlib-settings-injected');
+                if (!settingsPanel) return;
+                observer.disconnect();
+
+                const exclusiveCheckbox = document.getElementById('charlib-exclusive-panes');
+                const topbarCheckbox = document.getElementById('charlib-show-topbar');
+                if (!exclusiveCheckbox || !topbarCheckbox) return;
+
+                // Turn off exclusive panes in PTMT mode
+                if (exclusiveCheckbox.checked) {
+                    exclusiveCheckbox.checked = false;
+                    exclusiveCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+                topbarCheckbox.disabled = false;
+
+                exclusiveCheckbox.addEventListener('change', () => {
+                    topbarCheckbox.disabled = exclusiveCheckbox.checked;
+                });
+            });
+            observer.observe(document.body, { childList: true, subtree: true });
+        },
+        onSelect: (panel) => {
+            console.log('[PTMT-Actions] CharLib panel selected.', panel);
+            showCharLibEmbedded();
+        },
+        onCollapse: (panel) => {
+            console.log('[PTMT-Actions] CharLib panel collapsed.', panel);
+            hideCharLibEmbedded();
+        },
+        onOpen: (panel) => {
+            console.log('[PTMT-Actions] CharLib panel opened.', panel);
+            showCharLibEmbedded();
         },
     },
 

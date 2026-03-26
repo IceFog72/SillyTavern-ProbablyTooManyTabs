@@ -24,18 +24,60 @@ import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 /** @typedef {import('./types.js').HiddenTab} HiddenTab */
 
 const SNAPSHOT_VERSION = 15;      // Minimum supported version
-const SNAPSHOT_CURRENT_VERSION = 16; // Version written by generateLayoutSnapshot
+const SNAPSHOT_CURRENT_VERSION = 17; // Version written by generateLayoutSnapshot
 
 // ─── Snapshot Migration Registry ─────────────────────────────────────────────
 // Each key is a source version; the value migrates that version to (key + 1).
-// To add a future v16→v17 migration, just add `16: (snap) => { ... snap.version = 17; return snap; }`.
+// To add a future v17→v18 migration, just add `17: (snap) => { ... snap.version = 18; return snap; }`.
 // Migrations run in sequence: 15→16→17→...
 
 const SNAPSHOT_MIGRATIONS = {
     15: (snap) => {
         // v15→v16: No structural change. Identity migration — just bumps version.
-        // This is the template for future migrations.
         snap.version = 16;
+        return snap;
+    },
+    16: (snap) => {
+        // v16→v17: Add charlib-embedded-container tab to layouts that don't have it.
+        const CHARLIB_SOURCE_ID = 'charlib-embedded-container';
+        const CHARLIB_TAB = { sourceId: CHARLIB_SOURCE_ID };
+
+        const hasCharlib = (node) => {
+            if (!node) return false;
+            if (node.type === 'pane') {
+                return (node.tabs || []).some(t => t.sourceId === CHARLIB_SOURCE_ID);
+            }
+            if (node.type === 'split') {
+                return (node.children || []).some(hasCharlib);
+            }
+            return false;
+        };
+
+        const addCharlibToFirstPane = (node) => {
+            if (!node) return;
+            if (node.type === 'pane') {
+                if (!(node.tabs || []).some(t => t.sourceId === CHARLIB_SOURCE_ID)) {
+                    node.tabs = [...(node.tabs || []), CHARLIB_TAB];
+                }
+                return;
+            }
+            if (node.type === 'split' && node.children?.length) {
+                addCharlibToFirstPane(node.children[0]);
+            }
+        };
+
+        const alreadyHasCharlib = ['left', 'center', 'right'].some(col => hasCharlib(snap.columns?.[col]?.content));
+        if (!alreadyHasCharlib) {
+            for (const col of ['left', 'center', 'right']) {
+                const content = snap.columns?.[col]?.content;
+                if (content) {
+                    addCharlibToFirstPane(content);
+                    break;
+                }
+            }
+        }
+
+        snap.version = 17;
         return snap;
     },
 };

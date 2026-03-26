@@ -89,7 +89,8 @@ export class SettingsManager {
             { id: 'qr--popout', title: 'QR Popout', icon: 'fa-qrcode' },
             { id: 'injectManagerSideBar', title: 'Inject Manager', icon: 'fa-file-shield' },
             { id: 'ptmt-settings-wrapper-content', title: 'Layout Settings', icon: 'fa-screwdriver-wrench' },
-            { id: 'sheld', title: 'Main', icon: 'fa-house' }
+            { id: 'sheld', title: 'Main', icon: 'fa-house' },
+            { id: 'charlib-embedded-container', title: 'CharLib', icon: 'fa-book-open' }
         ],
 
         presets: [],
@@ -97,7 +98,7 @@ export class SettingsManager {
         savedLayoutMobile: null,
 
         defaultLayout: {
-            version: 16,
+            version: 17,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],
@@ -161,7 +162,8 @@ export class SettingsManager {
                                     { sourceId: "WorldInfo" },
                                     { sourceId: "stqrd--drawer-v2" },
                                     { sourceId: "expression-wrapper" },
-                                    { sourceId: "expression-plus-wrapper" }
+                                    { sourceId: "expression-plus-wrapper" },
+                                    { sourceId: "charlib-embedded-container" }
                                 ]
                             }
                         ]
@@ -210,7 +212,7 @@ export class SettingsManager {
         },
 
         mobileLayout: {
-            version: 16,
+            version: 17,
             showLeft: false,
             showRight: false,
             hiddenTabs: [],
@@ -252,7 +254,8 @@ export class SettingsManager {
                             { sourceId: "character_popup" },
                             { sourceId: "floatingPrompt" },
                             { sourceId: "dupeFinderPanel" },
-                            { sourceId: "injectManagerSideBar" }
+                            { sourceId: "injectManagerSideBar" },
+                            { sourceId: "charlib-embedded-container" }
                         ]
                     },
                     ghostTabs: [

@@ -404,7 +404,7 @@ function postInit(state, applyOverrides) {
         window.ptmtTabs = api;
         const applyOverrides = bindLayoutReactions(api, saveCurrentLayoutDebounced);
         initGlobalResizeObserver();
-        moveToMovingDivs();
+        moveToMovingDivs(['expression-plus-wrapper', 'charlib-embedded-container']);
         loadInitialLayout(api);
         postInit(state, applyOverrides);
         bindSwipeHandlers();

@@ -91,6 +91,11 @@
   display: none !important;
 }
 
+#charlib-embedded-container {
+  display: block !important;
+}
+
+#charlib-embedded-container,
 #groupMemberListPopout,
 #moonlit_echoes_popout,
 #extensionSideBar,
@@ -988,6 +993,23 @@ select option {
   min-height: 0;
   min-width: 0;
   align-content: end;
+}
+
+.ptmt-panel-content:has(> #charlib-embedded-container) {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+#charlib-embedded-container {
+  position: relative !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  top: auto !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
 }
 
 /* ==========================================================================
