@@ -2,7 +2,6 @@
 // charlib-embedded-container start
 let _charLibListenerAttached = false;
 let _charLibEmbeddedVisible = false;
-let _charLibFirstOpen = true;
 
 function ensureCharLibCloseListener() {
     if (_charLibListenerAttached) return;
@@ -23,13 +22,6 @@ function showCharLibEmbedded() {
     if (!container || _charLibEmbeddedVisible) return;
     _charLibEmbeddedVisible = true;
     container.style.display = '';
-    if (_charLibFirstOpen) {
-        _charLibFirstOpen = false;
-        const iframe = container.querySelector('iframe');
-        if (iframe && iframe.src) {
-            iframe.src = iframe.src;
-        }
-    }
 }
 
 function hideCharLibEmbedded() {
@@ -171,8 +163,6 @@ export const tabActions = {
                 const pid = panel.dataset.panelId;
                 if (pid) window.ptmtTabs?.closeTabById(pid);
             });
-            const container = document.getElementById('charlib-embedded-container');
-            if (container) container.style.display = 'none';
 
             const observer = new MutationObserver(() => {
                 const settingsPanel = document.getElementById('charlib-settings-injected');
@@ -183,16 +173,13 @@ export const tabActions = {
                 const topbarCheckbox = document.getElementById('charlib-show-topbar');
                 if (!exclusiveCheckbox || !topbarCheckbox) return;
 
-                // Turn off exclusive panes in PTMT mode
+                // Turn off and disable exclusive panes in PTMT mode
                 if (exclusiveCheckbox.checked) {
                     exclusiveCheckbox.checked = false;
                     exclusiveCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
                 }
+                exclusiveCheckbox.disabled = true;
                 topbarCheckbox.disabled = false;
-
-                exclusiveCheckbox.addEventListener('change', () => {
-                    topbarCheckbox.disabled = exclusiveCheckbox.checked;
-                });
             });
             observer.observe(document.body, { childList: true, subtree: true });
         },
