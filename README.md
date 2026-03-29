@@ -37,5 +37,5 @@ Join my Discord: [https://discord.gg/2tJcWeMjFQ](https://discord.gg/2tJcWeMjFQ)
 Or find me on the official SillyTavern Discord server.
 
 Support me:
-[Ko-fi](https://ko-fi.com/icefog72) • [Patreon](https://www.patreon.com/cw/IceFog72)
+[Patreon](https://www.patreon.com/cw/IceFog72)
 
