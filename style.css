@@ -76,6 +76,10 @@
    2. CORE SILLYTAVERN OVERRIDES
    ========================================================================== */
 
+#movingDivs {
+  opacity: 0;
+}
+
 /* Disable default UI layout for certain elements */
 #floatingPrompt .panelControlBar,
 #extensionSideBar .panelControlBar,
