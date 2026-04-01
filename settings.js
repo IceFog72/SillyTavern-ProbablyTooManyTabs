@@ -411,7 +411,7 @@ export class SettingsManager {
     }
 
     get(key) {
-        if (extension_settings.PTMT.hasOwnProperty(key)) {
+        if (Object.prototype.hasOwnProperty.call(extension_settings.PTMT, key)) {
             return extension_settings.PTMT[key];
         }
         return SettingsManager.defaultSettings[key];

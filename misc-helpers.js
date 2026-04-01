@@ -147,10 +147,10 @@ export function overrideDelegatedEventHandler(eventType, selector, findFunction,
     if (handlerToRemove) {
       console.log(`[PTMT] Overriding delegated '${eventType}' event on selector '${selector}'.`);
 
-      $(document).off(eventType, selector, handlerToRemove);
+      jQuery(document).off(eventType, selector, handlerToRemove);
 
 
-      $(document).on(eventType, selector, newHandler);
+      jQuery(document).on(eventType, selector, newHandler);
     }
   } catch (e) {
     console.error('[PTMT] Error while overriding event handler:', e);

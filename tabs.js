@@ -312,13 +312,14 @@ export function destroyTabById(pid) {
   const tab = getTabById(pid);
   const panel = getPanelById(pid);
   const pane = getPaneForTabElement(tab) || getPaneForPanel(panel);
+  const wasActive = tab?.classList.contains('active');
 
   if (tab) tab.remove();
   if (panel) panel.remove();
 
   if (pane) {
     // If the destroyed tab was active, find a new one to activate.
-    if (tab && tab.classList.contains('active')) {
+    if (wasActive) {
       setActivePanelInPane(pane);
     }
     removePaneIfEmpty(pane);
@@ -530,8 +531,6 @@ export function moveTabToPane(pid, pane) {
 export function movePanelToPane(panel, pane) {
   if (!panel || !pane) return;
   const pid = panel.dataset.panelId;
-  const tab = getTabById(pid);
-  const wasActive = tab ? tab.classList.contains('active') : false;
 
   if (!pid) return;
   const prevPane = getPaneForPanel(panel);
@@ -559,7 +558,6 @@ export function movePanelToPane(panel, pane) {
 export function moveTabIntoPaneAtIndex(panel, pane, index) {
   const tab = getTabById(panel.dataset.panelId);
   if (!tab) return;
-  const wasActive = tab.classList.contains('active');
 
   const prevPane = getPaneForTabElement(tab);
 

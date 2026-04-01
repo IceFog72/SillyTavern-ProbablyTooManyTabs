@@ -222,7 +222,7 @@ function getDominantColor(img) {
         return [DEFAULT_RGB];
     } catch (e) {
         console.error('[PTMT] Color extraction failed:', e);
-        return DEFAULT_RGB;
+        return [DEFAULT_RGB];
     }
 }
 
@@ -254,7 +254,7 @@ function getAvatarFileInfo(message) {
         const safeName = chName.replace(/\W/g, '_').toLowerCase();
         const ctx = getContext();
         const found = ctx.characters?.find(c => c.name === chName);
-        const avatarFileName = found?.avatar || (src.includes('file=') ? decodeURIComponent(src.match(/[?&]file=([^&]+)/i)[1]) : src.split('/').pop());
+        const avatarFileName = found?.avatar || (src.includes('file=') ? decodeURIComponent(src.match(/[?&]file=([^&]+)/i)?.[1] || '') : src.split('/').pop());
         const cleanFileName = (avatarFileName || 'char.png').split(/[?#]/)[0];
         return { type: 'character', uid: `char:${safeName}`, avatarFileName: cleanFileName, domAvatarUrl: src, domImgElement: avatarImg };
     }

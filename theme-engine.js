@@ -1,6 +1,6 @@
 // theme-engine.js
 
-import { registerBodyObserver } from './utils.js';
+import { registerBodyObserver, trackObserver } from './utils.js';
 
 export class ThemeEngine {
     constructor() {
@@ -34,7 +34,7 @@ export class ThemeEngine {
         this.targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
-                const obs = new MutationObserver(() => this.refresh());
+                const obs = trackObserver(new MutationObserver(() => this.refresh()));
                 obs.observe(el, { attributes: true, attributeFilter: ['style'] });
             }
         });

@@ -89,7 +89,7 @@ const SNAPSHOT_MIGRATIONS = {
 function migrateSnapshot(snapshot) {
     if (!snapshot || typeof snapshot !== 'object') return null;
 
-    let current = { ...snapshot };
+    let current = JSON.parse(JSON.stringify(snapshot));
     let steps = 0;
     const MAX_STEPS = 10; // safety limit
 

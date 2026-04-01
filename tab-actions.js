@@ -3,6 +3,10 @@
 let _charLibListenerAttached = false;
 let _charLibEmbeddedVisible = false;
 
+// AbortControllers to prevent listener leaks in onInit handlers
+let _characterPopupAC = null;
+let _mainContentAC = null;
+
 function ensureCharLibCloseListener() {
     if (_charLibListenerAttached) return;
     _charLibListenerAttached = true;
@@ -70,6 +74,8 @@ export const tabActions = {
             //   is_advanced_char_open = true;
             $('#character_popup').css({ 'display': 'flex' }).addClass('open');
             // }
+            if (_characterPopupAC) _characterPopupAC.abort();
+            _characterPopupAC = new AbortController();
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('#advanced_div')) return;
                 if (window.ptmtTabs?.isTabHidden?.('character_popup')) {
@@ -77,7 +83,7 @@ export const tabActions = {
                     return;
                 }
                 window.ptmtTabs?.openTab(panel.dataset.panelId);
-            }, true);
+            }, { capture: true, signal: _characterPopupAC.signal });
         },
         onSelect: (panel) => {
             console.log('[PTMT-Actions] character_popup panel selected.', panel);
@@ -166,6 +172,8 @@ export const tabActions = {
     'ptmt-main-content': {
         onInit: (panel) => {
             console.log('[PTMT-Actions] Main panel initialized.', panel);
+            if (_mainContentAC) _mainContentAC.abort();
+            _mainContentAC = new AbortController();
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.chat-action-btn') && !e.target.closest('#editTagsBtn')) return;
                 if (window.ptmtTabs?.isTabHidden?.('sheld')) {
@@ -173,7 +181,7 @@ export const tabActions = {
                     return;
                 }
                 window.ptmtTabs?.openTab(panel.dataset.panelId);
-            }, true);
+            }, { capture: true, signal: _mainContentAC.signal });
         },
     },
     'charlib-embedded-container': {

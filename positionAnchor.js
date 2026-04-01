@@ -1,7 +1,7 @@
 import { registerBodyObserver } from './utils.js';
 
 export function positionAnchor() {
-    if (CSS.supports('position-anchor: top left')) return;
+    if (CSS.supports('position-anchor', '--test')) return;
 
     const menuPrefixes = ['stqrd--', 'stwid--'];
     window.lastClickedMenuTriggers = {};
