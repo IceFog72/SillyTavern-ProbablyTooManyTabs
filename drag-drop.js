@@ -283,7 +283,7 @@ export function enableInteractions() {
   const refs = getRefs();
 
   document.addEventListener('dragstart', ev => {
-    const tabEl = ev.target.closest('.ptmt-tab');
+    const tabEl = ev.target?.closest?.('.ptmt-tab');
     if (tabEl) {
       currentDraggingPid = tabEl.dataset.for;
     }
