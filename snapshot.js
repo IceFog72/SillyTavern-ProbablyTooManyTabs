@@ -247,7 +247,7 @@ export function generateLayoutSnapshot() {
 
     const isMobile = settings.get('isMobile');
     const layoutKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
-    const currentLayout = settings.get(layoutKey) || settings.getActiveDefaultLayout();
+    const currentLayout = settings.get(layoutKey) || settings.getActiveDefaultLayout() || { columns: { left: {}, center: {}, right: {} }, hiddenTabs: [] };
 
     const snapshot = {
         version: SNAPSHOT_CURRENT_VERSION,
@@ -350,12 +350,11 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     [refs.leftBody, refs.centerBody, refs.rightBody].forEach(col => {
         if (col) {
             const elementsToPreserve = Array.from(col.querySelectorAll('[data-preserve="true"]'));
+            const preserveSet = new Set(elementsToPreserve);
             // Move all other children to staging area before clearing
-            Array.from(col.childNodes).forEach(node => {
-                if (!elementsToPreserve.includes(node)) {
-                    stagingArea.appendChild(node);
-                }
-            });
+            const childrenToMove = Array.from(col.childNodes).filter(node => !preserveSet.has(node));
+            childrenToMove.forEach(node => stagingArea.appendChild(node));
+            // Remove remaining non-preserved children (handles text nodes, etc.)
             while (col.firstChild) {
                 col.removeChild(col.firstChild);
             }
@@ -696,12 +695,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         createdPanes.forEach(pane => applyPaneOrientation(pane));
 
         const settingsWrapperId = 'ptmt-settings-wrapper-content';
-        let settingsWrapper = document.getElementById(settingsWrapperId);
-        if (!settingsWrapper) {
-            settingsWrapper = el('div', { id: settingsWrapperId });
-            const stagingArea = document.querySelector(SELECTORS.STAGING_AREA) || document.body;
-            stagingArea.appendChild(settingsWrapper);
-        }
+        const settingsWrapper = document.getElementById(settingsWrapperId);
 
 
         const centerPane = refs.centerBody.querySelector(SELECTORS.PANE);

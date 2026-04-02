@@ -71,7 +71,7 @@ export function throttle(func, wait) {
     };
 }
 
-export const $ = (sel, root = document) => (isElement(sel) || sel === document ? sel : sel ? (root || document).querySelector(sel) : null);
+export const qs = (sel, root = document) => (isElement(sel) || sel === document ? sel : sel ? (root || document).querySelector(sel) : null);
 export const $$ = (sel, root = document) => sel ? Array.from((root || document).querySelectorAll(sel)) : [];
 
 export const el = (tag, props = {}, ...children) => {

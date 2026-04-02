@@ -83,9 +83,9 @@ function processDragEvent(ev, { performDrop = false } = {}) {
   const clientX = ev.clientX;
   const clientY = ev.clientY;
 
-  // Optimize: use ev.target instead of expensive elementFromPoint
-  // dragover events naturally bubble up with the target being the element directly under the mouse
-  const elUnder = ev.target;
+  // Use elementFromPoint for accurate hit detection during drag.
+  // ev.target in dragover reflects the drag source, not the element under the cursor.
+  const elUnder = document.elementFromPoint(clientX, clientY) || ev.target;
 
   if (elUnder === lastElementUnder && !performDrop && dragSession) {
     // If we're over the same literal element and not dropping, 

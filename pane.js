@@ -17,15 +17,15 @@ export const NARROW_PANE_THRESHOLD_PX = LAYOUT.NARROW_PANE_THRESHOLD_PX;
 
 const tabStripOverflowObserver = trackObserver(new ResizeObserver(entries => {
   for (const entry of entries) {
-    const el = entry.target;
-    // el is the .ptmt-tabStrip
-    const isVertical = el.classList.contains('vertical') || el.closest('.vertical');
+    const tabStrip = entry.target;
+    // tabStrip is the .ptmt-tabStrip
+    const isVertical = tabStrip.classList.contains('vertical') || tabStrip.closest('.vertical');
     const hasOverflow = isVertical
-      ? el.scrollHeight > el.clientHeight
-      : el.scrollWidth > el.clientWidth;
+      ? tabStrip.scrollHeight > tabStrip.clientHeight
+      : tabStrip.scrollWidth > tabStrip.clientWidth;
 
-    el.classList.toggle('ptmt-has-overflow', hasOverflow);
-    updateArrowVisibility(el);
+    tabStrip.classList.toggle('ptmt-has-overflow', hasOverflow);
+    updateArrowVisibility(tabStrip);
   }
 }));
 
@@ -398,6 +398,8 @@ export function cleanupPaneObservers(pane) {
 
 export function removePaneIfEmpty(pane, depth = 0) {
   if (!pane?.parentElement || depth > 10) return;
+  // Guard: only operate on actual pane elements
+  if (!pane.classList?.contains(SELECTORS.PANE.substring(1))) return;
   const tabs = pane._tabStrip?.querySelectorAll(SELECTORS.TAB);
   const panels = pane._panelContainer?.querySelectorAll(SELECTORS.PANEL);
   if (tabs?.length || panels?.length) return;

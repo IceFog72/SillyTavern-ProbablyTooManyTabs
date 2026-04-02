@@ -36,7 +36,8 @@ function addTabToPendingList(tabInfo) {
         console.log(`[PTMT-Pending] Re-arming listener for ${identifier}`);
         pendingTabsMap.set(identifier, tabInfo);
 
-        const currentLayout = settings.getActiveLayout();
+        // Deep-clone to avoid mutating settings in memory before save
+        const currentLayout = JSON.parse(JSON.stringify(settings.getActiveLayout()));
         const column = tabInfo.column || 'center';
 
         for (const col of Object.values(currentLayout.columns)) {

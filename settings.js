@@ -432,6 +432,8 @@ export class SettingsManager {
             if (SettingsManager.defaultSettings.hasOwnProperty(key)) {
                 extension_settings.PTMT[key] = newSettings[key];
                 changedKeys.push(key);
+            } else {
+                console.warn(`[PTMT] update() ignored unknown setting key: "${key}"`);
             }
         }
         if (changedKeys.length > 0) {

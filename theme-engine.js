@@ -10,6 +10,9 @@ export class ThemeEngine {
         this.canvas.width = 10; // Tiny for performance
         this.canvas.height = 10;
         this.ctx = this.canvas.getContext('2d', { willReadFrequently: true });
+        if (!this.ctx) {
+            console.warn('[PTMT] ThemeEngine: Failed to get 2D canvas context. Image analysis will be disabled.');
+        }
 
         this.lastUrl = null;
         this.targetIds = ['bg1', 'bg_custom'];
@@ -80,6 +83,11 @@ export class ThemeEngine {
     async analyzeImage(url) {
         if (this.cache.has(url)) {
             this.applyLuminance(this.cache.get(url));
+            return;
+        }
+
+        if (!this.ctx) {
+            this.applyLuminance(0.5);
             return;
         }
 

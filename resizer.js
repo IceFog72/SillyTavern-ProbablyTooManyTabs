@@ -1,5 +1,5 @@
 // resizer.js
-import { $$, getElementDepth, throttle, debounce, getRefs, el, $, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings, trackObserver } from './utils.js';
+import { $$, getElementDepth, throttle, debounce, getRefs, el, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings, trackObserver } from './utils.js';
 import { normalizeFlexBasis, getBasis, setFlexBasisPercent, pxToPercent, applyIntelligentExpansion, recalculateSplitSizes, recalculateAllSplitsRecursively } from './layout-math.js';
 import { applyPaneOrientation, setPaneCollapsedView, applySplitOrientation, removePaneIfEmpty } from './pane.js';
 import { recalculateColumnSizes } from './layout.js';
@@ -146,7 +146,7 @@ export function attachResizer(resizer, orientation = 'vertical') {
             const minSizeB = calculateElementMinWidth(bElem);
 
             const flexSiblings = Array.from(resizerEl.parentElement.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
-            const initialSizes = flexSiblings.map(el => el.getBoundingClientRect()[sizeProp]);
+            const initialSizes = flexSiblings.map(sibling => sibling.getBoundingClientRect()[sizeProp]);
             const aElemIndex = flexSiblings.indexOf(aElem);
             const bElemIndex = flexSiblings.indexOf(bElem);
             const parentRectAtStart = resizerEl.parentElement?.getBoundingClientRect();

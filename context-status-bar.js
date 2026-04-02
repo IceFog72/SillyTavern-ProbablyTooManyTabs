@@ -1,7 +1,19 @@
 import { eventSource, event_types, chat } from '../../../../script.js';
 import { debounce } from './utils.js';
-import { itemizedPrompts, itemizedParams, findItemizedPromptSet } from '../../../../scripts/itemized-prompts.js';
 import { settings } from './settings.js';
+
+let itemizedPrompts, itemizedParams, findItemizedPromptSet;
+let itemizedLoaded = false;
+
+try {
+    const mod = await import('../../../../scripts/itemized-prompts.js');
+    itemizedPrompts = mod.itemizedPrompts;
+    itemizedParams = mod.itemizedParams;
+    findItemizedPromptSet = mod.findItemizedPromptSet;
+    itemizedLoaded = true;
+} catch (e) {
+    console.warn('[PTMT] Could not load itemized-prompts.js — context status bar will be disabled.', e);
+}
 
 /**
  * Context Status Bar Extension
@@ -14,7 +26,7 @@ let lastUpdateData = null;
 export const updateStatusBar = debounce(async function () {
     if (!statusBarElement) return;
 
-    if (!settings.get('showContextStatusBar')) {
+    if (!settings.get('showContextStatusBar') || !itemizedLoaded) {
         statusBarElement.style.display = 'none';
         return;
     }

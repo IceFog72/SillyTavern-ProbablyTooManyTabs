@@ -45,26 +45,19 @@ function initSubsystems() {
 
 function createSaveHandler(state) {
     return debounce(() => {
-        const doSave = () => {
-            if (state.isPTMTResetting) {
-                console.log('[PTMT Layout] Save blocked due to active reset.');
-                return;
-            }
-            if (state.isHydrating) {
-                console.log('[PTMT Layout] Save skipped during hydration.');
-                return;
-            }
-            const layout = generateLayoutSnapshot();
-            const isMobile = settings.get('isMobile');
-            const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
-            console.log(`[PTMT Layout] Auto-saving ${isMobile ? 'Mobile' : 'Desktop'} layout to ${key}.`);
-            settings.update({ [key]: layout });
-        };
-        if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(doSave, { timeout: 800 });
-        } else {
-            setTimeout(doSave, 0);
+        if (state.isPTMTResetting) {
+            console.log('[PTMT Layout] Save blocked due to active reset.');
+            return;
         }
+        if (state.isHydrating) {
+            console.log('[PTMT Layout] Save skipped during hydration.');
+            return;
+        }
+        const layout = generateLayoutSnapshot();
+        const isMobile = settings.get('isMobile');
+        const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
+        console.log(`[PTMT Layout] Auto-saving ${isMobile ? 'Mobile' : 'Desktop'} layout to ${key}.`);
+        settings.update({ [key]: layout });
     }, 300);
 }
 
@@ -224,7 +217,7 @@ function bindLayoutReactions(api, saveCurrentLayoutDebounced) {
 
 function bindSwipeHandlers() {
     // Keyboard-driven swipe — routes arrow keys to active pane
-    $(document).on('keydown', async (e) => {
+    const keydownHandler = async (e) => {
         if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
         const focused = $(':focus');
         if (focused.is('input') || focused.is('textarea') || focused.prop('contenteditable') == 'true') return;
@@ -240,11 +233,13 @@ function bindSwipeHandlers() {
         const swipeBtn = activePane.querySelector(e.key === 'ArrowRight' ? SELECTORS.ST_SWIPE_RIGHT : SELECTORS.ST_SWIPE_LEFT);
         console.log(`[PTMT] Keyboard swipe ${e.key === 'ArrowRight' ? 'right' : 'left'} on active pane`);
         await swipe({ target: swipeBtn || activePane }, direction, { source: SWIPE_SOURCE.KEYBOARD });
-    });
+    };
+    $(document).on('keydown', keydownHandler);
+    trackListener(document, 'keydown', keydownHandler);
 
     // Touch swipe — routes to active pane
     const createSwipeHandler = (eventName, swipeSelector, direction, label) => {
-        document.addEventListener(eventName, async (e) => {
+        const handler = async (e) => {
             if (power_user.gestures === false) return;
             if (typeof Popup !== 'undefined' && Popup.util?.isPopupOpen()) return;
             if (!$(e.target).closest(SELECTORS.ST_CHAT_CONTAINER).length) return;
@@ -261,7 +256,9 @@ function bindSwipeHandlers() {
 
             console.log(`[PTMT] Touch ${label} on active pane`);
             await swipe({ target: swipeBtn }, direction, { source: 'touch' });
-        });
+        };
+        document.addEventListener(eventName, handler);
+        trackListener(document, eventName, handler);
     };
 
     createSwipeHandler('swiped-left', SELECTORS.ST_SWIPE_RIGHT, SWIPE_DIRECTION.RIGHT, 'swipe left (swipe right)');
@@ -396,6 +393,11 @@ function postInit(state, applyOverrides) {
 
 (function () {
     function initApp() {
+        if (window.ptmtTabs) {
+            console.log('[PTMT] initApp called again — cleaning up previous instance.');
+            cleanupAllObservers();
+        }
+
         const state = { isPTMTResetting: false, isHydrating: true };
 
         initSubsystems();

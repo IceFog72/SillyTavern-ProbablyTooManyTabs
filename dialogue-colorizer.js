@@ -302,7 +302,7 @@ async function getCharacterColor(info) {
         const domImg = info.domImgElement;
         if (domImg && domImg.complete && domImg.naturalWidth > 0) {
             try {
-                const rgbs = await getDominantColor(domImg);
+                const rgbs = getDominantColor(domImg);
                 const hexes = rgbs.map(rgb => ColorUtils.rgbToHex(rgb));
                 colorCache.set(info.uid, hexes);
                 console.log(`[PTMT] Extracted colors for ${info.uid}: ${hexes.join(', ')}`);
@@ -324,10 +324,10 @@ async function getCharacterColor(info) {
                 resolve([ColorUtils.rgbToHex(DEFAULT_RGB)]);
             }, 10000);
 
-            img.onload = async () => {
+            img.onload = () => {
                 clearTimeout(timeout);
                 try {
-                    const rgbs = await getDominantColor(img);
+                    const rgbs = getDominantColor(img);
                     const hexes = rgbs.map(rgb => ColorUtils.rgbToHex(rgb));
                     colorCache.set(info.uid, hexes);
                     console.log(`[PTMT] Extracted colors for ${info.uid} (fallback): ${hexes.join(', ')}`);

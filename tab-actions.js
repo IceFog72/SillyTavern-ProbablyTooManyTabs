@@ -188,15 +188,24 @@ export const tabActions = {
         onInit: (panel) => {
             console.log('[PTMT-Actions] CharLib panel initialized.', panel);
             ensureCharLibCloseListener();
+
+            // Abort previous listeners if re-initialized
+            if (panel._charlibAC) panel._charlibAC.abort();
+            panel._charlibAC = new AbortController();
+
             window.addEventListener('ptmt:charlibClosed', () => {
                 const pid = panel.dataset.panelId;
                 if (pid) window.ptmtTabs?.closeTabById(pid);
-            });
+            }, { signal: panel._charlibAC.signal });
+
+            // Disconnect previous observer if re-initialized
+            if (panel._charlibObserver) panel._charlibObserver.disconnect();
 
             const observer = new MutationObserver(() => {
                 const settingsPanel = document.getElementById('charlib-settings-injected');
                 if (!settingsPanel) return;
                 observer.disconnect();
+                panel._charlibObserver = null;
 
                 const exclusiveCheckbox = document.getElementById('charlib-exclusive-panes');
                 const topbarCheckbox = document.getElementById('charlib-show-topbar');
@@ -210,6 +219,7 @@ export const tabActions = {
                 exclusiveCheckbox.disabled = true;
                 topbarCheckbox.disabled = false;
             });
+            panel._charlibObserver = observer;
             observer.observe(document.body, { childList: true, subtree: true });
         },
         onSelect: (panel) => {

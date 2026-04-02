@@ -20,10 +20,16 @@ export function initAvatarExpressionSync() {
     // we use a more robust approach to check periodically or use a parent observer.
     // However, usually it's there after extensions load.
 
+    let retryCount = 0;
+    const MAX_RETRIES = 15; // 30 seconds total at 2s intervals
+
     const startObserving = () => {
         const expressionHolder = document.querySelector('#expression-holder');
         if (!expressionHolder) {
-            // Re-try in a bit if not found
+            if (retryCount++ >= MAX_RETRIES) {
+                console.warn('[PTMT] Avatar-Expression Sync: #expression-holder not found after max retries. Giving up.');
+                return;
+            }
             setTimeout(startObserving, 2000);
             return;
         }
