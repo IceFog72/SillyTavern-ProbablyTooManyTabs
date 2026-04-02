@@ -385,7 +385,7 @@ function buildCssRules(safeUid, extractedColors, type) {
         // Standard rule: Pure extracted color
         const standardRule = `color: ${dialogColor} !important;`;
         // Adaptive rule: Only active when .ptmt-auto-contrast is on the body
-        const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) 50%) !important;`;
+        const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) 25%) !important;`;
 
         css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${standardRule} }\n`;
         css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${adaptiveRule} }\n`;
