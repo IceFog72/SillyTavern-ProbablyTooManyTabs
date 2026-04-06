@@ -248,20 +248,25 @@ export function cleanupAllObservers() {
 // Multiple features observe document.body with subtree:true. Instead of N
 // separate observers all firing on every DOM mutation, we use one observer
 // with a dispatcher that routes mutations to registered handlers.
+//
+// OPTIMIZATION: Mutations are batched and debounced per-handler to avoid
+// thrashing the UI thread on rapid DOM changes. Handlers are only invoked
+// when they have relevant mutations (early exit for uninterested handlers).
 
 let bodyObserver = null;
 let bodyObserverStarted = false;
-const bodyHandlers = new Map(); // id → { filter, callback }
+const bodyHandlers = new Map(); // id → { filter, callback, pendingMutations, debounceTimer }
 
 /**
  * Registers a handler with the unified body MutationObserver.
  * @param {string} id - Unique ID for this handler (used for removal)
  * @param {object} filter - MutationObserverInit options (attributes/childList/subtree/etc)
- * @param {function} callback - Called with filtered mutations
+ * @param {function} callback - Called with filtered mutations (batched & debounced)
  * @returns {function} Unregister function
  */
 export function registerBodyObserver(id, filter, callback) {
-    bodyHandlers.set(id, { filter, callback });
+    const handler = { filter, callback, pendingMutations: [], debounceTimer: null };
+    bodyHandlers.set(id, handler);
 
     // Lazy-start the observer on first registration
     if (bodyObserverStarted && bodyObserver) {
@@ -270,29 +275,62 @@ export function registerBodyObserver(id, filter, callback) {
         startBodyObserver();
     }
 
-    return () => bodyHandlers.delete(id);
+    return () => {
+        const h = bodyHandlers.get(id);
+        if (h?.debounceTimer) clearTimeout(h.debounceTimer);
+        bodyHandlers.delete(id);
+    };
 }
 
 function startBodyObserver() {
     if (bodyObserverStarted) return;
 
     bodyObserver = new MutationObserver((mutations) => {
-        for (const [id, { filter, callback }] of bodyHandlers) {
+        // Early exit: if no handlers, don't process
+        if (bodyHandlers.size === 0) return;
+
+        // Quick scan: do ANY handlers care about these mutations?
+        const hasChildList = mutations.some(m => m.type === 'childList');
+        const hasAttributes = mutations.some(m => m.type === 'attributes');
+        
+        if (!hasChildList && !hasAttributes) return;
+
+        // Route mutations to interested handlers
+        for (const [id, handler] of bodyHandlers) {
+            const { filter, callback, pendingMutations } = handler;
+
+            // Skip if handler doesn't care about these mutation types
+            if (!filter.childList && !filter.attributes) continue;
+
             try {
-                // Filter mutations relevant to this handler
+                // Accumulate relevant mutations for this handler
                 const relevant = mutations.filter(m => {
                     if (filter.childList && m.type === 'childList') return true;
                     if (filter.attributes && m.type === 'attributes') {
-                        if (filter.attributeFilter && !filter.attributeFilter.includes(m.attributeName)) return false;
+                        if (filter.attributeFilter?.length > 0 && !filter.attributeFilter.includes(m.attributeName)) return false;
                         return true;
                     }
                     return false;
                 });
+
                 if (relevant.length > 0) {
-                    callback(relevant);
+                    pendingMutations.push(...relevant);
+
+                    // Debounce callback: batch mutations before firing
+                    if (handler.debounceTimer) clearTimeout(handler.debounceTimer);
+                    handler.debounceTimer = setTimeout(() => {
+                        try {
+                            if (pendingMutations.length > 0) {
+                                callback(pendingMutations.splice(0));
+                            }
+                        } catch (e) {
+                            console.warn(`[PTMT] Body observer handler '${id}' callback error:`, e);
+                        }
+                        handler.debounceTimer = null;
+                    }, 16); // ~60fps throttle
                 }
             } catch (e) {
-                console.warn(`[PTMT] Body observer handler '${id}' error:`, e);
+                console.warn(`[PTMT] Body observer handler '${id}' filter error:`, e);
             }
         }
     });
@@ -311,6 +349,13 @@ function cleanupBodyObserver() {
     if (bodyObserver) {
         bodyObserver.disconnect();
         bodyObserver = null;
+    }
+    // Clean up any pending debounce timers
+    for (const handler of bodyHandlers.values()) {
+        if (handler.debounceTimer) {
+            clearTimeout(handler.debounceTimer);
+            handler.debounceTimer = null;
+        }
     }
     bodyObserverStarted = false;
     bodyHandlers.clear();

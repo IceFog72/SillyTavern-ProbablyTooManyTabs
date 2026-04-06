@@ -11,3 +11,4 @@ docker-compose.yml
 mcp.json
 neo4j_data/
 __tests__/
+.github/

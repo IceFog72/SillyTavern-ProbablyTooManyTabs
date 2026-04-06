@@ -855,6 +855,10 @@ input[type="checkbox"]:checked:hover {
     border-radius: 0.5rem 0.5rem 0px 0px !important;
 }
 
+.expression-holder {
+    filter: none !important;
+}
+
 /* Range sliders */
 .neo-range-slider {
     border-radius: 0.5rem 0.5rem 0 0 !important;
