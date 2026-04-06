@@ -1,4 +1,4 @@
-import { el, createIconElement } from '../utils.js';
+import { el, createIconElement, hexToRgba } from '../utils.js';
 import { SELECTORS } from '../constants.js';
 
 export function renderUnifiedEditor(manager) {
@@ -154,7 +154,7 @@ function renderTab(manager, tabElement, paneElement) {
         'data-is-collapsed': tabElement.classList.contains('collapsed').toString()
     });
 
-    const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: color } : {} });
+    const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: hexToRgba(color) } : {} });
     const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder' }, '☰');
 
     const iconBtn = el('button', {
@@ -242,7 +242,7 @@ function renderHiddenTab(manager, entry) {
     });
 
     const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to restore' }, '☰');
-    const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: color } : {} });
+    const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: hexToRgba(color) } : {} });
     const iconSpan = createIconElement(icon);
     const titleSpan = el('span', { className: SELECTORS.TAB_LABEL.substring(1) }, title);
     const settingsBtn = el('button', {
@@ -333,7 +333,7 @@ function renderPendingTab(manager, tabInfo) {
     container.dataset.sourceId = sourceId;
 
     const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder or move' }, '☰');
-    const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: color } : {} });
+    const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: hexToRgba(color) } : {} });
     const iconSpan = createIconElement(icon);
     const titleSpan = el('span', { className: 'ptmt-tab-label' }, title);
     const settingsBtn = el('button', {

@@ -1,6 +1,6 @@
 // tabs.js
 
-import { el, isElement, getPanelBySourceId, getPanelById, getTabById, getRefs, createIconElement } from './utils.js';
+import { el, isElement, getPanelBySourceId, getPanelById, getTabById, getRefs, createIconElement, hexToRgba } from './utils.js';
 import { setPaneCollapsedView, removePaneIfEmpty, checkAndCollapsePaneIfAllTabsCollapsed, splitPaneWithPane } from './pane.js';
 import { hideDropIndicator, hideSplitOverlay } from './drag-drop.js';
 import { invalidatePaneTabSizeCache } from './resizer.js';
@@ -67,7 +67,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
   t.appendChild(bg);
 
   if (options.color) {
-    bg.style.backgroundColor = options.color;
+    bg.style.backgroundColor = hexToRgba(options.color);
   }
   if (options.collapsed) {
     t.classList.add('collapsed');
@@ -398,7 +398,8 @@ export function createTabFromContent(content, options = {}, target = null) {
       // Apply color if it changed
       const tabBg = existingTab.querySelector('.ptmt-tab-bg');
       if (tabBg) {
-        tabBg.style.backgroundColor = options.color || mapping.color || '';
+        const color = options.color || mapping.color || '';
+        tabBg.style.backgroundColor = color ? hexToRgba(color) : '';
       }
       // Tab exists but might not have icon - update it
       let iconEl = existingTab.querySelector('.ptmt-tab-icon');

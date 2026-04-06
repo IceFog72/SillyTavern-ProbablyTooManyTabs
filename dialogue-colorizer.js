@@ -84,7 +84,14 @@ const ColorUtils = {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
-        return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+        // Extract alpha from hex8 format (8 chars total #RRGGBBAA) if present
+        let finalAlpha = alpha;
+        if (hex.length === 9) {
+            const hexAlpha = parseInt(hex.slice(7, 9), 16) / 255; // Convert 0-255 to 0-1
+            // Multiply the color picker's alpha with the opacity setting
+            finalAlpha = hexAlpha * alpha;
+        }
+        return `rgba(${r}, ${g}, ${b}, ${finalAlpha})`;
     }
 };
 

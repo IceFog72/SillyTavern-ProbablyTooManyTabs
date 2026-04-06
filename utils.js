@@ -6,6 +6,37 @@ let _refs = null;
 
 export const isElement = (v) => v && (v.nodeType === 1 || v === document);
 
+/**
+ * Convert hex8 (#RRGGBBAA) or hex6 (#RRGGBB) to rgba() format
+ * Ensures alpha channel is properly applied in CSS
+ * @param {string} hex - Hex color with optional alpha (#RRGGBBAA or #RRGGBB)
+ * @returns {string} - rgba(r, g, b, a) format or empty string
+ */
+export function hexToRgba(hex) {
+    if (!hex || typeof hex !== 'string') return '';
+    
+    hex = hex.replace('#', '');
+    
+    // Handle 8-char hex (with alpha)
+    if (hex.length === 8) {
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        const a = parseInt(hex.substring(6, 8), 16) / 255;
+        return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
+    }
+    
+    // Handle 6-char hex (no alpha)
+    if (hex.length === 6) {
+        const r = parseInt(hex.substring(0, 2), 16);
+        const g = parseInt(hex.substring(2, 4), 16);
+        const b = parseInt(hex.substring(4, 6), 16);
+        return `rgba(${r}, ${g}, ${b}, 1)`;
+    }
+    
+    return '';
+}
+
 // Moved here to prevent circular dependency cycles between layout.js and pane.js
 export function getRefs() {
     if (_refs) {

@@ -43,13 +43,18 @@ export function createSettingsPanel(manager) {
     optimizeVisibilityCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
     optimizeVisibilityCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
 
-    const optimizeNotice = document.createElement('div');
-    optimizeNotice.className = 'ptmt-setting-notice';
-    optimizeNotice.textContent = 'Minor scroll jumps possible until messages are viewed once.';
-    optimizeNotice.style.cssText = 'font-size:0.75em;opacity:0.6;margin-top:-4px;margin-bottom:8px;padding-left:28px;';
-    optimizeVisibilityCheckbox.appendChild(optimizeNotice);
+    const optimizeNotice = el('div', { className: 'ptmt-setting-notice ptmt-setting-notice-item' },
+        el('i', { className: 'fa-solid fa-circle-info', style: { marginRight: '6px', fontSize: '0.85em' } }),
+        'Minor scroll jumps possible until messages are viewed once.'
+    );
 
-    const autoContrastCheckbox = createSettingCheckbox('Auto Contrast (Adaptive Text Colors)', 'enableAutoContrast');
+    // Wrap checkbox and notice in a container to keep them grouped
+    const optimizeContainer = el('div', { style: { gridColumn: 'span 2', display: 'flex', flexDirection: 'column' } },
+        optimizeVisibilityCheckbox,
+        optimizeNotice
+    );
+
+    const autoContrastCheckbox = createSettingCheckbox('Auto Contrast Text Colors', 'enableAutoContrast');
     autoContrastCheckbox.classList.add('ptmt-setting-sub-item');
     autoContrastCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
     autoContrastCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
@@ -117,46 +122,123 @@ export function createSettingsPanel(manager) {
         const existing = document.getElementById('ptmt-avatar-settings-dialog');
         if (existing) { existing.remove(); return; }
 
+        const createDimensionInput = (label, key) => {
+            const inp = el('input', {
+                type: 'text',
+                value: settings.get(key),
+                className: 'text_pole textarea_compact ptmt-vs-avatar-input',
+                title: 'Valid CSS units: px, vh, vw, %, em, rem, vmin, vmax',
+            });
+            const validateCss = (val) => /^-?\d*\.?\d+\s*(?:px|vh|vw|%|em|rem|vmin|vmax)$/i.test(val.trim());
+
+            const updateUI = (val) => {
+                if (validateCss(val)) {
+                    inp.style.borderColor = '';
+                    settings.update({ [key]: val.trim().toLowerCase() });
+                } else {
+                    inp.style.setProperty('border-color', 'red', 'important');
+                }
+            };
+
+            inp.addEventListener('input', (e) => updateUI(e.target.value));
+            return inp;
+        };
+
+        const createFactorInput = (label, key) => {
+            const inp = el('input', {
+                type: 'number',
+                value: settings.get(key),
+                step: '0.1',
+                min: '0.1',
+                max: '5',
+                className: 'text_pole textarea_compact ptmt-vs-avatar-input',
+                title: 'Multiplier (0.1 – 5)',
+            });
+            
+            inp.addEventListener('change', (e) => {
+                const val = parseFloat(e.target.value);
+                if (val >= 0.1 && val <= 5) {
+                    inp.style.borderColor = '';
+                    settings.update({ [key]: val.toString() });
+                } else {
+                    inp.style.setProperty('border-color', 'red', 'important');
+                }
+            });
+            return inp;
+        };
+
+        const createField = (labelText, input) => {
+            return el('div', { className: 'ptmt-vs-avatar-field' },
+                el('label', { className: 'ptmt-vs-avatar-label' }, labelText),
+                input
+            );
+        };
+
+        // Dialog content sections
+        const chatSection = el('div', { className: 'ptmt-vs-section' },
+            el('h4', { className: 'ptmt-vs-section-title' },
+                el('i', { className: 'fa-solid fa-images', style: { marginRight: '6px' } }),
+                'Chat Messages (Big Avatars)'
+            ),
+            createField('Height (base)', createDimensionInput('Height (base)', 'avatarBaseHeight')),
+            createField('Width (base)', createDimensionInput('Width (base)', 'avatarBaseWidth')),
+            createField('Scale Width', createFactorInput('Scale Width', 'avatarScaleWidth')),
+            createField('Scale Height', createFactorInput('Scale Height', 'avatarScaleHeight'))
+        );
+
+        const normalSection = el('div', { className: 'ptmt-vs-section' },
+            el('h4', { className: 'ptmt-vs-section-title' },
+                el('i', { className: 'fa-solid fa-comments', style: { marginRight: '6px' } }),
+                'Chat Messages (Normal)'
+            ),
+            createField('Avatar Size', createDimensionInput('Avatar Size', 'normalAvatarSize'))
+        );
+
+        const charListSection = el('div', { className: 'ptmt-vs-section' },
+            el('h4', { className: 'ptmt-vs-section-title' },
+                el('i', { className: 'fa-solid fa-people-group', style: { marginRight: '6px' } }),
+                'Character List'
+            ),
+            createField('Avatar Width', createDimensionInput('Avatar Width', 'charListAvatarWidth')),
+            createField('Avatar Height', createDimensionInput('Avatar Height', 'charListAvatarHeight')),
+            createField('Scale', createFactorInput('Scale', 'charListAvatarScale'))
+        );
+
+        const resetBtn = el('button', {
+            className: 'ptmt-vs-button secondary',
+            type: 'button'
+        },
+            el('i', { className: 'fa-solid fa-rotate-right', style: { marginRight: '6px' } }),
+            'Reset All'
+        );
+
+        const closeBtn = el('button', {
+            className: 'ptmt-vs-button primary',
+            type: 'button'
+        },
+            el('i', { className: 'fa-solid fa-check', style: { marginRight: '6px' } }),
+            'Close'
+        );
+
+        const footer = el('div', { className: 'ptmt-vs-footer' }, resetBtn, closeBtn);
+
         const dialog = el('div', {
             id: 'ptmt-avatar-settings-dialog',
             className: 'ptmt-view-settings-dialog'
-        });
-        dialog.style.borderColor = 'var(--ptmt-adaptive-quote)';
+        },
+            el('div', { className: 'ptmt-vs-content' },
+                el('h3', { className: 'ptmt-vs-title' },
+                    el('i', { className: 'fa-solid fa-image', style: { marginRight: '8px' } }),
+                    'Avatar Size Settings'
+                ),
+                chatSection,
+                normalSection,
+                charListSection,
+                footer
+            )
+        );
 
-        const title = el('h3', {}, 'Avatar Size Settings');
-
-        // Big chat avatars section
-        const chatSection = el('div', { style: { marginBottom: '12px' } });
-        chatSection.appendChild(el('strong', { style: { fontSize: '0.9em' } }, 'Chat Messages (Big Avatars)'));
-        chatSection.appendChild(createDimensionItem('Height (base)', 'avatarBaseHeight').row);
-        chatSection.appendChild(createDimensionItem('Width (base)', 'avatarBaseWidth').row);
-        chatSection.appendChild(createFactorItem('Scale Width', 'avatarScaleWidth').row);
-        chatSection.appendChild(createFactorItem('Scale Height', 'avatarScaleHeight').row);
-
-        // Normal avatars section
-        const normalSection = el('div', { style: { marginBottom: '12px' } });
-        normalSection.appendChild(el('strong', { style: { fontSize: '0.9em' } }, 'Chat Messages (Normal)'));
-        normalSection.appendChild(createDimensionItem('Avatar Size', 'normalAvatarSize').row);
-
-        // Character list section
-        const charListSection = el('div', { style: { marginBottom: '12px' } });
-        charListSection.appendChild(el('strong', { style: { fontSize: '0.9em' } }, 'Character List'));
-        charListSection.appendChild(createDimensionItem('Avatar Width', 'charListAvatarWidth').row);
-        charListSection.appendChild(createDimensionItem('Avatar Height', 'charListAvatarHeight').row);
-        charListSection.appendChild(createFactorItem('Scale', 'charListAvatarScale').row);
-
-        // Close button
-        const closeBtn = el('button', {
-            className: 'menu_button interactable',
-            style: { padding: '4px 12px', fontSize: '0.85em', marginLeft: '8px' }
-        }, 'Close');
         closeBtn.addEventListener('click', () => dialog.remove());
-
-        // Reset button
-        const resetBtn = el('button', {
-            className: 'menu_button interactable',
-            style: { padding: '4px 12px', fontSize: '0.85em' }
-        }, 'Reset All');
         resetBtn.addEventListener('click', () => {
             const defaults = SettingsManager.defaultSettings;
             settings.update({
@@ -170,20 +252,15 @@ export function createSettingsPanel(manager) {
                 charListAvatarScale: defaults.charListAvatarScale
             });
             dialog.remove();
-            openAvatarDialog();
+            openAvatarDialog(); // Reopen to show reset values
         });
 
-        const btnRow = el('div', { style: { display: 'flex', justifyContent: 'flex-end', marginTop: '8px' } },
-            resetBtn, closeBtn
-        );
-
-        dialog.append(title, chatSection, normalSection, charListSection, btnRow);
         document.body.appendChild(dialog);
     };
 
     const avatarDialogBtn = el('button', {
         className: 'menu_button interactable',
-        style: { padding: '2px 8px', fontSize: '0.8em' }
+        style: { padding: '2px 8px', fontSize: '0.8em', width: 'auto' }
     }, 'Avatar Sizes');
     avatarDialogBtn.addEventListener('click', openAvatarDialog);
 
@@ -213,7 +290,7 @@ export function createSettingsPanel(manager) {
         overridesCheckbox,
         avatarRow,
         autoContrastCheckbox,
-        optimizeVisibilityCheckbox
+        optimizeContainer
     );
 
     globalGrid.append(
@@ -230,7 +307,7 @@ export function createSettingsPanel(manager) {
     const isMobile = settings.get('isMobile');
     const mobileToggleBtn = el('button', {
         class: "menu_button menu_button_icon interactable ptmt-mobile-button",
-        style: { gridColumn: 'span 2' },
+        style: { gridColumn: 'span 1' },
         title: isMobile ? "Switch to Desktop Layout (Reloads page)" : "Switch to Mobile Layout (Reloads page)",
         tabindex: "0",
         role: "button"
@@ -241,7 +318,7 @@ export function createSettingsPanel(manager) {
 
     const resetBtn = el('button', {
         class: "menu_button menu_button_icon interactable ptmt-reset-button",
-        style: { gridColumn: 'span 2' },
+        style: { gridColumn: 'span 1' },
         title: "Reset all layout settings and reload the UI",
         tabindex: "0",
         role: "button"
@@ -313,9 +390,33 @@ export function createDialogueColorizerSettings(settings) {
     };
 
     const colorPicker = (id, key) => {
-        const inp = el('input', { type: 'color', id, value: settings.get(key) });
-        inp.addEventListener('input', e => settings.update({ [key]: e.target.value }));
-        return inp;
+        const value = settings.get(key);
+        
+        // Ensure toolcool-color-picker is loaded
+        if (typeof customElements !== 'undefined' && !customElements.get('toolcool-color-picker')) {
+            const script = document.createElement('script');
+            script.src = '/lib/toolcool-color-picker.js';
+            document.head.appendChild(script);
+        }
+        
+        // Create toolcool-color-picker with base attributes
+        const pickerElement = el('toolcool-color-picker', {
+            id,
+            'popup-position': 'left',
+            'button-width': '40px',
+            'button-height': '32px'
+        });
+        
+        // Explicitly set color attribute for proper initialization
+        pickerElement.setAttribute('color', value);
+        
+        // Update settings when color changes (use hex8 to preserve alpha)
+        pickerElement.addEventListener('change', (e) => {
+            const newColor = e.detail.hex8 || e.detail.hex || value;
+            settings.update({ [key]: newColor });
+        });
+        
+        return pickerElement;
     };
 
     const sourceOptions = [
@@ -383,14 +484,14 @@ export function createDialogueColorizerSettings(settings) {
 
     const charSection = el('fieldset', {}, el('legend', {}, 'Characters'));
     const charDialogSrc = row([lbl('Dialogue Color Source', 'ptmt-col-charsrc'), dropdown('ptmt-col-charsrc', 'dialogueColorizerSource', sourceOptions)]);
-    const charDialogStatic = row([lbl('Dialogue Static Color', 'ptmt-col-charstaticcolor'), colorPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor')]);
+    const charDialogStatic = row([colorPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-charstaticcolor')]);
     const charBubbleSrc = row([lbl('Bubble Color Source', 'ptmt-col-charbubblesrc'), dropdown('ptmt-col-charbubblesrc', 'dialogueColorizerBubbleSource', sourceOptions)]);
     const charBubbleStatic = row([
-        lbl('Bubble Static Colors (Gradients)', 'ptmt-col-charbubblestatic'),
         el('div', { style: 'display: flex; gap: 5px;' },
             colorPicker('ptmt-col-charbubblestatic1', 'dialogueColorizerBubbleStaticColor1'),
             colorPicker('ptmt-col-charbubblestatic2', 'dialogueColorizerBubbleStaticColor2')
         ),
+        lbl('Bubble Static Colors (Gradients)', 'ptmt-col-charbubblestatic'),
     ]);
 
     const syncCharVis = () => {
@@ -405,14 +506,14 @@ export function createDialogueColorizerSettings(settings) {
 
     const personaSection = el('fieldset', {}, el('legend', {}, 'Personas (User)'));
     const personaDialogSrc = row([lbl('Dialogue Color Source', 'ptmt-col-personasrc'), dropdown('ptmt-col-personasrc', 'dialogueColorizerPersonaSource', sourceOptions)]);
-    const personaDialogStatic = row([lbl('Dialogue Static Color', 'ptmt-col-personastaticcolor'), colorPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor')]);
+    const personaDialogStatic = row([colorPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-personastaticcolor')]);
     const personaBubbleSrc = row([lbl('Bubble Color Source', 'ptmt-col-personabubblesrc'), dropdown('ptmt-col-personabubblesrc', 'dialogueColorizerPersonaBubbleSource', sourceOptions)]);
     const personaBubbleStatic = row([
-        lbl('Bubble Static Colors (Gradients)', 'ptmt-col-personabubblestatic'),
         el('div', { style: 'display: flex; gap: 5px;' },
             colorPicker('ptmt-col-personabubblestatic1', 'dialogueColorizerPersonaBubbleStaticColor1'),
             colorPicker('ptmt-col-personabubblestatic2', 'dialogueColorizerPersonaBubbleStaticColor2')
         ),
+        lbl('Bubble Static Colors (Gradients)', 'ptmt-col-personabubblestatic'),
     ]);
 
     const syncPersonaVis = () => {

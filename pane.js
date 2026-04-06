@@ -613,6 +613,7 @@ export function openViewSettingsDialog(pane) {
   if (existing) existing.remove();
 
   const vs = readPaneViewSettings(pane);
+  const paneId = pane.dataset.paneId || pane.id;
 
   const createSelect = (id, options, current) => {
     const sel = el('select', { id });
@@ -623,45 +624,139 @@ export function openViewSettingsDialog(pane) {
     return sel;
   };
 
+  const createField = (labelText, helpText, input) => {
+    const wrapper = el('div', { className: 'ptmt-vs-field' });
+    const labelEl = el('label', { className: 'ptmt-vs-label' }, labelText);
+    if (helpText) {
+      labelEl.title = helpText;
+      labelEl.style.cursor = 'help';
+    }
+    const inputWrapper = el('div', { className: 'ptmt-vs-input-wrapper' }, input);
+    if (helpText) {
+      inputWrapper.appendChild(el('span', { className: 'ptmt-vs-help-icon', title: helpText }, '?'));
+    }
+    wrapper.append(labelEl, inputWrapper);
+    return wrapper;
+  };
+
+  // ID section with copy button
+  const idSpan = el('span', { className: 'ptmt-vs-id-value' }, paneId);
+  const copyIdBtn = el('button', {
+    className: 'ptmt-vs-copy-btn',
+    title: 'Copy ID to clipboard',
+    type: 'button'
+  },
+    el('i', { className: 'fa-solid fa-copy' })
+  );
+  copyIdBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    navigator.clipboard.writeText(paneId).then(() => {
+      const originalHTML = copyIdBtn.innerHTML;
+      copyIdBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
+      setTimeout(() => copyIdBtn.innerHTML = originalHTML, 1500);
+    }).catch(err => console.warn('Failed to copy:', err));
+  });
+  const idSection = el('div', { className: 'ptmt-vs-id-section' },
+    el('div', { className: 'ptmt-vs-label' }, 'Internal ID'),
+    el('div', { className: 'ptmt-vs-id-display' }, idSpan, copyIdBtn)
+  );
+
+  // Settings sections
+  const sizeSection = el('div', { className: 'ptmt-vs-section' },
+    el('h4', { className: 'ptmt-vs-section-title' },
+      el('i', { className: 'fa-solid fa-ruler', style: { marginRight: '6px' } }),
+      'Size'
+    ),
+    createField(
+      'Minimum Panel Width (px)',
+      'Smallest width this pane can shrink to when resizing',
+      el('input', {
+        type: 'number',
+        value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize,
+        id: 'ptmt-vs-minimal-panel',
+        className: 'text_edit',
+        min: '20',
+        max: '1000'
+      })
+    )
+  );
+
+  const orientationSection = el('div', { className: 'ptmt-vs-section' },
+    el('h4', { className: 'ptmt-vs-section-title' },
+      el('i', { className: 'fa-solid fa-arrows-alt-h', style: { marginRight: '6px' } }),
+      'Orientation'
+    ),
+    createField(
+      'When Expanded',
+      'How tabs and content are arranged when pane is open',
+      createSelect('ptmt-vs-default', [
+        { value: 'auto', label: 'Auto (based on space)' },
+        { value: 'horizontal', label: 'Horizontal (side-by-side)' },
+        { value: 'vertical', label: 'Vertical (stacked)' },
+      ], vs.defaultOrientation || 'auto')
+    ),
+    createField(
+      'When Collapsed',
+      'How tabs are arranged when pane is minimized',
+      createSelect('ptmt-vs-collapsed', [
+        { value: 'auto', label: 'Auto (based on column)' },
+        { value: 'horizontal', label: 'Horizontal (side-by-side)' },
+        { value: 'vertical', label: 'Vertical (stacked)' },
+      ], vs.collapsedOrientation || 'auto')
+    )
+  );
+
+  const flowSection = el('div', { className: 'ptmt-vs-section' },
+    el('h4', { className: 'ptmt-vs-section-title' },
+      el('i', { className: 'fa-solid fa-shuffle', style: { marginRight: '6px' } }),
+      'Layout Flow'
+    ),
+    createField(
+      'Content Order',
+      'Position of tabs relative to the content area',
+      createSelect('ptmt-vs-flow', [
+        { value: 'default', label: 'Tabs First (above/left)' },
+        { value: 'reversed', label: 'Content First (below/right)' },
+      ], vs.contentFlow || 'default')
+    )
+  );
+
+  // Footer buttons
+  const saveBtn = el('button', {
+    id: 'ptmt-vs-save',
+    className: 'ptmt-vs-button primary',
+    type: 'button'
+  },
+    el('i', { className: 'fa-solid fa-floppy-disk', style: { marginRight: '6px' } }),
+    'Save'
+  );
+
+  const cancelBtn = el('button', {
+    id: 'ptmt-vs-cancel',
+    className: 'ptmt-vs-button secondary',
+    type: 'button'
+  }, 'Cancel');
+
+  const footer = el('div', { className: 'ptmt-vs-footer' }, saveBtn, cancelBtn);
+
   const dialog = el('div', { id: 'ptmt-view-settings-dialog', className: 'ptmt-view-settings-dialog' },
-    el('div', null,
-      el('h3', null, 'Pane Settings'),
-      el('div', { className: 'ptmt-vs-row ptmt-vs-id-row' },
-        el('label', null, 'Internal ID: '),
-        el('span', { className: 'ptmt-vs-id-value' }, pane.dataset.paneId || pane.id)
+    el('div', { className: 'ptmt-vs-content' },
+      el('h3', { className: 'ptmt-vs-title' },
+        el('i', { className: 'fa-solid fa-gear', style: { marginRight: '8px' } }),
+        'Pane Settings'
       ),
-      el('div', { className: 'ptmt-vs-row' },
-        el('label', { for: 'ptmt-vs-minimal-panel' }, 'Min. Panel Size (px): '),
-        el('input', { type: 'number', value: vs.minimalPanelSize || defaultViewSettings.minimalPanelSize, id: 'ptmt-vs-minimal-panel', className: 'text_edit' })
-      ),
-      el('div', { className: 'ptmt-vs-row' },
-        el('label', { for: 'ptmt-vs-default' }, 'Default orientation: '),
-        createSelect('ptmt-vs-default', [
-          { value: 'auto', label: 'Auto' }, { value: 'horizontal', label: 'Horizontal' }, { value: 'vertical', label: 'Vertical' },
-        ], vs.defaultOrientation || 'auto')
-      ),
-      el('div', { className: 'ptmt-vs-row' },
-        el('label', { for: 'ptmt-vs-collapsed' }, 'Collapsed orientation: '),
-        createSelect('ptmt-vs-collapsed', [
-          { value: 'auto', label: 'Auto' }, { value: 'horizontal', label: 'Horizontal' }, { value: 'vertical', label: 'Vertical' },
-        ], vs.collapsedOrientation || 'auto')
-      ),
-      el('div', { className: 'ptmt-vs-row' },
-        el('label', { for: 'ptmt-vs-flow' }, 'Content Flow: '),
-        createSelect('ptmt-vs-flow', [
-          { value: 'default', label: 'Default (Tabs First)' }, { value: 'reversed', label: 'Reversed (Content First)' },
-        ], vs.contentFlow || 'default')
-      ),
-      el('div', { className: 'ptmt-vs-footer' },
-        el('button', { id: 'ptmt-vs-save', className: 'ptmt-vs-button primary' }, 'Save'),
-        el('button', { id: 'ptmt-vs-cancel', className: 'ptmt-vs-button' }, 'Cancel')
-      )
+      idSection,
+      sizeSection,
+      orientationSection,
+      flowSection,
+      footer
     )
   );
 
   document.body.appendChild(dialog);
-  dialog.querySelector('#ptmt-vs-cancel').addEventListener('click', () => dialog.remove());
-  dialog.querySelector('#ptmt-vs-save').addEventListener('click', () => {
+
+  cancelBtn.addEventListener('click', () => dialog.remove());
+  saveBtn.addEventListener('click', () => {
     const minVal = dialog.querySelector('#ptmt-vs-minimal-panel').value;
     const minimal = Math.max(20, parseInt(minVal, 10)) || defaultViewSettings.minimalPanelSize;
     const def = dialog.querySelector('#ptmt-vs-default').value || 'auto';
@@ -678,4 +773,7 @@ export function openViewSettingsDialog(pane) {
     dialog.remove();
     window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
   });
+
+  // Focus save button for better UX
+  requestAnimationFrame(() => saveBtn.focus());
 }
