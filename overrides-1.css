@@ -138,6 +138,7 @@ body.big-avatars .mes {
     color: var(--ptmt-mes-text);
 }
 
+.ptmt-auto-contrast .mr_mes_reasoning,
 .ptmt-auto-contrast .mes_reasoning {
     color: var(--ptmt-mes-em);
 }
