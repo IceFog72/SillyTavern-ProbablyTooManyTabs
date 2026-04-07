@@ -428,7 +428,7 @@ body.big-avatars .mes .swipe_right:hover {
 /* 8. REASONING BLOCK                        */
 /* ========================================= */
 
-.mes_reasoning
+.mes_reasoning,
 .mr_mes_reasoning {
     border-left: 1px solid var(--reasoning-body-color) !important;
     border-radius: 0px 0.5rem 0px 0px !important;
