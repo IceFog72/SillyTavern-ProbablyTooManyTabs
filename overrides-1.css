@@ -428,7 +428,8 @@ body.big-avatars .mes .swipe_right:hover {
 /* 8. REASONING BLOCK                        */
 /* ========================================= */
 
-.mes_reasoning {
+.mes_reasoning
+.mr_mes_reasoning {
     border-left: 1px solid var(--reasoning-body-color) !important;
     border-radius: 0px 0.5rem 0px 0px !important;
     font-size: calc(var(--mainFontSize) * 0.9);
@@ -454,9 +455,16 @@ body.big-avatars .mes .swipe_right:hover {
 .mes_reasoning_details[open] .mes_reasoning_arrow {
     top: 50%;
 }
-
 .mes_reasoning_details .mes_reasoning_arrow {
     right: 0px !important;
+}
+
+.mes_reasoning_details {
+    overflow: auto;
+}
+
+.mes_reasoning_details .mes_reasoning_summary{
+    margin-right:unset !important;
 }
 
 /* ========================================= */
