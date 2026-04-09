@@ -17,6 +17,7 @@ export class SettingsManager {
         maxLayersCenter: 3,
         maxLayersRight: 3,
         runMoveBgDivs: true,
+        moveBg1ToSheld: false,
         isMobile: false,
         hideContentWhileResizing: false,
         showContextStatusBar: true,
@@ -55,7 +56,7 @@ export class SettingsManager {
         charListAvatarWidth: '4vw',
         charListAvatarHeight: 'auto',
         charListAvatarScale: '1',
-
+        bodyBgColor: '#5900ff',
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: 'fa-compass' },

@@ -1,6 +1,7 @@
 import { el } from '../utils.js';
 import { EVENTS } from '../constants.js';
 import { SettingsManager } from '../settings.js';
+import { moveBg1ToSheld, moveBg1BackToPtmtMain } from '../misc-helpers.js';
 
 export function createSettingsPanel(manager) {
     const { settings, appApi } = manager;
@@ -31,6 +32,16 @@ export function createSettingsPanel(manager) {
                     }
                 }
             }
+
+            // Special handling for moveBg1ToSheld
+            if (settingKey === 'moveBg1ToSheld') {
+                if (e.target.checked) {
+                    moveBg1ToSheld();
+                } else {
+                    moveBg1BackToPtmtMain();
+                }
+            }
+
             settings.update({ [settingKey]: e.target.checked });
         });
 
@@ -154,7 +165,7 @@ export function createSettingsPanel(manager) {
                 className: 'text_pole textarea_compact ptmt-vs-avatar-input',
                 title: 'Multiplier (0.1 – 5)',
             });
-            
+
             inp.addEventListener('change', (e) => {
                 const val = parseFloat(e.target.value);
                 if (val >= 0.1 && val <= 5) {
@@ -281,6 +292,47 @@ export function createSettingsPanel(manager) {
     syncVisibility(settings.get('enableOverride1'));
     overridesInput.addEventListener('change', (e) => syncVisibility(e.target.checked));
 
+    // Background color picker
+    const bodyBgColorValue = settings.get('bodyBgColor') || 'rgb(89, 0, 255)';
+
+    // Ensure toolcool-color-picker script is loaded
+    if (typeof customElements !== 'undefined' && !customElements.get('toolcool-color-picker')) {
+        const script = document.createElement('script');
+        script.src = '/lib/toolcool-color-picker.js';
+        document.head.appendChild(script);
+    }
+
+    const bgColorPicker = el('toolcool-color-picker', {
+        'popup-position': 'left',
+        'button-width': '60px',
+        'button-height': '32px'
+    });
+    bgColorPicker.setAttribute('color', bodyBgColorValue);
+
+    bgColorPicker.addEventListener('change', (evt) => {
+        const newColor = evt.detail?.hex8 || evt.detail?.hex || bodyBgColorValue;
+        settings.update({ bodyBgColor: newColor });
+        // Update CSS variable in real-time
+        document.documentElement.style.setProperty('--ptmt-body-bg-color', newColor);
+    });
+
+    // Apply color on initialization
+    document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColorValue);
+
+    const bgColorContainer = el('div', { className: 'ptmt-setting-row', style: { gridColumn: 'span 1', display: settings.get('moveBg1ToSheld') ? '' : 'none' } },
+        el('label', { style: { margin: 0 } }, 'Body Background Color'),
+        el('div', { style: { marginTop: '6px' } }, bgColorPicker)
+    );
+
+    // Create moveBg1ToSheld checkbox separately to control bgColorContainer visibility
+    const moveBg1Checkbox = createSettingCheckbox('Move BG under Chat', 'moveBg1ToSheld');
+    const moveBg1Input = moveBg1Checkbox.querySelector('input');
+
+    // Add listener to control bgColorContainer visibility
+    moveBg1Input.addEventListener('change', (e) => {
+        bgColorContainer.style.display = e.target.checked ? '' : 'none';
+    });
+
     const overridesWrapper = el('div', {
         className: 'ptmt-settings-grid',
         style: { gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr' }
@@ -301,6 +353,8 @@ export function createSettingsPanel(manager) {
         createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
         createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
         createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing'),
+        moveBg1Checkbox,
+        bgColorContainer,
         overridesWrapper
     );
 
@@ -391,14 +445,14 @@ export function createDialogueColorizerSettings(settings) {
 
     const colorPicker = (id, key) => {
         const value = settings.get(key);
-        
+
         // Ensure toolcool-color-picker is loaded
         if (typeof customElements !== 'undefined' && !customElements.get('toolcool-color-picker')) {
             const script = document.createElement('script');
             script.src = '/lib/toolcool-color-picker.js';
             document.head.appendChild(script);
         }
-        
+
         // Create toolcool-color-picker with base attributes
         const pickerElement = el('toolcool-color-picker', {
             id,
@@ -406,16 +460,16 @@ export function createDialogueColorizerSettings(settings) {
             'button-width': '40px',
             'button-height': '32px'
         });
-        
+
         // Explicitly set color attribute for proper initialization
         pickerElement.setAttribute('color', value);
-        
+
         // Update settings when color changes (use hex8 to preserve alpha)
         pickerElement.addEventListener('change', (e) => {
             const newColor = e.detail.hex8 || e.detail.hex || value;
             settings.update({ [key]: newColor });
         });
-        
+
         return pickerElement;
     };
 

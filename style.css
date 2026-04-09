@@ -197,6 +197,10 @@ body:has(#extensionTopBar) .ptmt-panel-content #sheld {
   padding: 0 !important;
 }
 
+body:has(#extensionTopBar) .ptmt-panel-content #sheld #bg1 {
+  inset: unset !important;
+}
+
 #bg1,
 #bg_custom {
   position: absolute !important;
@@ -213,6 +217,10 @@ body:has(#extensionTopBar) .ptmt-panel-content #sheld {
 #chat {
   backdrop-filter: none !important;
   max-height: unset !important;
+}
+
+#qr--bar>.qr--buttons.qr--color {
+  background-color: transparent !important;
 }
 
 /* Typography & Base Utilities */
@@ -308,6 +316,10 @@ code {
 
 .stqrd--editorPanel:is(body > *) {
   width: 500px !important;
+}
+
+body {
+  background-color: var(--ptmt-body-bg-color, rgb(89, 0, 255));
 }
 
 html,
@@ -1872,14 +1884,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
   }
 }
 
-.ptmt-ts-color-input {
-  width: 60px;
-  height: 40px;
-  border-radius: 4px;
-  cursor: pointer;
-  border: 1px solid var(--ST-UI-Border) !important;
-  padding: 2px !important;
-}
 
 /* Layout Settings UI Classes */
 .ptmt-settings-panel {

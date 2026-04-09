@@ -92,6 +92,28 @@ export function openAllDrawersJq(context = document) {
   }
 }
 
+export function moveBg1ToSheld() {
+  const bg1 = document.getElementById('bg1');
+  const sheld = document.getElementById('sheld');
+  if (bg1 && sheld) {
+    sheld.appendChild(bg1);
+    console.log('[PTMT] Moved bg1 to inside #sheld as last item');
+    return true;
+  }
+  return false;
+}
+
+export function moveBg1BackToPtmtMain() {
+  const bg1 = document.getElementById('bg1');
+  const ptmtMain = document.getElementById('ptmt-main');
+  if (bg1 && ptmtMain) {
+    ptmtMain.appendChild(bg1);
+    console.log('[PTMT] Moved bg1 back to under #ptmt-main');
+    return true;
+  }
+  return false;
+}
+
 export function moveBgDivs(ids = ['bg_custom', 'bg1']) {
   if (!document?.body) return [];
   // Background div repositioning is currently disabled.

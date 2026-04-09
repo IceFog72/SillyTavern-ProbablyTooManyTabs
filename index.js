@@ -22,7 +22,7 @@ import {
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, validateAndCorrectAllMinSizes, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
 import { recalculateAllSplitsRecursively } from './layout-math.js';
 import { enableInteractions } from './drag-drop.js';
-import { removeMouseDownDrawerHandler, openAllDrawersJq, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver } from './misc-helpers.js';
+import { removeMouseDownDrawerHandler, openAllDrawersJq, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver, moveBg1ToSheld, moveBg1BackToPtmtMain } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 import { positionAnchor } from './positionAnchor.js';
 import { initStatusBar } from './context-status-bar.js';
@@ -378,6 +378,15 @@ function postInit(state, applyOverrides) {
     document.body.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
     document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
     document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
+
+    // Apply body background color CSS variable
+    const bodyBgColor = settings.get('bodyBgColor') || 'rgb(89, 0, 255)';
+    document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
+
+    // Apply bg1 position based on saved setting
+    if (settings.get('moveBg1ToSheld')) {
+        moveBg1ToSheld();
+    }
 
     enableInteractions();
     recalculateColumnSizes();
