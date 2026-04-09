@@ -978,6 +978,10 @@ select option {
   background: var(--ptmt-panel-bg);
 }
 
+.ptmt-panelContainer:has(.ptmt-panel.active[data-title="Main"]) {
+  background: none !important;
+}
+
 .ptmt-panel {
   display: flex;
   flex: 1 1 0;
@@ -1568,6 +1572,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
     opacity: 0;
     transform: translate(-50%, -48%);
   }
+
   to {
     opacity: 1;
     transform: translate(-50%, -50%);
@@ -1601,7 +1606,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   gap: 6px;
 }
 
-.ptmt-vs-id-section > .ptmt-vs-label {
+.ptmt-vs-id-section>.ptmt-vs-label {
   font-size: 0.75em;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -1852,9 +1857,19 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 @keyframes ptmt-color-error {
-  0%, 100% { transform: translateX(0); }
-  25% { transform: translateX(-2px); }
-  75% { transform: translateX(2px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2px);
+  }
+
+  75% {
+    transform: translateX(2px);
+  }
 }
 
 .ptmt-ts-color-input {
