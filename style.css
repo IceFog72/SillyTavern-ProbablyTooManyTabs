@@ -1012,7 +1012,7 @@ select option {
   overflow: auto;
   min-height: 0;
   min-width: 0;
-  align-content: end;
+  align-content: stretch;
 }
 
 .ptmt-panel-content:has(> #charlib-embedded-container) {
@@ -1084,7 +1084,7 @@ select option {
   .ptmt-settings-grid {
     grid-template-columns: 1fr;
   }
-  
+
   .ptmt-settings-grid.ptmt-grid-span-2 {
     grid-column: auto;
     grid-template-columns: 1fr;
@@ -2135,9 +2135,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
     grid-column: span 1;
     grid-template-columns: 1fr;
   }
-  
+
   /* Override inline grid-column: span 2 on children */
-  .ptmt-grid-span-2 > div[style*="grid-column"] {
+  .ptmt-grid-span-2>div[style*="grid-column"] {
     grid-column: auto !important;
   }
 }
