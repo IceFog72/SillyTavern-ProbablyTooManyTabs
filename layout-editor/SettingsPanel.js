@@ -55,12 +55,12 @@ export function createSettingsPanel(manager) {
     optimizeVisibilityCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
 
     const optimizeNotice = el('div', { className: 'ptmt-setting-notice ptmt-setting-notice-item' },
-        el('i', { className: 'fa-solid fa-circle-info', style: { marginRight: '6px', fontSize: '0.85em' } }),
+        el('i', { className: 'fa-solid fa-circle-info ptmt-small-icon' }),
         'Minor scroll jumps possible until messages are viewed once.'
     );
 
     // Wrap checkbox and notice in a container to keep them grouped
-    const optimizeContainer = el('div', { style: { gridColumn: 'span 2', display: 'flex', flexDirection: 'column' } },
+    const optimizeContainer = el('div', { className: 'ptmt-full-width-container' },
         optimizeVisibilityCheckbox,
         optimizeNotice
     );
@@ -78,12 +78,11 @@ export function createSettingsPanel(manager) {
         const inp = el('input', {
             type: 'text',
             value: settings.get(key),
-            className: 'text_pole textarea_compact',
-            title: 'Valid CSS units: px, vh, vw, %, em, rem, vmin, vmax',
-            style: { width: '55px', marginLeft: '5px' }
+            className: 'text_pole textarea_compact ptmt-dimension-input',
+            title: 'Valid CSS units: px, vh, vw, %, em, rem, vmin, vmax'
         });
-        const row = el('div', { style: { display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' } },
-            el('label', { style: { margin: 0, minWidth: '140px' } }, label),
+        const row = el('div', { className: 'ptmt-dimension-row' },
+            el('label', { className: 'ptmt-dimension-label' }, label),
             inp
         );
 
@@ -107,12 +106,11 @@ export function createSettingsPanel(manager) {
             step: '0.1',
             min: '0.1',
             max: '5',
-            className: 'text_pole textarea_compact',
-            title: 'Multiplier (0.1 – 5)',
-            style: { width: '55px', marginLeft: '5px' }
+            className: 'text_pole textarea_compact ptmt-dimension-input',
+            title: 'Multiplier (0.1 – 5)'
         });
-        const row = el('div', { style: { display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '6px' } },
-            el('label', { style: { margin: 0, minWidth: '140px' } }, label),
+        const row = el('div', { className: 'ptmt-dimension-row' },
+            el('label', { className: 'ptmt-dimension-label' }, label),
             inp
         );
 
@@ -188,7 +186,7 @@ export function createSettingsPanel(manager) {
         // Dialog content sections
         const chatSection = el('div', { className: 'ptmt-vs-section' },
             el('h4', { className: 'ptmt-vs-section-title' },
-                el('i', { className: 'fa-solid fa-images', style: { marginRight: '6px' } }),
+                el('i', { className: 'fa-solid fa-images ptmt-small-icon' }),
                 'Chat Messages (Big Avatars)'
             ),
             createField('Height (base)', createDimensionInput('Height (base)', 'avatarBaseHeight')),
@@ -199,7 +197,7 @@ export function createSettingsPanel(manager) {
 
         const normalSection = el('div', { className: 'ptmt-vs-section' },
             el('h4', { className: 'ptmt-vs-section-title' },
-                el('i', { className: 'fa-solid fa-comments', style: { marginRight: '6px' } }),
+                el('i', { className: 'fa-solid fa-comments ptmt-small-icon' }),
                 'Chat Messages (Normal)'
             ),
             createField('Avatar Size', createDimensionInput('Avatar Size', 'normalAvatarSize'))
@@ -207,7 +205,7 @@ export function createSettingsPanel(manager) {
 
         const charListSection = el('div', { className: 'ptmt-vs-section' },
             el('h4', { className: 'ptmt-vs-section-title' },
-                el('i', { className: 'fa-solid fa-people-group', style: { marginRight: '6px' } }),
+                el('i', { className: 'fa-solid fa-people-group ptmt-small-icon' }),
                 'Character List'
             ),
             createField('Avatar Width', createDimensionInput('Avatar Width', 'charListAvatarWidth')),
@@ -219,7 +217,7 @@ export function createSettingsPanel(manager) {
             className: 'ptmt-vs-button secondary',
             type: 'button'
         },
-            el('i', { className: 'fa-solid fa-rotate-right', style: { marginRight: '6px' } }),
+            el('i', { className: 'fa-solid fa-rotate-right ptmt-small-icon' }),
             'Reset All'
         );
 
@@ -227,7 +225,7 @@ export function createSettingsPanel(manager) {
             className: 'ptmt-vs-button primary',
             type: 'button'
         },
-            el('i', { className: 'fa-solid fa-check', style: { marginRight: '6px' } }),
+            el('i', { className: 'fa-solid fa-check ptmt-small-icon' }),
             'Close'
         );
 
@@ -239,7 +237,7 @@ export function createSettingsPanel(manager) {
         },
             el('div', { className: 'ptmt-vs-content' },
                 el('h3', { className: 'ptmt-vs-title' },
-                    el('i', { className: 'fa-solid fa-image', style: { marginRight: '8px' } }),
+                    el('i', { className: 'fa-solid fa-image ptmt-small-icon' }),
                     'Avatar Size Settings'
                 ),
                 chatSection,
@@ -270,16 +268,14 @@ export function createSettingsPanel(manager) {
     };
 
     const avatarDialogBtn = el('button', {
-        className: 'menu_button interactable',
-        style: { padding: '2px 8px', fontSize: '0.8em', width: 'auto' }
+        className: 'menu_button interactable ptmt-button-compact'
     }, 'Avatar Sizes');
     avatarDialogBtn.addEventListener('click', openAvatarDialog);
 
     const avatarRow = el('div', {
-        className: 'ptmt-setting-row ptmt-setting-sub-item',
-        style: { gridColumn: 'span 2', display: 'flex', alignItems: 'center', gap: '5px' }
+        className: 'ptmt-setting-row ptmt-setting-sub-item ptmt-avatar-row'
     },
-        el('label', { style: { marginRight: '10px' } }, 'Avatar Sizes:'),
+        el('label', { className: 'ptmt-avatar-label' }, 'Avatar Sizes:'),
         avatarDialogBtn
     );
 
@@ -288,6 +284,7 @@ export function createSettingsPanel(manager) {
         avatarRow.style.display = enabled ? 'flex' : 'none';
         autoContrastCheckbox.style.display = display;
         optimizeVisibilityCheckbox.style.display = display;
+        optimizeNotice.style.display = display;
     };
     syncVisibility(settings.get('enableOverride1'));
     overridesInput.addEventListener('change', (e) => syncVisibility(e.target.checked));
@@ -319,9 +316,15 @@ export function createSettingsPanel(manager) {
     // Apply color on initialization
     document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColorValue);
 
-    const bgColorContainer = el('div', { className: 'ptmt-setting-row', style: { gridColumn: 'span 1', display: settings.get('moveBg1ToSheld') ? '' : 'none' } },
-        el('label', { style: { margin: 0 } }, 'Body Background Color'),
-        el('div', { style: { marginTop: '6px' } }, bgColorPicker)
+    const bgColorContainer = el('div', 
+        { 
+            className: 'ptmt-setting-row ptmt-full-width-container',
+            style: { 
+                display: settings.get('moveBg1ToSheld') ? 'flex' : 'none'
+            } 
+        },
+        bgColorPicker,
+        el('label', { className: 'ptmt-bg-color-label' },'Background Color')
     );
 
     // Create moveBg1ToSheld checkbox separately to control bgColorContainer visibility
@@ -330,12 +333,11 @@ export function createSettingsPanel(manager) {
 
     // Add listener to control bgColorContainer visibility
     moveBg1Input.addEventListener('change', (e) => {
-        bgColorContainer.style.display = e.target.checked ? '' : 'none';
+        bgColorContainer.style.display = e.target.checked ? 'flex' : 'none';
     });
 
     const overridesWrapper = el('div', {
-        className: 'ptmt-settings-grid',
-        style: { gridColumn: 'span 2', display: 'grid', gridTemplateColumns: '1fr 1fr' }
+        className: 'ptmt-settings-grid ptmt-full-width-container ptmt-grid-span-2'
     });
     overridesCheckbox.style.gridColumn = 'span 2';
     overridesWrapper.append(
@@ -360,8 +362,7 @@ export function createSettingsPanel(manager) {
 
     const isMobile = settings.get('isMobile');
     const mobileToggleBtn = el('button', {
-        class: "menu_button menu_button_icon interactable ptmt-mobile-button",
-        style: { gridColumn: 'span 1' },
+        class: "menu_button menu_button_icon interactable ptmt-mobile-button ptmt-grid-span-1",
         title: isMobile ? "Switch to Desktop Layout (Reloads page)" : "Switch to Mobile Layout (Reloads page)",
         tabindex: "0",
         role: "button"
@@ -371,8 +372,7 @@ export function createSettingsPanel(manager) {
     globalGrid.append(mobileToggleBtn);
 
     const resetBtn = el('button', {
-        class: "menu_button menu_button_icon interactable ptmt-reset-button",
-        style: { gridColumn: 'span 1' },
+        class: "menu_button menu_button_icon interactable ptmt-reset-button ptmt-grid-span-1",
         title: "Reset all layout settings and reload the UI",
         tabindex: "0",
         role: "button"
@@ -541,7 +541,7 @@ export function createDialogueColorizerSettings(settings) {
     const charDialogStatic = row([colorPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-charstaticcolor')]);
     const charBubbleSrc = row([lbl('Bubble Color Source', 'ptmt-col-charbubblesrc'), dropdown('ptmt-col-charbubblesrc', 'dialogueColorizerBubbleSource', sourceOptions)]);
     const charBubbleStatic = row([
-        el('div', { style: 'display: flex; gap: 5px;' },
+        el('div', { className: 'ptmt-color-picker-pair' },
             colorPicker('ptmt-col-charbubblestatic1', 'dialogueColorizerBubbleStaticColor1'),
             colorPicker('ptmt-col-charbubblestatic2', 'dialogueColorizerBubbleStaticColor2')
         ),
@@ -563,7 +563,7 @@ export function createDialogueColorizerSettings(settings) {
     const personaDialogStatic = row([colorPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-personastaticcolor')]);
     const personaBubbleSrc = row([lbl('Bubble Color Source', 'ptmt-col-personabubblesrc'), dropdown('ptmt-col-personabubblesrc', 'dialogueColorizerPersonaBubbleSource', sourceOptions)]);
     const personaBubbleStatic = row([
-        el('div', { style: 'display: flex; gap: 5px;' },
+        el('div', { className: 'ptmt-color-picker-pair' },
             colorPicker('ptmt-col-personabubblestatic1', 'dialogueColorizerPersonaBubbleStaticColor1'),
             colorPicker('ptmt-col-personabubblestatic2', 'dialogueColorizerPersonaBubbleStaticColor2')
         ),

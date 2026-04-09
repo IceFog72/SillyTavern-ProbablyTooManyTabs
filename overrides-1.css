@@ -54,7 +54,7 @@
 
 .ptmt-auto-contrast input[type="range"],
 .ptmt-auto-contrast .neo-range-slider {
-    background: var(--ptmt-adaptive-text) !important;
+    background: var(--ST-Quote-Text) !important;
 }
 
 body.noShadows * {

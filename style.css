@@ -1068,9 +1068,27 @@ select option {
 
 .ptmt-settings-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   gap: 12px;
   align-items: start;
+}
+
+/* Override conflicting classes when combined */
+.ptmt-settings-grid.ptmt-grid-span-2 {
+  grid-column: auto;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+/* Force 1 column on tablets and smaller screens */
+@media (max-width: 700px) {
+  .ptmt-settings-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .ptmt-settings-grid.ptmt-grid-span-2 {
+    grid-column: auto;
+    grid-template-columns: 1fr;
+  }
 }
 
 .ptmt-settings-grid>.ptmt-setting-row,
@@ -1908,10 +1926,24 @@ body.ptmt-is-resizing #rm_print_characters_block {
   gap: 8px;
 }
 
+/* Force full-width stacking on smaller screens */
+@media (max-width: 700px) {
+  .ptmt-settings-fieldset {
+    flex: 1 1 100%;
+  }
+}
+
 .ptmt-setting-row {
   display: flex;
   align-items: center;
   gap: 8px;
+  min-width: 200px;
+}
+
+/* Wrap opacity controls: label and value on row 1, slider on row 2 */
+.ptmt-setting-row:has(.ptmt-opacity-slider) {
+  flex-wrap: wrap;
+  align-items: flex-start;
 }
 
 .ptmt-setting-sub-item {
@@ -1928,12 +1960,15 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-opacity-slider {
   flex: 1;
   min-width: 0;
+  flex-basis: 100%;
+  order: 2;
 }
 
 .ptmt-opacity-value {
   min-width: 35px;
   text-align: right;
   opacity: 0.8;
+  order: 1;
 }
 
 .ptmt-setting-notice {
@@ -2017,6 +2052,111 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-support-link:hover {
   background: var(--ST-Text-Shadow);
 }
+
+/* Settings Panel Utility Classes */
+.ptmt-small-icon {
+  margin-right: 6px;
+  font-size: 0.85em;
+}
+
+.ptmt-palette-icon {
+  margin-right: 6px;
+  opacity: 0.8;
+}
+
+.ptmt-full-width-container {
+  grid-column: span 2;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Override when combined with ptmt-setting-row */
+.ptmt-setting-row.ptmt-full-width-container {
+  grid-column: auto;
+  flex-direction: row;
+  gap: 6px;
+  min-width: auto;
+}
+
+.ptmt-dimension-input {
+  width: 55px;
+  margin-left: 5px;
+}
+
+.ptmt-dimension-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 6px;
+}
+
+.ptmt-dimension-label {
+  margin: 0;
+  min-width: 135px;
+}
+
+.ptmt-dialog-input {
+  width: 100%;
+}
+
+.ptmt-button-compact {
+  padding: 2px 8px;
+  font-size: 0.8em;
+  width: auto;
+}
+
+.ptmt-avatar-row {
+  grid-column: span 2;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Force to span 1 column on smaller screens */
+@media (max-width: 700px) {
+  .ptmt-avatar-row {
+    grid-column: span 1;
+  }
+}
+
+.ptmt-grid-span-1 {
+  grid-column: span 1;
+}
+
+.ptmt-grid-span-2 {
+  grid-column: span 2;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+/* Force 1 column on tablets and smaller screens */
+@media (max-width: 700px) {
+  .ptmt-grid-span-2 {
+    grid-column: span 1;
+    grid-template-columns: 1fr;
+  }
+  
+  /* Override inline grid-column: span 2 on children */
+  .ptmt-grid-span-2 > div[style*="grid-column"] {
+    grid-column: auto !important;
+  }
+}
+
+.ptmt-avatar-label {
+  margin-right: 10px;
+}
+
+.ptmt-bg-color-label {
+  margin: 0;
+  font-size: 0.9em;
+  font-weight: 500;
+}
+
+.ptmt-color-picker-pair {
+  display: flex;
+  gap: 5px;
+}
+
 
 .ptmt-editor-title-controls {
   display: flex;
