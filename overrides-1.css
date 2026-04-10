@@ -456,6 +456,7 @@ body.big-avatars .mes .swipe_right:hover {
 .mes_reasoning_details[open] .mes_reasoning_arrow {
     top: 50%;
 }
+
 .mes_reasoning_details .mes_reasoning_arrow {
     right: 0px !important;
 }
@@ -464,8 +465,8 @@ body.big-avatars .mes .swipe_right:hover {
     overflow: auto;
 }
 
-.mes_reasoning_details .mes_reasoning_summary{
-    margin-right:unset !important;
+.mes_reasoning_details .mes_reasoning_summary {
+    margin-right: unset !important;
 }
 
 /* ========================================= */
@@ -885,9 +886,9 @@ input[type="range"] {
     height: 6px;
     margin: 8px 0;
     padding: 0;
-    background: linear-gradient(to right, 
-        var(--SmartThemeBodyColor, #333), 
-        var(--SmartThemeBodyColor, #333));
+    background: linear-gradient(to right,
+            var(--SmartThemeBodyColor, #333),
+            var(--SmartThemeBodyColor, #333));
     border-radius: 3px;
     outline: none;
     cursor: ew-resize;
@@ -956,4 +957,28 @@ input[type="range"]::-moz-range-thumb:hover {
 
 input[type="range"]::-moz-range-thumb:active {
     transform: scale(0.95);
+}
+
+.popup[open]::backdrop,
+#chat,
+#charlib-embedded-container,
+#groupMemberListPopout,
+#moonlit_echoes_popout,
+#extensionSideBar,
+#summaryExtensionPopout,
+#objectiveExtensionPopout,
+#gallery,
+.fillLeft,
+.fillRight,
+.topRightInset,
+.editable-slider-notification,
+.drawer-content,
+#extensionTopBar,
+#ptts-bar {
+    backdrop-filter: none !important;
+}
+
+#ptmt-mainBody {
+    backdrop-filter: blur(var(--ST-Blur-Strength));
+    will-change: backdrop-filter;
 }

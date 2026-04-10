@@ -119,7 +119,6 @@
   max-width: none !important;
   display: block;
   opacity: 1 !important;
-  backdrop-filter: none !important;
 }
 
 .drawer-content.openDrawer {
@@ -215,7 +214,6 @@ body:has(#extensionTopBar) .ptmt-panel-content #sheld #bg1 {
 }
 
 #chat {
-  backdrop-filter: none !important;
   max-height: unset !important;
 }
 
@@ -337,8 +335,6 @@ body,
   height: 100vh;
   width: 100vw;
   background: transparent;
-  backdrop-filter: blur(var(--ST-Blur-Strength));
-  will-change: backdrop-filter;
 }
 
 #ptmt-mainBody {
@@ -1566,10 +1562,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
     opacity: 1;
     transform: translateY(0) scale(1);
   }
-}
-
-.popup[open]::backdrop {
-  backdrop-filter: none !important;
 }
 
 /* Settings Dialog */
