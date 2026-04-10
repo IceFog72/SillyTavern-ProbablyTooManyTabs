@@ -83,6 +83,17 @@ body.ptmt-bg-under-chat {
   --ptmt-ui-composite: oklch(from var(--ptmt-ui-tint) calc(l * alpha + var(--ptmt-body-bg-l) * (1 - alpha)) c h);
 }
 
+/* Move blur to #chat when bg is under chat, and strip it from the outer wrapper */
+body.ptmt-bg-under-chat #ptmt-mainBody {
+  backdrop-filter: none;
+  will-change: auto;
+}
+
+body.ptmt-bg-under-chat #chat {
+  backdrop-filter: blur(var(--ST-Blur-Strength)) !important;
+  will-change: backdrop-filter;
+}
+
 #movingDivs {
   opacity: 0;
 }
@@ -159,6 +170,10 @@ body.ptmt-bg-under-chat {
   border-radius: 0 !important;
   height: 100%;
   max-height: none !important;
+}
+
+body.bubblechat .welcomePanel {
+  background-color: var(--ST-UI-Background);
 }
 
 #logprobsViewer,
@@ -349,6 +364,8 @@ body,
   flex: 1 1 0;
   min-width: 0;
   position: relative;
+  backdrop-filter: blur(var(--ST-Blur-Strength));
+  will-change: backdrop-filter;
 }
 
 #ptmt-mainBody.ptmt-mobile {
@@ -1979,7 +1996,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
   margin-top: 2px;
   margin-bottom: 4px;
   padding: 2px 4px 2px 28px;
-  border-left: 2px solid var(--ST-UI-Border, #555);
   color: var(--ST-UI-Text, inherit);
   line-height: 1.3;
 }

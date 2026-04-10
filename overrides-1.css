@@ -23,10 +23,8 @@
 .ptmt-auto-contrast textarea,
 .ptmt-auto-contrast input,
 .ptmt-auto-contrast select,
-.ptmt-auto-contrast button,
 .ptmt-auto-contrast .text_pole,
 .ptmt-auto-contrast input[type=search]::-webkit-search-cancel-button,
-.ptmt-auto-contrast .menu_button,
 .ptmt-auto-contrast .prompt_order>div,
 .ptmt-auto-contrast input[type='checkbox'],
 .ptmt-auto-contrast .range-block-counter,
@@ -51,11 +49,6 @@
 .ptmt-auto-contrast .toggle-description {
     color: var(--ptmt-adaptive-em) !important;
     text-shadow: var(--ptmt-adaptive-shadow) !important;
-}
-
-.ptmt-auto-contrast input[type="range"],
-.ptmt-auto-contrast .neo-range-slider {
-    background: var(--ST-Quote-Text) !important;
 }
 
 body.noShadows * {
@@ -895,6 +888,7 @@ input[type="checkbox"]:checked:hover {
 /* Range sliders */
 .neo-range-slider {
     border-radius: 0.5rem 0.5rem 0 0 !important;
+    background: var(--ST-Quote-Text) !important;
 }
 
 .neo-range-input {
@@ -909,9 +903,6 @@ input[type="range"] {
     height: 6px;
     margin: 8px 0;
     padding: 0;
-    background: linear-gradient(to right,
-            var(--SmartThemeBodyColor, #333),
-            var(--SmartThemeBodyColor, #333));
     border-radius: 3px;
     outline: none;
     cursor: ew-resize;
@@ -957,7 +948,7 @@ input[type="range"]::-moz-range-track {
 }
 
 input[type="range"]::-moz-range-progress {
-    background: var(--SmartThemeCheckboxTickColor, #4a9eff);
+    background: var(--ST-Quote-Text);
     height: 6px;
     border-radius: 3px;
 }
