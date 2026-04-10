@@ -16,6 +16,8 @@ export class ThemeEngine {
 
         this.lastUrl = null;
         this.targetIds = ['bg1', 'bg_custom'];
+        this._currentBgL = 0.5; // Last known wallpaper luminance
+        this._tintObserver = null;
     }
 
     init() {
@@ -41,6 +43,10 @@ export class ThemeEngine {
                 obs.observe(el, { attributes: true, attributeFilter: ['style'] });
             }
         });
+
+        // Observe :root style changes so we recompute when ST changes --SmartThemeChatTintColor
+        this._tintObserver = trackObserver(new MutationObserver(() => this.updateEffectiveBgL()));
+        this._tintObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
     }
 
     refresh() {
@@ -131,10 +137,102 @@ export class ThemeEngine {
     }
 
     applyLuminance(lum) {
-        // Set as percentage for CSS (0 to 100)
+        this._currentBgL = lum;
         const lPercent = Math.round(lum * 100);
         document.documentElement.style.setProperty('--ST-UI-Background-luminance', lPercent);
+        this.updateEffectiveBgL();
         console.log(`[PTMT] Background Luminance: ${lPercent}%`);
+    }
+
+    /**
+     * Parse any CSS color string into { lum, alpha }.
+     * Supports rgb/rgba and #hex. Returns null for unknown formats.
+     */
+    parseColorLumAlpha(colorStr) {
+        if (!colorStr) return null;
+        const str = colorStr.trim();
+        if (str === 'transparent' || str === '') return { lum: 0, alpha: 0 };
+
+        const rgbMatch = str.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?\)/);
+        if (rgbMatch) {
+            const r = parseInt(rgbMatch[1]) / 255;
+            const g = parseInt(rgbMatch[2]) / 255;
+            const b = parseInt(rgbMatch[3]) / 255;
+            const alpha = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) : 1;
+            return { lum: 0.2126 * r + 0.7152 * g + 0.0722 * b, alpha };
+        }
+        if (str.startsWith('#') && str.length >= 7) {
+            const r = parseInt(str.slice(1, 3), 16) / 255;
+            const g = parseInt(str.slice(3, 5), 16) / 255;
+            const b = parseInt(str.slice(5, 7), 16) / 255;
+            const alpha = str.length >= 9 ? parseInt(str.slice(7, 9), 16) / 255 : 1;
+            return { lum: 0.2126 * r + 0.7152 * g + 0.0722 * b, alpha };
+        }
+        return null;
+    }
+
+    /**
+     * Computes effective background luminance seen by chat messages:
+     *   --SmartThemeChatTintColor (at its own alpha) blended over the wallpaper.
+     * - Tint alpha=1 → bg has zero influence (solid tint blocks wallpaper)
+     * - Tint alpha=0 → wallpaper luminance used directly
+     * Exposes the result as --ptmt-effective-bg-l for use in bubble composite formulas.
+     */
+    updateEffectiveBgL() {
+        const tintStr = getComputedStyle(document.documentElement)
+            .getPropertyValue('--SmartThemeChatTintColor').trim();
+        const tint = this.parseColorLumAlpha(tintStr);
+        const bgL = this._currentBgL;
+
+        let effectiveBgL;
+        if (!tint) {
+            effectiveBgL = bgL; // Unknown tint — use raw wallpaper
+        } else {
+            // Two-layer blend: tint over wallpaper
+            effectiveBgL = tint.lum * tint.alpha + bgL * (1 - tint.alpha);
+        }
+        document.documentElement.style.setProperty('--ptmt-effective-bg-l', effectiveBgL.toFixed(3));
+    }
+
+    /**
+     * Parses bodyBgColor and sets --ptmt-body-bg-l for CSS.
+     * Returns the alpha channel (0-1) so the caller can decide whether
+     * ptmt-bg-under-chat should be active (transparent = no tab contrast).
+     * @param {string} colorStr  e.g. 'rgb(29,29,29)', 'rgba(0,0,0,0.5)', '#1d1d1d'
+     * @returns {number} alpha (0 = fully transparent, 1 = fully opaque)
+     */
+    setBodyBgColor(colorStr) {
+        if (!colorStr) {
+            document.documentElement.style.setProperty('--ptmt-body-bg-l', '0.15');
+            return 0;
+        }
+
+        // rgba?(r, g, b[, a]) format
+        const rgbMatch = colorStr.match(/rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*([\d.]+))?/);
+        if (rgbMatch) {
+            const r = parseInt(rgbMatch[1]) / 255;
+            const g = parseInt(rgbMatch[2]) / 255;
+            const b = parseInt(rgbMatch[3]) / 255;
+            const alpha = rgbMatch[4] !== undefined ? parseFloat(rgbMatch[4]) : 1;
+            const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            document.documentElement.style.setProperty('--ptmt-body-bg-l', lum.toFixed(3));
+            return alpha;
+        }
+
+        // #RRGGBB or #RRGGBBAA hex format
+        if (colorStr.startsWith('#') && colorStr.length >= 7) {
+            const r = parseInt(colorStr.slice(1, 3), 16) / 255;
+            const g = parseInt(colorStr.slice(3, 5), 16) / 255;
+            const b = parseInt(colorStr.slice(5, 7), 16) / 255;
+            const alpha = colorStr.length >= 9 ? parseInt(colorStr.slice(7, 9), 16) / 255 : 1;
+            const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+            document.documentElement.style.setProperty('--ptmt-body-bg-l', lum.toFixed(3));
+            return alpha;
+        }
+
+        // Unknown format — use neutral fallback
+        document.documentElement.style.setProperty('--ptmt-body-bg-l', '0.15');
+        return 0;
     }
 }
 

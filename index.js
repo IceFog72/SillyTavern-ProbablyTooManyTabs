@@ -205,6 +205,11 @@ function bindLayoutReactions(api, saveCurrentLayoutDebounced) {
         document.body.classList.toggle('ptmt-mobile', !!settings.get('isMobile'));
         document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
         document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
+        // Keep body bg color var and tab contrast class in sync with settings
+        const bodyBgColor = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
+        document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
+        const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
+        document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
         applyOverrides();
         document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
         window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
@@ -382,6 +387,8 @@ function postInit(state, applyOverrides) {
     // Apply body background color CSS variable
     const bodyBgColor = settings.get('bodyBgColor') || 'rgb(89, 0, 255)';
     document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
+    const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
+    document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
 
     // Apply bg1 position based on saved setting
     if (settings.get('moveBg1ToSheld')) {

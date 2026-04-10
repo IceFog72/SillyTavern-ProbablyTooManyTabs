@@ -26,6 +26,9 @@
   --ST-UI-Background-luminance: 50;
   --ptmt-bg-l: calc(var(--ST-UI-Background-luminance, 45) / 100);
 
+  /* Body bg luminance — set by JS from bodyBgColor (used when moveBg1ToSheld is on) */
+  --ptmt-body-bg-l: 0.15;
+
   /* Composite Layer 1: Wallpaper + UI Tint (Blur Tint) */
   --ptmt-ui-tint: var(--ST-UI-Background);
   --ptmt-ui-composite: oklch(from var(--ptmt-ui-tint) calc(l * alpha + var(--ptmt-bg-l) * (1 - alpha)) c h);
@@ -40,9 +43,6 @@
   --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 70%);
 
-  /* Reverse Adaptive Variables */
-  --ptmt-adaptive-bw-reverse: oklch(from var(--ptmt-adaptive-bw) calc(1 - l) 0 0 / 1);
-  --ptmt-adaptive-shadow-reverse: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw-reverse) 70%);
 
 
   /* Create a theme-aware danger color by mixing the theme body color with red */
@@ -75,6 +75,13 @@
 /* ==========================================================================
    2. CORE SILLYTAVERN OVERRIDES
    ========================================================================== */
+
+/* When bg1 is moved under the chat panel, tab/UI adaptive contrast uses body bg color
+   instead of the wallpaper luminance. Redefining --ptmt-ui-composite here (instead of
+   trying to override an intermediate var) ensures all descendants inherit the correct value. */
+body.ptmt-bg-under-chat {
+  --ptmt-ui-composite: oklch(from var(--ptmt-ui-tint) calc(l * alpha + var(--ptmt-body-bg-l) * (1 - alpha)) c h);
+}
 
 #movingDivs {
   opacity: 0;

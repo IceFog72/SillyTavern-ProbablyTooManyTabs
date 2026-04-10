@@ -395,7 +395,9 @@ function buildCssRules(safeUid, extractedColors, type) {
         const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) 25%) !important;`;
 
         css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${standardRule} }\n`;
+        css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_reasoning q { ${standardRule} }\n`;
         css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${adaptiveRule} }\n`;
+        css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${safeUid}"] .mes_reasoning q { ${adaptiveRule} }\n`;
 
         css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${standardRule} }\n`;
         css += `.ptmt-auto-contrast .bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${adaptiveRule} }\n`;
@@ -404,6 +406,11 @@ function buildCssRules(safeUid, extractedColors, type) {
         const rgbaBg1 = ColorUtils.hexToRgba(bPrim, opacity);
         const rgbaBg2 = ColorUtils.hexToRgba(bSec, opacity);
         const rgbaBorder = ColorUtils.hexToRgba(bPrim, Math.min(1.0, opacity * 2.5 + 0.1));
+
+        // Emit the colorizer color with opacity baked into the alpha channel.
+        // CSS oklch formula uses alpha directly to blend against the wallpaper —
+        // no ST message background involved when the colorizer is in control.
+        css += `#chat .mes[xdc-author-uid="${safeUid}"] { --ptmt-mes-colorizer-color: ${ColorUtils.hexToRgba(bPrim, opacity)}; }\n`;
 
         let background;
         if (bubbleMode === 3) {
@@ -414,7 +421,9 @@ function buildCssRules(safeUid, extractedColors, type) {
             background = rgbaBg1;
         }
 
-        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background: ${background} !important; border-color: ${rgbaBorder} !important; }\n`;
+        // When the colorizer owns the bubble background, neutralize ST's default blur tint
+        // so it doesn't bleed through the colorizer-controlled background colour.
+        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background: ${background} !important; border-color: ${rgbaBorder} !important; --SmartThemeBotMesBlurTintColor: transparent; --SmartThemeUserMesBlurTintColor: transparent; }\n`;
     }
     return css;
 }
