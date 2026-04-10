@@ -974,7 +974,6 @@ input[type="range"]::-moz-range-thumb:active {
 }
 
 .popup[open]::backdrop,
-#chat,
 #charlib-embedded-container,
 #groupMemberListPopout,
 #moonlit_echoes_popout,

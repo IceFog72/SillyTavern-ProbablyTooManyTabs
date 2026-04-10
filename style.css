@@ -90,8 +90,13 @@ body.ptmt-bg-under-chat #ptmt-mainBody {
 }
 
 body.ptmt-bg-under-chat #chat {
-  backdrop-filter: blur(var(--ST-Blur-Strength)) !important;
+  backdrop-filter: blur(var(--ST-Blur-Strength));
   will-change: backdrop-filter;
+}
+
+body.no-blur body.ptmt-bg-under-chat #chat {
+  backdrop-filter: none;
+  will-change: auto;
 }
 
 #movingDivs {
