@@ -56,7 +56,7 @@ export class SettingsManager {
         charListAvatarWidth: '4vw',
         charListAvatarHeight: 'auto',
         charListAvatarScale: '1',
-        bodyBgColor: 'rgb(89, 0, 255)',
+        bodyBgColor: 'rgb(29, 29, 29)',
 
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: 'fa-compass' },

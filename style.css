@@ -319,7 +319,7 @@ code {
 }
 
 body {
-  background-color: var(--ptmt-body-bg-color, rgb(89, 0, 255));
+  background-color: var(--ptmt-body-bg-color, rgb(29, 29, 29));
 }
 
 html,
