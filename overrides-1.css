@@ -888,7 +888,6 @@ input[type="checkbox"]:checked:hover {
 /* Range sliders */
 .neo-range-slider {
     border-radius: 0.5rem 0.5rem 0 0 !important;
-    background: var(--ST-Quote-Text) !important;
 }
 
 .neo-range-input {
