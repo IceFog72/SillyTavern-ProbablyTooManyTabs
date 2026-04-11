@@ -688,7 +688,6 @@ textarea:disabled {
     font-size: calc(var(--mainFontSize) * 0.9);
     border-radius: 0.5rem !important;
     transition: all var(--ptmt-transition);
-    border: 1px solid color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 50%) !important;
     display: inline-flex;
     align-items: center;
     justify-content: center;
