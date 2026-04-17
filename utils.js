@@ -157,6 +157,7 @@ export const defaultViewSettings = {
     defaultOrientation: 'auto',
     collapsedOrientation: 'auto',
     contentFlow: 'default',
+    iconOnly: false,
 };
 
 export function readPaneViewSettings(pane) {

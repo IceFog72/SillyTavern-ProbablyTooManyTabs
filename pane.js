@@ -174,11 +174,17 @@ export function createPane(initialSettings = {}, options = {}) {
 
   tabStrip.addEventListener('contextmenu', (e) => {
     if (e.target !== tabStrip) return;
+    const vs = readPaneViewSettings(pane);
     showContextMenu(e, [
       {
         label: 'Edit Pane',
-        icon: '⚙',
+        icon: 'fa-solid fa-gear',
         onClick: () => openViewSettingsDialog(pane)
+      },
+      {
+        label: vs.iconOnly ? 'Show Labels' : 'Icons Only',
+        icon: vs.iconOnly ? 'fa-solid fa-tag' : 'fa-solid fa-icons',
+        onClick: () => toggleIconsOnly(pane)
       }
     ]);
   });
@@ -191,6 +197,10 @@ export function createPane(initialSettings = {}, options = {}) {
     requestAnimationFrame(() => {
       applyPaneOrientation(pane);
       checkAndCollapsePaneIfAllTabsCollapsed(pane);
+      const vs = readPaneViewSettings(pane);
+      if (vs.iconOnly) {
+        applyIconsOnly(pane, true);
+      }
     });
   }
 
@@ -721,6 +731,26 @@ export function openViewSettingsDialog(pane) {
     )
   );
 
+  // Display section with icons-only toggle
+  const iconOnlyCheckbox = el('input', {
+    type: 'checkbox',
+    id: 'ptmt-vs-icon-only'
+  });
+  if (vs.iconOnly) {
+    iconOnlyCheckbox.checked = true;
+  }
+  const displaySection = el('div', { className: 'ptmt-vs-section' },
+    el('h4', { className: 'ptmt-vs-section-title' },
+      el('i', { className: 'fa-solid fa-eye', style: { marginRight: '6px' } }),
+      'Display'
+    ),
+    createField(
+      'Icons Only',
+      'Show only tab icons, hide text labels to save space',
+      iconOnlyCheckbox
+    )
+  );
+
   // Footer buttons
   const saveBtn = el('button', {
     id: 'ptmt-vs-save',
@@ -749,6 +779,7 @@ export function openViewSettingsDialog(pane) {
       sizeSection,
       orientationSection,
       flowSection,
+      displaySection,
       footer
     )
   );
@@ -762,18 +793,60 @@ export function openViewSettingsDialog(pane) {
     const def = dialog.querySelector('#ptmt-vs-default').value || 'auto';
     const col = dialog.querySelector('#ptmt-vs-collapsed').value || 'auto';
     const flow = dialog.querySelector('#ptmt-vs-flow').value || 'default';
+    const iconOnly = dialog.querySelector('#ptmt-vs-icon-only').checked || false;
 
     writePaneViewSettings(pane, {
       minimalPanelSize: minimal,
       defaultOrientation: def,
       collapsedOrientation: col,
-      contentFlow: flow
+      contentFlow: flow,
+      iconOnly: iconOnly
     });
     applyPaneOrientation(pane);
+    applyIconsOnly(pane, iconOnly);
     dialog.remove();
     window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
   });
 
   // Focus save button for better UX
   requestAnimationFrame(() => saveBtn.focus());
+}
+
+/**
+ * Apply or remove icons-only mode visual styling to a pane
+ * @param {HTMLElement} pane - The pane element
+ * @param {boolean} enabled - Whether icons-only should be enabled
+ */
+export function applyIconsOnly(pane, enabled) {
+  if (!pane) {
+    console.warn('[PTMT] applyIconsOnly: pane is null');
+    return;
+  }
+  if (enabled) {
+    pane.classList.add('ptmt-icons-only');
+    console.log('[PTMT] Icons-Only mode enabled for pane:', pane.dataset.paneId);
+  } else {
+    pane.classList.remove('ptmt-icons-only');
+    console.log('[PTMT] Icons-Only mode disabled for pane:', pane.dataset.paneId);
+  }
+}
+
+/**
+ * Toggle icons-only mode for a pane
+ * @param {HTMLElement} pane - The pane element
+ */
+export function toggleIconsOnly(pane) {
+  if (!pane) {
+    console.warn('[PTMT] toggleIconsOnly: pane is null');
+    return;
+  }
+  const vs = readPaneViewSettings(pane);
+  const newState = !vs.iconOnly;
+  console.log('[PTMT] Toggling icons-only from', vs.iconOnly, 'to', newState, 'for pane:', pane.dataset.paneId);
+  writePaneViewSettings(pane, {
+    ...vs,
+    iconOnly: newState
+  });
+  applyIconsOnly(pane, newState);
+  window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
 }

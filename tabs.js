@@ -166,7 +166,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
     showContextMenu(e, [
       {
         label: 'Edit Tab',
-        icon: '⚙',
+        icon: 'fa-solid fa-gear',
         onClick: () => {
           window.dispatchEvent(new CustomEvent('ptmt:openTabSettings', {
             detail: { sourceId, tabElement: t, tabRow: null }

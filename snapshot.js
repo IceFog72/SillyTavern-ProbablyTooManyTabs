@@ -24,7 +24,7 @@ import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 /** @typedef {import('./types.js').HiddenTab} HiddenTab */
 
 const SNAPSHOT_VERSION = 15;      // Minimum supported version
-const SNAPSHOT_CURRENT_VERSION = 17; // Version written by generateLayoutSnapshot
+const SNAPSHOT_CURRENT_VERSION = 18; // Version written by generateLayoutSnapshot
 
 // ─── Snapshot Migration Registry ─────────────────────────────────────────────
 // Each key is a source version; the value migrates that version to (key + 1).
@@ -78,6 +78,31 @@ const SNAPSHOT_MIGRATIONS = {
         }
 
         snap.version = 17;
+        return snap;
+    },
+    17: (snap) => {
+        // v17→v18: Add iconOnly field to pane viewSettings (default: false)
+        const addIconOnlyToPane = (node) => {
+            if (!node) return;
+            if (node.type === 'pane' && node.viewSettings) {
+                if (!('iconOnly' in node.viewSettings)) {
+                    node.viewSettings.iconOnly = false;
+                }
+                return;
+            }
+            if (node.type === 'split' && node.children) {
+                node.children.forEach(addIconOnlyToPane);
+            }
+        };
+
+        for (const col of ['left', 'center', 'right']) {
+            const content = snap.columns?.[col]?.content;
+            if (content) {
+                addIconOnlyToPane(content);
+            }
+        }
+
+        snap.version = 18;
         return snap;
     },
 };

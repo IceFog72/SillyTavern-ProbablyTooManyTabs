@@ -16,8 +16,12 @@ export function showContextMenu(e, items) {
             return;
         }
 
+        const iconElement = item.icon && item.icon.includes('fa-')
+            ? el('i', { className: `ptmt-context-menu-icon ${item.icon}` })
+            : el('span', { className: 'ptmt-context-menu-icon' }, item.icon || '');
+
         const menuItem = el('div', { className: 'ptmt-context-menu-item' },
-            el('span', { className: 'ptmt-context-menu-icon' }, item.icon || ''),
+            iconElement,
             el('span', {}, item.label)
         );
 

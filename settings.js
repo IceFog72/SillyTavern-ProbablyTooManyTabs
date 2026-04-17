@@ -99,7 +99,7 @@ export class SettingsManager {
         savedLayoutMobile: null,
 
         defaultLayout: {
-            version: 17,
+            version: 18,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],
@@ -213,7 +213,7 @@ export class SettingsManager {
         },
 
         mobileLayout: {
-            version: 17,
+            version: 18,
             showLeft: false,
             showRight: false,
             hiddenTabs: [],

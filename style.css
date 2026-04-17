@@ -599,6 +599,21 @@ select option {
   color: var(--ptmt-tab-active-color);
 }
 
+/* Icons-Only Mode - hide labels but exclude editor tabs */
+.ptmt-pane.ptmt-icons-only .ptmt-tab:not(.ptmt-editor-tab):not(.ptmt-unified-editor) .ptmt-tab-label {
+  display: none !important;
+}
+
+.ptmt-pane.ptmt-icons-only .ptmt-tab:not(.ptmt-editor-tab):not(.ptmt-unified-editor) {
+  min-width: 44px !important;
+  justify-content: center !important;
+  padding: 6px 4px !important;
+}
+
+.ptmt-pane.ptmt-icons-only .ptmt-tab:not(.ptmt-editor-tab):not(.ptmt-unified-editor) .ptmt-tab-icon {
+  margin: 0 !important;
+}
+
 /* Tab Strip as ArrowScrollBox */
 .ptmt-tabStrip {
   display: flex;
@@ -1766,7 +1781,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .ptmt-vs-input-wrapper input,
 .ptmt-vs-input-wrapper select {
-  flex: 1;
   background: rgba(0, 0, 0, 0.2);
   border: 1px solid var(--ST-UI-Border);
   color: var(--ST-Main-Text);
@@ -1775,6 +1789,19 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-family: inherit;
   font-size: 0.9em;
   transition: all 0.15s ease;
+}
+
+.ptmt-vs-input-wrapper input:not([type="checkbox"]):not([type="radio"]),
+.ptmt-vs-input-wrapper select {
+  flex: 1;
+}
+
+.ptmt-vs-input-wrapper input[type="checkbox"],
+.ptmt-vs-input-wrapper input[type="radio"] {
+  flex: 0 0 auto;
+  padding: 0;
+  border: none;
+  background: transparent;
 }
 
 .ptmt-vs-input-wrapper input:focus,
