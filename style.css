@@ -1068,9 +1068,11 @@ select option {
 
 /* Layout Editor Components */
 .ptmt-settings-panel {
-  border-top: 1px solid var(--ST-UI-Border);
   padding: 6px;
   background-color: var(--ST-UI-Background);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .ptmt-settings-panel fieldset {
@@ -1925,11 +1927,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 
 /* Layout Settings UI Classes */
-.ptmt-settings-panel {
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
-}
 
 .ptmt-settings-top-section {
   display: flex;

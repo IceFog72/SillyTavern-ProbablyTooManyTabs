@@ -423,7 +423,7 @@ function buildCssRules(safeUid, extractedColors, type) {
 
         // When the colorizer owns the bubble background, neutralize ST's default blur tint
         // so it doesn't bleed through the colorizer-controlled background colour.
-        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background: ${background} !important; border-color: ${rgbaBorder} !important; --SmartThemeBotMesBlurTintColor: transparent; --SmartThemeUserMesBlurTintColor: transparent; }\n`;
+        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background: ${background}; border-color: ${rgbaBorder}; --SmartThemeBotMesBlurTintColor: transparent; --SmartThemeUserMesBlurTintColor: transparent; }\n`;
     }
     return css;
 }

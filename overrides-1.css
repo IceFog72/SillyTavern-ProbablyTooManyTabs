@@ -72,7 +72,7 @@ body.big-avatars .mes {
     display: flow-root !important;
     position: relative !important;
     width: 100% !important;
-
+    padding-left: 30px !important;
 
     --ptmt-chat-composite: oklch(from var(--ST-Chat-Background) calc(l * alpha + var(--ptmt-bg-l) * (1 - alpha)) c h);
     --ptmt-chat-bw: oklch(from var(--ptmt-chat-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
@@ -354,9 +354,64 @@ body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
     display: none !important;
 }
 
-#chat .mes.selected{
-
+#chat .mes.selected {
+    background-color: rgba(102, 0, 0, 0.3) !important;
     border-left: 2px solid rgb(102, 0, 0) !important;
+}
+
+/* Delete checkbox styling for message selection */
+#chat .mes .del_checkbox {
+    /* Position & sizing */
+    position: absolute !important;
+    left: 2px !important;
+    top: 50% !important;
+    transform: translateY(-50%) !important;
+    width: 16px !important;
+    height: 16px !important;
+    min-width: unset !important;
+    min-height: unset !important;
+    
+    /* Reset global checkbox appearance */
+    appearance: checkbox !important;
+    -webkit-appearance: checkbox !important;
+    -moz-appearance: checkbox !important;
+    
+    /* Clean styling */
+    cursor: pointer !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    z-index: 10 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    filter: none !important;
+    
+    /* Remove pseudo-elements from global styles */
+    accent-color: rgb(102, 0, 0) !important;
+}
+
+/* Remove global checkbox pseudo-elements from del_checkbox */
+#chat .mes .del_checkbox::before,
+#chat .mes .del_checkbox::after {
+    display: none !important;
+    content: none !important;
+}
+
+/* Hover state */
+#chat .mes .del_checkbox:hover {
+    opacity: 0.8 !important;
+    transition: opacity 0.2s ease !important;
+}
+
+/* Checked state */
+#chat .mes .del_checkbox:checked {
+    accent-color: rgb(102, 0, 0) !important;
+}
+
+/* Disabled state */
+#chat .mes .del_checkbox:disabled {
+    opacity: 0.5 !important;
+    cursor: not-allowed !important;
 }
 
 /* ========================================= */
