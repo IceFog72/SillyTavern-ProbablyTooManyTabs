@@ -75,7 +75,14 @@ export const EVENTS = {
  * Layout and animation constants.
  */
 export const LAYOUT = {
-    MIN_COLLAPSED_PIXELS: 38,
+    MIN_COLLAPSED_PIXELS: () => {
+        // Dynamically read the CSS variable for tab size
+        // Falls back to 38px if CSS variable not set
+        const cssValue = getComputedStyle(document.documentElement)
+            .getPropertyValue('--ptmt-tab-size')
+            .trim();
+        return cssValue ? parseInt(cssValue, 10) : 38;
+    },
     NARROW_PANE_THRESHOLD_PX: 120,
     MAX_PANE_LAYERS: 3,
     DEFAULT_MIN_PANEL_SIZE_PX: 250,

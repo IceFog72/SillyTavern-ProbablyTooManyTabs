@@ -212,6 +212,8 @@ export class SettingsManager {
             }
         },
 
+        uiTheme: 'sharp',
+
         mobileLayout: {
             version: 18,
             showLeft: false,
@@ -274,6 +276,69 @@ export class SettingsManager {
             }
         }
     };
+
+    // ─── UI THEME SYSTEM (Extensible) ────────────────────────────────────────
+    // Add new themes by extending this object with new theme configs.
+    // Themes are applied by setting CSS variables on :root.
+    static themes = {
+        sharp: {
+            name: 'Sharp',
+            description: 'Sharp corners',
+            variables: {
+                '--ptmt-radius': '0px',
+                '--ptmt-tab-radius': '0px',
+                '--ptmt-pane-radius': '0px',
+                '--ptmt-dialog-radius': '0.75rem',
+                '--ptmt-button-radius': '0px',
+                '--ptmt-tab-size': '38px',
+            }
+        },
+        rounded_soft: {
+            name: 'Soft',
+            description: 'Gently rounded corners',
+            variables: {
+                '--ptmt-radius': '6px',
+                '--ptmt-tab-radius': '0px 0px 6px 6px',
+                '--ptmt-pane-radius': '6px',
+                '--ptmt-dialog-radius': '12px',
+                '--ptmt-button-radius': '6px',
+                '--ptmt-tab-size': '38px',
+            }
+        },
+        rounded_smooth: {
+            name: 'Smooth',
+            description: 'Smoothly rounded corners',
+            variables: {
+                '--ptmt-radius': '12px',
+                '--ptmt-tab-radius': '0px 0px 12px 12px',
+                '--ptmt-pane-radius': '12px',
+                '--ptmt-dialog-radius': '16px',
+                '--ptmt-button-radius': '10px',
+                '--ptmt-tab-size': '38px',
+            }
+        }
+    };
+
+    static getThemeConfig(themeName) {
+        return this.themes[themeName] || this.themes.sharp;
+    }
+
+    static applyTheme(themeName) {
+        const theme = this.getThemeConfig(themeName);
+        const root = document.documentElement;
+        Object.entries(theme.variables).forEach(([varName, value]) => {
+            root.style.setProperty(varName, value);
+        });
+        console.log(`[PTMT] Applied theme: ${theme.name}`);
+    }
+
+    static getAvailableThemes() {
+        return Object.entries(this.themes).map(([key, config]) => ({
+            id: key,
+            name: config.name,
+            description: config.description
+        }));
+    }
 
     static isMobile() {
         return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;

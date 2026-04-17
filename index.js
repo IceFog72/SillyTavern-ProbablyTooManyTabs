@@ -133,7 +133,21 @@ function createApi(state) {
             const oldKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
             await settings.update({ [oldKey]: currentSnapshot, isMobile: !isMobile }, true);
             window.location.reload();
-        }
+        },
+        // ─── Theme Management ──────────────────────────────────────────────────────
+        getAvailableThemes: () => Object.entries(SettingsManager.themes).map(([key, config]) => ({
+            id: key,
+            name: config.name,
+            description: config.description
+        })),
+        setUITheme: (themeName) => {
+            if (!SettingsManager.themes[themeName]) {
+                console.error(`[PTMT] Unknown theme: ${themeName}`);
+                return;
+            }
+            settings.update({ uiTheme: themeName });
+        },
+        getCurrentUITheme: () => settings.get('uiTheme') || 'sharp'
     };
     return api;
 }
@@ -212,6 +226,9 @@ function bindLayoutReactions(api, saveCurrentLayoutDebounced) {
         document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
         const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
         document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
+        // Apply UI theme
+        const uiTheme = settings.get('uiTheme') || 'sharp';
+        SettingsManager.applyTheme(uiTheme);
         applyOverrides();
         document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
         window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
@@ -391,6 +408,10 @@ function postInit(state, applyOverrides) {
     document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
     const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
     document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
+
+    // Apply UI theme
+    const uiTheme = settings.get('uiTheme') || 'sharp';
+    SettingsManager.applyTheme(uiTheme);
 
     // Apply bg1 position based on saved setting
     if (settings.get('moveBg1ToSheld')) {

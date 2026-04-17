@@ -2,7 +2,13 @@
    1. VARIABLES & THEME SYSTEM
    ========================================================================== */
 :root {
+  /* Theme Variables — Override these via JavaScript to change UI appearance */
   --ptmt-radius: 0px;
+  --ptmt-tab-radius: 0px;
+  --ptmt-pane-radius: 0px;
+  --ptmt-dialog-radius: 0.75rem;
+  --ptmt-button-radius: 0px;
+  --ptmt-tab-size: 38px;
 
   /* Tab Colors - Icon and label share the same color */
   --ptmt-tab-default-color: var(--ptmt-adaptive-em);
@@ -70,6 +76,40 @@
   --tts-bottom-offset: 39px;
   --ptmt-panel-bg: var(--ST-UI-Background);
   --ptmt-panel-border: var(--ST-UI-Border);
+}
+
+/* ==========================================================================
+   1.1 THEME CLASSES — Apply via body.ptmt-theme-[name]
+   ========================================================================== */
+
+/* Sharp Theme (default) — edge-to-edge, zero-padding */
+body.ptmt-theme-sharp {
+  --ptmt-radius: 0px;
+  --ptmt-tab-radius: 0px;
+  --ptmt-pane-radius: 0px;
+  --ptmt-dialog-radius: 0.75rem;
+  --ptmt-button-radius: 0px;
+  --ptmt-tab-size: 38px;
+}
+
+/* Soft Rounded Theme — gently rounded corners */
+body.ptmt-theme-rounded_soft {
+  --ptmt-radius: 6px;
+  --ptmt-tab-radius: 0px 0px 6px 6px;
+  --ptmt-pane-radius: 6px;
+  --ptmt-dialog-radius: 12px;
+  --ptmt-button-radius: 6px;
+  --ptmt-tab-size: 38px;
+}
+
+/* Smooth Rounded Theme — smoothly rounded corners */
+body.ptmt-theme-rounded_smooth {
+  --ptmt-radius: 12px;
+  --ptmt-tab-radius: 0px 0px 12px 12px;
+  --ptmt-pane-radius: 12px;
+  --ptmt-dialog-radius: 16px;
+  --ptmt-button-radius: 10px;
+  --ptmt-tab-size: 38px;
 }
 
 /* ==========================================================================
@@ -382,7 +422,7 @@ body,
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  min-width: 38px;
+  min-width: var(--ptmt-tab-size);
 }
 
 .ptmt-resizer-vertical,
@@ -451,23 +491,23 @@ body,
 
 .ptmt-pane-grid.grid-horizontal {
   grid-template-columns: 1fr;
-  grid-template-rows: 38px 1fr;
+  grid-template-rows: var(--ptmt-tab-size) 1fr;
   grid-template-areas: "tabs" "content";
 }
 
 .ptmt-pane-grid.grid-horizontal.flow-reversed {
-  grid-template-rows: 1fr 38px;
+  grid-template-rows: 1fr var(--ptmt-tab-size);
   grid-template-areas: "content" "tabs";
 }
 
 .ptmt-pane-grid.grid-vertical {
-  grid-template-columns: 38px 1fr;
+  grid-template-columns: var(--ptmt-tab-size) 1fr;
   grid-template-rows: 1fr;
   grid-template-areas: "tabs content";
 }
 
 .ptmt-pane-grid.grid-vertical.flow-reversed {
-  grid-template-columns: 1fr 38px;
+  grid-template-columns: 1fr var(--ptmt-tab-size);
   grid-template-areas: "content tabs";
 }
 
@@ -514,6 +554,24 @@ body,
   max-height: unset !important;
 }
 
+@media screen and (max-width: 1000px) {
+  .ptmt-pane-grid.grid-horizontal :is(#right-nav-panel, #left-nav-panel, #floatingPrompt, #cfgConfig, #logprobsViewer, #movingDivs > div) {
+    height: calc(100vh - var(--ptmt-tab-size)) !important;
+    height: calc(100dvh - var(--ptmt-tab-size)) !important;
+    min-width: 100dvw !important;
+    width: 100dvw !important;
+    max-width: 100dvw !important;
+  }
+
+  .ptmt-pane-grid.grid-vertical :is(#right-nav-panel, #left-nav-panel, #floatingPrompt, #cfgConfig, #logprobsViewer, #movingDivs > div) {
+    height: 100vh !important;
+    height: 100dvh !important;
+    min-width: calc(100dvw - var(--ptmt-tab-size)) !important;
+    width: calc(100dvw - var(--ptmt-tab-size)) !important;
+    max-width: calc(100dvw - var(--ptmt-tab-size)) !important;
+  }
+}
+
 /* Select/Dropdown Styling */
 select {
   background-color: var(--ST-UI-Background) !important;
@@ -543,8 +601,8 @@ select option {
   background: var(--ptmt-tab-inactive-bg);
   border-left: none;
   border-right: 1px solid var(--ptmt-tab-border-color);
-  min-height: 38px;
-  min-width: 38px;
+  min-height: var(--ptmt-tab-size);
+  min-width: var(--ptmt-tab-size);
   flex-shrink: 0;
   position: relative;
   line-height: 1;
@@ -903,7 +961,7 @@ select option {
 .ptmt-tabStrip.vertical .ptmt-tab {
   width: 100%;
   height: auto;
-  min-height: 38px;
+  min-height: var(--ptmt-tab-size);
   justify-content: center;
   padding: 6px;
   white-space: normal;
@@ -1362,12 +1420,12 @@ select option {
   color: var(--ST-Main-Text);
   padding: 2px 4px;
   border-radius: 0.5rem !important;
-  min-width: 38px;
+  min-width: var(--ptmt-tab-size);
   flex: 1;
 }
 
 .ptmt-editor-tab input[data-prop="icon"] {
-  flex: 0 0 38px;
+  flex: 0 0 var(--ptmt-tab-size);
 }
 
 .ptmt-editor-id {
@@ -1620,7 +1678,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   background: var(--ST-UI-Background);
   background: rgb(from var(--ST-UI-Background) r g b / 1);
   border: 1px solid var(--ST-UI-Border);
-  border-radius: 0.75rem;
+  border-radius: var(--ptmt-dialog-radius);
   padding: 0;
   z-index: 20000;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.2);
@@ -1849,7 +1907,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   border: 1px solid var(--ST-UI-Border);
   background: color-mix(in srgb, var(--ST-Chat-Background), transparent 20%);
   color: var(--ST-Main-Text);
-  border-radius: 4px;
+  border-radius: var(--ptmt-button-radius);
   cursor: pointer;
   font-weight: 500;
   font-size: 0.9em;

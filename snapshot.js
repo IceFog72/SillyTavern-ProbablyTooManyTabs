@@ -2,7 +2,7 @@
 
 import { getRefs, writePaneViewSettings, readPaneViewSettings } from './utils.js';
 import { getPanelById, getSplitOrientation, el, getPanelBySourceId } from './utils.js';
-import { createPane, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed } from './pane.js';
+import { createPane, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed, applyIconsOnly } from './pane.js';
 import { setActivePanelInPane, createPanelElement, registerPanelDom, createTabElement, createTabFromContent } from './tabs.js';
 import { attachResizer, updateResizerDisabledStates, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
@@ -717,7 +717,13 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
         });
 
-        createdPanes.forEach(pane => applyPaneOrientation(pane));
+        createdPanes.forEach(pane => {
+            applyPaneOrientation(pane);
+            const vs = readPaneViewSettings(pane);
+            if (vs.iconOnly) {
+                applyIconsOnly(pane, true);
+            }
+        });
 
         const settingsWrapperId = 'ptmt-settings-wrapper-content';
         const settingsWrapper = document.getElementById(settingsWrapperId);

@@ -97,7 +97,7 @@ function createScaleSlider() {
         id: 'ptmt-char-list-scale-slider',
         type: 'range',
         min: '0.4',
-        max: '2',
+        max: '5',
         step: '0.1',
         value: settings.get('charListAvatarScale') || '1'
     });

@@ -316,15 +316,15 @@ export function createSettingsPanel(manager) {
     // Apply color on initialization
     document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColorValue);
 
-    const bgColorContainer = el('div', 
-        { 
+    const bgColorContainer = el('div',
+        {
             className: 'ptmt-setting-row ptmt-full-width-container',
-            style: { 
+            style: {
                 display: settings.get('moveBg1ToSheld') ? 'flex' : 'none'
-            } 
+            }
         },
         bgColorPicker,
-        el('label', { className: 'ptmt-bg-color-label' },'Background Color')
+        el('label', { className: 'ptmt-bg-color-label' }, 'Background Color')
     );
 
     // Create moveBg1ToSheld checkbox separately to control bgColorContainer visibility
@@ -337,7 +337,7 @@ export function createSettingsPanel(manager) {
     });
 
     const overridesWrapper = el('div', {
-        className: 'ptmt-settings-grid ptmt-full-width-container ptmt-grid-span-2'
+        className: 'ptmt-settings-grid ptmt-full-width-container ptmt-grid-span-1'
     });
     overridesCheckbox.style.gridColumn = 'span 2';
     overridesWrapper.append(
@@ -359,6 +359,37 @@ export function createSettingsPanel(manager) {
         bgColorContainer,
         overridesWrapper
     );
+
+    // ─── UI Theme Selector ───────────────────────────────────────────────────────
+    const themeSelector = el('select', {
+        id: 'ptmt-ui-theme-selector',
+        className: 'text_edit'
+    });
+    
+    const themes = SettingsManager.getAvailableThemes?.() || [];
+    const defaultTheme = SettingsManager.themes ? Object.keys(SettingsManager.themes)[0] : 'sharp';
+    const currentTheme = settings.get('uiTheme') || defaultTheme;
+    
+    themes.forEach(theme => {
+        const opt = el('option', {
+            value: theme.id,
+            selected: theme.id === currentTheme
+        }, `${theme.name} — ${theme.description}`);
+        themeSelector.appendChild(opt);
+    });
+    
+    themeSelector.addEventListener('change', (e) => {
+        const themeName = e.target.value;
+        settings.update({ uiTheme: themeName });
+        SettingsManager.applyTheme(themeName);
+    });
+    
+    const themeSelectorRow = el('div', { className: 'ptmt-setting-row ptmt-grid-span-1' },
+        el('label', { for: 'ptmt-ui-theme-selector' }, 'UI Theme'),
+        themeSelector
+    );
+    
+    globalGrid.append(themeSelectorRow);
 
     const isMobile = settings.get('isMobile');
     const mobileToggleBtn = el('button', {

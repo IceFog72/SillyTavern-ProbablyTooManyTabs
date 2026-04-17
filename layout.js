@@ -92,7 +92,7 @@ export function recalculateColumnSizes() {
     const refs = getRefs();
     if (!refs || !refs.mainBody) return;
 
-    const MIN_COLLAPSED_PIXELS = LAYOUT.MIN_COLLAPSED_PIXELS;
+    const MIN_COLLAPSED_PIXELS = typeof LAYOUT.MIN_COLLAPSED_PIXELS === 'function' ? LAYOUT.MIN_COLLAPSED_PIXELS() : LAYOUT.MIN_COLLAPSED_PIXELS;
 
     const columns = [refs.leftBody, refs.centerBody, refs.rightBody];
     const visibleColumns = columns.filter(col => col && col.style.display !== 'none');
