@@ -29,6 +29,7 @@ import { initStatusBar } from './context-status-bar.js';
 import { themeEngine } from './theme-engine.js';
 import { initColorizer } from './dialogue-colorizer.js';
 import { initAvatarExpressionSync } from './avatar-expression-sync.js';
+import { initInspectorScaleControl, cleanupInspectorScaleControl } from './ui-injection.js';
 
 // ─── Subsystem Init ──────────────────────────────────────────────────────────
 
@@ -38,6 +39,7 @@ function initSubsystems() {
     themeEngine.init();
     initColorizer();
     initAvatarExpressionSync();
+    initInspectorScaleControl();
     createLayoutIfMissing();
 }
 
@@ -458,6 +460,7 @@ export async function onEnable() {
 
 export async function onDisable() {
     console.log('[PTMT] Extension disabled');
+    cleanupInspectorScaleControl();
     cleanupAllObservers();
 }
 

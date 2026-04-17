@@ -2209,3 +2209,27 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-editor-pending-title {
   padding-top: 8px;
 }
+
+/* ========================================= */
+/* Inspector UI Injection Styles             */
+/* ========================================= */
+
+.ptmt-inspector-scale-control {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.ptmt-scale-label {
+  font-size: 0.9em;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+
+.ptmt-scale-value {
+  text-align: right;
+  font-size: 0.85em;
+  opacity: 0.8;
+  font-weight: 500;
+}
