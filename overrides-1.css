@@ -362,6 +362,7 @@ body.bubblechat .mes {
     padding: 8px;
     border-radius: unset;
     border: unset !important;
+    margin-bottom: 4px !important;
 }
 
 body.bubblechat .mes[is_user="false"] {

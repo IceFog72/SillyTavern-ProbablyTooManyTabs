@@ -1,6 +1,6 @@
 // resizer.js
 import { $$, getElementDepth, throttle, debounce, getRefs, el, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings, trackObserver } from './utils.js';
-import { normalizeFlexBasis, getBasis, setFlexBasisPercent, pxToPercent, applyIntelligentExpansion, recalculateSplitSizes, recalculateAllSplitsRecursively } from './layout-math.js';
+import { normalizeFlexBasis, getBasis, setFlexBasisPercent, pxToPercent, applyIntelligentExpansion, recalculateSplitSizes, recalculateAllSplitsRecursively, recalculateMultipleSubtreesOptimized } from './layout-math.js';
 import { applyPaneOrientation, setPaneCollapsedView, applySplitOrientation, removePaneIfEmpty } from './pane.js';
 import { recalculateColumnSizes } from './layout.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
@@ -217,9 +217,8 @@ export function attachResizer(resizer, orientation = 'vertical') {
             } else if (clampedDelta < 0) { // bElem is expanding, aElem is shrinking
                 recalculateAllSplitsRecursively(aElem);
                 applyIntelligentExpansion(bElem, newSizeB, state.bChildInfo);
-            } else { // No change, just recalculate both to be safe
-                recalculateAllSplitsRecursively(aElem);
-                recalculateAllSplitsRecursively(bElem);
+            } else { // No change, batch recalculate both with shared cache for perf
+                recalculateMultipleSubtreesOptimized([aElem, bElem]);
             }
 
             aElem.querySelectorAll(SELECTORS.PANE).forEach(throttledCheckPaneForIconMode);
@@ -328,9 +327,8 @@ export function attachColumnResizer(resizer) {
             } else if (clampedDelta < 0) { // bElem column is expanding, aElem is shrinking
                 recalculateAllSplitsRecursively(aElem);
                 applyIntelligentExpansion(bElem, newSizes[state.bKey], state.bChildInfo);
-            } else { // No change
-                recalculateAllSplitsRecursively(aElem);
-                recalculateAllSplitsRecursively(bElem);
+            } else { // No change, batch recalculate both with shared cache for perf
+                recalculateMultipleSubtreesOptimized([aElem, bElem]);
             }
 
             aElem.querySelectorAll(SELECTORS.PANE).forEach(throttledCheckPaneForIconMode);

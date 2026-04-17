@@ -81,6 +81,26 @@ export function applyIntelligentExpansion(element, newTotalSize, childInfo) {
     });
 }
 
+/**
+ * Pre-compute all bounding rects for splits in a subtree.
+ * Batches DOM reads to prevent thrashing during drag operations.
+ * Call once at the start of resize to amortize layout reads across the operation.
+ * @param {Element} root - Root element to scan for splits
+ * @returns {Map<Element, DOMRect>} Cache mapping splits to their bounding rects
+ */
+export function buildMeasurementCache(root) {
+    const cache = new Map();
+    try {
+        if (!root) return cache;
+        const splits = Array.from(root.querySelectorAll(SELECTORS.SPLIT));
+        for (const split of splits) {
+            cache.set(split, split.getBoundingClientRect());
+        }
+    } catch (e) {
+        console.warn('[PTMT] buildMeasurementCache error:', e);
+    }
+    return cache;
+}
 
 export function recalculateAllSplitsRecursively(root = null) {
     root = root || getRefs().mainBody;
@@ -88,24 +108,69 @@ export function recalculateAllSplitsRecursively(root = null) {
         if (!root) return;
         const splits = Array.from(root.querySelectorAll(SELECTORS.SPLIT));
         splits.sort((a, b) => getElementDepth(a) - getElementDepth(b));
+        
+        // Batch-read all bounding rects once before processing
+        const cache = buildMeasurementCache(root);
+        
         for (const split of splits) {
-            recalculateSplitSizes(split);
+            recalculateSplitSizes(split, null, cache);
         }
     } catch (e) {
         console.warn('recalculateAllSplitsRecursively error:', e);
     }
 }
 
-
-export function recalculateSplitSizes(split, actor = null) {
+/**
+ * Batch recalculate multiple subtrees in a single pass with shared measurement cache.
+ * Useful for onDragMove which needs to recalculate both sides of a resize.
+ * @param {Element[]} roots - Array of root elements to recalculate
+ */
+export function recalculateMultipleSubtreesOptimized(roots) {
     try {
-        _recalculateSplitSizesImpl(split, actor);
+        if (!roots || roots.length === 0) return;
+        
+        // Collect all splits from all roots in a single pass
+        const allSplits = new Set();
+        const cache = new Map();
+        
+        for (const root of roots) {
+            if (!root) continue;
+            const splits = Array.from(root.querySelectorAll(SELECTORS.SPLIT));
+            for (const split of splits) {
+                allSplits.add(split);
+                if (!cache.has(split)) {
+                    cache.set(split, split.getBoundingClientRect());
+                }
+            }
+        }
+        
+        // Sort and recalculate with shared cache
+        const sortedSplits = Array.from(allSplits).sort((a, b) => getElementDepth(a) - getElementDepth(b));
+        for (const split of sortedSplits) {
+            recalculateSplitSizes(split, null, cache);
+        }
+    } catch (e) {
+        console.warn('[PTMT] recalculateMultipleSubtreesOptimized error:', e);
+    }
+}
+
+
+export function recalculateSplitSizes(split, actor = null, cache = null) {
+    try {
+        _recalculateSplitSizesImpl(split, actor, cache);
     } catch (e) {
         console.warn('[PTMT] recalculateSplitSizes error:', e);
     }
 }
 
-function _recalculateSplitSizesImpl(split, actor = null) {
+/**
+ * Implementation of split size recalculation.
+ * @param {Element} split - The split element to recalculate
+ * @param {Element} actor - (Optional) Element driving the resize
+ * @param {Map<Element, DOMRect>} cache - (Optional) Pre-computed bounding rects to avoid DOM reads
+ */
+
+function _recalculateSplitSizesImpl(split, actor = null, cache = null) {
     if (!split?.classList.contains(SELECTORS.SPLIT.substring(1))) return;
 
     const children = Array.from(split.children).filter(c =>
@@ -142,7 +207,9 @@ function _recalculateSplitSizesImpl(split, actor = null) {
 
     const isHorizontal = split.classList.contains('horizontal');
     const sizeProp = isHorizontal ? 'height' : 'width';
-    const splitRect = split.getBoundingClientRect();
+    
+    // Use cached rect if available, otherwise read from DOM
+    const splitRect = cache?.get(split) || split.getBoundingClientRect();
     const totalAvailableSize = splitRect[sizeProp];
     if (totalAvailableSize <= 1) return;
 
