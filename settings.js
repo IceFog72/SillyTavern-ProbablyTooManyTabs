@@ -283,7 +283,7 @@ export class SettingsManager {
     static themes = {
         sharp: {
             name: 'Sharp',
-            description: 'Sharp corners',
+            description: '',
             variables: {
                 '--ptmt-radius': '0px',
                 '--ptmt-tab-radius': '0px',
@@ -291,30 +291,68 @@ export class SettingsManager {
                 '--ptmt-dialog-radius': '0.75rem',
                 '--ptmt-button-radius': '0px',
                 '--ptmt-tab-size': '38px',
+                '--ptmt-collapsed-width': '38px',
+                '--ptmt-icons-only-tab-size': '38px',
+                '--ptmt-spacing-xs': '2px',
+                '--ptmt-spacing-sm': '4px',
+                '--ptmt-spacing-md': '6px',
+                '--ptmt-spacing-lg': '8px',
+                '--ptmt-spacing-xl': '12px',
+                '--ptmt-border-width': '1px',
+                '--ptmt-tab-margin': '0px',
+                '--ptmt-tab-margin-offset': '0px',
+                '--ptmt-grid-gap': '0px',
+                '--ptmt-panel-padding': '0px',
             }
         },
+        /*
         rounded_soft: {
             name: 'Soft',
-            description: 'Gently rounded corners',
+            description: '',
             variables: {
                 '--ptmt-radius': '6px',
                 '--ptmt-tab-radius': '0px 0px 6px 6px',
                 '--ptmt-pane-radius': '6px',
                 '--ptmt-dialog-radius': '12px',
                 '--ptmt-button-radius': '6px',
-                '--ptmt-tab-size': '38px',
+                '--ptmt-tab-size': '40px',
+                '--ptmt-collapsed-width': '44px',
+                '--ptmt-icons-only-tab-size': '46px',
+                '--ptmt-spacing-xs': '3px',
+                '--ptmt-spacing-sm': '5px',
+                '--ptmt-spacing-md': '8px',
+                '--ptmt-spacing-lg': '10px',
+                '--ptmt-spacing-xl': '14px',
+                '--ptmt-border-width': '1px',
+                '--ptmt-tab-margin': '2px',
+                '--ptmt-tab-margin-offset': '6px',
+                '--ptmt-grid-gap': '3px',
+                '--ptmt-panel-padding': '0px',
             }
         },
+        */
         rounded_smooth: {
             name: 'Smooth',
-            description: 'Smoothly rounded corners',
+            description: '',
             variables: {
                 '--ptmt-radius': '12px',
                 '--ptmt-tab-radius': '0px 0px 12px 12px',
                 '--ptmt-pane-radius': '12px',
                 '--ptmt-dialog-radius': '16px',
                 '--ptmt-button-radius': '10px',
-                '--ptmt-tab-size': '38px',
+                '--ptmt-tab-size': '44px',
+                '--ptmt-collapsed-width': '44px',
+                '--ptmt-icons-only-tab-size': '50px',
+                '--ptmt-spacing-xs': '4px',
+                '--ptmt-spacing-sm': '6px',
+                '--ptmt-spacing-md': '10px',
+                '--ptmt-spacing-lg': '12px',
+                '--ptmt-spacing-xl': '16px',
+                '--ptmt-border-width': '1px',
+                '--ptmt-tab-margin': '2px',
+                '--ptmt-tab-margin-offset': '6px',
+                '--ptmt-grid-gap': '4px',
+                '--ptmt-panel-padding': '0px',
             }
         }
     };
@@ -325,10 +363,15 @@ export class SettingsManager {
 
     static applyTheme(themeName) {
         const theme = this.getThemeConfig(themeName);
-        const root = document.documentElement;
-        Object.entries(theme.variables).forEach(([varName, value]) => {
-            root.style.setProperty(varName, value);
-        });
+        const body = document.body;
+
+        // Remove all theme classes
+        body.classList.remove('ptmt-Theme-Sharp', 'ptmt-Theme-RoundedSoft', 'ptmt-Theme-RoundedSmooth');
+
+        // Convert theme name to PascalCase for class
+        const className = `ptmt-Theme-${themeName.split('_').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`;
+        body.classList.add(className);
+
         console.log(`[PTMT] Applied theme: ${theme.name}`);
     }
 

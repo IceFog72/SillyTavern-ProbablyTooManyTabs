@@ -28,10 +28,15 @@ function getOrCalculateFullTabSize(pane) {
     }
 
     const isVertical = tabStrip.classList.contains('vertical');
+    // Tab margin contributes to outer size but not to getBoundingClientRect().
+    // For horizontal strips: each tab has margin on left+right = 2 * --ptmt-tab-margin.
+    // For vertical strips: already captured in tabRect.height (height is auto, fills margin).
+    const tabMargin = parseInt(getComputedStyle(document.body).getPropertyValue('--ptmt-tab-margin').trim(), 10) || 0;
+    const marginPerTab = isVertical ? 0 : tabMargin * 2;
     let requiredSize = 0;
     tabs.forEach(tab => {
         const tabRect = tab.getBoundingClientRect();
-        requiredSize += (isVertical ? tabRect.height : tabRect.width) + (isVertical ? 0 : 4);
+        requiredSize += (isVertical ? tabRect.height : tabRect.width) + marginPerTab;
     });
 
     if (wasInIconMode) {

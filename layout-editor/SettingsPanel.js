@@ -365,30 +365,30 @@ export function createSettingsPanel(manager) {
         id: 'ptmt-ui-theme-selector',
         className: 'text_edit'
     });
-    
+
     const themes = SettingsManager.getAvailableThemes?.() || [];
     const defaultTheme = SettingsManager.themes ? Object.keys(SettingsManager.themes)[0] : 'sharp';
     const currentTheme = settings.get('uiTheme') || defaultTheme;
-    
+
     themes.forEach(theme => {
         const opt = el('option', {
             value: theme.id,
             selected: theme.id === currentTheme
-        }, `${theme.name} — ${theme.description}`);
+        }, `${theme.name} ${theme.description}`);
         themeSelector.appendChild(opt);
     });
-    
+
     themeSelector.addEventListener('change', (e) => {
         const themeName = e.target.value;
         settings.update({ uiTheme: themeName });
         SettingsManager.applyTheme(themeName);
     });
-    
+
     const themeSelectorRow = el('div', { className: 'ptmt-setting-row ptmt-grid-span-1' },
         el('label', { for: 'ptmt-ui-theme-selector' }, 'UI Theme'),
         themeSelector
     );
-    
+
     globalGrid.append(themeSelectorRow);
 
     const isMobile = settings.get('isMobile');

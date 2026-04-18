@@ -10,6 +10,40 @@
   --ptmt-button-radius: 0px;
   --ptmt-tab-size: 38px;
 
+  /* Spacing Scale — All UI spacing derives from these variables */
+  --ptmt-spacing-xs: 2px;
+  /* Ultra-compact spacing */
+  --ptmt-spacing-sm: 4px;
+  /* Small spacing */
+  --ptmt-spacing-md: 6px;
+  /* Medium spacing (default) */
+  --ptmt-spacing-lg: 8px;
+  /* Large spacing */
+  --ptmt-spacing-xl: 12px;
+  /* Extra large spacing */
+
+  /* Border & Gap Sizing */
+  --ptmt-border-width: 1px;
+  /* Standard borders */
+  --ptmt-tab-padding: var(--ptmt-spacing-md);
+  /* Tab interior padding */
+  --ptmt-tab-margin: 2px;
+  /* Tab margin on all sides */
+  --ptmt-tab-margin-offset: 6px;
+  /* Margin space to subtract from size (calc) */
+  --ptmt-icons-only-tab-size: 44px;
+  /* Icons-only mode tab size (wider for centered icon) */
+  --ptmt-gap-small: var(--ptmt-spacing-xs);
+  /* 2px gaps */
+  --ptmt-gap-medium: var(--ptmt-spacing-md);
+  /* 6px gaps */
+  --ptmt-gap-large: var(--ptmt-spacing-xl);
+  /* 12px gaps */
+
+  /* Spacing between tabs and content */
+  --ptmt-grid-gap: 0px;
+  --ptmt-panel-padding: 0px;
+
   /* Tab Colors - Icon and label share the same color */
   --ptmt-tab-default-color: var(--ptmt-adaptive-em);
   --ptmt-tab-hover-color: var(--ptmt-adaptive-quote);
@@ -79,37 +113,198 @@
 }
 
 /* ==========================================================================
-   1.1 THEME CLASSES — Apply via body.ptmt-theme-[name]
+   1.1 THEME CLASSES — Apply via body.ptmt-Theme-[Name]
    ========================================================================== */
 
 /* Sharp Theme (default) — edge-to-edge, zero-padding */
-body.ptmt-theme-sharp {
+body.ptmt-Theme-Sharp {
   --ptmt-radius: 0px;
   --ptmt-tab-radius: 0px;
   --ptmt-pane-radius: 0px;
   --ptmt-dialog-radius: 0.75rem;
   --ptmt-button-radius: 0px;
   --ptmt-tab-size: 38px;
+  --ptmt-collapsed-width: 38px;
+  --ptmt-icons-only-tab-size: 38px;
+  --ptmt-spacing-xs: 2px;
+  --ptmt-spacing-sm: 4px;
+  --ptmt-spacing-md: 6px;
+  --ptmt-spacing-lg: 8px;
+  --ptmt-spacing-xl: 12px;
+  --ptmt-border-width: 1px;
+  --ptmt-tab-padding: var(--ptmt-spacing-md);
+  --ptmt-tab-margin: 0px;
+  --ptmt-tab-margin-offset: 0px;
+  --ptmt-gap-small: var(--ptmt-spacing-xs);
+  --ptmt-gap-medium: var(--ptmt-spacing-md);
+  --ptmt-gap-large: var(--ptmt-spacing-xl);
+  --ptmt-grid-gap: 0px;
+  --ptmt-panel-padding: 0px;
 }
 
 /* Soft Rounded Theme — gently rounded corners */
-body.ptmt-theme-rounded_soft {
+body.ptmt-Theme-RoundedSoft {
   --ptmt-radius: 6px;
   --ptmt-tab-radius: 0px 0px 6px 6px;
   --ptmt-pane-radius: 6px;
   --ptmt-dialog-radius: 12px;
   --ptmt-button-radius: 6px;
-  --ptmt-tab-size: 38px;
+  --ptmt-tab-size: 40px;
+  --ptmt-collapsed-width: 44px;
+  --ptmt-icons-only-tab-size: 46px;
+  --ptmt-spacing-xs: 3px;
+  --ptmt-spacing-sm: 5px;
+  --ptmt-spacing-md: 8px;
+  --ptmt-spacing-lg: 10px;
+  --ptmt-spacing-xl: 14px;
+  --ptmt-border-width: 1px;
+  --ptmt-tab-padding: var(--ptmt-spacing-md);
+  --ptmt-tab-margin: 2px;
+  --ptmt-tab-margin-offset: 6px;
+  --ptmt-gap-small: var(--ptmt-spacing-xs);
+  --ptmt-gap-medium: var(--ptmt-spacing-md);
+  --ptmt-gap-large: var(--ptmt-spacing-xl);
+  --ptmt-grid-gap: 3px;
+  --ptmt-panel-padding: 6px;
 }
 
 /* Smooth Rounded Theme — smoothly rounded corners */
-body.ptmt-theme-rounded_smooth {
+body.ptmt-Theme-RoundedSmooth {
   --ptmt-radius: 12px;
   --ptmt-tab-radius: 0px 0px 12px 12px;
   --ptmt-pane-radius: 12px;
   --ptmt-dialog-radius: 16px;
   --ptmt-button-radius: 10px;
-  --ptmt-tab-size: 38px;
+  --ptmt-tab-size: 44px;
+  --ptmt-collapsed-width: 44px;
+  --ptmt-icons-only-tab-size: 50px;
+  --ptmt-spacing-xs: 4px;
+  --ptmt-spacing-sm: 6px;
+  --ptmt-spacing-md: 10px;
+  --ptmt-spacing-lg: 12px;
+  --ptmt-spacing-xl: 16px;
+  --ptmt-border-width: 1px;
+  --ptmt-tab-padding: var(--ptmt-spacing-md);
+  --ptmt-tab-margin: 2px;
+  --ptmt-tab-margin-offset: 6px;
+  --ptmt-gap-small: var(--ptmt-spacing-xs);
+  --ptmt-gap-medium: var(--ptmt-spacing-md);
+  --ptmt-gap-large: var(--ptmt-spacing-xl);
+  --ptmt-grid-gap: 4px;
+  --ptmt-panel-padding: 0px;
+}
+
+/* ─── Theme-Specific Overrides for Soft & Smooth ────────────────────────── */
+
+:root {
+  /* Canonical inner track size: collapsed-width minus the strip's side padding (grid-gap each side).
+     Used to synchronize horizontal strip height with vertical strip inner width. */
+  --ptmt-tab-inner-size: calc(var(--ptmt-collapsed-width) - (2 * var(--ptmt-grid-gap)));
+}
+
+/* Soft & Smooth: fully-rounded tabs */
+body.ptmt-Theme-RoundedSoft,
+body.ptmt-Theme-RoundedSmooth {
+  --ptmt-tab-radius: 12px;
+}
+
+/* Soft & Smooth: fully-rounded tabs everywhere (12px all corners) */
+body.ptmt-Theme-RoundedSoft .ptmt-tab,
+body.ptmt-Theme-RoundedSmooth .ptmt-tab {
+  --ptmt-tab-radius: 12px;
+}
+
+/* Soft & Smooth: transparent strip, no border box, no lamp-shadow ::after */
+body.ptmt-Theme-RoundedSoft .ptmt-tabStrip,
+body.ptmt-Theme-RoundedSmooth .ptmt-tabStrip {
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  box-shadow: none;
+}
+
+/* Vertical strip: no top/bottom borders for rounded themes */
+body.ptmt-Theme-RoundedSoft .ptmt-tabStrip.vertical,
+body.ptmt-Theme-RoundedSmooth .ptmt-tabStrip.vertical {
+  border-top: none;
+  border-bottom: none;
+}
+
+/* Suppress the global ::after lamp-shadow in rounded themes —
+   border-radius clips it at the bottom edge and it looks broken. */
+body.ptmt-Theme-RoundedSoft .ptmt-tab::after,
+body.ptmt-Theme-RoundedSoft .ptmt-tab:hover::after,
+body.ptmt-Theme-RoundedSoft .ptmt-tab.active::after,
+body.ptmt-Theme-RoundedSmooth .ptmt-tab::after,
+body.ptmt-Theme-RoundedSmooth .ptmt-tab:hover::after,
+body.ptmt-Theme-RoundedSmooth .ptmt-tab.active::after {
+  display: none;
+}
+
+/* ─── Soft: Hover / Active styles ────────────────────────────────── */
+body.ptmt-Theme-RoundedSoft .ptmt-tab {
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+  border: none;
+}
+
+body.ptmt-Theme-RoundedSoft .ptmt-tab:hover:not(.active) {
+  background: color-mix(in srgb, var(--ptmt-tab-inactive-bg), white 12%);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  filter: none;
+}
+
+body.ptmt-Theme-RoundedSoft .ptmt-tab.active {
+  background: var(--ptmt-tab-bg-color) !important;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+/* ─── Smooth: Glassmorphism hover / active ────────────────────────── */
+body.ptmt-Theme-RoundedSmooth .ptmt-tab {
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.ptmt-Theme-RoundedSmooth .ptmt-tab:hover:not(.active) {
+  background: color-mix(in srgb, var(--ptmt-tab-inactive-bg), white 14%);
+  border-color: rgba(255, 255, 255, 0.18);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  filter: none;
+}
+
+body.ptmt-Theme-RoundedSmooth .ptmt-tab.active {
+  background: var(--ptmt-tab-bg-color) !important;
+  border-color: color-mix(in srgb, var(--ptmt-tab-active-color), transparent 60%);
+  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
+}
+
+body.ptmt-Theme-Sharp .ptmt-tab.active {
+  border-bottom-color: transparent;
+}
+
+
+/* Smooth: Resizer hover */
+body.ptmt-Theme-RoundedSmooth .ptmt-resizer-vertical:hover,
+body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal:hover {
+  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 30%);
+}
+
+/* Soft & Smooth: Panel container rounded corners */
+body.ptmt-Theme-RoundedSoft .ptmt-pane-grid .ptmt-panelContainer,
+body.ptmt-Theme-RoundedSmooth .ptmt-pane-grid .ptmt-panelContainer {
+  border-radius: var(--ptmt-radius);
+}
+
+/* Soft & Smooth: panel container spacing — orientation-aware breathing room.
+   grid-horizontal: strip is top/bottom → margin top/bottom to create gap.
+   grid-vertical:   strip is left/right → margin left/right to create gap. */
+body.ptmt-Theme-RoundedSoft .ptmt-pane-grid.grid-horizontal .ptmt-panelContainer,
+body.ptmt-Theme-RoundedSmooth .ptmt-pane-grid.grid-horizontal .ptmt-panelContainer {
+  margin: var(--ptmt-grid-gap) 0;
+}
+
+body.ptmt-Theme-RoundedSoft .ptmt-pane-grid.grid-vertical .ptmt-panelContainer,
+body.ptmt-Theme-RoundedSmooth .ptmt-pane-grid.grid-vertical .ptmt-panelContainer {
+  margin: var(--ptmt-grid-gap) 0;
 }
 
 /* ==========================================================================
@@ -191,6 +386,7 @@ body.no-blur body.ptmt-bg-under-chat #chat {
 .drawer-content {
   min-width: 200px !important;
   border: none !important;
+  padding: 12px !important;
 }
 
 #extensionTopBar,
@@ -257,6 +453,8 @@ body.bubblechat .welcomePanel {
   width: auto !important;
   left: auto !important;
   position: static !important;
+  overflow: hidden !important;
+  transform: translate(0, 0) !important;
 }
 
 body:has(#extensionTopBar) .ptmt-panel-content #sheld {
@@ -413,6 +611,11 @@ body,
   will-change: backdrop-filter;
 }
 
+body.ptmt-Theme-RoundedSoft #ptmt-mainBody,
+body.ptmt-Theme-RoundedSmooth #ptmt-mainBody {
+  margin: 0 2px;
+}
+
 #ptmt-mainBody.ptmt-mobile {
   padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
@@ -422,7 +625,14 @@ body,
   flex: 1 1 0;
   display: flex;
   flex-direction: column;
-  min-width: var(--ptmt-tab-size);
+  min-width: var(--ptmt-collapsed-width);
+}
+
+body.ptmt-Theme-RoundedSoft .ptmt-resizer-vertical,
+body.ptmt-Theme-RoundedSoft .ptmt-resizer-horizontal,
+body.ptmt-Theme-RoundedSmooth .ptmt-resizer-vertical,
+body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal {
+  background: color-mix(in srgb, var(--ST-UI-Background), transparent 70%);
 }
 
 .ptmt-resizer-vertical,
@@ -487,27 +697,28 @@ body,
   display: grid;
   width: 100%;
   height: 100%;
+  box-sizing: border-box;
 }
 
 .ptmt-pane-grid.grid-horizontal {
   grid-template-columns: 1fr;
-  grid-template-rows: var(--ptmt-tab-size) 1fr;
+  grid-template-rows: var(--ptmt-collapsed-width) 1fr;
   grid-template-areas: "tabs" "content";
 }
 
 .ptmt-pane-grid.grid-horizontal.flow-reversed {
-  grid-template-rows: 1fr var(--ptmt-tab-size);
+  grid-template-rows: 1fr var(--ptmt-collapsed-width);
   grid-template-areas: "content" "tabs";
 }
 
 .ptmt-pane-grid.grid-vertical {
-  grid-template-columns: var(--ptmt-tab-size) 1fr;
+  grid-template-columns: var(--ptmt-collapsed-width) 1fr;
   grid-template-rows: 1fr;
   grid-template-areas: "tabs content";
 }
 
 .ptmt-pane-grid.grid-vertical.flow-reversed {
-  grid-template-columns: 1fr var(--ptmt-tab-size);
+  grid-template-columns: 1fr var(--ptmt-collapsed-width);
   grid-template-areas: "content tabs";
 }
 
@@ -520,6 +731,8 @@ body,
   min-width: 0;
   min-height: 0;
   border: 1px solid var(--ST-UI-Border);
+  margin: var(--ptmt-grid-gap);
+  box-sizing: border-box;
 }
 
 .ptmt-pane.view-collapsed .ptmt-panelContainer {
@@ -529,6 +742,15 @@ body,
 .ptmt-pane.view-collapsed {
   min-width: 0 !important;
   min-height: 0 !important;
+}
+
+/* When content is hidden, the grid gap + padding still consume space and push the
+   tab strip beyond the collapsed column width. Zero them out so the track fills
+   exactly --ptmt-collapsed-width. The rounded-corner breathing room only matters
+   when content is actually visible. */
+.ptmt-pane.view-collapsed .ptmt-pane-grid {
+  gap: 0;
+  padding: 0;
 }
 
 
@@ -593,16 +815,20 @@ select option {
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  padding: 6px;
+  padding: var(--ptmt-tab-padding);
+  margin: var(--ptmt-tab-margin);
   cursor: grab;
   user-select: none;
-  gap: 6px;
+  gap: var(--ptmt-gap-medium);
   white-space: nowrap;
   background: var(--ptmt-tab-inactive-bg);
   border-left: none;
-  border-right: 1px solid var(--ptmt-tab-border-color);
-  min-height: var(--ptmt-tab-size);
-  min-width: var(--ptmt-tab-size);
+  border-right: var(--ptmt-border-width) solid var(--ptmt-tab-border-color);
+  border-radius: var(--ptmt-tab-radius);
+  /* min-height uses inner-size so tabs have a consistent minimum regardless of content.
+     No forced height — auto sizing still works for labels etc. */
+  min-height: calc(var(--ptmt-tab-size) - var(--ptmt-tab-margin-offset));
+  min-width: calc(var(--ptmt-tab-size) - var(--ptmt-tab-margin-offset));
   flex-shrink: 0;
   position: relative;
   line-height: 1;
@@ -616,7 +842,7 @@ select option {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  opacity: 0.3;
+  opacity: 0.5;
 }
 
 .ptmt-tab:hover:not(.active) {
@@ -663,13 +889,38 @@ select option {
 }
 
 .ptmt-pane.ptmt-icons-only .ptmt-tab:not(.ptmt-editor-tab):not(.ptmt-unified-editor) {
-  min-width: 44px !important;
   justify-content: center !important;
-  padding: 6px 4px !important;
 }
 
+/* Force the icon span to a fixed square so the tab sizes around it consistently.
+   inner-size = collapsed-width − 2×grid-gap — same dimension in both orientations.
+   line-height:1 collapses FA's inherited ~1.4 line-height so the ::before glyph
+   doesn't inflate the span's inline box. overflow:hidden prevents any glyph bleed. */
 .ptmt-pane.ptmt-icons-only .ptmt-tab:not(.ptmt-editor-tab):not(.ptmt-unified-editor) .ptmt-tab-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--ptmt-tab-inner-size);
+  height: var(--ptmt-tab-inner-size);
+  line-height: 1;
+  overflow: hidden;
   margin: 0 !important;
+  flex-shrink: 0;
+}
+
+/* Horizontal strips: no top/bottom margin (mirrors vertical's no left/right margin).
+   align-items:stretch gives height = strip-inner-height - margin-top - margin-bottom.
+   With margin:0 top/bottom, height = inner-size exactly. */
+.ptmt-tabStrip:not(.vertical) .ptmt-tab {
+  margin: 0 var(--ptmt-tab-margin);
+}
+
+/* Horizontal strips icons-only: explicit width to prevent content-based sizing
+   (icon-span + padding + border = 37-40px). Force to exact inner-size. */
+.ptmt-pane.ptmt-icons-only .ptmt-tabStrip:not(.vertical) .ptmt-tab:not(.ptmt-editor-tab):not(.ptmt-unified-editor) {
+  width: var(--ptmt-tab-inner-size);
+  box-sizing: border-box;
+  height: 100%;
 }
 
 /* Tab Strip as ArrowScrollBox */
@@ -685,6 +936,10 @@ select option {
   flex-wrap: nowrap;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   height: 100%;
+  /* Horizontal breathing room: top+bottom padding mirrors vertical's left+right.
+     With box-sizing:border-box, inner height = collapsed-width - 2*grid-gap = tab-inner-size.
+     Vertical strip overrides this with padding: 0 grid-gap. Sharp has grid-gap=0 → no effect. */
+  padding: var(--ptmt-grid-gap);
   border-left: 1px solid var(--ptmt-tab-border-color);
   border-right: 1px solid var(--ptmt-tab-border-color);
   position: relative;
@@ -861,7 +1116,10 @@ select option {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-  padding-right: 0;
+  /* Side padding creates breathing room between tabs and column edge.
+     box-sizing: border-box keeps the outer width at --ptmt-collapsed-width. */
+  padding: var(--ptmt-grid-gap);
+  box-sizing: border-box;
   border-left: none;
   border-right: none;
   border-top: 1px solid var(--ptmt-tab-border-color);
@@ -913,7 +1171,7 @@ select option {
 }
 
 /* Horizontal - Bottom (Flow Reversed) Indicator Fix */
-.ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active {
+body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active {
   border-top-color: transparent;
   border-bottom-color: transparent;
 }
@@ -961,14 +1219,17 @@ select option {
 .ptmt-tabStrip.vertical .ptmt-tab {
   width: 100%;
   height: auto;
-  min-height: var(--ptmt-tab-size);
+  margin: var(--ptmt-tab-margin) 0;
   justify-content: center;
-  padding: 6px;
+  padding: var(--ptmt-tab-padding);
   white-space: normal;
   background: var(--ptmt-tab-inactive-bg);
-  border: none;
-  border-bottom: 1px solid var(--ptmt-tab-border-color);
   flex-direction: column;
+}
+
+body.ptmt-Theme-Sharp .ptmt-tabStrip.vertical .ptmt-tab {
+  border: none;
+  border-bottom: var(--ptmt-border-width) solid var(--ptmt-tab-border-color);
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab:hover:not(.active) {
@@ -984,10 +1245,13 @@ select option {
   background: var(--ptmt-tab-inactive-bg) !important;
 }
 
+body.ptmt-Theme-Sharp .ptmt-tabStrip.vertical .ptmt-tab.active {
+  border-bottom-color: transparent;
+}
+
 .ptmt-tabStrip.vertical .ptmt-tab.active {
   cursor: default;
   background: var(--ptmt-tab-bg-color) !important;
-  border-right-color: transparent;
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab::after {
@@ -1034,7 +1298,7 @@ select option {
   left: 0;
 }
 
-.ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active {
+body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical .ptmt-tab.active {
   border-left-color: transparent;
   border-right-color: transparent;
 }

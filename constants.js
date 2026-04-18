@@ -76,12 +76,15 @@ export const EVENTS = {
  */
 export const LAYOUT = {
     MIN_COLLAPSED_PIXELS: () => {
-        // Dynamically read the CSS variable for tab size
-        // Falls back to 38px if CSS variable not set
-        const cssValue = getComputedStyle(document.documentElement)
-            .getPropertyValue('--ptmt-tab-size')
-            .trim();
-        return cssValue ? parseInt(cssValue, 10) : 38;
+        // Read the active theme's collapsed width directly from the live CSS variable.
+        // The theme class on <body> sets --ptmt-collapsed-width, so this is always in sync.
+        const style = getComputedStyle(document.body);
+        const raw = style.getPropertyValue('--ptmt-collapsed-width').trim();
+        const parsed = parseInt(raw, 10);
+        if (Number.isFinite(parsed)) return parsed;
+        // --ptmt-collapsed-width not set (custom theme?) — fall back to --ptmt-tab-size
+        const tabSize = parseInt(style.getPropertyValue('--ptmt-tab-size').trim(), 10);
+        return Number.isFinite(tabSize) ? tabSize : 38;
     },
     NARROW_PANE_THRESHOLD_PX: 120,
     MAX_PANE_LAYERS: 3,

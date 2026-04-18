@@ -92,8 +92,6 @@ export function recalculateColumnSizes() {
     const refs = getRefs();
     if (!refs || !refs.mainBody) return;
 
-    const MIN_COLLAPSED_PIXELS = typeof LAYOUT.MIN_COLLAPSED_PIXELS === 'function' ? LAYOUT.MIN_COLLAPSED_PIXELS() : LAYOUT.MIN_COLLAPSED_PIXELS;
-
     const columns = [refs.leftBody, refs.centerBody, refs.rightBody];
     const visibleColumns = columns.filter(col => col && col.style.display !== 'none');
     if (visibleColumns.length === 0) return;
@@ -106,13 +104,13 @@ export function recalculateColumnSizes() {
     function calculateCollapsedColumnWidth(element) {
         // If it's a pane, it takes up MIN_COLLAPSED_PIXELS
         if (element.classList.contains(SELECTORS.PANE.substring(1))) {
-            return MIN_COLLAPSED_PIXELS;
+            return LAYOUT.MIN_COLLAPSED_PIXELS();
         }
 
         // If it's a split...
         if (element.classList.contains(SELECTORS.SPLIT.substring(1))) {
             const children = Array.from(element.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
-            if (children.length === 0) return MIN_COLLAPSED_PIXELS;
+            if (children.length === 0) return LAYOUT.MIN_COLLAPSED_PIXELS();
 
 
             // If forced horizontal (stacked), width is max of children (since they stack)
@@ -129,11 +127,11 @@ export function recalculateColumnSizes() {
 
                 // Add splitters — CSS defines 6px per splitter (.ptmt-resizer-vertical { flex: 0 0 6px })
                 const activeSplitters = Array.from(element.children).filter(c => c.tagName === 'SPLITTER' && !c.classList.contains('disabled'));
-                const splitterWidth = activeSplitters.length * 6;
+                const splitterWidth = activeSplitters.length * LAYOUT.RESIZER_WIDTH;
                 return totalWidth + splitterWidth;
             }
         }
-        return MIN_COLLAPSED_PIXELS;
+        return LAYOUT.MIN_COLLAPSED_PIXELS();
     }
 
     // Step 1: Update collapsed state for each column based on its content, and detect if a state change occurred.
@@ -187,7 +185,7 @@ export function recalculateColumnSizes() {
             } else {
                 // Determine layout content to calculate proper width
                 const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`); // helper to find root
-                const width = content ? calculateCollapsedColumnWidth(content) : MIN_COLLAPSED_PIXELS;
+                const width = content ? calculateCollapsedColumnWidth(content) : LAYOUT.MIN_COLLAPSED_PIXELS();
                 col.style.flex = `0 0 ${width}px`;
             }
 
@@ -227,7 +225,7 @@ export function recalculateColumnSizes() {
         } else if (isContentFullyCollapsed && wasColumnCollapsed) {
             // If already collapsed, ensure the width is correct (in case orientation or content changed)
             const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`);
-            const width = content ? calculateCollapsedColumnWidth(content) : MIN_COLLAPSED_PIXELS;
+            const width = content ? calculateCollapsedColumnWidth(content) : LAYOUT.MIN_COLLAPSED_PIXELS();
             col.style.flex = `0 0 ${width}px`;
         }
 
