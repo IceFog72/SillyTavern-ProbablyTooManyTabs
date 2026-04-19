@@ -2,6 +2,19 @@
 
 ---
 
+## v0.9.9 — 2026-04-19
+
+*Guide Accuracy · Dead Code Cleanup · More Extensions*
+
+- ✔ Fix · Removed fabricated "Hold Ctrl to copy tab" hint — feature was never wired up
+- ✔ Fix · Right-click context menu docs now correctly describe both tab menu (Edit Tab) and tab strip menu (Edit Pane, Icons Only)
+- ✔ Fix · Pane Settings popup fields documented accurately (Orientation, Content Order, Icons Only)
+- ✔ Fix · Pending Tabs description corrected — panels injected dynamically by JS at runtime
+- ✔ Fix · Removed stale `cloneTabIntoPane` / `cloneTabIntoSplit` imports from drag-drop.js (dead callers)
+- ✦ New · More tab: added PocketTTS-WebSocket, pocket-tts-openapi, SimpleQRBarToggle, CustomThemeStyleInputs
+
+---
+
 ## v0.9.7 — 2026-04-19
 
 *Info Panel, Guide & Changelog · Split Compass*
