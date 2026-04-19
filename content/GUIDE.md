@@ -24,7 +24,19 @@ Every tab bar is interactive:
 - **Click the active tab** to collapse/expand the pane. When all panes in a column are collapsed, the column auto-shrinks to a narrow strip.
 - **Right-click a tab** to open the context menu (Edit Tab).
 - **Drag a tab** to reorder it within the same pane, or move it to a different pane or column.
-- **Drag a tab to a pane edge** to split the pane into two.
+- **Drag a tab over a pane body** (not the tab strip) to open the **Split Compass** — a cross-shaped widget that lets you choose exactly where to place the tab.
+
+---
+
+## Split Compass
+
+When you drag a tab over the content area of a pane (below the tab strip), a **Split Compass** appears centred on that pane:
+
+- **Center** — drop the tab into the same pane as an additional tab.
+- **▲ Top / ▼ Bottom** — split the pane horizontally; new pane appears above or below.
+- **◄ Left / ► Right** — split the pane vertically; new pane appears to the left or right.
+
+A blue preview overlay shows exactly which half of the pane the new split will occupy. Hover over a zone to see the preview, then release to confirm.
 
 ---
 
@@ -111,9 +123,11 @@ Each column (Left, Center, Right) is shown as a labelled box. If a column is hid
 ### Panes
 
 Each pane appears as a box inside its column, with a **⚙ gear button** that opens the **Pane Settings popup**:
-- Set pane flow direction (tab strip position: top, bottom, left, right).
-- Set minimum pane width/height.
-- Toggle icons-only mode for just that pane.
+- **Minimum Panel Width (px)** — smallest width the pane may shrink to during column resize.
+- **When Expanded** — tab strip orientation while the pane is open: Auto, Horizontal, or Vertical.
+- **When Collapsed** — tab strip orientation while the pane is collapsed: Auto, Horizontal, or Vertical.
+- **Content Order** — whether the tab strip appears before (*Tabs First*) or after (*Content First*) the panel body.
+- **Icons Only** checkbox — hide tab labels in just this pane to save space.
 
 ### Tabs in the Editor
 
@@ -143,10 +157,12 @@ A **Hidden Tabs** storage section at the bottom holds tabs you've intentionally 
 
 ---
 
-## Right-Click Context Menu on Tabs
+## Right-Click Context Menu
 
-Right-clicking any tab in the live PTMT UI opens a small context menu with:
-- **Edit Tab** — shortcut to the Tab Settings popup (rename, colour).
+Right-clicking within PTMT opens context menus:
+
+- **Right-click a tab** → **Edit Tab** — opens the Tab Settings popup (rename, icon, colour).
+- **Right-click an empty area of the tab strip** → **Edit Pane** (opens Pane Settings) and **Icons Only / Show Labels** (quick toggle for that pane).
 
 ---
 
@@ -171,8 +187,7 @@ Click **Switch to Mobile Layout** in Layout Settings. PTMT collapses everything 
 
 - After major PTMT updates the layout may reset automatically if the internal snapshot format changed.
 - If a new extension's tab doesn't appear after installing it, try **Reset Layout to Default**.
-- *Pending Tabs* lists panels that exist but have no column slot assigned yet.
-
+- **Pending Tabs** lists panels that were injected dynamically by JavaScript at runtime (by other extensions or ST itself) and not yet assigned to a column.
 ---
 
 ## Help & Support

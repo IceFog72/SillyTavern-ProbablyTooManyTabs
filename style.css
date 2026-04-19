@@ -2636,7 +2636,8 @@ body.ptmt-is-resizing #rm_print_characters_block {
   transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
   position: relative;
-  bottom: -1px;     /* sits flush on the border-bottom of the nav */
+  bottom: -1px;
+  /* sits flush on the border-bottom of the nav */
 }
 
 .ptmt-info-tab-btn:hover:not(.active) {
@@ -2661,7 +2662,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 @media (max-width: 360px) {
-  .ptmt-info-tab-label { display: none; }
+  .ptmt-info-tab-label {
+    display: none;
+  }
 }
 
 /* ── Shared content area ─────────────────────────────────────────────────── */
@@ -2689,7 +2692,10 @@ body.ptmt-is-resizing #rm_print_characters_block {
   text-underline-offset: 2px;
   transition: opacity 0.15s;
 }
-.ptmt-info-link:hover { opacity: 0.75; }
+
+.ptmt-info-link:hover {
+  opacity: 0.75;
+}
 
 /* Shared heading icon */
 .ptmt-info-heading-icon {
@@ -3058,7 +3064,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 /* First h2 after h1 gets less top margin */
-.ptmt-md-h1 + .ptmt-md-h2 {
+.ptmt-md-h1+.ptmt-md-h2 {
   margin-top: 14px;
 }
 
@@ -3141,15 +3147,14 @@ body.ptmt-is-resizing #rm_print_characters_block {
   color: var(--ST-Italics-Text);
 }
 
-/* "Never show again" row in changelog tab */
+/* "Never show again" sticky footer — bottom of the changelog tab */
 .ptmt-changelog-never-row {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 8px;
-  margin-top: 22px;
-  padding: 10px 12px;
-  border-radius: 6px;
-  border: 1px solid color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
+  padding: 9px 12px;
+  border-top: 1px solid color-mix(in srgb, var(--ST-UI-Border), transparent 20%);
   background: color-mix(in srgb, var(--ST-UI-Background), black 8%);
   font-size: 0.82rem;
   color: var(--ST-Italics-Text);
@@ -3159,9 +3164,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-changelog-never-row input[type="checkbox"] {
   flex-shrink: 0;
   cursor: pointer;
-  accent-color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
-  width: 14px;
-  height: 14px;
 }
 
 .ptmt-changelog-never-row label {
@@ -3170,8 +3172,108 @@ body.ptmt-is-resizing #rm_print_characters_block {
   line-height: 1.4;
 }
 
-.ptmt-changelog-never-row:hover {
-  border-color: color-mix(in srgb, var(--ST-UI-Border), transparent 10%);
-  background: color-mix(in srgb, var(--ST-UI-Background), black 12%);
+
+
+/* ==========================================================================
+   8. SPLIT COMPASS — drag-to-split drop widget
+   ========================================================================== */
+
+/* Outer container: fixed, centered on the target pane */
+.ptmt-split-compass {
+  position: fixed;
+  display: none;
+  /* shown via JS */
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  transform: translate(-50%, -50%);
+  z-index: 9999;
+  pointer-events: none;
+  /* compass itself is pass-through; zones get events via JS hit-test */
+  user-select: none;
+  filter: drop-shadow(0 4px 16px rgba(0, 0, 0, 0.45));
 }
-
+
+/* Middle row: left + center + right */
+.ptmt-compass-middle-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+}
+
+/* Base zone tile */
+.ptmt-compass-zone {
+  --compass-size: 40px;
+  --compass-bg: rgba(60, 100, 180, 0.82);
+  --compass-border: rgba(120, 160, 255, 0.55);
+  --compass-active-bg: rgba(90, 140, 255, 0.96);
+  --compass-active-border: rgba(180, 210, 255, 0.9);
+
+  width: var(--compass-size);
+  height: var(--compass-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--compass-bg);
+  border: 1.5px solid var(--compass-border);
+  border-radius: 5px;
+  color: #d8e8ff;
+  font-size: 16px;
+  backdrop-filter: blur(6px) saturate(1.5);
+  -webkit-backdrop-filter: blur(6px) saturate(1.5);
+  transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.1s;
+}
+
+/* Center zone is slightly larger */
+.ptmt-compass-center {
+  --compass-size: 46px;
+  font-size: 14px;
+  color: #c8daff;
+}
+
+/* Top / bottom directional arrows — slightly smaller than center */
+.ptmt-compass-top,
+.ptmt-compass-bottom {
+  --compass-size: 36px;
+}
+
+/* Left / right directional arrows */
+.ptmt-compass-left,
+.ptmt-compass-right {
+  --compass-size: 36px;
+}
+
+/* Active (hovered) zone */
+.ptmt-compass-zone-active {
+  background: var(--compass-active-bg) !important;
+  border-color: var(--compass-active-border) !important;
+  color: #fff !important;
+  transform: scale(1.12);
+}
+
+/* When splitting is disabled (max layers reached), hide directional zones */
+.ptmt-compass-no-split .ptmt-compass-top,
+.ptmt-compass-no-split .ptmt-compass-bottom,
+.ptmt-compass-no-split .ptmt-compass-left,
+.ptmt-compass-no-split .ptmt-compass-right {
+  opacity: 0.28;
+  pointer-events: none;
+}
+
+/* ── Split preview overlay ────────────────────────────────────────────────── */
+/* Shows a semi-transparent tint over the quadrant where the new pane will appear */
+
+.ptmt-split-preview {
+  position: fixed;
+  display: none;
+  /* shown via JS */
+  z-index: 9990;
+  pointer-events: none;
+  background: rgba(80, 130, 255, 0.18);
+  border: 2px solid rgba(120, 170, 255, 0.55);
+  border-radius: 4px;
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
+  transition: left 0.08s, top 0.08s, width 0.08s, height 0.08s;
+}

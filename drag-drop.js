@@ -1,22 +1,26 @@
 // drag-drop.js
+// Implements the "split compass" drop UI: a centered 5-zone widget that appears
+// on any pane when a tab is being dragged over it.
+// Zones: center (add as tab) | top | bottom | left | right (split directions)
 
 import { getPaneLayerCount, splitPaneWithPane, MAX_PANE_LAYERS } from './pane.js';
-import { openTab, getActivePane, moveTabIntoPaneAtIndex, cloneTabIntoPane, cloneTabIntoSplit } from './tabs.js';
+import { openTab, getActivePane, moveTabIntoPaneAtIndex } from './tabs.js';
 import { getPanelById, throttle, getRefs } from './utils.js';
 
 /** @typedef {import('./types.js').DragContext} DragContext */
 /** @typedef {import('./types.js').RelativePanePosition} RelativePanePosition */
 /** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
 
-// --- Drag Session Cache ---
-let dragSession = null;
-let lastIndex = -1;
+// ─── Drag Session ──────────────────────────────────────────────────────────────
+let dragSession    = null;
+let lastIndex      = -1;
 let currentDraggingPid = null;
 
 function clearDragSession() {
   dragSession = null;
-  lastIndex = -1;
+  lastIndex   = -1;
   currentDraggingPid = null;
+  hideCompass();
 }
 
 function updateDragSession(paneUnder, mainBodyRect) {
@@ -24,205 +28,267 @@ function updateDragSession(paneUnder, mainBodyRect) {
   const tabStrip = paneUnder._tabStrip;
   if (!tabStrip) return;
 
-  const tsRect = tabStrip.getBoundingClientRect();
-  const tabs = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
+  const tsRect   = tabStrip.getBoundingClientRect();
+  const tabs     = Array.from(tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
   const tabRects = tabs.map(t => t.getBoundingClientRect());
   const container = paneUnder._panelContainer || paneUnder;
-  const paneRect = container.getBoundingClientRect();
+  const paneRect  = container.getBoundingClientRect();
 
-  dragSession = {
-    pane: paneUnder,
-    tabStrip,
-    tsRect,
-    tabs,
-    tabRects,
-    paneRect,
-    mainBodyRect,
-    vertical: tabStrip.classList.contains('vertical')
-  };
+  dragSession = { pane: paneUnder, tabStrip, tsRect, tabs, tabRects, paneRect, mainBodyRect,
+    vertical: tabStrip.classList.contains('vertical') };
 }
-// --------------------------
+
+// ─── Compass Widget ────────────────────────────────────────────────────────────
+
+let compassEl          = null;
+let compassCurrentPane = null;
+let compassHoveredZone = null;   // 'center'|'top'|'bottom'|'left'|'right'|null
+
+// Zone rects + precomputed preview rects — recomputed ONLY when the pane changes.
+// Avoids getBoundingClientRect() on every dragover frame.
+let cachedZoneRects    = null;   // Array<{zone, left, right, top, bottom}>
+let cachedPreviews     = null;   // {top,bottom,left,right,center} → {x,y,w,h}
+
+function getOrCreateCompass() {
+  if (compassEl) return compassEl;
+  compassEl = document.createElement('div');
+  compassEl.className = 'ptmt-split-compass';
+  compassEl.innerHTML = `
+    <div class="ptmt-compass-zone ptmt-compass-top"    data-zone="top"   ><i class="fa-solid fa-caret-up"></i></div>
+    <div class="ptmt-compass-middle-row">
+      <div class="ptmt-compass-zone ptmt-compass-left"   data-zone="left"  ><i class="fa-solid fa-caret-left"></i></div>
+      <div class="ptmt-compass-zone ptmt-compass-center" data-zone="center"><i class="fa-solid fa-window-restore"></i></div>
+      <div class="ptmt-compass-zone ptmt-compass-right"  data-zone="right" ><i class="fa-solid fa-caret-right"></i></div>
+    </div>
+    <div class="ptmt-compass-zone ptmt-compass-bottom"  data-zone="bottom" ><i class="fa-solid fa-caret-down"></i></div>
+  `;
+  document.body.appendChild(compassEl);
+  return compassEl;
+}
+
+/** Position compass on a pane and (re)cache all geometry. */
+function showCompassOnPane(pane, canSplit) {
+  const compass   = getOrCreateCompass();
+  const isSamPane = compassCurrentPane === pane;
+
+  if (!isSamPane) {
+    // Reposition & rebuild rect cache
+    const container = pane._panelContainer || pane;
+    const r = container.getBoundingClientRect();
+
+    compass.style.left = `${r.left + r.width  / 2}px`;
+    compass.style.top  = `${r.top  + r.height / 2}px`;
+    compass.style.display = 'flex';
+    compassCurrentPane = pane;
+
+    // Precompute zone rects from the freshly positioned compass
+    cachedZoneRects = Array.from(compass.querySelectorAll('.ptmt-compass-zone')).map(el => {
+      const zr = el.getBoundingClientRect();
+      return { zone: el.dataset.zone, left: zr.left, right: zr.right, top: zr.top, bottom: zr.bottom, el };
+    });
+
+    // Precompute split preview rects (4 halves + full-pane center)
+    const HALF = 0.5;
+    cachedPreviews = {
+      left:   { x: r.left,                    y: r.top,                     w: r.width * HALF, h: r.height },
+      right:  { x: r.left + r.width  * HALF,  y: r.top,                     w: r.width * HALF, h: r.height },
+      top:    { x: r.left,                    y: r.top,                     w: r.width,        h: r.height * HALF },
+      bottom: { x: r.left,                    y: r.top + r.height * HALF,   w: r.width,        h: r.height * HALF },
+      center: null,  // no preview for center drop
+    };
+  }
+
+  compass.classList.toggle('ptmt-compass-no-split', !canSplit);
+}
+
+function hideCompass() {
+  if (compassEl) compassEl.style.display = 'none';
+  compassCurrentPane = null;
+  compassHoveredZone = null;
+  cachedZoneRects    = null;
+  cachedPreviews     = null;
+  hideSplitPreview();
+}
+
+/** Hit-test against CACHED zone rects — zero getBoundingClientRect() calls. */
+function getZoneUnderPoint(clientX, clientY) {
+  if (!cachedZoneRects) return null;
+  for (const z of cachedZoneRects) {
+    if (clientX >= z.left && clientX <= z.right && clientY >= z.top && clientY <= z.bottom) {
+      return z.zone;
+    }
+  }
+  return null;
+}
+
+/** Highlight the hovered zone; show preview using cached geometry. */
+function updateCompassHighlight(zone, canSplit) {
+  if (compassHoveredZone === zone) return;  // no change — skip all DOM writes
+  compassHoveredZone = zone;
+
+  if (cachedZoneRects) {
+    for (const z of cachedZoneRects) {
+      z.el.classList.toggle('ptmt-compass-zone-active', z.zone === zone);
+    }
+  }
+
+  if (!zone || zone === 'center' || !canSplit) {
+    hideSplitPreview();
+    return;
+  }
+
+  const p = cachedPreviews?.[zone];
+  if (p) showSplitPreview(p.x, p.y, p.w, p.h);
+}
+
+// ─── Split Preview Overlay ─────────────────────────────────────────────────────
+
+let splitPreviewEl = null;
+
+function getOrCreateSplitPreview() {
+  if (splitPreviewEl) return splitPreviewEl;
+  splitPreviewEl = document.createElement('div');
+  splitPreviewEl.className = 'ptmt-split-preview';
+  document.body.appendChild(splitPreviewEl);
+  return splitPreviewEl;
+}
+
+function showSplitPreview(x, y, w, h) {
+  const p = getOrCreateSplitPreview();
+  Object.assign(p.style, { display: 'block', left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px` });
+}
+
+function hideSplitPreview() {
+  if (splitPreviewEl) splitPreviewEl.style.display = 'none';
+}
+
+// ─── Core helpers ─────────────────────────────────────────────────────────────
 
 function getDragPidFromEvent(ev, isDropEvent = false) {
   if (currentDraggingPid) return currentDraggingPid;
   if (isDropEvent) {
-    try {
-      return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-ptmt-tab') || '';
-    } catch { return ''; }
+    try { return ev.dataTransfer.getData('text/plain') || ev.dataTransfer.getData('application/x-ptmt-tab') || ''; }
+    catch { return ''; }
   }
   return '';
-}
-
-function relativePanePos(pane, clientX, clientY) {
-  const container = pane._panelContainer || pane;
-  const rect = container.getBoundingClientRect();
-  const x = clientX - rect.left;
-  const y = clientY - rect.top;
-  return { rect, x, y, rx: x / Math.max(1, rect.width), ry: y / Math.max(1, rect.height) };
 }
 
 function getDragContext(ev, elUnder, isDropEvent = false) {
   const pid = getDragPidFromEvent(ev, isDropEvent);
   if (!pid) return null;
-
-  const clientX = ev.clientX;
-  const clientY = ev.clientY;
-
-  const paneUnder = elUnder?.closest('.ptmt-pane') || getActivePane();
+  const paneUnder    = elUnder?.closest('.ptmt-pane') || getActivePane();
   const overTabStrip = !!(elUnder?.closest('.ptmt-tabStrip'));
-  const wantsCopy = ev.ctrlKey || ev.metaKey || ev.altKey;
-
-  return { pid, elUnder, paneUnder, overTabStrip, wantsCopy, clientX, clientY };
+  return { pid, elUnder, paneUnder, overTabStrip, clientX: ev.clientX, clientY: ev.clientY };
 }
 
 let lastElementUnder = null;
+
+// ─── Main drag event processor ─────────────────────────────────────────────────
 
 function processDragEvent(ev, { performDrop = false } = {}) {
   if (ev.cancelable) ev.preventDefault();
 
   const clientX = ev.clientX;
   const clientY = ev.clientY;
-
-  // Use elementFromPoint for accurate hit detection during drag.
-  // ev.target in dragover reflects the drag source, not the element under the cursor.
   const elUnder = document.elementFromPoint(clientX, clientY) || ev.target;
 
   if (elUnder === lastElementUnder && !performDrop && dragSession) {
-    // If we're over the same literal element and not dropping, 
-    // we can likely still reuse everything unless we're in a high-precision zone (tab strip)
-    if (!dragSession.overTabStrip) return;
+    if (!dragSession.overTabStrip) {
+      // Same element — but we can still do the cheap zone hittest without reading DOM
+      if (compassCurrentPane) {
+        const zone    = getZoneUnderPoint(clientX, clientY);
+        const layers  = getPaneLayerCount(dragSession.pane);
+        updateCompassHighlight(zone, layers < MAX_PANE_LAYERS);
+      }
+      return;
+    }
   }
   lastElementUnder = elUnder;
 
-  const isOverSettingsPanel = elUnder?.closest('.ptmt-settings-panel, #ptmt-unified-editor');
-
-  if (isOverSettingsPanel) {
-    hideDropIndicator();
-    hideSplitOverlay();
-    return;
+  if (elUnder?.closest('.ptmt-settings-panel, #ptmt-unified-editor')) {
+    hideDropIndicator(); hideCompass(); return;
   }
 
   const ctx = getDragContext(ev, elUnder, performDrop);
+  if (!ctx || !ctx.pid) { hideDropIndicator(); hideCompass(); return; }
 
-  if (!ctx || !ctx.pid) {
-    hideDropIndicator();
-    hideSplitOverlay();
-    return;
-  }
-
-  // Optimize: Only refresh session if pane changed or we don't have one
   const refs = getRefs();
   if (!dragSession || dragSession.pane !== ctx.paneUnder) {
-    const mainBodyRect = refs.mainBody.getBoundingClientRect();
-    updateDragSession(ctx.paneUnder, mainBodyRect);
+    updateDragSession(ctx.paneUnder, refs.mainBody.getBoundingClientRect());
   }
 
-  // Double check if we're technically over a settings panel via coordinates 
-  // (sometimes elementFromPoint hits the overlay but we want a small margin)
   if (ctx.clientX > dragSession.mainBodyRect.right - 10) {
-    hideDropIndicator(); hideSplitOverlay(); return;
+    hideDropIndicator(); hideCompass(); return;
   }
 
+  // ── Tab strip ──────────────────────────────────────────────────────────────
   if (ctx.overTabStrip) {
+    hideCompass();
     handleTabStripDrop(ctx, ev, performDrop);
     return;
   }
 
-  const splitHandled = handlePaneSplitDrop(ctx, ev, performDrop);
-  if (splitHandled) {
+  // ── Panel body — compass ───────────────────────────────────────────────────
+  const { paneUnder, clientX: cx, clientY: cy } = ctx;
+  const layers   = getPaneLayerCount(paneUnder);
+  const canSplit = layers < MAX_PANE_LAYERS;
+
+  if (!performDrop) {
+    showCompassOnPane(paneUnder, canSplit);
+    updateCompassHighlight(getZoneUnderPoint(cx, cy), canSplit);
+    hideDropIndicator();
     return;
   }
 
-  // Fallback: If not splitting (e.g., max layers reached), fallback to adding as tab
-  handleTabStripDrop(ctx, ev, performDrop);
+  // ── Drop: commit ───────────────────────────────────────────────────────────
+  const zone  = compassHoveredZone ?? getZoneUnderPoint(cx, cy);
+  hideCompass();
+  hideDropIndicator();
+
+  const panel = getPanelById(ctx.pid);
+  if (!panel) return;
+
+  if (!zone || zone === 'center' || !canSplit) {
+    const index = computeDropIndexFromSession(cx, cy);
+    moveTabIntoPaneAtIndex(panel, paneUnder, index);
+    openTab(panel.dataset.panelId);
+    return;
+  }
+
+  const vertical = zone === 'left' || zone === 'right';
+  const newFirst  = zone === 'left' || zone === 'top';
+    splitPaneWithPane(paneUnder, panel, vertical, newFirst);
+  openTab(panel.dataset.panelId);
 }
 
-function handleTabStripDrop(ctx, ev, performDrop) {
-  const { paneUnder } = ctx;
+// ─── Tab strip drop ────────────────────────────────────────────────────────────
 
-  // Use cached session data for index calculation if over tab strip
+function handleTabStripDrop(ctx, ev, performDrop) {
   const index = computeDropIndexFromSession(ctx.clientX, ctx.clientY);
 
   if (!performDrop) {
-    hideSplitOverlay();
     showDropIndicatorFromSession(index);
     return;
   }
 
   const panel = getPanelById(ctx.pid);
-  if (!panel) { hideDropIndicator(); hideSplitOverlay(); return; }
+  if (!panel) { hideDropIndicator(); return; }
 
-  // Use precise index
-  const dropIndex = index;
-
-  if (ctx.wantsCopy) {
-    cloneTabIntoPane(panel, paneUnder, dropIndex);
-  } else {
-    moveTabIntoPaneAtIndex(panel, paneUnder, dropIndex);
-  }
-
+  moveTabIntoPaneAtIndex(panel, ctx.paneUnder, index);
   hideDropIndicator();
-  hideSplitOverlay();
   openTab(panel.dataset.panelId);
 }
 
-function handlePaneSplitDrop(ctx, ev, performDrop) {
-  const { paneUnder } = ctx;
-  if (!dragSession) return false;
-
-  const rect = dragSession.paneRect;
-  const x = ctx.clientX - rect.left;
-  const y = ctx.clientY - rect.top;
-
-  // Use pixel distances for more intuitive edge detection on thin/wide panels
-  const distLeft = x;
-  const distRight = rect.width - x;
-  const distTop = y;
-  const distBottom = rect.height - y;
-
-  const layers = getPaneLayerCount(paneUnder);
-  const canSplit = layers < MAX_PANE_LAYERS;
-
-  // If we can't split, fallback to returning false so it gets added as a tab
-  if (!canSplit) {
-    return false;
-  }
-
-  // Which dimension are we physically closer to?
-  const isHorizontalProximity = Math.min(distLeft, distRight) < Math.min(distTop, distBottom);
-  const vertical = isHorizontalProximity; // if closer to left/right, we split vertically
-  const first = vertical ? (distLeft < distRight) : (distTop < distBottom);
-
-  if (!performDrop) {
-    showSplitOverlayForPane(paneUnder, vertical, first);
-    hideDropIndicator();
-    return true;
-  }
-
-  const panel = getPanelById(ctx.pid);
-  if (!panel) { hideSplitOverlay(); return true; }
-
-  if (ctx.wantsCopy) {
-    cloneTabIntoSplit(panel, paneUnder, vertical, first);
-  } else {
-    splitPaneWithPane(paneUnder, panel, vertical, first);
-  }
-
-  hideSplitOverlay();
-  openTab(panel.dataset.panelId);
-  return true;
-}
+// ─── Drop-indicator ────────────────────────────────────────────────────────────
 
 function computeDropIndexFromSession(clientX, clientY) {
   if (!dragSession || !dragSession.tabRects.length) return 0;
-
   const { tabRects, vertical } = dragSession;
   const clientPos = vertical ? clientY : clientX;
-
   for (let i = 0; i < tabRects.length; i++) {
     const r = tabRects[i];
-    const midpoint = vertical ? (r.top + r.height / 2) : (r.left + r.width / 2);
-    if (clientPos < midpoint) return i;
+    const mid = vertical ? (r.top + r.height / 2) : (r.left + r.width / 2);
+    if (clientPos < mid) return i;
   }
   return tabRects.length;
 }
@@ -230,7 +296,6 @@ function computeDropIndexFromSession(clientX, clientY) {
 function showDropIndicatorFromSession(index) {
   const refs = getRefs();
   if (!refs.dropIndicator || !dragSession) return;
-
   if (index === lastIndex) return;
   lastIndex = index;
 
@@ -238,11 +303,17 @@ function showDropIndicatorFromSession(index) {
   const style = { display: 'block', width: '', height: '', left: '', top: '', transform: '' };
 
   if (vertical) {
-    let top = (tabRects.length === 0) ? tsRect.top + 2 : (index >= tabRects.length) ? tabRects[tabRects.length - 1].bottom - 2 : tabRects[index].top - 2;
-    Object.assign(style, { top: `${top - mainBodyRect.top}px`, left: `${tsRect.left - mainBodyRect.left}px`, width: `${tsRect.width}px`, height: '2px', transform: 'translateY(-1px)' });
+    const top = tabRects.length === 0 ? tsRect.top + 2
+              : index >= tabRects.length ? tabRects[tabRects.length - 1].bottom - 2
+              : tabRects[index].top - 2;
+    Object.assign(style, { top: `${top - mainBodyRect.top}px`, left: `${tsRect.left - mainBodyRect.left}px`,
+      width: `${tsRect.width}px`, height: '2px', transform: 'translateY(-1px)' });
   } else {
-    let left = (tabRects.length === 0) ? tsRect.left + 2 : (index >= tabRects.length) ? tabRects[tabRects.length - 1].right - 2 : tabRects[index].left - 2;
-    Object.assign(style, { left: `${left - mainBodyRect.left}px`, top: `${tsRect.top - mainBodyRect.top}px`, height: `${tsRect.height}px`, width: '2px', transform: 'translateX(-1px)' });
+    const left = tabRects.length === 0 ? tsRect.left + 2
+               : index >= tabRects.length ? tabRects[tabRects.length - 1].right - 2
+               : tabRects[index].left - 2;
+    Object.assign(style, { left: `${left - mainBodyRect.left}px`, top: `${tsRect.top - mainBodyRect.top}px`,
+      height: `${tsRect.height}px`, width: '2px', transform: 'translateX(-1px)' });
   }
   Object.assign(refs.dropIndicator.style, style);
 }
@@ -252,41 +323,16 @@ export const hideDropIndicator = () => {
   refs.dropIndicator && (refs.dropIndicator.style.display = 'none');
 };
 
-const showSplitOverlayForPane = (pane, vertical, first) => {
-  const refs = getRefs();
-  if (!refs.splitOverlay || !pane || !dragSession) return;
+export const hideSplitOverlay = hideCompass;  // backwards compat for tabs.js
 
-  const { mainBodyRect, paneRect: r } = dragSession;
-
-  let x = r.left - mainBodyRect.left;
-  let y = r.top - mainBodyRect.top;
-  let w = r.width;
-  let h = r.height;
-
-  if (vertical) {
-    w = Math.max(40, Math.floor(w * 0.5));
-    if (!first) x += w;
-  } else {
-    h = Math.max(40, Math.floor(h * 0.5));
-    if (!first) y += h;
-  }
-
-  Object.assign(refs.splitOverlay.style, { left: `${x}px`, top: `${y}px`, width: `${w}px`, height: `${h}px`, display: 'block' });
-};
-
-export const hideSplitOverlay = () => {
-  const refs = getRefs();
-  refs.splitOverlay && (refs.splitOverlay.style.display = 'none');
-};
+// ─── Bootstrap ────────────────────────────────────────────────────────────────
 
 export function enableInteractions() {
   const refs = getRefs();
 
   document.addEventListener('dragstart', ev => {
     const tabEl = ev.target?.closest?.('.ptmt-tab');
-    if (tabEl) {
-      currentDraggingPid = tabEl.dataset.for;
-    }
+    if (tabEl) currentDraggingPid = tabEl.dataset.for;
   });
 
   document.addEventListener('dragover', ev => {
@@ -294,8 +340,9 @@ export function enableInteractions() {
     try { ev.dataTransfer.dropEffect = 'move'; } catch { }
   });
 
+  // Throttle only the heavy path (pane-switch detection → getBoundingClientRect).
+  // Zone highlight on same pane escapes the throttle via the early-return in processDragEvent.
   const throttledProcessDrag = throttle(ev => processDragEvent(ev, { performDrop: false }), 16);
-
   refs.mainBody.addEventListener('dragover', throttledProcessDrag);
 
   refs.mainBody.addEventListener('drop', ev => {
@@ -305,13 +352,10 @@ export function enableInteractions() {
 
   refs.mainBody.addEventListener('dragleave', (e) => {
     setTimeout(() => {
-      const mainRect = refs.mainBody.getBoundingClientRect();
-      const stillInside = e.clientX >= mainRect.left && e.clientX <= mainRect.right && e.clientY >= mainRect.top && e.clientY <= mainRect.bottom;
-      if (!stillInside) {
-        hideDropIndicator();
-        hideSplitOverlay();
-        clearDragSession();
-      }
+      const r = refs.mainBody.getBoundingClientRect();
+      const inside = e.clientX >= r.left && e.clientX <= r.right
+                  && e.clientY >= r.top  && e.clientY <= r.bottom;
+      if (!inside) { hideDropIndicator(); hideCompass(); clearDragSession(); }
     }, 50);
   });
 

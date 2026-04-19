@@ -27,35 +27,25 @@ function parseMd(md) {
     const closeBlockquote = () => { if (inBlockquote) { htmlLines.push('</blockquote>'); inBlockquote = false; } };
 
     const inlineFormat = (text) => text
-        // HTML-escape first to prevent injection
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
-        // Bold + italic: ***text***
         .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
-        // Bold: **text**
         .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
-        // Italic: *text*
         .replace(/\*(.+?)\*/g, '<em>$1</em>')
-        // Inline code: `text`
         .replace(/`([^`]+)`/g, '<code>$1</code>')
-        // Links: [label](url)
-        .replace(/\[([^\]]+)\]\((https?:\/\/[^\)]+)\)/g,
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g,
             '<a href="$2" target="_blank" rel="noopener noreferrer" class="ptmt-info-link">$1</a>');
 
     for (let i = 0; i < lines.length; i++) {
-        const raw = lines[i];
-        const line = raw.trimEnd();
+        const line = lines[i].trimEnd();
 
-        // Horizontal rule
         if (/^---+$/.test(line.trim())) {
-            closeList();
-            closeBlockquote();
+            closeList(); closeBlockquote();
             htmlLines.push('<hr class="ptmt-md-hr">');
             continue;
         }
 
-        // Headings
         const h3 = line.match(/^### (.+)/);
         if (h3) { closeList(); closeBlockquote(); htmlLines.push(`<h3 class="ptmt-md-h3">${inlineFormat(h3[1])}</h3>`); continue; }
         const h2 = line.match(/^## (.+)/);
@@ -63,7 +53,6 @@ function parseMd(md) {
         const h1 = line.match(/^# (.+)/);
         if (h1) { closeList(); closeBlockquote(); htmlLines.push(`<h1 class="ptmt-md-h1">${inlineFormat(h1[1])}</h1>`); continue; }
 
-        // Blockquote
         const bq = line.match(/^> (.+)/);
         if (bq) {
             closeList();
@@ -73,7 +62,6 @@ function parseMd(md) {
         }
         closeBlockquote();
 
-        // Unordered list
         const li = line.match(/^[-*] (.+)/);
         if (li) {
             if (!inList) { htmlLines.push('<ul class="ptmt-md-list">'); inList = true; }
@@ -82,19 +70,13 @@ function parseMd(md) {
         }
         closeList();
 
-        // Blank line
-        if (line.trim() === '') {
-            htmlLines.push('');
-            continue;
-        }
+        if (line.trim() === '') { htmlLines.push(''); continue; }
 
-        // Regular paragraph line
         htmlLines.push(`<p class="ptmt-md-p">${inlineFormat(line)}</p>`);
     }
 
     closeList();
     closeBlockquote();
-
     return htmlLines.join('\n');
 }
 
@@ -103,32 +85,45 @@ function parseMd(md) {
 /**
  * Creates the Info Panel DOM element with its 3 internal sub-tabs.
  * Content is fetched from /content/*.md at runtime.
- * @param {object} [settings]  The PTMT SettingsManager instance — required for the
- *                             "Never show again" checkbox on the changelog tab.
+ *
+ * @param {object} [settings]  PTMT SettingsManager instance — required for the
+ *                             "Never show again" footer on the changelog tab.
+ *
  * Call panel._activateTab('guide'|'changelog'|'more') to switch tabs.
  */
 export function createInfoPanel(settings) {
     const panel = el('div', { className: 'ptmt-info-panel' });
 
-    const tabNav = el('nav', { className: 'ptmt-info-tabnav', 'aria-label': 'Info tabs' });
+    const tabNav     = el('nav', { className: 'ptmt-info-tabnav', 'aria-label': 'Info tabs' });
     const tabContent = el('div', { className: 'ptmt-info-tabcontent' });
 
+    // "Never show again" row — built synchronously so it is never part of the
+    // async render path (avoids race conditions with concurrent fetches).
+    // It lives as a sticky footer at the bottom of the panel, shown only while
+    // the changelog tab is active.
+    const neverShowFooter = settings ? createNeverShowRow(settings) : null;
+    if (neverShowFooter) {
+        neverShowFooter.style.display = 'none';  // hidden until changelog is active
+    }
+
     const tabDefs = [
-        { id: 'guide',     label: "Beginner's Guide", icon: 'fa-graduation-cap',     file: 'GUIDE.md'     },
-        { id: 'changelog', label: "What's New",        icon: 'fa-fire-flame-curved',  file: 'CHANGELOG.md' },
-        { id: 'more',      label: 'More',              icon: 'fa-layer-group',        file: 'MORE.md'      },
+        { id: 'guide',     label: "Beginner's Guide", icon: 'fa-graduation-cap',    file: 'GUIDE.md'     },
+        { id: 'changelog', label: "What's New",        icon: 'fa-fire-flame-curved', file: 'CHANGELOG.md' },
+        { id: 'more',      label: 'More',              icon: 'fa-layer-group',       file: 'MORE.md'      },
     ];
 
-    // Cache fetched content so switching tabs doesn't re-fetch
+    // Per-tab HTML cache — fetched once, reused on every subsequent visit
     const cache = {};
+    // Monotonic counter — lets us discard stale renders when activate() is
+    // called again before the previous fetch resolves.
+    let renderToken = 0;
 
     const renderContent = async (id) => {
+        const myToken = ++renderToken;
         const tabDef = tabDefs.find(t => t.id === id);
         if (!tabDef) return;
 
         tabContent.innerHTML = '';
-
-        // Show spinner while loading
         const loading = el('div', { className: 'ptmt-info-loading' },
             el('i', { className: 'fa-solid fa-circle-notch fa-spin ptmt-info-loading-icon' }),
             el('span', {}, ' Loading…')
@@ -140,23 +135,19 @@ export function createInfoPanel(settings) {
                 const url = `${EXTENSION_PATH}/content/${tabDef.file}`;
                 const res = await fetch(url);
                 if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                const mdText = await res.text();
-                cache[id] = parseMd(mdText);
+                cache[id] = parseMd(await res.text());
             } catch (err) {
                 console.warn(`[PTMT InfoPanel] Failed to load ${tabDef.file}:`, err);
-                cache[id] = `<p class="ptmt-md-p ptmt-info-error">Could not load content. Check the browser console for details.</p>`;
+                cache[id] = '<p class="ptmt-md-p ptmt-info-error">Could not load content. Check the browser console for details.</p>';
             }
         }
+
+        // Discard if a newer render was requested while we were awaiting
+        if (myToken !== renderToken) return;
 
         tabContent.innerHTML = '';
         const contentEl = el('div', { className: `ptmt-info-content ptmt-md-content ptmt-info-${id}` });
         contentEl.innerHTML = cache[id];
-
-        // Append "Never show again" checkbox below changelog content
-        if (id === 'changelog' && settings) {
-            contentEl.appendChild(createNeverShowRow(settings));
-        }
-
         tabContent.appendChild(contentEl);
     };
 
@@ -164,6 +155,12 @@ export function createInfoPanel(settings) {
         tabNav.querySelectorAll('.ptmt-info-tab-btn').forEach(btn => {
             btn.classList.toggle('active', btn.dataset.tabId === id);
         });
+
+        // Show sticky footer only for the changelog tab
+        if (neverShowFooter) {
+            neverShowFooter.style.display = (id === 'changelog') ? '' : 'none';
+        }
+
         if (forceRefresh) delete cache[id];
         renderContent(id);
     };
@@ -179,32 +176,31 @@ export function createInfoPanel(settings) {
 
     panel.appendChild(tabNav);
     panel.appendChild(tabContent);
+    if (neverShowFooter) panel.appendChild(neverShowFooter);  // sticky footer at bottom
 
-    // Default to guide tab
+    // Default: open guide
     activate('guide');
 
-    // Expose programmatic switching (called from snapshot.js for auto-open)
+    // Expose programmatic tab switching (called from snapshot.js)
     panel._activateTab = activate;
 
     return panel;
 }
 
-// ─── "Never show again" checkbox ──────────────────────────────────────────────
+// ─── "Never show again" sticky footer ─────────────────────────────────────────
 
 function createNeverShowRow(settings) {
     const cbId = 'ptmt-never-show-changelog';
     const isNever = settings.get('lastSeenVersion') === 'never';
 
     const row = el('div', { className: 'ptmt-changelog-never-row' });
-    const cb = el('input', { type: 'checkbox', id: cbId });
+    const cb  = el('input', { type: 'checkbox', id: cbId });
     cb.checked = isNever;
 
     cb.addEventListener('change', (e) => {
         if (e.target.checked) {
-            // Sentinel value — auto-open will never fire again for any version
             settings.update({ lastSeenVersion: 'never' });
         } else {
-            // Restore: pin to the current version so this update isn't re-shown
             settings.update({ lastSeenVersion: PTMT_INFO_CURRENT_VERSION });
         }
     });

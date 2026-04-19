@@ -427,8 +427,7 @@ export function createSettingsPanel(manager) {
             el('p', {}, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.'),
             el('p', {}, 'If you install a supported extension and its tab does not appear, you may need to reset the layout for it to be added.'),
             el('p', {}, 'Pending Tabs lists extensions or panels available for columns that are not currently in active layout.'),
-            el('p', {}, 'For additional extension tab requests, reach out to me on Discord.'),
-            el('p', {}, 'Resizing the navigation panel with character cards may lag on Chrome-based browsers. -> Use Hide some content on resize (for Chrome users) toggle.')
+            el('p', {}, 'For additional extension tab requests, reach out to me on Discord.')
         )
     );
     panel.appendChild(disclaimerContainer);
