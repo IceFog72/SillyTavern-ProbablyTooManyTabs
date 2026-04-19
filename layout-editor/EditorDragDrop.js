@@ -39,18 +39,19 @@ export function handleDragOver(manager, e) {
     const isTargetHiddenList = container.dataset.isHiddenList === 'true';
 
     if (manager.draggedTabInfo) {
-        const isSettingsTab = manager.draggedTabInfo.sourceId === 'ptmt-settings-wrapper-content';
-        if ((isSettingsTab || manager.draggedTabInfo.isPending) && isTargetHiddenList) {
+        const isPtmtInternal = manager.draggedTabInfo.sourceId === 'ptmt-settings-wrapper-content'
+            || manager.draggedTabInfo.sourceId === 'ptmt-info-wrapper-content';
+        if ((isPtmtInternal || manager.draggedTabInfo.isPending) && isTargetHiddenList) {
             e.dataTransfer.dropEffect = 'none';
             clearDropIndicators(manager.rootElement);
             return;
         }
-        if (isSettingsTab && isTargetPendingList) {
+        if (isPtmtInternal && isTargetPendingList) {
             e.dataTransfer.dropEffect = 'none';
             clearDropIndicators(manager.rootElement);
             return;
         }
-        if (isSettingsTab) {
+        if (isPtmtInternal) {
             const targetColumn = container.closest('.ptmt-editor-column');
             if (targetColumn && targetColumn.classList.contains('ptmt-editor-column-hidden')) {
                 e.dataTransfer.dropEffect = 'none';
@@ -129,9 +130,11 @@ function handleLiveToLiveDrop(manager, targetContainer, newIndex) {
     const targetPane = targetPaneId ? document.querySelector(`${SELECTORS.PANE}[data-pane-id="${targetPaneId}"]`) : null;
 
     if (sourcePanel && targetPane) {
-        if (info.sourceId === 'ptmt-settings-wrapper-content') {
+        const isPtmtInternal = info.sourceId === 'ptmt-settings-wrapper-content'
+            || info.sourceId === 'ptmt-info-wrapper-content';
+        if (isPtmtInternal) {
             if (targetColumnEl && targetColumnEl.classList.contains('ptmt-editor-column-hidden')) {
-                alert("The Layout Settings tab cannot be moved to a hidden column.");
+                alert("This PTMT panel cannot be moved to a hidden column.");
                 return;
             }
         }
@@ -240,8 +243,8 @@ function handlePendingTabDrop(manager, targetContainer, newIndex) {
     const { sourceId, searchId, searchClass } = info;
 
     if (!targetColumnName) return;
-    if (sourceId === 'ptmt-settings-wrapper-content') {
-        alert("The Layout Settings tab cannot be moved to pending or hidden lists.");
+    if (sourceId === 'ptmt-settings-wrapper-content' || sourceId === 'ptmt-info-wrapper-content') {
+        alert("This PTMT panel cannot be moved to pending or hidden lists.");
         return;
     }
     const identifier = getTabIdentifier({ searchId, searchClass });
@@ -291,8 +294,8 @@ function handleHiddenTabDrop(manager, targetContainer, newIndex) {
     const effectiveSourceId = sourceId || searchId || searchClass;
 
     if (!effectiveSourceId) return;
-    if (effectiveSourceId === 'ptmt-settings-wrapper-content') {
-        alert("The Layout Settings tab cannot be hidden. It must remain in one of the columns.");
+    if (effectiveSourceId === 'ptmt-settings-wrapper-content' || effectiveSourceId === 'ptmt-info-wrapper-content') {
+        alert("This PTMT panel cannot be hidden. It must remain in one of the columns.");
         return;
     }
     if (info.isPending) {

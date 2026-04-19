@@ -437,9 +437,8 @@ export function createSettingsPanel(manager) {
     const linksWrapper = el('div', { className: 'ptmt-support-links' });
     const discordLink = el('a', { href: 'https://discord.gg/2tJcWeMjFQ', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Discord (IceFog\'s AI Brew Bar)');
     const patreonLink = el('a', { href: 'https://www.patreon.com/cw/IceFog72', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Patreon');
-    const kofiLink = el('a', { href: 'https://ko-fi.com/icefog72', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Ko-fi');
 
-    linksWrapper.append(discordLink, patreonLink, kofiLink);
+    linksWrapper.append(discordLink, patreonLink);
     supportLinksContainer.appendChild(linksWrapper);
     panel.appendChild(supportLinksContainer);
 

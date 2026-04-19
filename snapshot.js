@@ -11,6 +11,7 @@ import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 import { recalculateAllSplitsRecursively, parseFlexBasis } from './layout-math.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
+import { createInfoPanel, PTMT_INFO_PANEL_ID, PTMT_INFO_CURRENT_VERSION } from './layout-editor/InfoPanel.js';
 
 
 /** @typedef {import('./types.js').LayoutSnapshot} LayoutSnapshot */
@@ -634,9 +635,12 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     const allGhostSourceIds = new Set(allGhostTabs.map(t => t.sourceId));
     const hiddenTabsList = new Set((snapshot.hiddenTabs || []).map(h => typeof h === 'string' ? h : h.sourceId));
 
+    // Internal PTMT panels are initialised explicitly later in the RAF callback — skip orphan recovery for them.
+    const PTMT_INTERNAL_IDS = new Set(['ptmt-settings-wrapper-content', PTMT_INFO_PANEL_ID]);
+
     const orphanPanelIds = mappings
         .map(m => m.id)
-        .filter(id => !placedPanelIds.has(id) && !allGhostSourceIds.has(id) && !hiddenTabsList.has(id));
+        .filter(id => !placedPanelIds.has(id) && !allGhostSourceIds.has(id) && !hiddenTabsList.has(id) && !PTMT_INTERNAL_IDS.has(id));
 
     if (orphanPanelIds.length > 0) {
         console.log(`[PTMT] Recovering ${orphanPanelIds.length} orphan tabs:`, orphanPanelIds);
@@ -757,6 +761,68 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             if (content) {
                 content.innerHTML = '';
                 content.appendChild(settingsUI);
+            }
+        }
+
+        // ─── Info Panel (Guide / What's New / More) ────────────────────────────
+
+        const infoWrapperId = PTMT_INFO_PANEL_ID;
+
+        // Ensure a DOM element with the right ID exists in the staging area
+        // so createTabFromContent can find and wrap it.
+        if (!document.getElementById(infoWrapperId)) {
+            const stubEl = el('div', { id: infoWrapperId });
+            const stagingArea = document.querySelector(SELECTORS.STAGING_AREA) || document.body;
+            stagingArea.appendChild(stubEl);
+        }
+
+        const existingInfoTab = getPanelBySourceId(infoWrapperId);
+        let infoTabPanel = null;
+
+        if (!existingInfoTab && centerPane) {
+            infoTabPanel = createTabFromContent(infoWrapperId, {
+                title: 'Info & Guide',
+                icon: 'fa-circle-info',
+                makeActive: false,
+            }, centerPane);
+        } else if (existingInfoTab) {
+            infoTabPanel = existingInfoTab;
+        }
+
+        // Populate / refresh the Info panel UI
+        if (infoTabPanel) {
+            const infoContent = infoTabPanel.querySelector('.ptmt-panel-content');
+            if (infoContent) {
+                infoContent.innerHTML = '';
+                const infoPanelUI = createInfoPanel(settings);
+                infoContent.appendChild(infoPanelUI);
+
+                // ─── Auto-open logic ───────────────────────────────────────────
+                // First install: lastSeenVersion is null → open on Guide tab.
+                // After update: version changed → open on Changelog tab.
+                // Same version: do nothing (user dismissed already).
+                const lastSeenVersion = settings.get('lastSeenVersion');
+                const isFirstOpen = lastSeenVersion === null || lastSeenVersion === undefined;
+                const isUpdate    = !isFirstOpen
+                    && lastSeenVersion !== PTMT_INFO_CURRENT_VERSION
+                    && lastSeenVersion !== 'never';  // user opted out of auto-open
+
+                if (isFirstOpen || isUpdate) {
+                    // Activate the correct sub-tab
+                    infoPanelUI._activateTab(isFirstOpen ? 'guide' : 'changelog');
+
+                    // Switch the PTMT tab so the panel is visible
+                    const infoTabEl = document.querySelector(`.ptmt-tab[data-for="${CSS.escape(infoTabPanel.dataset.panelId)}"]`);
+                    if (infoTabEl && typeof setActivePanelInPane === 'function') {
+                        const hostPane = infoTabEl.closest('.ptmt-pane');
+                        if (hostPane) {
+                            setActivePanelInPane(hostPane, infoTabPanel.dataset.panelId);
+                        }
+                    }
+
+                    // Record the version so this doesn't fire again until next update
+                    settings.update({ lastSeenVersion: PTMT_INFO_CURRENT_VERSION });
+                }
             }
         }
 

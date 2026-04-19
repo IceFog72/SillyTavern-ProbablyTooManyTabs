@@ -379,6 +379,13 @@ body.no-blur body.ptmt-bg-under-chat #chat {
   opacity: 1 !important;
 }
 
+
+
+.extension_container {
+  display: table-column !important;
+  min-width: 300px;
+}
+
 .drawer-content.openDrawer {
   height: 100%;
 }
@@ -447,7 +454,17 @@ body.bubblechat .welcomePanel {
   width: 100% !important;
   border: none !important;
   border-bottom: 1px solid var(--ST-UI-Border) !important;
+  align-content: unset !important;
+  max-height: 36px !important;
 }
+
+
+#extensionTopBarSearchInput {
+  flex-grow: unset !important;
+  max-width: 200px !important;
+}
+
+
 
 #sheld {
   width: auto !important;
@@ -2579,3 +2596,582 @@ body.ptmt-is-resizing #rm_print_characters_block {
   opacity: 0.8;
   font-weight: 500;
 }
+
+/* ==========================================================================
+   7. INFO & GUIDE PANEL
+   ========================================================================== */
+
+/* ── Outer shell ─────────────────────────────────────────────────────────── */
+.ptmt-info-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--ST-UI-Background);
+  overflow: hidden;
+}
+
+/* ── Sub-tab navigation bar ──────────────────────────────────────────────── */
+.ptmt-info-tabnav {
+  display: flex;
+  flex-shrink: 0;
+  gap: 2px;
+  padding: 8px 10px 0;
+  background: color-mix(in srgb, var(--ST-UI-Background), black 12%);
+  border-bottom: 1px solid var(--ST-UI-Border);
+}
+
+.ptmt-info-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border: 1px solid transparent;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+  background: transparent;
+  color: var(--ST-Italics-Text);
+  font-size: 0.82rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  position: relative;
+  bottom: -1px;     /* sits flush on the border-bottom of the nav */
+}
+
+.ptmt-info-tab-btn:hover:not(.active) {
+  background: color-mix(in srgb, var(--ST-UI-Background), white 8%);
+  color: var(--ST-Main-Text);
+}
+
+.ptmt-info-tab-btn.active {
+  background: var(--ST-UI-Background);
+  border-color: var(--ST-UI-Border);
+  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  font-weight: 600;
+}
+
+.ptmt-info-tab-icon {
+  font-size: 0.9em;
+  opacity: 0.85;
+}
+
+.ptmt-info-tab-label {
+  /* Hide label on very narrow panels */
+}
+
+@media (max-width: 360px) {
+  .ptmt-info-tab-label { display: none; }
+}
+
+/* ── Shared content area ─────────────────────────────────────────────────── */
+.ptmt-info-tabcontent {
+  flex: 1 1 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 0;
+}
+
+.ptmt-info-content {
+  padding: 16px 18px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  color: var(--ST-Main-Text);
+  font-size: 0.88rem;
+  line-height: 1.65;
+}
+
+/* Shared inline link style */
+.ptmt-info-link {
+  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s;
+}
+.ptmt-info-link:hover { opacity: 0.75; }
+
+/* Shared heading icon */
+.ptmt-info-heading-icon {
+  margin-right: 7px;
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+
+/* ==========================================================================
+   7a. GUIDE TAB
+   ========================================================================== */
+
+.ptmt-guide-content {
+  gap: 2px;
+}
+
+.ptmt-guide-section {
+  padding: 14px 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--ST-UI-Border), transparent 40%);
+}
+
+.ptmt-guide-section:last-child {
+  border-bottom: none;
+}
+
+.ptmt-guide-heading {
+  margin: 0 0 8px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ptmt-adaptive-em, var(--ST-Main-Text));
+  display: flex;
+  align-items: center;
+}
+
+.ptmt-guide-body {
+  color: var(--ST-Main-Text);
+  opacity: 0.92;
+}
+
+.ptmt-guide-body p {
+  margin: 0 0 6px;
+}
+
+.ptmt-guide-body p:last-child {
+  margin-bottom: 0;
+}
+
+.ptmt-guide-body ul {
+  margin: 6px 0 6px 4px;
+  padding-left: 20px;
+}
+
+.ptmt-guide-body li {
+  margin-bottom: 3px;
+}
+
+.ptmt-guide-body strong {
+  color: var(--ST-Main-Text);
+  font-weight: 600;
+}
+
+.ptmt-guide-body em {
+  color: var(--ST-Italics-Text);
+}
+
+.ptmt-guide-tip {
+  margin-top: 8px !important;
+  padding: 7px 10px;
+  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 88%);
+  border-left: 3px solid var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  border-radius: 0 4px 4px 0;
+  font-size: 0.85em;
+}
+
+.ptmt-guide-body a {
+  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+
+/* ==========================================================================
+   7b. CHANGELOG TAB
+   ========================================================================== */
+
+.ptmt-changelog-content {
+  gap: 4px;
+}
+
+.ptmt-changelog-intro {
+  margin: 0 0 16px;
+  font-size: 0.84rem;
+  opacity: 0.7;
+}
+
+.ptmt-changelog-release {
+  padding: 14px 0 14px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ST-UI-Border), transparent 35%);
+}
+
+.ptmt-changelog-release:last-child {
+  border-bottom: none;
+}
+
+/* Highlight the most recent release */
+.ptmt-changelog-latest {
+  background: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 93%);
+  border-radius: 8px;
+  padding: 14px 14px;
+  border: 1px solid color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 75%);
+  margin-bottom: 6px;
+}
+
+.ptmt-changelog-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  margin-bottom: 4px;
+  flex-wrap: wrap;
+}
+
+.ptmt-changelog-version {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+}
+
+.ptmt-changelog-date {
+  font-size: 0.78rem;
+  opacity: 0.55;
+  font-variant-numeric: tabular-nums;
+}
+
+.ptmt-changelog-highlights {
+  margin: 0 0 8px;
+  font-size: 0.83rem;
+  font-weight: 600;
+  opacity: 0.75;
+  font-style: italic;
+}
+
+.ptmt-changelog-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.ptmt-changelog-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
+
+.ptmt-changelog-badge {
+  flex-shrink: 0;
+  display: inline-block;
+  padding: 1px 7px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  min-width: 52px;
+  text-align: center;
+}
+
+.ptmt-changelog-badge-new {
+  background: color-mix(in srgb, #4ade80, transparent 78%);
+  color: color-mix(in srgb, #4ade80, var(--ST-Main-Text) 30%);
+  border: 1px solid color-mix(in srgb, #4ade80, transparent 65%);
+}
+
+.ptmt-changelog-badge-fix {
+  background: color-mix(in srgb, #60a5fa, transparent 80%);
+  color: color-mix(in srgb, #60a5fa, var(--ST-Main-Text) 30%);
+  border: 1px solid color-mix(in srgb, #60a5fa, transparent 65%);
+}
+
+.ptmt-changelog-badge-change {
+  background: color-mix(in srgb, #f59e0b, transparent 80%);
+  color: color-mix(in srgb, #f59e0b, var(--ST-Main-Text) 30%);
+  border: 1px solid color-mix(in srgb, #f59e0b, transparent 65%);
+}
+
+
+/* ==========================================================================
+   7c. MORE TAB
+   ========================================================================== */
+
+.ptmt-more-content {
+  gap: 4px;
+}
+
+.ptmt-more-section-title {
+  margin: 0 0 6px;
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--ptmt-adaptive-em, var(--ST-Main-Text));
+  display: flex;
+  align-items: center;
+}
+
+.ptmt-more-support-title {
+  margin-top: 20px;
+}
+
+.ptmt-more-intro {
+  margin: 0 0 12px;
+  font-size: 0.83rem;
+  opacity: 0.7;
+}
+
+/* Extension cards */
+.ptmt-more-card {
+  padding: 12px 14px;
+  margin-bottom: 10px;
+  border-radius: 8px;
+  border: 1px solid var(--ST-UI-Border);
+  background: color-mix(in srgb, var(--ST-UI-Background), white 3%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.ptmt-more-card:hover {
+  border-color: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 60%);
+  background: color-mix(in srgb, var(--ST-UI-Background), white 6%);
+}
+
+.ptmt-more-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ptmt-more-card-icon {
+  font-size: 1.05rem;
+  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  flex-shrink: 0;
+}
+
+.ptmt-more-card-title {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--ST-Main-Text);
+  text-decoration: none;
+  transition: color 0.15s;
+}
+
+.ptmt-more-card-title:hover {
+  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  text-decoration: underline;
+}
+
+.ptmt-more-card-desc {
+  margin: 0;
+  font-size: 0.81rem;
+  opacity: 0.78;
+  line-height: 1.55;
+}
+
+.ptmt-more-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.ptmt-more-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  background: color-mix(in srgb, var(--ST-UI-Border), transparent 40%);
+  border: 1px solid color-mix(in srgb, var(--ST-UI-Border), transparent 20%);
+  color: var(--ST-Italics-Text);
+}
+
+/* Support links row */
+.ptmt-more-support-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.ptmt-more-support-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  border-radius: 6px;
+  border: 1px solid var(--ST-UI-Border);
+  background: color-mix(in srgb, var(--ST-UI-Background), white 5%);
+  color: var(--ST-Main-Text);
+  font-size: 0.83rem;
+  font-weight: 500;
+  text-decoration: none;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+.ptmt-more-support-link:hover {
+  background: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 82%);
+  border-color: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 55%);
+  color: var(--ST-Main-Text);
+}
+
+.ptmt-more-link-icon {
+  font-size: 1rem;
+  opacity: 0.85;
+}
+
+/* ==========================================================================
+   7d. MARKDOWN RENDERED CONTENT
+   ========================================================================== */
+
+/* Loading state */
+.ptmt-info-loading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 24px 18px;
+  font-size: 0.85rem;
+  opacity: 0.6;
+}
+
+.ptmt-info-loading-icon {
+  font-size: 1.1em;
+}
+
+.ptmt-info-error {
+  color: color-mix(in srgb, #f87171, var(--ST-Main-Text) 30%);
+}
+
+/* Markdown content wrapper */
+.ptmt-md-content {
+  padding: 16px 18px 28px;
+  color: var(--ST-Main-Text);
+  font-size: 0.87rem;
+  line-height: 1.7;
+}
+
+/* Headings */
+.ptmt-md-h1 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  margin: 0 0 16px;
+  color: var(--ptmt-adaptive-em, var(--ST-Main-Text));
+  padding-bottom: 6px;
+  border-bottom: 1px solid color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
+}
+
+.ptmt-md-h2 {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 22px 0 8px;
+  color: var(--ptmt-adaptive-em, var(--ST-Main-Text));
+}
+
+/* First h2 after h1 gets less top margin */
+.ptmt-md-h1 + .ptmt-md-h2 {
+  margin-top: 14px;
+}
+
+.ptmt-md-h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin: 16px 0 6px;
+  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+}
+
+/* Paragraph */
+.ptmt-md-p {
+  margin: 0 0 8px;
+}
+
+.ptmt-md-p:last-child {
+  margin-bottom: 0;
+}
+
+/* Unordered list */
+.ptmt-md-list {
+  margin: 6px 0 10px 4px;
+  padding-left: 20px;
+}
+
+.ptmt-md-list li {
+  margin-bottom: 4px;
+  line-height: 1.55;
+}
+
+/* Blockquote / tip boxes */
+.ptmt-md-blockquote {
+  margin: 10px 0;
+  padding: 8px 12px;
+  border-left: 3px solid var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  border-radius: 0 4px 4px 0;
+  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 90%);
+  font-size: 0.85em;
+}
+
+.ptmt-md-blockquote p {
+  margin: 0;
+}
+
+/* Horizontal rule */
+.ptmt-md-hr {
+  border: none;
+  border-top: 1px solid color-mix(in srgb, var(--ST-UI-Border), transparent 40%);
+  margin: 18px 0;
+}
+
+/* Inline code */
+.ptmt-md-content code {
+  font-family: monospace;
+  font-size: 0.88em;
+  background: color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+
+/* Links rendered from markdown */
+.ptmt-md-content a {
+  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  transition: opacity 0.15s;
+}
+
+.ptmt-md-content a:hover {
+  opacity: 0.75;
+}
+
+/* Strong / em within rendered markdown */
+.ptmt-md-content strong {
+  font-weight: 700;
+}
+
+.ptmt-md-content em {
+  font-style: italic;
+  color: var(--ST-Italics-Text);
+}
+
+/* "Never show again" row in changelog tab */
+.ptmt-changelog-never-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 22px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
+  background: color-mix(in srgb, var(--ST-UI-Background), black 8%);
+  font-size: 0.82rem;
+  color: var(--ST-Italics-Text);
+  cursor: pointer;
+}
+
+.ptmt-changelog-never-row input[type="checkbox"] {
+  flex-shrink: 0;
+  cursor: pointer;
+  accent-color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  width: 14px;
+  height: 14px;
+}
+
+.ptmt-changelog-never-row label {
+  cursor: pointer;
+  user-select: none;
+  line-height: 1.4;
+}
+
+.ptmt-changelog-never-row:hover {
+  border-color: color-mix(in srgb, var(--ST-UI-Border), transparent 10%);
+  background: color-mix(in srgb, var(--ST-UI-Background), black 12%);
+}
+

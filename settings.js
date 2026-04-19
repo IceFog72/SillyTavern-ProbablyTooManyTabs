@@ -58,6 +58,11 @@ export class SettingsManager {
         charListAvatarScale: '1',
         bodyBgColor: 'rgb(29, 29, 29)',
 
+        // Tracks the last version the user acknowledged — drives the auto-open info panel logic.
+        // null  → first install  → open on Guide tab
+        // older → update         → open on Changelog tab
+        lastSeenVersion: null,
+
         panelMappings: [
             { id: 'left-nav-panel', title: 'Navigation', icon: 'fa-compass' },
             { id: 'right-nav-panel', title: 'Inspector', icon: 'fa-magnifying-glass' },
@@ -90,6 +95,7 @@ export class SettingsManager {
             { id: 'qr--popout', title: 'QR Popout', icon: 'fa-qrcode' },
             { id: 'injectManagerSideBar', title: 'Inject Manager', icon: 'fa-file-shield' },
             { id: 'ptmt-settings-wrapper-content', title: 'Layout Settings', icon: 'fa-screwdriver-wrench' },
+            { id: 'ptmt-info-wrapper-content', title: 'Info & Guide', icon: 'fa-circle-info' },
             { id: 'sheld', title: 'Main', icon: 'fa-house' },
             { id: 'charlib-embedded-container', title: 'CharLib', icon: 'fa-book-open' }
         ],

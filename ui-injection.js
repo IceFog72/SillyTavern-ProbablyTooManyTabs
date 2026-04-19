@@ -81,17 +81,14 @@ function createInjectionObserver(element, targetSelector) {
  * Creates the Character List Scale slider control
  */
 function createScaleSlider() {
-    const container = el('div', { 
+    const container = el('div', {
         id: 'ptmt-char-list-scale-control',
         className: 'ptmt-inspector-scale-control',
-        style: { 
+        style: {
             display: settings.get('enableOverride1') ? 'flex' : 'none'
         }
     });
 
-    const label = el('label', { 
-        className: 'ptmt-scale-label'
-    }, 'Char Scale:');
 
     const slider = el('input', {
         id: 'ptmt-char-list-scale-slider',
@@ -110,9 +107,9 @@ function createScaleSlider() {
     const updateDisplay = () => {
         const val = parseFloat(slider.value) || 1;
         valueDisplay.textContent = `${val.toFixed(2)}x`;
-        
+
         console.log(`[PTMT] Character List Scale slider changed to: ${val}`);
-        
+
         // Update settings - this should trigger SETTINGS_CHANGED event
         try {
             settings.update({ charListAvatarScale: val.toString() });
@@ -120,7 +117,7 @@ function createScaleSlider() {
         } catch (e) {
             console.error(`[PTMT] Error updating settings:`, e);
         }
-        
+
         // Also update CSS variable directly for immediate effect
         try {
             document.documentElement.style.setProperty('--ptmt-char-list-avatar-scale', val.toString());
@@ -135,13 +132,13 @@ function createScaleSlider() {
         console.log(`[PTMT] Slider input event: value = ${e.target.value}`);
         updateDisplay();
     });
-    
+
     slider.addEventListener('change', (e) => {
         console.log(`[PTMT] Slider change event: value = ${e.target.value}`);
         updateDisplay();
     });
 
-    container.append(label, slider, valueDisplay);
+    container.append(slider, valueDisplay);
     scaleSlider = slider;
     scaleSliderContainer = container;
 
@@ -164,7 +161,7 @@ export function initInspectorScaleControl() {
     // Use generic injection observer with the correct selector
     const targetSelector = '#charListFixedTop .rm_tag_controls';
     console.log(`[PTMT] Setting up injection for: ${targetSelector}`);
-    
+
     observerCleanup = createInjectionObserver(scaleSliderContainer, targetSelector);
 
     // Listen to Extension CSS Overrides setting changes
