@@ -281,6 +281,37 @@ function extractIdentifierFromUid(uid) {
 }
 
 /**
+ * Build collision-free character key from UID + avatar info
+ * Handles multiple character cards with same name by including avatar filename
+ * Key format: "name__avatar.png" (no type prefix, matches character-colorizer-ui.js)
+ */
+function buildCharacterKeyForColorizer(uid, domAvatarUrl) {
+    const identifier = extractIdentifierFromUid(uid);
+    if (!domAvatarUrl || uid === 'system') {
+        return identifier;  // System messages or no avatar
+    }
+    
+    // Extract avatar filename from URL
+    const fileMatch = domAvatarUrl.match(/[?&]file=([^&]+)/i);
+    const avatarFileName = fileMatch ? decodeURIComponent(fileMatch[1]) : domAvatarUrl.split('/').pop() || 'unknown.png';
+    const cleanFileName = avatarFileName.split(/[?#]/)[0];
+    
+    // Return combined key WITHOUT the uid prefix: "kaede__Kaede.png" not "char:kaede__Kaede.png"
+    return `${identifier}__${cleanFileName}`;
+}
+
+/**
+ * Build persona key - personas use just the filename since they're already unique
+ * Key format: "filename.png" (matches character-colorizer-ui.js persona storage)
+ */
+function buildPersonaKeyForColorizer(uid, domAvatarUrl) {
+    // For personas, just extract and return the avatar filename
+    const fileMatch = (domAvatarUrl || '').match(/[?&]file=([^&]+)/i);
+    const avatarFileName = fileMatch ? decodeURIComponent(fileMatch[1]) : domAvatarUrl?.split('/').pop() || 'user.png';
+    return avatarFileName.split(/[?#]/)[0];
+}
+
+/**
  * Get control settings (target, modes, opacity) for a character/persona
  * Checks for custom per-character settings first, falls back to global
  */
@@ -295,30 +326,26 @@ function getColorizerControlSettings(type, info) {
     }
 
     const isPersona = type === 'persona';
-    const identifier = extractIdentifierFromUid(info.uid);
+    
+    // Build unique key based on type
+    const characterKey = isPersona 
+        ? buildPersonaKeyForColorizer(info.uid, info.domAvatarUrl)
+        : buildCharacterKeyForColorizer(info.uid, info.domAvatarUrl);
     
     // Check if this character/persona has custom settings enabled
     const enabledList = isPersona ? settings.get('personaCustomColorizerEnabled') ?? [] : settings.get('charCustomColorizerEnabled') ?? [];
     const customSettingsMap = isPersona ? settings.get('personaCustomColorizerSettings') ?? {} : settings.get('charCustomColorizerSettings') ?? {};
     
-    if (enabledList.includes(identifier) && customSettingsMap[identifier]) {
+    if (enabledList.includes(characterKey) && customSettingsMap[characterKey]) {
         // Use custom settings
-        const custom = customSettingsMap[identifier];
-        console.log(`[PTMT] ✓ Using CUSTOM colorizer for ${type} "${identifier}"`);
+        const custom = customSettingsMap[characterKey];
+        console.log(`[PTMT] ✓ Using CUSTOM colorizer for ${type} "${characterKey}"`);
         return {
             target: custom.colorizeTarget ?? 3,
             dialogMode: custom.dialogColorMode ?? 1,
             bubbleMode: custom.bubbleColorMode ?? 3,
             opacity: custom.bubbleOpacity ?? 0.1,
         };
-    }
-    
-    // Check if custom settings exist but not enabled (for debugging)
-    if (customSettingsMap[identifier]) {
-        console.log(`[PTMT] ✗ Custom settings exist for ${type} "${identifier}" but NOT in enabled list. Enabled: [${enabledList.join(', ')}]`);
-    } else if (enabledList.length > 0 || Object.keys(customSettingsMap).length > 0) {
-        // Only log mismatch if there ARE custom settings saved (to avoid noise for chars without custom settings)
-        console.log(`[PTMT] DEBUG: Looking for "${identifier}" in enabled="${enabledList.join(', ')}", map keys="${Object.keys(customSettingsMap).join(', ')}"`);
     }
     
     // Fall back to global settings
@@ -350,15 +377,19 @@ function getSettingsForType(type, info) {
     }
 
     const isPersona = type === 'persona';
-    const identifier = extractIdentifierFromUid(info.uid);
+    
+    // Build unique key based on type
+    const characterKey = isPersona 
+        ? buildPersonaKeyForColorizer(info.uid, info.domAvatarUrl)
+        : buildCharacterKeyForColorizer(info.uid, info.domAvatarUrl);
     
     // Check if this character/persona has custom settings enabled
     const enabledList = isPersona ? settings.get('personaCustomColorizerEnabled') ?? [] : settings.get('charCustomColorizerEnabled') ?? [];
     const customSettingsMap = isPersona ? settings.get('personaCustomColorizerSettings') ?? {} : settings.get('charCustomColorizerSettings') ?? {};
     
-    if (enabledList.includes(identifier) && customSettingsMap[identifier]) {
+    if (enabledList.includes(characterKey) && customSettingsMap[characterKey]) {
         // Use custom settings
-        const custom = customSettingsMap[identifier];
+        const custom = customSettingsMap[characterKey];
         const result = {
             dialogSource: custom.dialogSource ?? 'avatar_vibrant',
             dialogStatic: custom.dialogStatic ?? '#da6745ff',
@@ -366,7 +397,7 @@ function getSettingsForType(type, info) {
             bubbleStatic1: custom.bubbleStatic1 ?? '#da6745ff',
             bubbleStatic2: custom.bubbleStatic2 ?? '#da6745ff',
         };
-        console.log(`[PTMT] getSettingsForType() using CUSTOM for ${identifier}:`, result);
+        console.log(`[PTMT] getSettingsForType() using CUSTOM for ${characterKey}:`, result);
         return result;
     }
     
