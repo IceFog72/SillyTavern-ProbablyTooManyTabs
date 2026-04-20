@@ -92,6 +92,8 @@ When enabled, additional controls appear:
 
 Tints quoted dialogue text and/or chat bubble backgrounds using each character's avatar colour.
 
+### Global Settings
+
 - **Enable Dialogue Colorizer** — master switch for all colorizer effects.
 - **Colorize Target** — choose what gets tinted:
   - *Quoted Text Only*
@@ -109,6 +111,23 @@ Tints quoted dialogue text and/or chat bubble backgrounds using each character's
 - *Bubble Static Colors (Gradients)* — two colour pickers for the start/end of the gradient.
 
 **Personas (User) sub-section** — same controls as Characters, applied to the user's persona avatar.
+
+### Personal Dialogue Colorizer
+
+Override the global dialogue colorizer settings for individual characters or personas:
+
+- **Character Editor** — At the top of a character's bio section, find the **Character Dialogue Colorizer** panel with a toggle to enable personal settings.
+- **Persona Management** — In the persona selector, find the **Persona Dialogue Colorizer** panel with a toggle to enable personal settings.
+
+When enabled, both provide these controls (in order):
+1. **Colorize Target** — override global target setting
+2. **Dialogue Color Source** — auto-extract or static colour for dialogue
+3. **Dialogue Color Mode** — which dominant colour to use
+4. **Bubble Color Source** — auto-extract or static colour for bubbles
+5. **Bubble Color Mode** — bubble style (1st dominant, 2nd dominant, or gradient)
+6. **Char/User Bubble Opacity** — opacity override for this character or persona
+
+Settings are saved automatically and persist across sessions. Disable the toggle to revert to global settings for that character or persona.
 
 ---
 

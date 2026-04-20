@@ -46,6 +46,15 @@ export class SettingsManager {
         dialogueColorizerDialogColorMode: 1,
         // Bubble color mode: 1 = 1st dominant, 2 = 2nd dominant, 3 = gradient
         dialogueColorizerBubbleColorMode: 3,
+        
+        // Per-character custom colorizer settings
+        charCustomColorizerEnabled: [], // Array of char names with custom colorizer enabled
+        charCustomColorizerSettings: {}, // Object keyed by char name with custom settings
+        
+        // Per-persona custom colorizer settings
+        personaCustomColorizerEnabled: [], // Array of persona filenames with custom colorizer enabled
+        personaCustomColorizerSettings: {}, // Object keyed by persona filename with custom settings
+        
         // Avatar dimensions
         avatarBaseHeight: '14vh',
         avatarBaseWidth: '8vw',

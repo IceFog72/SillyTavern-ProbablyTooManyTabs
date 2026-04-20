@@ -2,6 +2,17 @@
 
 ---
 
+## v0.10.0 — 2026-04-20
+
+*Personal Dialogue Colorizer*
+
+- ✦ New · **Personal Dialogue Colorizer** — per-character and per-persona custom dialogue colorizer settings that override global settings
+- ✦ New · Per-character colorizer UI injected above character bio in character editor
+- ✦ New · Per-persona colorizer UI injected in persona management panel
+- ✔ Fix · Colorizer control order: Colorize Target → Dialogue Color Source → Dialogue Color Mode → Bubble Color Source → Bubble Color Mode → Opacity
+
+---
+
 ## v0.9.9 — 2026-04-19
 
 *Guide Accuracy · Dead Code Cleanup · More Extensions*

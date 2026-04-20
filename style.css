@@ -2135,6 +2135,11 @@ body.ptmt-is-resizing #rm_print_characters_block {
   flex: 1;
 }
 
+.ptmt-char-colorizer-content select {
+  width: unset !important;
+}
+
+
 .ptmt-vs-input-wrapper input[type="checkbox"],
 .ptmt-vs-input-wrapper input[type="radio"] {
   flex: 0 0 auto;
@@ -3276,4 +3281,16 @@ body.ptmt-is-resizing #rm_print_characters_block {
   backdrop-filter: blur(1px);
   -webkit-backdrop-filter: blur(1px);
   transition: left 0.08s, top 0.08s, width 0.08s, height 0.08s;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   CHARACTER & PERSONA COLORIZER UI (using inline-drawer structure)
+   ──────────────────────────────────────────────────────────────────────────── */
+
+/* Content wrapper for character/persona colorizer (placed in inline-drawer-content) */
+.ptmt-char-colorizer-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 0;
 }

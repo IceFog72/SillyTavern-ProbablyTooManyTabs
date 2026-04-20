@@ -271,8 +271,106 @@ function getAvatarFileInfo(message) {
 
 // ─── Settings helpers ─────────────────────────────────────────────────────────
 
-function getSettingsForType(type) {
+/**
+ * Extract identifier from info.uid for custom settings lookup
+ * char:alice -> alice, user:alice.png -> alice.png
+ */
+function extractIdentifierFromUid(uid) {
+    const parts = uid.split(':');
+    return parts.length > 1 ? parts[1] : uid;
+}
+
+/**
+ * Get control settings (target, modes, opacity) for a character/persona
+ * Checks for custom per-character settings first, falls back to global
+ */
+function getColorizerControlSettings(type, info) {
+    if (!info || info.type === 'system') {
+        return {
+            target: settings.get('dialogueColorizerColorizeTarget') ?? 3,
+            dialogMode: settings.get('dialogueColorizerDialogColorMode') ?? 1,
+            bubbleMode: settings.get('dialogueColorizerBubbleColorMode') ?? 3,
+            opacity: type === 'persona' ? (settings.get('dialogueColorizerBubbleOpacityUser') ?? 0.1) : (settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1),
+        };
+    }
+
     const isPersona = type === 'persona';
+    const identifier = extractIdentifierFromUid(info.uid);
+    
+    // Check if this character/persona has custom settings enabled
+    const enabledList = isPersona ? settings.get('personaCustomColorizerEnabled') ?? [] : settings.get('charCustomColorizerEnabled') ?? [];
+    const customSettingsMap = isPersona ? settings.get('personaCustomColorizerSettings') ?? {} : settings.get('charCustomColorizerSettings') ?? {};
+    
+    if (enabledList.includes(identifier) && customSettingsMap[identifier]) {
+        // Use custom settings
+        const custom = customSettingsMap[identifier];
+        console.log(`[PTMT] ✓ Using CUSTOM colorizer for ${type} "${identifier}"`);
+        return {
+            target: custom.colorizeTarget ?? 3,
+            dialogMode: custom.dialogColorMode ?? 1,
+            bubbleMode: custom.bubbleColorMode ?? 3,
+            opacity: custom.bubbleOpacity ?? 0.1,
+        };
+    }
+    
+    // Check if custom settings exist but not enabled (for debugging)
+    if (customSettingsMap[identifier]) {
+        console.log(`[PTMT] ✗ Custom settings exist for ${type} "${identifier}" but NOT in enabled list. Enabled: [${enabledList.join(', ')}]`);
+    } else if (enabledList.length > 0 || Object.keys(customSettingsMap).length > 0) {
+        // Only log mismatch if there ARE custom settings saved (to avoid noise for chars without custom settings)
+        console.log(`[PTMT] DEBUG: Looking for "${identifier}" in enabled="${enabledList.join(', ')}", map keys="${Object.keys(customSettingsMap).join(', ')}"`);
+    }
+    
+    // Fall back to global settings
+    const globalOpacity = isPersona ? (settings.get('dialogueColorizerBubbleOpacityUser') ?? 0.1) : (settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1);
+    return {
+        target: settings.get('dialogueColorizerColorizeTarget') ?? 3,
+        dialogMode: settings.get('dialogueColorizerDialogColorMode') ?? 1,
+        bubbleMode: settings.get('dialogueColorizerBubbleColorMode') ?? 3,
+        opacity: globalOpacity,
+    };
+}
+
+/**
+ * Get colorizer settings for a specific character/persona/system.
+ * Checks for custom per-char/persona settings first, falls back to global.
+ */
+function getSettingsForType(type, info) {
+    if (!info || info.type === 'system') {
+        // System messages always use global settings
+        const isPersona = false;
+        const prefix = isPersona ? 'dialogueColorizerPersona' : 'dialogueColorizer';
+        return {
+            dialogSource: settings.get(`${prefix}Source`),
+            dialogStatic: settings.get(`${prefix}StaticColor`),
+            bubbleSource: settings.get(`${prefix}BubbleSource`),
+            bubbleStatic1: settings.get(`${prefix}BubbleStaticColor1`),
+            bubbleStatic2: settings.get(`${prefix}BubbleStaticColor2`),
+        };
+    }
+
+    const isPersona = type === 'persona';
+    const identifier = extractIdentifierFromUid(info.uid);
+    
+    // Check if this character/persona has custom settings enabled
+    const enabledList = isPersona ? settings.get('personaCustomColorizerEnabled') ?? [] : settings.get('charCustomColorizerEnabled') ?? [];
+    const customSettingsMap = isPersona ? settings.get('personaCustomColorizerSettings') ?? {} : settings.get('charCustomColorizerSettings') ?? {};
+    
+    if (enabledList.includes(identifier) && customSettingsMap[identifier]) {
+        // Use custom settings
+        const custom = customSettingsMap[identifier];
+        const result = {
+            dialogSource: custom.dialogSource ?? 'avatar_vibrant',
+            dialogStatic: custom.dialogStatic ?? '#da6745ff',
+            bubbleSource: custom.bubbleSource ?? 'avatar_vibrant',
+            bubbleStatic1: custom.bubbleStatic1 ?? '#da6745ff',
+            bubbleStatic2: custom.bubbleStatic2 ?? '#da6745ff',
+        };
+        console.log(`[PTMT] getSettingsForType() using CUSTOM for ${identifier}:`, result);
+        return result;
+    }
+    
+    // Fall back to global settings
     const prefix = isPersona ? 'dialogueColorizerPersona' : 'dialogueColorizer';
     return {
         dialogSource: settings.get(`${prefix}Source`),
@@ -290,7 +388,7 @@ async function getCharacterColor(info) {
     if (extractionPromises.has(info.uid)) return extractionPromises.get(info.uid);
 
     const promise = (async () => {
-        const s = getSettingsForType(info.type);
+        const s = getSettingsForType(info.type, info);
         // Extract if it's a valid character/persona and we actually need extracted colors
         const needsExtraction = info.type !== 'system' && (s.dialogSource === 'avatar_vibrant' || s.bubbleSource === 'avatar_vibrant');
 
@@ -358,20 +456,21 @@ async function getCharacterColor(info) {
 
 // ─── CSS generation ───────────────────────────────────────────────────────────
 
-function buildCssRules(safeUid, extractedColors, type) {
-    const s = getSettingsForType(type);
-    const target = settings.get('dialogueColorizerColorizeTarget') ?? 1;
-    const opacityKey = type === 'persona' ? 'dialogueColorizerBubbleOpacityUser' : 'dialogueColorizerBubbleOpacityBot';
-    const opacity = settings.get(opacityKey) ?? 0.1;
+function buildCssRules(safeUid, extractedColors, info) {
+    const s = getSettingsForType(info.type, info);
+    const controls = getColorizerControlSettings(info.type, info);
+    const target = controls.target;
+    const opacity = controls.opacity;
     let css = '';
 
-    const dialogMode = settings.get('dialogueColorizerDialogColorMode') ?? 1;
-    const bubbleMode = settings.get('dialogueColorizerBubbleColorMode') ?? 3;
+    const dialogMode = controls.dialogMode;
+    const bubbleMode = controls.bubbleMode;
 
     // 1. Resolve Dialogue Color
     let dialogColor;
     if (s.dialogSource === 'static_color') {
         dialogColor = s.dialogStatic;
+        console.log(`[PTMT] buildCssRules() using STATIC dialogue color: ${dialogColor}`);
     } else {
         const prim = extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
         const sec = extractedColors[1] || prim;
@@ -383,6 +482,7 @@ function buildCssRules(safeUid, extractedColors, type) {
     if (s.bubbleSource === 'static_color') {
         bPrim = s.bubbleStatic1;
         bSec = s.bubbleStatic2;
+        console.log(`[PTMT] buildCssRules() using STATIC bubble colors: ${bPrim}, ${bSec}`);
     } else {
         bPrim = extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
         bSec = extractedColors[1] || bPrim;
@@ -484,7 +584,7 @@ async function updateStyles() {
 
     const results = await Promise.all(Array.from(uidsInDom.values()).map(async info => {
         const colors = await getCharacterColor(info);
-        const rule = buildCssRules(info.uid.replace(/\W/g, '_'), colors, info.type);
+        const rule = buildCssRules(info.uid.replace(/\W/g, '_'), colors, info);
         return { info, rule };
     }));
 
@@ -567,6 +667,21 @@ export function initColorizer() {
             }
             updateStyles();
         }
+    });
+
+    // Listen for custom colorizer refresh event from character UI
+    window.addEventListener('ptmt:colorizer:refresh', (e) => {
+        const fullRefresh = e.detail?.fullRefresh !== false;  // Default to full refresh
+        if (fullRefresh) {
+            // Full refresh: clear caches, re-extract colors
+            colorCache.clear();
+            extractionPromises.clear();
+            console.log(`[PTMT] Full colorizer refresh (clearing caches)`);
+        } else {
+            // Partial refresh: keep caches, just regenerate CSS with new settings
+            console.log(`[PTMT] Partial colorizer refresh (keeping color cache)`);
+        }
+        updateStyles();
     });
 }
 

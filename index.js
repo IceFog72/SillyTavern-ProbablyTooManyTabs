@@ -28,6 +28,7 @@ import { positionAnchor } from './positionAnchor.js';
 import { initStatusBar } from './context-status-bar.js';
 import { themeEngine } from './theme-engine.js';
 import { initColorizer } from './dialogue-colorizer.js';
+import { initCharacterColorizerUI } from './character-colorizer-ui.js';
 import { initAvatarExpressionSync } from './avatar-expression-sync.js';
 import { initInspectorScaleControl, cleanupInspectorScaleControl } from './ui-injection.js';
 
@@ -38,6 +39,7 @@ function initSubsystems() {
     initStatusBar();
     themeEngine.init();
     initColorizer();
+    initCharacterColorizerUI();
     initAvatarExpressionSync();
     initInspectorScaleControl();
     createLayoutIfMissing();
