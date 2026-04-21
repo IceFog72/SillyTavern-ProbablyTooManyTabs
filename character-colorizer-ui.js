@@ -75,7 +75,7 @@ function createPersonalColorizerUI(isPersona = false) {
     const headerDiv = el('div', { className: 'inline-drawer-toggle inline-drawer-header padding0 gap5px standoutHeader' });
     const titleDiv = el('div', { className: 'title_restorable flexGap5 wide100p' });
     const titleSpan = el('span', { className: 'flex1' }, title);
-    const toggleIcon = el('div', { className: 'inline-drawer-icon fa-solid interactable up fa-circle-chevron-up', tabindex: '0', role: 'button' });
+    const toggleIcon = el('div', { className: 'inline-drawer-icon fa-solid interactable up fa-circle-chevron-down', tabindex: '0', role: 'button' });
 
     titleDiv.appendChild(titleSpan);
     headerDiv.appendChild(titleDiv);
@@ -236,13 +236,13 @@ let isUpdatingPersonaSettings = false;
 
 function updatePersonalColorizerEnableState() {
     const globalEnabled = settings.get('enableDialogueColorizer');
-    
+
     if (charColorizerUI?.container) {
         charColorizerUI.container.style.opacity = globalEnabled ? '1' : '0.5';
         charColorizerUI.container.style.pointerEvents = globalEnabled ? 'auto' : 'none';
         charColorizerUI.enableCheckbox.disabled = !globalEnabled;
     }
-    
+
     if (personaColorizerUI?.container) {
         personaColorizerUI.container.style.opacity = globalEnabled ? '1' : '0.5';
         personaColorizerUI.container.style.pointerEvents = globalEnabled ? 'auto' : 'none';
@@ -318,7 +318,7 @@ function initCharacterColorizer() {
     eventSource.on(event_types.CHARACTER_EDITOR_OPENED, () => {
         loadCharacterSettings();
     });
-    
+
     // Update UI when global dialogue colorizer enable state changes
     window.addEventListener('ptmt:settingsChanged', (e) => {
         const changed = e.detail?.changed || [];
@@ -326,7 +326,7 @@ function initCharacterColorizer() {
             updatePersonalColorizerEnableState();
         }
     });
-    
+
     // Set initial state
     updatePersonalColorizerEnableState();
 }
@@ -391,7 +391,7 @@ function loadCharacterSettings() {
     charColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
     charColorizerUI.dialogModeSelect.value = String(customSettings.dialogColorMode ?? 1);
     charColorizerUI.bubbleModeSelect.value = String(customSettings.bubbleColorMode ?? 3);
-    
+
     const opacityValue = customSettings.bubbleOpacity ?? 0.1;
     charColorizerUI.opacitySlider.value = opacityValue.toString();
     const opacityDisplay = charColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
@@ -402,7 +402,7 @@ function loadCharacterSettings() {
     // Sync visibility
     charColorizerUI.dialogStaticRow.style.display = charColorizerUI.dialogSrcSelect.value === 'static_color' ? 'flex' : 'none';
     charColorizerUI.bubbleStaticRow.style.display = charColorizerUI.bubbleSrcSelect.value === 'static_color' ? 'flex' : 'none';
-    
+
     // Ensure UI reflects global enable state
     updatePersonalColorizerEnableState();
 }
@@ -413,7 +413,7 @@ function loadCharacterSettings() {
  */
 function updateCharacterSettings() {
     if (isUpdatingCharSettings) return; // Guard against recursion
-    
+
     if (!charColorizerUI || !currentCharacterId || !currentAvatarFilename) return;
 
     isUpdatingCharSettings = true;
@@ -427,7 +427,7 @@ function updateCharacterSettings() {
             if (!enabledList.includes(currentCharacterId)) {
                 enabledList.push(currentCharacterId);
             }
-            
+
             // Get existing settings for this character (if any)
             const oldSettings = customSettingsMap[currentCharacterId] || {
                 dialogSource: 'avatar_vibrant',
@@ -440,7 +440,7 @@ function updateCharacterSettings() {
                 bubbleColorMode: 3,
                 bubbleOpacity: 0.1,
             };
-            
+
             // Build new settings, only updating fields that may have changed
             // Colors only update if explicitly changed by color picker events (via latest* vars)
             const newSettings = {
@@ -456,25 +456,25 @@ function updateCharacterSettings() {
             };
 
             // Detect what actually changed
-            const colorSourceChanged = 
+            const colorSourceChanged =
                 oldSettings.dialogSource !== newSettings.dialogSource ||
                 oldSettings.bubbleSource !== newSettings.bubbleSource ||
                 oldSettings.dialogStatic !== newSettings.dialogStatic ||
                 oldSettings.bubbleStatic1 !== newSettings.bubbleStatic1 ||
                 oldSettings.bubbleStatic2 !== newSettings.bubbleStatic2;
-            
-            const colorModeChanged = 
+
+            const colorModeChanged =
                 oldSettings.dialogColorMode !== newSettings.dialogColorMode ||
                 oldSettings.bubbleColorMode !== newSettings.bubbleColorMode;
-            
+
             const targetChanged = oldSettings.colorizeTarget !== newSettings.colorizeTarget;
             const opacityChanged = oldSettings.bubbleOpacity !== newSettings.bubbleOpacity;
-            
+
             // Only log/save if something actually changed
             if (colorSourceChanged || colorModeChanged || targetChanged || opacityChanged) {
                 console.log(`[PTMT] ✓ Saving character "${currentCharacterId}" colorizer settings:`, newSettings);
                 customSettingsMap[currentCharacterId] = newSettings;
-                
+
                 settings.update({
                     charCustomColorizerEnabled: enabledList,
                     charCustomColorizerSettings: customSettingsMap,
@@ -579,7 +579,7 @@ function initPersonaColorizer() {
     eventSource.on(event_types.PERSONA_CHANGED, () => {
         loadPersonaSettings();
     });
-    
+
     // Update UI when global dialogue colorizer enable state changes
     window.addEventListener('ptmt:settingsChanged', (e) => {
         const changed = e.detail?.changed || [];
@@ -587,7 +587,7 @@ function initPersonaColorizer() {
             updatePersonalColorizerEnableState();
         }
     });
-    
+
     // Set initial state
     updatePersonalColorizerEnableState();
 }
@@ -643,7 +643,7 @@ function loadPersonaSettings() {
     personaColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
     personaColorizerUI.dialogModeSelect.value = String(customSettings.dialogColorMode ?? 1);
     personaColorizerUI.bubbleModeSelect.value = String(customSettings.bubbleColorMode ?? 3);
-    
+
     const opacityValue = customSettings.bubbleOpacity ?? 0.1;
     personaColorizerUI.opacitySlider.value = opacityValue.toString();
     const opacityDisplay = personaColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
@@ -654,7 +654,7 @@ function loadPersonaSettings() {
     // Sync visibility
     personaColorizerUI.dialogStaticRow.style.display = personaColorizerUI.dialogSrcSelect.value === 'static_color' ? 'flex' : 'none';
     personaColorizerUI.bubbleStaticRow.style.display = personaColorizerUI.bubbleSrcSelect.value === 'static_color' ? 'flex' : 'none';
-    
+
     // Ensure UI reflects global enable state
     updatePersonalColorizerEnableState();
 }
@@ -665,7 +665,7 @@ function loadPersonaSettings() {
  */
 function updatePersonaSettings() {
     if (isUpdatingPersonaSettings) return; // Guard against recursion
-    
+
     if (!personaColorizerUI) return;
 
     isUpdatingPersonaSettings = true;
@@ -690,7 +690,7 @@ function updatePersonaSettings() {
             if (!enabledList.includes(cleanFileName)) {
                 enabledList.push(cleanFileName);
             }
-            
+
             // Get existing settings for this persona (if any)
             const oldSettings = customSettingsMap[cleanFileName] || {
                 dialogSource: 'avatar_vibrant',
@@ -703,7 +703,7 @@ function updatePersonaSettings() {
                 bubbleColorMode: 3,
                 bubbleOpacity: 0.1,
             };
-            
+
             // Build new settings, only updating fields that may have changed
             const newSettings = {
                 dialogSource: personaColorizerUI.dialogSrcSelect.value,
@@ -718,25 +718,25 @@ function updatePersonaSettings() {
             };
 
             // Detect what actually changed
-            const colorSourceChanged = 
+            const colorSourceChanged =
                 oldSettings.dialogSource !== newSettings.dialogSource ||
                 oldSettings.bubbleSource !== newSettings.bubbleSource ||
                 oldSettings.dialogStatic !== newSettings.dialogStatic ||
                 oldSettings.bubbleStatic1 !== newSettings.bubbleStatic1 ||
                 oldSettings.bubbleStatic2 !== newSettings.bubbleStatic2;
-            
-            const colorModeChanged = 
+
+            const colorModeChanged =
                 oldSettings.dialogColorMode !== newSettings.dialogColorMode ||
                 oldSettings.bubbleColorMode !== newSettings.bubbleColorMode;
-            
+
             const targetChanged = oldSettings.colorizeTarget !== newSettings.colorizeTarget;
             const opacityChanged = oldSettings.bubbleOpacity !== newSettings.bubbleOpacity;
-            
+
             // Only log/save if something actually changed
             if (colorSourceChanged || colorModeChanged || targetChanged || opacityChanged) {
                 console.log(`[PTMT] ✓ Saving persona "${cleanFileName}" colorizer settings:`, newSettings);
                 customSettingsMap[cleanFileName] = newSettings;
-                
+
                 settings.update({
                     personaCustomColorizerEnabled: enabledList,
                     personaCustomColorizerSettings: customSettingsMap,

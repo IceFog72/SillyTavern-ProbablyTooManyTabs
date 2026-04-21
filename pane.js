@@ -558,7 +558,7 @@ function normalizeLiftedElement(el) {
       console.warn('[PTMT] Failed to clear flex style on element:', e);
     }
   } catch (e) {
-    console.warn('normalizeLiftedElement error', e);
+    console.warn('[PTMT] normalizeLiftedElement error', e);
   }
 }
 
@@ -579,7 +579,7 @@ export function checkAndCollapsePaneIfAllTabsCollapsed(pane) {
 
     window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED, { detail: { reason: 'paneCollapsed', pane } }));
   } catch (e) {
-    console.warn('checkAndCollapsePaneIfAllTabsCollapsed error:', e);
+    console.warn('[PTMT] checkAndCollapsePaneIfAllTabsCollapsed error:', e);
   }
 }
 
@@ -664,7 +664,7 @@ export function openViewSettingsDialog(pane) {
       const originalHTML = copyIdBtn.innerHTML;
       copyIdBtn.innerHTML = '<i class="fa-solid fa-check"></i>';
       setTimeout(() => copyIdBtn.innerHTML = originalHTML, 1500);
-    }).catch(err => console.warn('Failed to copy:', err));
+    }).catch(err => console.warn('[PTMT] Failed to copy:', err));
   });
   const idSection = el('div', { className: 'ptmt-vs-id-section' },
     el('div', { className: 'ptmt-vs-label' }, 'Internal ID'),

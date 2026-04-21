@@ -20,7 +20,6 @@ import {
     setActivePanelInPane, setTabCollapsed, getActivePane,
 } from './tabs.js';
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, validateAndCorrectAllMinSizes, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
-import { recalculateAllSplitsRecursively } from './layout-math.js';
 import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver, moveBg1ToSheld, moveBg1BackToPtmtMain } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';

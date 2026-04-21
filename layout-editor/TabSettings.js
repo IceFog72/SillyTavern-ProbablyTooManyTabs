@@ -53,17 +53,17 @@ export function openTabSettingsDialog(manager, sourceId, tabElement, tabRow, isP
     });
 
     const colorValue = (currentColor && currentColor.length >= 7) ? currentColor : '#000000';
-    
+
     // Ensure toolcool-color-picker script is loaded
     if (typeof customElements !== 'undefined' && !customElements.get('toolcool-color-picker')) {
         const script = document.createElement('script');
         script.src = '/lib/toolcool-color-picker.js';
         document.head.appendChild(script);
     }
-    
+
     // Track current color value for save/reset operations
     let currentColorValue = colorValue;
-    
+
     // Create toolcool-color-picker with base attributes
     const colorInput = el('toolcool-color-picker', {
         id: 'ptmt-ts-color',
@@ -71,7 +71,7 @@ export function openTabSettingsDialog(manager, sourceId, tabElement, tabRow, isP
         'button-width': '40px',
         'button-height': '32px'
     });
-    
+
     // Explicitly set color attribute for proper initialization
     colorInput.setAttribute('color', colorValue);
 
@@ -150,7 +150,7 @@ export function openTabSettingsDialog(manager, sourceId, tabElement, tabRow, isP
         navigator.clipboard.writeText(sourceId).then(() => {
             copyBtn.textContent = '✓';
             setTimeout(() => copyBtn.textContent = '📋', 1500);
-        }).catch(err => console.warn('Failed to copy:', err));
+        }).catch(err => console.warn('[PTMT] Failed to copy:', err));
     });
 
     // Setup icon button
@@ -171,7 +171,7 @@ export function openTabSettingsDialog(manager, sourceId, tabElement, tabRow, isP
         colorReset = true;
         colorResetBtn.style.opacity = '0.5';
     });
-    
+
     // Capture color when color picker change finalizes
     colorInput.addEventListener('change', (evt) => {
         colorReset = false;
@@ -179,7 +179,7 @@ export function openTabSettingsDialog(manager, sourceId, tabElement, tabRow, isP
         // Get color from event details (hex8 for RGBA or hex for RGB)
         currentColorValue = evt.detail?.hex8 || evt.detail?.hex || currentColorValue;
     });
-    
+
     // Ensure toolcool-color-picker popup escapes dialog scrolling
     // Watch for popup creation and reposition it as fixed
     const observePopup = () => {
@@ -189,7 +189,7 @@ export function openTabSettingsDialog(manager, sourceId, tabElement, tabRow, isP
             popup.style.zIndex = '20001';
         }
     };
-    
+
     colorInput.addEventListener('click', () => setTimeout(observePopup, 50));
 
     // Setup save/cancel handlers

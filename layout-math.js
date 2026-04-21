@@ -108,15 +108,15 @@ export function recalculateAllSplitsRecursively(root = null) {
         if (!root) return;
         const splits = Array.from(root.querySelectorAll(SELECTORS.SPLIT));
         splits.sort((a, b) => getElementDepth(a) - getElementDepth(b));
-        
+
         // Batch-read all bounding rects once before processing
         const cache = buildMeasurementCache(root);
-        
+
         for (const split of splits) {
             recalculateSplitSizes(split, null, cache);
         }
     } catch (e) {
-        console.warn('recalculateAllSplitsRecursively error:', e);
+        console.warn('[PTMT] recalculateAllSplitsRecursively error:', e);
     }
 }
 
@@ -128,11 +128,11 @@ export function recalculateAllSplitsRecursively(root = null) {
 export function recalculateMultipleSubtreesOptimized(roots) {
     try {
         if (!roots || roots.length === 0) return;
-        
+
         // Collect all splits from all roots in a single pass
         const allSplits = new Set();
         const cache = new Map();
-        
+
         for (const root of roots) {
             if (!root) continue;
             const splits = Array.from(root.querySelectorAll(SELECTORS.SPLIT));
@@ -143,7 +143,7 @@ export function recalculateMultipleSubtreesOptimized(roots) {
                 }
             }
         }
-        
+
         // Sort and recalculate with shared cache
         const sortedSplits = Array.from(allSplits).sort((a, b) => getElementDepth(a) - getElementDepth(b));
         for (const split of sortedSplits) {
@@ -207,7 +207,7 @@ function _recalculateSplitSizesImpl(split, actor = null, cache = null) {
 
     const isHorizontal = split.classList.contains('horizontal');
     const sizeProp = isHorizontal ? 'height' : 'width';
-    
+
     // Use cached rect if available, otherwise read from DOM
     const splitRect = cache?.get(split) || split.getBoundingClientRect();
     const totalAvailableSize = splitRect[sizeProp];

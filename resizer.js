@@ -412,7 +412,7 @@ export function updateResizerDisabledStates() {
             r.classList.toggle('disabled', disabled);
         });
     } catch (e) {
-        console.warn("Error updating resizer states:", e);
+        console.warn("[PTMT] Error updating resizer states:", e);
     }
 }
 
