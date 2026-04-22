@@ -25,7 +25,7 @@ import { createInfoPanel, PTMT_INFO_PANEL_ID, PTMT_INFO_CURRENT_VERSION } from '
 /** @typedef {import('./types.js').HiddenTab} HiddenTab */
 
 const SNAPSHOT_VERSION = 15;      // Minimum supported version
-const SNAPSHOT_CURRENT_VERSION = 18; // Version written by generateLayoutSnapshot
+const SNAPSHOT_CURRENT_VERSION = 19; // Version written by generateLayoutSnapshot
 
 // ─── Snapshot Migration Registry ─────────────────────────────────────────────
 // Each key is a source version; the value migrates that version to (key + 1).
@@ -104,6 +104,13 @@ const SNAPSHOT_MIGRATIONS = {
         }
 
         snap.version = 18;
+        return snap;
+    },
+    18: (snap) => {
+        // v18→v19: Update panel mapping titles (Navigation → API Sliders, Inspector → Characters)
+        // This migration is documented but doesn't modify the snapshot structure.
+        // The actual title updates happen in settings.js initializeSettings() for backward compatibility.
+        snap.version = 19;
         return snap;
     },
 };

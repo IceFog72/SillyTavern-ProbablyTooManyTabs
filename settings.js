@@ -73,8 +73,8 @@ export class SettingsManager {
         lastSeenVersion: null,
 
         panelMappings: [
-            { id: 'left-nav-panel', title: 'Navigation', icon: 'fa-compass' },
-            { id: 'right-nav-panel', title: 'Inspector', icon: 'fa-magnifying-glass' },
+            { id: 'left-nav-panel', title: 'API Sliders', icon: 'fa-compass' },
+            { id: 'right-nav-panel', title: 'Characters', icon: 'fa-magnifying-glass' },
             { id: 'expression-wrapper', title: 'Expression', icon: 'fa-face-smile' },
             { id: 'expression-plus-wrapper', title: 'Expression Plus', icon: 'fa-face-meh' },
             { id: 'AdvancedFormatting', title: 'Adv. Formatting', icon: 'fa-wand-magic-sparkles' },
@@ -114,7 +114,7 @@ export class SettingsManager {
         savedLayoutMobile: null,
 
         defaultLayout: {
-            version: 18,
+            version: 19,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],
@@ -230,7 +230,7 @@ export class SettingsManager {
         uiTheme: 'sharp',
 
         mobileLayout: {
-            version: 18,
+            version: 19,
             showLeft: false,
             showRight: false,
             hiddenTabs: [],
@@ -509,6 +509,17 @@ export class SettingsManager {
         defaultMappings.forEach(defM => {
             if (!mergedMappings.some(m => m.id === defM.id)) {
                 mergedMappings.push(defM);
+            }
+        });
+
+        // Migration: Update old panel mapping titles for existing users
+        // v18→v19: 'Navigation' → 'API Sliders', 'Inspector' → 'Characters'
+        mergedMappings.forEach(mapping => {
+            if (mapping.id === 'left-nav-panel' && mapping.title === 'Navigation') {
+                mapping.title = 'API Sliders';
+            }
+            if (mapping.id === 'right-nav-panel' && mapping.title === 'Inspector') {
+                mapping.title = 'Characters';
             }
         });
 
