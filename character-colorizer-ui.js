@@ -75,7 +75,7 @@ function createPersonalColorizerUI(isPersona = false) {
     const headerDiv = el('div', { className: 'inline-drawer-toggle inline-drawer-header padding0 gap5px standoutHeader' });
     const titleDiv = el('div', { className: 'title_restorable flexGap5 wide100p' });
     const titleSpan = el('span', { className: 'flex1' }, title);
-    const toggleIcon = el('div', { className: 'inline-drawer-icon fa-solid interactable up fa-circle-chevron-down', tabindex: '0', role: 'button' });
+    const toggleIcon = el('div', { className: 'inline-drawer-icon fa-solid interactable down fa-circle-chevron-down', tabindex: '0', role: 'button' });
 
     titleDiv.appendChild(titleSpan);
     headerDiv.appendChild(titleDiv);
