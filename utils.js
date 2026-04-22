@@ -145,7 +145,7 @@ export function createIconElement(icon, className = 'ptmt-tab-icon') {
     iconEl.className = className;
     if (icon.startsWith('fa-')) {
         iconEl.classList.add('fa-solid');
-        iconEl.classList.add(icon);
+        iconEl.classList.add(...icon.split(' '));
     } else {
         iconEl.textContent = icon;
     }

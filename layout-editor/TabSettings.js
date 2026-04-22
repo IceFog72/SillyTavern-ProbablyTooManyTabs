@@ -202,7 +202,8 @@ export function openTabSettingsDialog(manager, sourceId, tabElement, tabRow, isP
             const updatedMappings = manager.settings.get('panelMappings').slice();
             let m = updatedMappings.find(item => item.id === sourceId);
             if (!m) {
-                m = { id: sourceId, title: newTitle, color: newColor };
+                // Preserve icon and other properties from the current mapping when creating a new entry
+                m = { ...mapping, id: sourceId, title: newTitle, color: newColor };
                 updatedMappings.push(m);
             } else {
                 m.title = newTitle;

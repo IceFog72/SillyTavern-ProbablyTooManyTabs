@@ -124,7 +124,7 @@ function hydrateTab(tabInfo, foundElement) {
 
     createTabFromContent(foundElement, {
         title: tabInfo.title || mapping.title,
-        icon: tabInfo.icon || mapping.icon || 'fa-tab',
+        icon: tabInfo.icon || mapping.icon || 'fa-layer-group',
         makeActive: true, // Always auto-open per user request
         collapsed: false, // Ensure it's not collapsed
         sourceId: identifier,

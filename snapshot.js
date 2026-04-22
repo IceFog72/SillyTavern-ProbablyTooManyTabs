@@ -107,9 +107,31 @@ const SNAPSHOT_MIGRATIONS = {
         return snap;
     },
     18: (snap) => {
-        // v18→v19: Update panel mapping titles (Navigation → API Sliders, Inspector → Characters)
-        // This migration is documented but doesn't modify the snapshot structure.
-        // The actual title updates happen in settings.js initializeSettings() for backward compatibility.
+        // v18→v19: Update panel mapping titles inside the snapshot tabs
+        const updateTabs = (node) => {
+            if (!node) return;
+            if (node.type === 'pane' && node.tabs) {
+                node.tabs.forEach(t => {
+                    if (t.sourceId === 'left-nav-panel') {
+                        if (t.title === 'Navigation') t.title = 'API Sliders';
+                        if (!t.icon || t.icon === 'fa-sliders') t.icon = 'fa-compass';
+                    }
+                    if (t.sourceId === 'right-nav-panel') {
+                        if (t.title === 'Inspector') t.title = 'Characters';
+                        if (!t.icon || t.icon === 'fa-search') t.icon = 'fa-magnifying-glass';
+                    }
+                });
+            } else if (node.type === 'split' && node.children) {
+                node.children.forEach(updateTabs);
+            }
+        };
+
+        for (const col of ['left', 'center', 'right']) {
+            if (snap.columns?.[col]?.content) {
+                updateTabs(snap.columns[col].content);
+            }
+        }
+        
         snap.version = 19;
         return snap;
     },
@@ -563,7 +585,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
                 if (t.sourceId) {
                     const mapping = settings.getMapping(t.sourceId);
-                    const iconToUse = t.icon || mapping.icon || 'fa-tab';
+                    const iconToUse = t.icon || mapping.icon || 'fa-layer-group';
                     panel = createTabFromContent(t.sourceId, {
                         title: t.title || mapping.title,
                         icon: iconToUse,

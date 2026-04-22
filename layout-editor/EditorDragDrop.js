@@ -22,8 +22,19 @@ export function handleDragStart(manager, e, pid) {
         try {
             e.dataTransfer.setData('text/plain', pid || draggedElement.dataset.sourceId || '');
         } catch (err) {}
+        
+        try {
+            const g = draggedElement.cloneNode(true);
+            g.classList.add('ptmt-drag-image-hide');
+            document.body.appendChild(g);
+            e.dataTransfer.setDragImage(g, 10, 10);
+            setTimeout(() => g.remove(), 60);
+        } catch (err) {
+            console.warn('[PTMT] Failed to set drag image:', err);
+        }
     }
-    setTimeout(() => draggedElement.classList.add('dragging'), 0);
+    // Add dragging class synchronously for immediate visual feedback
+    draggedElement.classList.add('dragging');
 }
 
 export function handleDragOver(manager, e) {
@@ -64,16 +75,22 @@ export function handleDragOver(manager, e) {
     e.dataTransfer.dropEffect = 'move';
     const target = e.target.closest('.ptmt-editor-tab');
 
-    if (target) {
+    // Always remove indicator from its current parent before repositioning
+    const indicatorParent = manager.indicator.parentElement;
+    if (target && target !== manager.indicator) {
         const rect = target.getBoundingClientRect();
         const isAfter = e.clientY > rect.top + rect.height / 2;
         if (isAfter) {
-            if (target.nextSibling !== manager.indicator) target.after(manager.indicator);
+            target.after(manager.indicator);
         } else {
-            if (target.previousSibling !== manager.indicator) target.before(manager.indicator);
+            target.before(manager.indicator);
         }
-    } else {
-        if (container.lastChild !== manager.indicator) container.appendChild(manager.indicator);
+    } else if (!target) {
+        // No specific target, append to container
+        // Only append if indicator is not already at the end
+        if (manager.indicator.parentElement !== container) {
+            container.appendChild(manager.indicator);
+        }
     }
 }
 
@@ -361,6 +378,13 @@ export function handleTouchMove(manager, e) {
     manager.touchDragGhost.style.left = `${touch.clientX - manager.touchDragGhost.offsetWidth / 2}px`;
     manager.touchDragGhost.style.top = `${touch.clientY - manager.touchDragGhost.offsetHeight / 2}px`;
 
+    // Debounce elementFromPoint by only processing if touch moved significantly
+    if (!manager.lastTouchCoords) manager.lastTouchCoords = { x: touch.clientX, y: touch.clientY };
+    const dx = Math.abs(touch.clientX - manager.lastTouchCoords.x);
+    const dy = Math.abs(touch.clientY - manager.lastTouchCoords.y);
+    if (dx < 5 && dy < 5) return; // Only update if moved more than 5px
+    
+    manager.lastTouchCoords = { x: touch.clientX, y: touch.clientY };
     const elUnder = document.elementFromPoint(touch.clientX, touch.clientY);
     if (!elUnder) return;
 
@@ -383,6 +407,7 @@ export function handleTouchEnd(manager, e) {
         }
         manager.touchDragGhost.remove();
         manager.touchDragGhost = null;
+        manager.lastTouchCoords = null; // Clear debounce state
         manager.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
         clearDropIndicators(manager.rootElement);
     }

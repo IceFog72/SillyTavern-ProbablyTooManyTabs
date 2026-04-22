@@ -512,14 +512,24 @@ export class SettingsManager {
             }
         });
 
-        // Migration: Update old panel mapping titles for existing users
-        // v18→v19: 'Navigation' → 'API Sliders', 'Inspector' → 'Characters'
+        // Migration: Update old panel mapping titles and icons for existing users
+        // v18→v19: 'Navigation' → 'API Sliders' (fa-compass), 'Inspector' → 'Characters' (fa-magnifying-glass)
         mergedMappings.forEach(mapping => {
-            if (mapping.id === 'left-nav-panel' && mapping.title === 'Navigation') {
-                mapping.title = 'API Sliders';
+            if (mapping.id === 'left-nav-panel') {
+                if (mapping.title === 'Navigation') {
+                    mapping.title = 'API Sliders';
+                }
+                if (!mapping.icon || mapping.icon === 'fa-sliders') {
+                    mapping.icon = 'fa-compass';
+                }
             }
-            if (mapping.id === 'right-nav-panel' && mapping.title === 'Inspector') {
-                mapping.title = 'Characters';
+            if (mapping.id === 'right-nav-panel') {
+                if (mapping.title === 'Inspector') {
+                    mapping.title = 'Characters';
+                }
+                if (!mapping.icon || mapping.icon === 'fa-search') {
+                    mapping.icon = 'fa-magnifying-glass';
+                }
             }
         });
 
@@ -558,7 +568,8 @@ export class SettingsManager {
      */
     getMapping(sourceId) {
         if (!sourceId) return {};
-        return (this.get('panelMappings') || []).find(m => m.id === sourceId) || {};
+        const lookupId = sourceId.startsWith('id:') ? sourceId.substring(3) : sourceId.startsWith('class:') ? sourceId.substring(6) : sourceId;
+        return (this.get('panelMappings') || []).find(m => m.id === lookupId || m.id === sourceId) || {};
     }
 
     async update(newSettings, force = false) {

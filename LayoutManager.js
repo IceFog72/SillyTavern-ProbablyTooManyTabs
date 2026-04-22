@@ -39,16 +39,21 @@ export class LayoutManager {
 
     updateIconBtn(btn, iconName) {
         if (!btn) return;
-        if (iconName.startsWith('fa-')) {
-            btn.innerHTML = `<i class="fa-solid ${iconName}"></i>`;
-        } else {
-            btn.textContent = iconName || '';
+        btn.innerHTML = '';
+        if (iconName) {
+            const iconEl = createIconElement(iconName);
+            if (iconEl) {
+                btn.appendChild(iconEl);
+                return;
+            }
         }
+        btn.textContent = iconName || '';
     }
 
     saveIconToMapping(sourceId, tabElement, iconName) {
         const mappings = this.settings.get('panelMappings').slice();
-        const mapping = mappings.find(m => m.id === sourceId);
+        const lookupId = sourceId.startsWith('id:') ? sourceId.substring(3) : sourceId.startsWith('class:') ? sourceId.substring(6) : sourceId;
+        const mapping = mappings.find(m => m.id === lookupId || m.id === sourceId);
         if (mapping) {
             mapping.icon = iconName;
             this.debouncedSettingsUpdate(mappings);
@@ -62,7 +67,7 @@ export class LayoutManager {
                 } else {
                     iconEl.className = SELECTORS.TAB_ICON.substring(1);
                     if (iconName.startsWith('fa-')) {
-                        iconEl.classList.add('fa-solid', iconName);
+                        iconEl.classList.add('fa-solid', ...iconName.split(' '));
                         iconEl.textContent = '';
                     } else {
                         iconEl.textContent = iconName;

@@ -164,11 +164,7 @@ function renderTab(manager, tabElement, paneElement) {
     });
 
     const currentIcon = mapping.icon || '';
-    if (currentIcon.startsWith('fa-')) {
-        iconBtn.innerHTML = `<i class="fa-solid ${currentIcon}"></i>`;
-    } else {
-        iconBtn.textContent = currentIcon || '';
-    }
+    manager.updateIconBtn(iconBtn, currentIcon);
 
     iconBtn.addEventListener('click', (e) => {
         e.stopPropagation();
@@ -326,11 +322,11 @@ function renderPendingTab(manager, tabInfo) {
         'data-is-pending': 'true',
         'data-is-active': (tabInfo.active === true).toString(),
         'data-is-collapsed': (tabInfo.collapsed === true).toString(),
-        'data-pane-id': tabInfo.paneId || ''
+        'data-pane-id': tabInfo.paneId || '',
+        'data-source-id': sourceId
     });
     container.dataset.searchId = tabInfo.searchId || '';
     container.dataset.searchClass = tabInfo.searchClass || '';
-    container.dataset.sourceId = sourceId;
 
     const handle = el('span', { className: 'ptmt-drag-handle', title: 'Drag to reorder or move' }, '☰');
     const bg = el('div', { className: 'ptmt-tab-bg', style: color ? { backgroundColor: hexToRgba(color) } : {} });
