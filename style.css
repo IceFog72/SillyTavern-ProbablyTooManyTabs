@@ -1374,6 +1374,9 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   flex: 1 1 0;
   overflow: hidden;
   background: var(--ptmt-panel-bg);
+  isolation: isolate;
+  transform: translateZ(0);
+
 }
 
 .ptmt-panelContainer:has(.ptmt-panel.active[data-title="Main"]) {
