@@ -372,13 +372,20 @@ body.no-blur body.ptmt-bg-under-chat #chat {
   position: static !important;
   inset: auto;
   box-shadow: none !important;
-  border-radius: 0 !important;
   width: auto !important;
   max-width: none !important;
   display: block;
   opacity: 1 !important;
 }
 
+body.ptmt-Theme-Sharp .drawer-content {
+  border-radius: 0 !important;
+}
+
+body.ptmt-Theme-RoundedSoft .drawer-content,
+body.ptmt-Theme-RoundedSmooth .drawer-content {
+  border-radius: var(--ptmt-radius) !important;
+}
 
 
 .extension_container {
