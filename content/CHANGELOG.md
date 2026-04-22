@@ -2,6 +2,18 @@
 
 ---
 
+## v0.10.1 — 2026-04-22
+
+*Icon Syncs · UI Drag Polishing*
+
+- ✔ Fix · Layout editor drag actions now use visually-stable drag clones, matching the main interface's smooth drag feel
+- ✔ Fix · FontAwesome icons with multiple space-separated classes (e.g., `fa-regular fa-user`) no longer throw DOM errors when picked
+- ✔ Fix · Missing icons restored for tabs relying on `id:` or `class:` mapping prefixes (e.g., Gallery, Avatar) via smart mapping resolution
+- ✔ Fix · Correctly migrate legacy snapshot layouts to dynamically adopt "API Sliders" and "Characters" updated titles and icons
+- ✔ Fix · Invalid fallback icon `fa-tab` successfully replaced with `fa-layer-group` across the extension
+
+---
+
 ## v0.10.0 — 2026-04-20
 
 *Personal Dialogue Colorizer*
