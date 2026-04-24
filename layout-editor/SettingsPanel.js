@@ -336,28 +336,76 @@ export function createSettingsPanel(manager) {
         bgColorContainer.style.display = e.target.checked ? 'flex' : 'none';
     });
 
-    const overridesWrapper = el('div', {
-        className: 'ptmt-settings-grid ptmt-full-width-container ptmt-grid-span-1'
-    });
-    overridesCheckbox.style.gridColumn = 'span 2';
-    overridesWrapper.append(
-        overridesCheckbox,
-        avatarRow,
-        autoContrastCheckbox,
-        optimizeContainer
-    );
-
     globalGrid.append(
         createSettingCheckbox('Show Left Column', 'showLeftPane'),
         createSettingCheckbox('Show Right Column', 'showRightPane'),
         createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
         createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
+        createSettingCheckbox('Auto-Hide Tab Strip (Global)', 'tabStripAutoHide'),
         createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
         createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
         createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing'),
         moveBg1Checkbox,
-        bgColorContainer,
-        overridesWrapper
+        bgColorContainer
+    );
+
+    // ─── Extension CSS Overrides Fieldset ────────────────────────────────────────
+    const overridesFieldset = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Extension CSS Overrides'));
+    const overridesGrid = el('div', { className: 'ptmt-settings-grid' });
+    overridesFieldset.appendChild(overridesGrid);
+
+    const overridesCheckboxForFieldset = createSettingCheckbox('Enable CSS Overrides', 'enableOverride1');
+    overridesCheckboxForFieldset.style.gridColumn = 'span 2';
+
+    const avatarRowForFieldset = el('div', {
+        className: 'ptmt-setting-row ptmt-setting-sub-item ptmt-avatar-row'
+    },
+        el('label', { className: 'ptmt-avatar-label' }, 'Avatar Sizes:'),
+        avatarDialogBtn
+    );
+    avatarRowForFieldset.style.display = settings.get('enableOverride1') ? 'flex' : 'none';
+
+    const autoContrastCheckboxForFieldset = createSettingCheckbox('Auto Contrast Text Colors', 'enableAutoContrast');
+    autoContrastCheckboxForFieldset.classList.add('ptmt-setting-sub-item');
+    autoContrastCheckboxForFieldset.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
+    autoContrastCheckboxForFieldset.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
+    autoContrastCheckboxForFieldset.style.display = settings.get('enableOverride1') ? 'flex' : 'none';
+
+    const optimizeVisibilityCheckboxForFieldset = createSettingCheckbox('Optimize Performance with Long Chat', 'optimizeMessageVisibility');
+    optimizeVisibilityCheckboxForFieldset.classList.add('ptmt-setting-sub-item');
+    optimizeVisibilityCheckboxForFieldset.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
+    optimizeVisibilityCheckboxForFieldset.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
+    optimizeVisibilityCheckboxForFieldset.style.display = settings.get('enableOverride1') ? 'flex' : 'none';
+
+    const optimizeNoticeForFieldset = el('div', { className: 'ptmt-setting-notice ptmt-setting-notice-item', style: { display: settings.get('enableOverride1') ? 'flex' : 'none' } },
+        el('i', { className: 'fa-solid fa-circle-info ptmt-small-icon' }),
+        'Minor scroll jumps possible until messages are viewed once.'
+    );
+
+    const optimizeContainerForFieldset = el('div', { className: 'ptmt-full-width-container', style: { display: settings.get('enableOverride1') ? 'flex' : 'none' } },
+        optimizeVisibilityCheckboxForFieldset,
+        optimizeNoticeForFieldset
+    );
+
+    const overridesCheckboxInputForFieldset = overridesCheckboxForFieldset.querySelector('input');
+    const syncFieldsetVisibility = (enabled) => {
+        avatarRowForFieldset.style.display = enabled ? 'flex' : 'none';
+        autoContrastCheckboxForFieldset.style.display = enabled ? 'flex' : 'none';
+        optimizeVisibilityCheckboxForFieldset.style.display = enabled ? 'flex' : 'none';
+        optimizeNoticeForFieldset.style.display = enabled ? 'flex' : 'none';
+        optimizeContainerForFieldset.style.display = enabled ? 'flex' : 'none';
+        autoContrastCheckboxForFieldset.style.opacity = enabled ? '1' : '0.5';
+        autoContrastCheckboxForFieldset.style.pointerEvents = enabled ? 'auto' : 'none';
+        optimizeVisibilityCheckboxForFieldset.style.opacity = enabled ? '1' : '0.5';
+        optimizeVisibilityCheckboxForFieldset.style.pointerEvents = enabled ? 'auto' : 'none';
+    };
+    overridesCheckboxInputForFieldset.addEventListener('change', (e) => syncFieldsetVisibility(e.target.checked));
+
+    overridesGrid.append(
+        overridesCheckboxForFieldset,
+        avatarRowForFieldset,
+        autoContrastCheckboxForFieldset,
+        optimizeContainerForFieldset
     );
 
     // ─── UI Theme Selector ───────────────────────────────────────────────────────
@@ -415,7 +463,7 @@ export function createSettingsPanel(manager) {
 
     const colorizerSettings = createDialogueColorizerSettings(settings);
     colorizerSettings.className = 'ptmt-settings-fieldset';
-    topSection.append(globalSettings, colorizerSettings);
+    topSection.append(globalSettings, overridesFieldset, colorizerSettings);
     panel.append(topSection);
 
     manager.renderUnifiedEditor();

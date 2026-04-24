@@ -9,7 +9,7 @@ import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
 import { settings, SettingsManager } from './settings.js';
 
-import { el, debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener } from './utils.js';
+import { el, debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener, trackObserver } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
 import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
 import { applyPaneOrientation, applySplitOrientation, openViewSettingsDialog, updateSplitCollapsedState } from './pane.js';
@@ -42,6 +42,71 @@ function initSubsystems() {
     initAvatarExpressionSync();
     initInspectorScaleControl();
     createLayoutIfMissing();
+}
+
+// ─── Auto-Hide Tab Strip ─────────────────────────────────────────────────────
+
+function initAutoHideTabStrip() {
+    const shouldMinimize = (pane, globalEnabled) => {
+        const isCollapsed = pane.classList.contains('view-collapsed');
+        if (isCollapsed) return false;
+        
+        const vs = readPaneViewSettings(pane);
+        return vs.autoHideOverride !== undefined ? vs.autoHideOverride : globalEnabled;
+    };
+
+    const updateAutoHideState = () => {
+        const globalEnabled = settings.get('tabStripAutoHide');
+        const panes = document.querySelectorAll(SELECTORS.PANE);
+        panes.forEach(pane => {
+            const shouldHide = shouldMinimize(pane, globalEnabled);
+            const hasClass = pane.classList.contains('ptmt-tabstrip-minimized');
+            
+            // Only update DOM if state needs to change
+            if (shouldHide !== hasClass) {
+                pane.classList.toggle('ptmt-tabstrip-minimized', shouldHide);
+            }
+        });
+    };
+
+    // Initial state
+    updateAutoHideState();
+
+    // Watch for new panes being added and for view-collapsed changes
+    const observer = new MutationObserver((mutations) => {
+        const globalEnabled = settings.get('tabStripAutoHide');
+        
+        for (const mutation of mutations) {
+            if (mutation.type === 'childList') {
+                if (mutation.addedNodes.length > 0) {
+                    const addedPanes = Array.from(mutation.addedNodes).filter(node => 
+                        node.classList?.contains(SELECTORS.PANE.substring(1))
+                    );
+                    if (addedPanes.length > 0) {
+                        addedPanes.forEach(pane => {
+                            const shouldHide = shouldMinimize(pane, globalEnabled);
+                            if (shouldHide) {
+                                pane.classList.add('ptmt-tabstrip-minimized');
+                            }
+                        });
+                    }
+                }
+            } else if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                // When classes change, update auto-hide state only if needed
+                const shouldHide = shouldMinimize(mutation.target, globalEnabled);
+                const hasClass = mutation.target.classList.contains('ptmt-tabstrip-minimized');
+                
+                if (shouldHide !== hasClass) {
+                    mutation.target.classList.toggle('ptmt-tabstrip-minimized', shouldHide);
+                }
+            }
+        }
+    });
+
+    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    trackObserver(observer);
+
+    return updateAutoHideState;
 }
 
 // ─── Save Handler ────────────────────────────────────────────────────────────
@@ -155,7 +220,7 @@ function createApi(state) {
 
 // ─── Event Bindings ──────────────────────────────────────────────────────────
 
-function bindLayoutReactions(api, saveCurrentLayoutDebounced) {
+function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
     const debouncedLayoutReaction = debounce((event) => {
         const reason = event.detail?.reason || 'unknown';
         if (reason === 'snapshotApplied') return;
@@ -168,6 +233,10 @@ function bindLayoutReactions(api, saveCurrentLayoutDebounced) {
             recalculateColumnSizes();
         }
         updateResizerDisabledStates();
+        // Update auto-hide state when layout changes (catches per-pane setting changes)
+        if (state.updateAutoHideState) {
+            state.updateAutoHideState();
+        }
         saveCurrentLayoutDebounced();
     }, 50);
 
@@ -231,6 +300,10 @@ function bindLayoutReactions(api, saveCurrentLayoutDebounced) {
         const uiTheme = settings.get('uiTheme') || 'sharp';
         SettingsManager.applyTheme(uiTheme);
         applyOverrides();
+        // Handle auto-hide tab strip setting
+        if (state.updateAutoHideState) {
+            state.updateAutoHideState();
+        }
         document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
         window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
     };
@@ -427,6 +500,7 @@ function postInit(state, applyOverrides) {
     console.log('[PTMT Layout] Hydration complete. Monitoring layout changes.');
     initDrawerObserver();
     applyOverrides();
+    state.updateAutoHideState = initAutoHideTabStrip();
 }
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────
@@ -444,7 +518,7 @@ function postInit(state, applyOverrides) {
         const saveCurrentLayoutDebounced = createSaveHandler(state);
         const api = createApi(state);
         window.ptmtTabs = api;
-        const applyOverrides = bindLayoutReactions(api, saveCurrentLayoutDebounced);
+        const applyOverrides = bindLayoutReactions(state, api, saveCurrentLayoutDebounced);
         initGlobalResizeObserver();
         moveToMovingDivs(['expression-plus-wrapper', 'charlib-embedded-container']);
         loadInitialLayout(api);

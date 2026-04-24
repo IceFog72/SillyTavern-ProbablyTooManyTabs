@@ -13,6 +13,7 @@ export class SettingsManager {
         showLeftPane: true,
         showRightPane: true,
         showIconsOnly: false,
+        tabStripAutoHide: false,
         maxLayersLeft: 3,
         maxLayersCenter: 3,
         maxLayersRight: 3,

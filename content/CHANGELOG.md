@@ -2,6 +2,14 @@
 
 ---
 
+## v0.10.2 — 2026-04-24
+
+*Global Auto-Hide Fixes*
+
+- ✦ New · Added explicit "Use Global Setting", "Always Auto-Hide", and "Never Auto-Hide" override options to the individual Pane Settings dialog
+
+---
+
 ## v0.10.1 — 2026-04-22
 
 *Icon Syncs · UI Drag Polishing*

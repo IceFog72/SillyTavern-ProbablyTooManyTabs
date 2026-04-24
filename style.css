@@ -637,7 +637,7 @@ body,
 
 body.ptmt-Theme-RoundedSoft #ptmt-mainBody,
 body.ptmt-Theme-RoundedSmooth #ptmt-mainBody {
-  margin: 0 2px;
+  margin: 0;
 }
 
 #ptmt-mainBody.ptmt-mobile {
@@ -792,7 +792,7 @@ body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal {
 .ptmt-pane-grid.grid-horizontal #stqrd--drawer-v2,
 .ptmt-pane-grid.grid-horizontal #sheld {
   height: 100% !important;
-  max-height: calc(100dvh - calc(var(--topBarBlockSize) - 1px)) !important;
+  max-height: unset !important;
 }
 
 .ptmt-pane-grid .drawer-content {
@@ -2566,6 +2566,95 @@ body.ptmt-is-resizing #rm_print_characters_block {
   display: flex;
   align-items: center;
   justify-content: flex-end;
+}
+
+/* ==========================================================================
+   7. AUTO-HIDE TAB STRIP
+   ========================================================================== */
+
+/* When auto-hide is enabled and strip is minimized:
+   - Completely collapse space (flex: 0 0 0, min-width/height: 0)
+   - Hide all visual elements
+   - Adjust grid templates to remove track space
+   - Expand on focus/hover to show tabs and restore space */
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
+  flex: 0 0 0 !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  overflow: hidden;
+  opacity: 0;
+  border: none !important;
+  background: none;
+  box-shadow: none;
+  margin: 0 !important;
+  pointer-events: none;
+  visibility: hidden;
+}
+
+/* Adjust grid templates to remove track space when minimized */
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal {
+  grid-template-rows: 0fr 1fr;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-rows: 1fr 0fr;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical {
+  grid-template-columns: 0fr 1fr;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-columns: 1fr 0fr;
+}
+
+/* Allow pointer events when minimized for hover detection on pane */
+.ptmt-pane.ptmt-tabstrip-minimized {
+  position: relative;
+}
+
+/* Expand on hover - restore space and visibility */
+.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-tabStrip,
+.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-tabStrip {
+  flex: initial !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  overflow: visible;
+  opacity: 1;
+  pointer-events: auto;
+  visibility: visible;
+}
+
+/* Restore grid templates on hover */
+.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-pane-grid.grid-horizontal,
+.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-pane-grid.grid-horizontal {
+  grid-template-rows: var(--ptmt-collapsed-width) 1fr !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-pane-grid.grid-horizontal.flow-reversed,
+.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-rows: 1fr var(--ptmt-collapsed-width) !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-pane-grid.grid-vertical,
+.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-pane-grid.grid-vertical {
+  grid-template-columns: var(--ptmt-collapsed-width) 1fr !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-pane-grid.grid-vertical.flow-reversed,
+.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-columns: 1fr var(--ptmt-collapsed-width) !important;
+}
+
+/* For vertical tab strips, ensure proper width handling */
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical {
+  flex: 0 0 0 !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-tabStrip.vertical,
+.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-tabStrip.vertical {
+  flex: initial !important;
 }
 
 .ptmt-editor-label-small {
