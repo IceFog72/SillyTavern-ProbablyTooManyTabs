@@ -1,10 +1,7 @@
 # SillyTavern — ProbablyTooManyTabs
 
 An extension that transforms the SillyTavern interface into a flexible tabbed workspace, allowing you to organize all UI elements into customizable columns.
-
-<img width="2560" height="1392" alt="PTMT Desktop Layout" src="https://github.com/user-attachments/assets/f3b9670b-d447-46a0-9b12-6f7c8e9383fd" />
-
-<img width="2560" height="1392" alt="PTMT Mobile Layout" src="https://github.com/user-attachments/assets/12260322-ffa2-4bc0-9593-d60f186cbd67" />
+<img width="2560" height="1368" alt="image" src="https://github.com/user-attachments/assets/433334af-47a7-4328-ab55-a70e1da03ef6" />
 
 ---
 
