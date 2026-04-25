@@ -6,7 +6,8 @@
 
 *Global Auto-Hide Fixes*
 
-- ✦ New · Added explicit "Use Global Setting", "Always Auto-Hide", and "Never Auto-Hide" override options to the individual Pane Settings dialog
+- ✦ New · Added global "Auto-Hide Tab Strip (Global)" layout setting
+- ✦ New · Added a per-pane "Auto-Hide Tab Strip" checkbox option to the individual Pane Settings dialog
 
 ---
 

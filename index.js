@@ -52,7 +52,7 @@ function initAutoHideTabStrip() {
         if (isCollapsed) return false;
         
         const vs = readPaneViewSettings(pane);
-        return vs.autoHideOverride !== undefined ? vs.autoHideOverride : globalEnabled;
+        return vs.autoHideOverride || globalEnabled;
     };
 
     const updateAutoHideState = () => {

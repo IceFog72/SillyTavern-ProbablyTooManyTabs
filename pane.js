@@ -187,11 +187,10 @@ export function createPane(initialSettings = {}, options = {}) {
         onClick: () => toggleIconsOnly(pane)
       },
       {
-        label: (vs.autoHideOverride !== undefined ? vs.autoHideOverride : settings.get('tabStripAutoHide')) ? 'Show Tab Strip' : 'Auto-Hide Tab Strip',
-        icon: (vs.autoHideOverride !== undefined ? vs.autoHideOverride : settings.get('tabStripAutoHide')) ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+        label: (vs.autoHideOverride || settings.get('tabStripAutoHide')) ? 'Show Tab Strip' : 'Auto-Hide Tab Strip',
+        icon: (vs.autoHideOverride || settings.get('tabStripAutoHide')) ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
         onClick: () => {
-          const isHidden = (vs.autoHideOverride !== undefined ? vs.autoHideOverride : settings.get('tabStripAutoHide'));
-          writePaneViewSettings(pane, { autoHideOverride: !isHidden });
+          writePaneViewSettings(pane, { autoHideOverride: !vs.autoHideOverride });
           window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
         }
       }
@@ -749,6 +748,14 @@ export function openViewSettingsDialog(pane) {
     iconOnlyCheckbox.checked = true;
   }
 
+  const autoHideCheckbox = el('input', {
+    type: 'checkbox',
+    id: 'ptmt-vs-auto-hide'
+  });
+  if (vs.autoHideOverride) {
+    autoHideCheckbox.checked = true;
+  }
+
   const displaySection = el('div', { className: 'ptmt-vs-section' },
     el('h4', { className: 'ptmt-vs-section-title' },
       el('i', { className: 'fa-solid fa-eye', style: { marginRight: '6px' } }),
@@ -761,12 +768,8 @@ export function openViewSettingsDialog(pane) {
     ),
     createField(
       'Auto-Hide Tab Strip',
-      'Minimize tab strip to a line; expand on hover/focus (overrides global setting)',
-      createSelect('ptmt-vs-auto-hide', [
-        { value: 'auto', label: 'Use Global Setting' },
-        { value: 'true', label: 'Always Auto-Hide' },
-        { value: 'false', label: 'Never Auto-Hide' }
-      ], vs.autoHideOverride === true ? 'true' : vs.autoHideOverride === false ? 'false' : 'auto')
+      'Minimize tab strip to a line; expand on hover/focus',
+      autoHideCheckbox
     )
   );
 
@@ -813,8 +816,7 @@ export function openViewSettingsDialog(pane) {
     const col = dialog.querySelector('#ptmt-vs-collapsed').value || 'auto';
     const flow = dialog.querySelector('#ptmt-vs-flow').value || 'default';
     const iconOnly = dialog.querySelector('#ptmt-vs-icon-only').checked || false;
-    const autoHideVal = dialog.querySelector('#ptmt-vs-auto-hide').value;
-    const autoHideOverride = autoHideVal === 'auto' ? undefined : autoHideVal === 'true';
+    const autoHideOverride = dialog.querySelector('#ptmt-vs-auto-hide').checked || false;
 
     writePaneViewSettings(pane, {
       minimalPanelSize: minimal,

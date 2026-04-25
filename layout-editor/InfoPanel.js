@@ -7,7 +7,7 @@
 import { el } from '../utils.js';
 
 export const PTMT_INFO_PANEL_ID = 'ptmt-info-wrapper-content';
-export const PTMT_INFO_CURRENT_VERSION = '0.9.7';
+export const PTMT_INFO_CURRENT_VERSION = '0.10.2';
 
 const EXTENSION_PATH = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs';
 
