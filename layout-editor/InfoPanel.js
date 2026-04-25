@@ -5,12 +5,27 @@
 // edit those files to update the panel without touching JS.
 
 import { el } from '../utils.js';
-import manifest from '../manifest.json' assert { type: 'json' };
 
 export const PTMT_INFO_PANEL_ID = 'ptmt-info-wrapper-content';
-export const PTMT_INFO_CURRENT_VERSION = manifest.version;
 
-const EXTENSION_PATH = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs';
+// Version is fetched from manifest.json at initialization
+let PTMT_INFO_CURRENT_VERSION = '0.10.2';  // fallback
+const EXTENSION_PATH = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs/';
+
+// Load version from manifest on module load
+try {
+    const manifestUrl = `${EXTENSION_PATH}/manifest.json`;
+    fetch(manifestUrl)
+        .then(r => r.json())
+        .then(m => { PTMT_INFO_CURRENT_VERSION = m.version; })
+        .catch(e => console.warn('[PTMT InfoPanel] Could not load manifest version:', e));
+} catch (e) {
+    console.warn('[PTMT InfoPanel] Manifest fetch failed, using fallback version');
+}
+
+export function getPTMTInfoCurrentVersion() {
+    return PTMT_INFO_CURRENT_VERSION;
+}
 
 // ─── Lightweight Markdown → HTML renderer ─────────────────────────────────────
 // Handles: h1-h3, bold, italic, inline code, links, ul lists, blockquotes,
@@ -202,7 +217,7 @@ function createNeverShowRow(settings) {
         if (e.target.checked) {
             settings.update({ lastSeenVersion: 'never' });
         } else {
-            settings.update({ lastSeenVersion: PTMT_INFO_CURRENT_VERSION });
+            settings.update({ lastSeenVersion: getPTMTInfoCurrentVersion() });
         }
     });
 

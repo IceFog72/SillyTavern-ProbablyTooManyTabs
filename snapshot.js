@@ -11,7 +11,7 @@ import { settings, SettingsManager } from './settings.js';
 import { initPendingTabsManager } from './pending-tabs.js';
 import { recalculateAllSplitsRecursively, parseFlexBasis } from './layout-math.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
-import { createInfoPanel, PTMT_INFO_PANEL_ID, PTMT_INFO_CURRENT_VERSION } from './layout-editor/InfoPanel.js';
+import { createInfoPanel, PTMT_INFO_PANEL_ID, getPTMTInfoCurrentVersion } from './layout-editor/InfoPanel.js';
 
 
 /** @typedef {import('./types.js').LayoutSnapshot} LayoutSnapshot */
@@ -833,7 +833,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                 const lastSeenVersion = settings.get('lastSeenVersion');
                 const isFirstOpen = lastSeenVersion === null || lastSeenVersion === undefined;
                 const isUpdate    = !isFirstOpen
-                    && lastSeenVersion !== PTMT_INFO_CURRENT_VERSION
+                    && lastSeenVersion !== getPTMTInfoCurrentVersion()
                     && lastSeenVersion !== 'never';  // user opted out of auto-open
 
                 if (isFirstOpen || isUpdate) {
@@ -850,7 +850,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                     }
 
                     // Record the version so this doesn't fire again until next update
-                    settings.update({ lastSeenVersion: PTMT_INFO_CURRENT_VERSION });
+                    settings.update({ lastSeenVersion: getPTMTInfoCurrentVersion() });
                 }
             }
         }
