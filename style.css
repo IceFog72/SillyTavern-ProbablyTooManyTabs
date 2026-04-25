@@ -1379,6 +1379,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 
 }
 
+.ptmt-panelContainer:has(.ptmt-panel.active[data-title="Expression"]),
 .ptmt-panelContainer:has(.ptmt-panel.active[data-title="Main"]) {
   background: none !important;
 }
