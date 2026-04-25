@@ -43,16 +43,6 @@ An extension that transforms the SillyTavern interface into a flexible tabbed wo
 
 ---
 
-## Documentation
-
-| Document | Description |
-|----------|-------------|
-| [API Reference](docs/API_REFERENCE.md) | Complete API documentation |
-| [Architecture](docs/ARCHITECTURE.md) | System design and data flow |
-| [Snapshot Migration](docs/SNAPSHOT_MIGRATION.md) | Layout version migrations |
-
----
-
 ## Adapted Extensions
 
 PTMT integrates with these SillyTavern extensions:
