@@ -9,7 +9,7 @@ import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
 import { settings, SettingsManager } from './settings.js';
 
-import { el, debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener, trackObserver } from './utils.js';
+import { el, debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener, trackObserver, registerBodyObserver } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
 import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
 import { applyPaneOrientation, applySplitOrientation, openViewSettingsDialog, updateSplitCollapsedState } from './pane.js';
@@ -72,39 +72,42 @@ function initAutoHideTabStrip() {
     // Initial state
     updateAutoHideState();
 
-    // Watch for new panes being added and for view-collapsed changes
-    const observer = new MutationObserver((mutations) => {
-        const globalEnabled = settings.get('tabStripAutoHide');
-        
-        for (const mutation of mutations) {
-            if (mutation.type === 'childList') {
-                if (mutation.addedNodes.length > 0) {
-                    const addedPanes = Array.from(mutation.addedNodes).filter(node => 
-                        node.classList?.contains(SELECTORS.PANE.substring(1))
-                    );
-                    if (addedPanes.length > 0) {
-                        addedPanes.forEach(pane => {
-                            const shouldHide = shouldMinimize(pane, globalEnabled);
-                            if (shouldHide) {
-                                pane.classList.add('ptmt-tabstrip-minimized');
-                            }
-                        });
+    // Use the unified body observer instead of a raw subtree MutationObserver.
+    // This shares the single document.body watcher already used by other subsystems.
+    registerBodyObserver(
+        'auto-hide-tabstrip',
+        { childList: true, attributes: true, attributeFilter: ['class'] },
+        (mutations) => {
+            const globalEnabled = settings.get('tabStripAutoHide');
+
+            for (const mutation of mutations) {
+                if (mutation.type === 'childList') {
+                    if (mutation.addedNodes.length > 0) {
+                        const addedPanes = Array.from(mutation.addedNodes).filter(node =>
+                            node.classList?.contains(SELECTORS.PANE.substring(1))
+                        );
+                        if (addedPanes.length > 0) {
+                            addedPanes.forEach(pane => {
+                                const shouldHide = shouldMinimize(pane, globalEnabled);
+                                if (shouldHide) {
+                                    pane.classList.add('ptmt-tabstrip-minimized');
+                                }
+                            });
+                        }
                     }
-                }
-            } else if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-                // When classes change, update auto-hide state only if needed
-                const shouldHide = shouldMinimize(mutation.target, globalEnabled);
-                const hasClass = mutation.target.classList.contains('ptmt-tabstrip-minimized');
-                
-                if (shouldHide !== hasClass) {
-                    mutation.target.classList.toggle('ptmt-tabstrip-minimized', shouldHide);
+                } else if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
+                    const target = mutation.target;
+                    // Only act on pane elements to avoid noise from other class changes.
+                    if (!target.classList?.contains(SELECTORS.PANE.substring(1))) continue;
+                    const shouldHide = shouldMinimize(target, globalEnabled);
+                    const hasClass = target.classList.contains('ptmt-tabstrip-minimized');
+                    if (shouldHide !== hasClass) {
+                        target.classList.toggle('ptmt-tabstrip-minimized', shouldHide);
+                    }
                 }
             }
         }
-    });
-
-    observer.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
-    trackObserver(observer);
+    );
 
     return updateAutoHideState;
 }
@@ -477,8 +480,8 @@ function postInit(state, applyOverrides) {
     document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
     document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
 
-    // Apply body background color CSS variable
-    const bodyBgColor = settings.get('bodyBgColor') || 'rgb(89, 0, 255)';
+    // Apply body background color CSS variable (fallback matches defaultSettings.bodyBgColor)
+    const bodyBgColor = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
     document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
     const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
     document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
@@ -551,7 +554,11 @@ export async function onDelete() {
 }
 
 export async function onEnable() {
-    console.log('[PTMT] Extension enabled');
+    // onDisable() tears down all observers and listeners via cleanupAllObservers().
+    // Reloading is the safest way to fully restore the layout without re-implementing
+    // the entire init sequence in a re-entrant way.
+    console.log('[PTMT] Extension enabled — reloading page to restore layout.');
+    window.location.reload();
 }
 
 export async function onDisable() {

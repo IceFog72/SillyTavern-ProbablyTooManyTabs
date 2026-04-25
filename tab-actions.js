@@ -38,42 +38,20 @@ function hideCharLibEmbedded() {
 
 export const tabActions = {
     'gallery': {
-        onInit: (panel) => {
-            console.log('[PTMT-Actions] Gallery panel initialized.', panel);
-        },
-        onSelect: (panel) => {
-            console.log('[PTMT-Actions] Gallery panel selected.', panel);
-
-        },
-        onCollapse: (panel) => {
-            console.log('[PTMT-Actions] Gallery tab collapsed.', panel);
-        },
-        onOpen: (panel) => {
-            console.log('[PTMT-Actions] Gallery tab opened.', panel);
-        },
+        onInit: (_panel) => {},
+        onSelect: (_panel) => {},
+        onCollapse: (_panel) => {},
+        onOpen: (_panel) => {},
     },
     'notebookPanel': {
-        onInit: (panel) => {
-            console.log('[PTMT-Actions] notebookPanel panel initialized.', panel);
-        },
-        onSelect: (panel) => {
-            console.log('[PTMT-Actions] notebookPanel panel selected.', panel);
-
-        },
-        onCollapse: (panel) => {
-            console.log('[PTMT-Actions] notebookPanel tab collapsed.', panel);
-        },
-        onOpen: (panel) => {
-            console.log('[PTMT-Actions] notebookPanel tab opened.', panel);
-        },
+        onInit: (_panel) => {},
+        onSelect: (_panel) => {},
+        onCollapse: (_panel) => {},
+        onOpen: (_panel) => {},
     },
     'character_popup': {
         onInit: (panel) => {
-            console.log('[PTMT-Actions] character_popup panel initialized.', panel);
-            //if (!is_advanced_char_open) {
-            //   is_advanced_char_open = true;
             $('#character_popup').css({ 'display': 'flex' }).addClass('open');
-            // }
             if (_characterPopupAC) _characterPopupAC.abort();
             _characterPopupAC = new AbortController();
             document.addEventListener('click', (e) => {
@@ -85,93 +63,56 @@ export const tabActions = {
                 window.ptmtTabs?.openTab(panel.dataset.panelId);
             }, { capture: true, signal: _characterPopupAC.signal });
         },
-        onSelect: (panel) => {
-            console.log('[PTMT-Actions] character_popup panel selected.', panel);
-
-
-        },
-        onCollapse: (panel) => {
-            console.log('[PTMT-Actions] character_popup tab collapsed.', panel);
-            //if (is_advanced_char_open) {
-            //   is_advanced_char_open = false;
+        onSelect: (_panel) => {},
+        onCollapse: (_panel) => {
             $('#character_popup').css('display', 'none').removeClass('open');
-            //}
         },
-        onOpen: (panel) => {
-            console.log('[PTMT-Actions] character_popup tab opened.', panel);
+        onOpen: (_panel) => {
             $('#character_popup').css({ 'display': 'flex', 'opacity': 100.0 }).addClass('open');
         },
     },
     'extensionSideBar': {
-        onInit: (panel) => {
-            console.log('[PTMT-Actions] extensionSideBar panel initialized.', panel);
-
-        },
-        onSelect: (panel) => {
-            console.log('[PTMT-Actions] extensionSideBar panel selected.', panel);
-
-        },
-        onCollapse: (panel) => {
-            console.log('[PTMT-Actions] extensionSideBar tab collapsed.', panel);
-
-        },
-        onOpen: (panel) => {
-            console.log('[PTMT-Actions] extensionSideBar tab opened.', panel);
+        onInit: (_panel) => {},
+        onSelect: (_panel) => {},
+        onCollapse: (_panel) => {},
+        onOpen: (_panel) => {
             const sidebar = document.getElementById('extensionSideBar');
             if (!sidebar) return;
-
             const toggleButton = document.getElementById('extensionTopBarToggleSidebar');
             if (!toggleButton) return;
-
             const isVisible = sidebar.classList.contains('draggable') && sidebar.classList.contains('visible');
-
             if (!isVisible) {
-                console.log('[PTMT] Sidebar is not visible, attempting to open it.');
+                console.log('[PTMT] extensionSideBar not visible, attempting to open it.');
                 toggleButton.click();
             }
         },
     },
     'stqrd--drawer-v2': {
-        onInit: (panel) => {
-            console.log('[PTMT-Actions] Quick Replies panel initialized.', panel);
+        onInit: (_panel) => {
             const settings = document.getElementById('qr--settings');
             if (settings && getComputedStyle(settings).display !== 'none') {
                 const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
-                if (popoutBtn) {
-                    console.log('[PTMT-Actions] Triggering Quick Replies popout.');
-                    popoutBtn.click();
-                }
+                if (popoutBtn) popoutBtn.click();
             }
         },
-        onSelect: (panel) => {
-            console.log('[PTMT-Actions] Quick Replies panel selected.', panel);
+        onSelect: (_panel) => {
             const settings = document.getElementById('qr--settings');
             if (settings && getComputedStyle(settings).display !== 'none') {
                 const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
-                if (popoutBtn) {
-                    console.log('[PTMT-Actions] Triggering Quick Replies popout.');
-                    popoutBtn.click();
-                }
+                if (popoutBtn) popoutBtn.click();
             }
         },
-        onCollapse: (panel) => {
-            console.log('[PTMT-Actions] Quick Replies panel collapsed.', panel);
-        },
-        onOpen: (panel) => {
-            console.log('[PTMT-Actions] Quick Replies panel opened.', panel);
+        onCollapse: (_panel) => {},
+        onOpen: (_panel) => {
             const settings = document.getElementById('qr--settings');
             if (settings && getComputedStyle(settings).display !== 'none') {
                 const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
-                if (popoutBtn) {
-                    console.log('[PTMT-Actions] Triggering Quick Replies popout.');
-                    popoutBtn.click();
-                }
+                if (popoutBtn) popoutBtn.click();
             }
         },
     },
     'ptmt-main-content': {
         onInit: (panel) => {
-            console.log('[PTMT-Actions] Main panel initialized.', panel);
             if (_mainContentAC) _mainContentAC.abort();
             _mainContentAC = new AbortController();
             document.addEventListener('click', (e) => {
@@ -186,7 +127,6 @@ export const tabActions = {
     },
     'charlib-embedded-container': {
         onInit: (panel) => {
-            console.log('[PTMT-Actions] CharLib panel initialized.', panel);
             ensureCharLibCloseListener();
 
             // Abort previous listeners if re-initialized
@@ -222,18 +162,9 @@ export const tabActions = {
             panel._charlibObserver = observer;
             observer.observe(document.body, { childList: true, subtree: true });
         },
-        onSelect: (panel) => {
-            console.log('[PTMT-Actions] CharLib panel selected.', panel);
-            showCharLibEmbedded();
-        },
-        onCollapse: (panel) => {
-            console.log('[PTMT-Actions] CharLib panel collapsed.', panel);
-            hideCharLibEmbedded();
-        },
-        onOpen: (panel) => {
-            console.log('[PTMT-Actions] CharLib panel opened.', panel);
-            showCharLibEmbedded();
-        },
+        onSelect: (_panel) => { showCharLibEmbedded(); },
+        onCollapse: (_panel) => { hideCharLibEmbedded(); },
+        onOpen: (_panel) => { showCharLibEmbedded(); },
     },
 
 };

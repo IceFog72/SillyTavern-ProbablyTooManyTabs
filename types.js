@@ -97,6 +97,7 @@
  * @property {boolean} leftCollapsed
  * @property {boolean} rightCollapsed
  * @property {string|null} leftLastFlex
+ * @property {string|null} centerLastFlex
  * @property {string|null} rightLastFlex
  */
 
@@ -139,12 +140,52 @@
  * @property {boolean} showLeftPane
  * @property {boolean} showRightPane
  * @property {boolean} showIconsOnly
+ * @property {boolean} tabStripAutoHide
  * @property {number} maxLayersLeft
  * @property {number} maxLayersCenter
  * @property {number} maxLayersRight
  * @property {boolean} runMoveBgDivs
+ * @property {boolean} moveBg1ToSheld
  * @property {boolean} isMobile
  * @property {boolean} hideContentWhileResizing
+ * @property {boolean} showContextStatusBar
+ * @property {boolean} enableOverride1
+ * @property {boolean} optimizeMessageVisibility
+ * @property {boolean} enableAutoContrast
+ * @property {boolean} enableDialogueColorizer
+ * @property {boolean} autoOpenFirstCenterTab
+ * @property {boolean} enableAvatarExpressionSync
+ * @property {'avatar_vibrant'|'static_color'} dialogueColorizerSource
+ * @property {string} dialogueColorizerStaticColor
+ * @property {'avatar_vibrant'|'static_color'} dialogueColorizerBubbleSource
+ * @property {string} dialogueColorizerBubbleStaticColor1
+ * @property {string} dialogueColorizerBubbleStaticColor2
+ * @property {'avatar_vibrant'|'static_color'} dialogueColorizerPersonaSource
+ * @property {string} dialogueColorizerPersonaStaticColor
+ * @property {'avatar_vibrant'|'static_color'} dialogueColorizerPersonaBubbleSource
+ * @property {string} dialogueColorizerPersonaBubbleStaticColor1
+ * @property {string} dialogueColorizerPersonaBubbleStaticColor2
+ * @property {1|2|3} dialogueColorizerColorizeTarget - Bitmask: 1=quoted text, 2=bubbles, 3=both
+ * @property {number} dialogueColorizerBubbleOpacityBot - 0.0 to 1.0
+ * @property {number} dialogueColorizerBubbleOpacityUser - 0.0 to 1.0
+ * @property {1|2} dialogueColorizerDialogColorMode - 1=1st dominant, 2=2nd dominant
+ * @property {1|2|3} dialogueColorizerBubbleColorMode - 1=1st dominant, 2=2nd dominant, 3=gradient
+ * @property {string[]} charCustomColorizerEnabled - char names with custom colorizer enabled
+ * @property {Object.<string, Object>} charCustomColorizerSettings - keyed by char name
+ * @property {string[]} personaCustomColorizerEnabled - persona filenames with custom colorizer enabled
+ * @property {Object.<string, Object>} personaCustomColorizerSettings - keyed by persona filename
+ * @property {string} avatarBaseHeight - CSS value e.g. '14vh'
+ * @property {string} avatarBaseWidth - CSS value e.g. '8vw'
+ * @property {string} avatarBaseBorderRadius - CSS value e.g. '0.5rem'
+ * @property {string} normalAvatarSize - CSS value e.g. '48px'
+ * @property {string} avatarScaleWidth - multiplier string e.g. '1'
+ * @property {string} avatarScaleHeight - multiplier string e.g. '1.6'
+ * @property {string} charListAvatarWidth - CSS value e.g. '4vw'
+ * @property {string} charListAvatarHeight - CSS value e.g. 'auto'
+ * @property {string} charListAvatarScale - multiplier string e.g. '1'
+ * @property {string} bodyBgColor - CSS rgb() value
+ * @property {string|null} lastSeenVersion - last version user acknowledged; null = first install
+ * @property {string} uiTheme - theme key e.g. 'sharp' | 'rounded_smooth'
  * @property {PanelMapping[]} panelMappings
  * @property {Preset[]} presets
  * @property {LayoutSnapshot|null} savedLayoutDesktop
@@ -152,6 +193,7 @@
  * @property {LayoutSnapshot} defaultLayout
  * @property {LayoutSnapshot} mobileLayout
  */
+
 
 /**
  * @typedef {Object} PTMTRefs

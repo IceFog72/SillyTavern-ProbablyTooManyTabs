@@ -1,14 +1,13 @@
 {
     "display_name": "ProbablyTooManyTabs",
     "loading_order": 100,
-    "requires": [],
-    "optional": [],
     "js": "index.js",
     "css": "style.css",
     "author": "icefog72",
     "version": "0.10.2",
     "homePage": "https://github.com/IceFog72/SillyTavern-ProbablyTooManyTabs",
     "auto_update": true,
+    "minimum_client_version": "1.12.0",
     "description": "PTMT - ProbablyTooManyTabs is UI Tab Manager",
     "hooks": {
         "activate": "onActivate",

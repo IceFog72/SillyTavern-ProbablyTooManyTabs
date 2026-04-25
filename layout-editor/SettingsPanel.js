@@ -49,82 +49,6 @@ export function createSettingsPanel(manager) {
         return wrapper;
     };
 
-    const optimizeVisibilityCheckbox = createSettingCheckbox('Optimize Performance with Long Chat', 'optimizeMessageVisibility');
-    optimizeVisibilityCheckbox.classList.add('ptmt-setting-sub-item');
-    optimizeVisibilityCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
-    optimizeVisibilityCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
-
-    const optimizeNotice = el('div', { className: 'ptmt-setting-notice ptmt-setting-notice-item' },
-        el('i', { className: 'fa-solid fa-circle-info ptmt-small-icon' }),
-        'Minor scroll jumps possible until messages are viewed once.'
-    );
-
-    // Wrap checkbox and notice in a container to keep them grouped
-    const optimizeContainer = el('div', { className: 'ptmt-full-width-container' },
-        optimizeVisibilityCheckbox,
-        optimizeNotice
-    );
-
-    const autoContrastCheckbox = createSettingCheckbox('Auto Contrast Text Colors', 'enableAutoContrast');
-    autoContrastCheckbox.classList.add('ptmt-setting-sub-item');
-    autoContrastCheckbox.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
-    autoContrastCheckbox.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
-
-    const overridesCheckbox = createSettingCheckbox('Extension CSS Overrides', 'enableOverride1');
-    const overridesInput = overridesCheckbox.querySelector('input');
-
-    const validateCss = (val) => /^-?\d*\.?\d+\s*(?:px|vh|vw|%|em|rem|vmin|vmax)$/i.test(val.trim());
-    const createDimensionItem = (label, key) => {
-        const inp = el('input', {
-            type: 'text',
-            value: settings.get(key),
-            className: 'text_pole textarea_compact ptmt-dimension-input',
-            title: 'Valid CSS units: px, vh, vw, %, em, rem, vmin, vmax'
-        });
-        const row = el('div', { className: 'ptmt-dimension-row' },
-            el('label', { className: 'ptmt-dimension-label' }, label),
-            inp
-        );
-
-        const updateUI = (val) => {
-            if (validateCss(val)) {
-                inp.style.borderColor = '';
-                settings.update({ [key]: val.trim().toLowerCase() });
-            } else {
-                inp.style.setProperty('border-color', 'red', 'important');
-            }
-        };
-
-        inp.addEventListener('input', (e) => updateUI(e.target.value));
-        return { row, inp };
-    };
-
-    const createFactorItem = (label, key) => {
-        const inp = el('input', {
-            type: 'number',
-            value: settings.get(key),
-            step: '0.1',
-            min: '0.1',
-            max: '5',
-            className: 'text_pole textarea_compact ptmt-dimension-input',
-            title: 'Multiplier (0.1 – 5)'
-        });
-        const row = el('div', { className: 'ptmt-dimension-row' },
-            el('label', { className: 'ptmt-dimension-label' }, label),
-            inp
-        );
-
-        inp.addEventListener('change', (e) => {
-            const val = parseFloat(e.target.value);
-            if (val >= 0.1 && val <= 5) {
-                inp.style.borderColor = '';
-                settings.update({ [key]: val.toString() });
-            } else {
-                inp.style.setProperty('border-color', 'red', 'important');
-            }
-        });
-        return { row, inp };
-    };
 
     // Avatar size dialog
     const openAvatarDialog = () => {
@@ -272,25 +196,10 @@ export function createSettingsPanel(manager) {
     }, 'Avatar Sizes');
     avatarDialogBtn.addEventListener('click', openAvatarDialog);
 
-    const avatarRow = el('div', {
-        className: 'ptmt-setting-row ptmt-setting-sub-item ptmt-avatar-row'
-    },
-        el('label', { className: 'ptmt-avatar-label' }, 'Avatar Sizes:'),
-        avatarDialogBtn
-    );
+    const syncVisibility = (_enabled) => {}; // visibility controlled by overridesFieldset below
 
-    const syncVisibility = (enabled) => {
-        const display = enabled ? '' : 'none';
-        avatarRow.style.display = enabled ? 'flex' : 'none';
-        autoContrastCheckbox.style.display = display;
-        optimizeVisibilityCheckbox.style.display = display;
-        optimizeNotice.style.display = display;
-    };
-    syncVisibility(settings.get('enableOverride1'));
-    overridesInput.addEventListener('change', (e) => syncVisibility(e.target.checked));
-
-    // Background color picker
-    const bodyBgColorValue = settings.get('bodyBgColor') || 'rgb(89, 0, 255)';
+    // Background color picker (fallback matches defaultSettings.bodyBgColor)
+    const bodyBgColorValue = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
 
     // Ensure toolcool-color-picker script is loaded
     if (typeof customElements !== 'undefined' && !customElements.get('toolcool-color-picker')) {
