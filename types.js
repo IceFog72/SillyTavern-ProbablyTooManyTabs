@@ -68,6 +68,14 @@
  */
 
 /**
+ * @typedef {Object} ResizerState
+ * @property {'vertical'|'horizontal'} type
+ * @property {string} prevFlex
+ * @property {string} nextFlex
+ * @property {boolean} disabled
+ */
+
+/**
  * @typedef {Object} HiddenTab
  * @property {string} sourceId
  * @property {string} [title]
@@ -93,6 +101,12 @@
  */
 
 /**
+ * @typedef {Object} PanelLocation
+ * @property {'left'|'center'|'right'} column
+ * @property {number} paneIndex
+ */
+
+/**
  * @typedef {Object} LayoutSnapshot
  * @property {number} version
  * @property {number} timestamp
@@ -101,9 +115,16 @@
  * @property {boolean} showRight
  * @property {ColumnSizes} columnSizes
  * @property {{left: ColumnLayout, center: ColumnLayout, right: ColumnLayout}} columns
- * @property {Array} resizerStates
+ * @property {ResizerState[]} resizerStates
  * @property {HiddenTab[]} hiddenTabs
- * @property {Array} panelLocations
+ * @property {Array<[string, PanelLocation]>} panelLocations
+ */
+
+/**
+ * @typedef {Object} Preset
+ * @property {string} id
+ * @property {string} name
+ * @property {LayoutSnapshot} layout
  */
 
 /**
@@ -125,7 +146,7 @@
  * @property {boolean} isMobile
  * @property {boolean} hideContentWhileResizing
  * @property {PanelMapping[]} panelMappings
- * @property {Array} presets
+ * @property {Preset[]} presets
  * @property {LayoutSnapshot|null} savedLayoutDesktop
  * @property {LayoutSnapshot|null} savedLayoutMobile
  * @property {LayoutSnapshot} defaultLayout

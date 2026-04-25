@@ -5,9 +5,10 @@
 // edit those files to update the panel without touching JS.
 
 import { el } from '../utils.js';
+import manifest from '../manifest.json' assert { type: 'json' };
 
 export const PTMT_INFO_PANEL_ID = 'ptmt-info-wrapper-content';
-export const PTMT_INFO_CURRENT_VERSION = '0.10.2';
+export const PTMT_INFO_CURRENT_VERSION = manifest.version;
 
 const EXTENSION_PATH = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs';
 
