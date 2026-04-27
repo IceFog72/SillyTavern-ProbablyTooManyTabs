@@ -190,7 +190,7 @@ body.ptmt-Theme-RoundedSmooth {
   --ptmt-gap-small: var(--ptmt-spacing-xs);
   --ptmt-gap-medium: var(--ptmt-spacing-md);
   --ptmt-gap-large: var(--ptmt-spacing-xl);
-  --ptmt-grid-gap: 4px;
+  --ptmt-grid-gap: 3px;
   --ptmt-panel-padding: 0px;
 }
 
@@ -388,7 +388,7 @@ body.ptmt-Theme-RoundedSmooth .drawer-content {
 }
 
 
-.extension_container {
+.extensions_block .extension_container {
   display: table-column !important;
   min-width: 300px;
 }
