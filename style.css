@@ -423,6 +423,8 @@ body.ptmt-Theme-RoundedSmooth .drawer-content {
   max-width: none !important;
   box-shadow: none !important;
   border-radius: 0 !important;
+  display: flex !important;
+  opacity: 1 !important;
   height: 100%;
   max-height: none !important;
 }

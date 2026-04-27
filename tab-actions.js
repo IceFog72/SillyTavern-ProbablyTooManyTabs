@@ -38,16 +38,16 @@ function hideCharLibEmbedded() {
 
 export const tabActions = {
     'gallery': {
-        onInit: (_panel) => {},
-        onSelect: (_panel) => {},
-        onCollapse: (_panel) => {},
-        onOpen: (_panel) => {},
+        onInit: (_panel) => { },
+        onSelect: (_panel) => { },
+        onCollapse: (_panel) => { },
+        onOpen: (_panel) => { },
     },
     'notebookPanel': {
-        onInit: (_panel) => {},
-        onSelect: (_panel) => {},
-        onCollapse: (_panel) => {},
-        onOpen: (_panel) => {},
+        onInit: (_panel) => { },
+        onSelect: (_panel) => { },
+        onCollapse: (_panel) => { },
+        onOpen: (_panel) => { },
     },
     'character_popup': {
         onInit: (panel) => {
@@ -63,18 +63,20 @@ export const tabActions = {
                 window.ptmtTabs?.openTab(panel.dataset.panelId);
             }, { capture: true, signal: _characterPopupAC.signal });
         },
-        onSelect: (_panel) => {},
+        onSelect: (_panel) => {
+            $('#character_popup').css({ 'display': 'flex', 'opacity': 1 }).addClass('open');
+        },
         onCollapse: (_panel) => {
             $('#character_popup').css('display', 'none').removeClass('open');
         },
         onOpen: (_panel) => {
-            $('#character_popup').css({ 'display': 'flex', 'opacity': 100.0 }).addClass('open');
+            $('#character_popup').css({ 'display': 'flex', 'opacity': 1 }).addClass('open');
         },
     },
     'extensionSideBar': {
-        onInit: (_panel) => {},
-        onSelect: (_panel) => {},
-        onCollapse: (_panel) => {},
+        onInit: (_panel) => { },
+        onSelect: (_panel) => { },
+        onCollapse: (_panel) => { },
         onOpen: (_panel) => {
             const sidebar = document.getElementById('extensionSideBar');
             if (!sidebar) return;
@@ -102,7 +104,7 @@ export const tabActions = {
                 if (popoutBtn) popoutBtn.click();
             }
         },
-        onCollapse: (_panel) => {},
+        onCollapse: (_panel) => { },
         onOpen: (_panel) => {
             const settings = document.getElementById('qr--settings');
             if (settings && getComputedStyle(settings).display !== 'none') {
