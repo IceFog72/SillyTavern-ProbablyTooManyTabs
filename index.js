@@ -200,7 +200,9 @@ function createApi(state) {
             const currentSnapshot = generateLayoutSnapshot();
             const isMobile = settings.get('isMobile');
             const oldKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
-            await settings.update({ [oldKey]: currentSnapshot, isMobile: !isMobile }, true);
+            // When leaving mobile mode, reset showIconsOnly so desktop tabs restore their labels.
+            const extraUpdates = isMobile ? { showIconsOnly: false } : {};
+            await settings.update({ [oldKey]: currentSnapshot, isMobile: !isMobile, ...extraUpdates }, true);
             window.location.reload();
         },
         // ─── Theme Management ──────────────────────────────────────────────────────
@@ -449,6 +451,9 @@ function loadInitialLayout(api) {
 
     if (savedLayout) {
         console.log(`[PTMT Layout] Loading saved ${isMobile ? 'mobile' : 'desktop'} layout.`);
+        // applyLayoutSnapshot handles restoring showIconsOnly from the snapshot (v20+).
+        // The v19→v20 migration defaults desktop snapshots to showIconsOnly:false,
+        // healing any saves corrupted by the old toggleMobileMode bug.
         applyLayoutSnapshot(savedLayout, api, settings);
     } else {
         console.log('[PTMT Layout] No saved layout found, checking for mobile device.');

@@ -2,6 +2,17 @@
 
 ---
 
+## v0.10.5 — 2026-04-29
+
+*Layout Integrity · Context Menu UX*
+
+- ✔ Fix · Switching back from Mobile Layout to Desktop Layout no longer leaves tabs in icon-only mode (missing text)
+- ✔ Fix · Users already affected by the broken-save bug are auto-healed on next load via snapshot v19→v20 migration — `showIconsOnly` is now stored in each layout snapshot so desktop and mobile layouts always restore their own correct tab-label state
+- ✦ New · Per-pane **Icons Only** and **Auto-Hide Tab Strip** toggles in the right-click context menu are now disabled (greyed out) when the respective global setting is ON, with a tooltip explaining the global override
+- ✦ New · Same global override lockout applied in the **Edit Pane** dialog — fields show *(Global)* suffix and are non-interactive when the global setting controls them
+
+---
+
 ## v0.10.3 — 2026-04-25
 
 *Code Quality & Correctness*

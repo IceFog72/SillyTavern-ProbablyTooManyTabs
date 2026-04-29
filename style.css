@@ -1950,6 +1950,16 @@ body.ptmt-is-resizing #rm_print_characters_block {
   opacity: 0.3;
 }
 
+.ptmt-context-menu-item-disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.ptmt-context-menu-item-disabled:hover {
+  background: none;
+  padding-left: 16px;
+}
+
 @keyframes ptmt-fade-in {
   from {
     opacity: 0;

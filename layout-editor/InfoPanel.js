@@ -9,7 +9,7 @@ import { el } from '../utils.js';
 export const PTMT_INFO_PANEL_ID = 'ptmt-info-wrapper-content';
 
 // Version is fetched from manifest.json at initialization
-let PTMT_INFO_CURRENT_VERSION = '0.10.2';  // fallback
+let PTMT_INFO_CURRENT_VERSION = '0.10.6';  // fallback
 const EXTENSION_PATH = '/scripts/extensions/third-party/SillyTavern-ProbablyTooManyTabs/';
 
 // Load version from manifest on module load

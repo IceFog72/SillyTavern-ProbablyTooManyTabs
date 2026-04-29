@@ -25,7 +25,7 @@ import { createInfoPanel, PTMT_INFO_PANEL_ID, getPTMTInfoCurrentVersion } from '
 /** @typedef {import('./types.js').HiddenTab} HiddenTab */
 
 const SNAPSHOT_VERSION = 15;      // Minimum supported version
-const SNAPSHOT_CURRENT_VERSION = 19; // Version written by generateLayoutSnapshot
+const SNAPSHOT_CURRENT_VERSION = 20; // Version written by generateLayoutSnapshot
 
 // ─── Snapshot Migration Registry ─────────────────────────────────────────────
 // Each key is a source version; the value migrates that version to (key + 1).
@@ -133,6 +133,16 @@ const SNAPSHOT_MIGRATIONS = {
         }
         
         snap.version = 19;
+        return snap;
+    },
+    19: (snap) => {
+        // v19→v20: Bake showIconsOnly into the snapshot so each layout carries its own
+        // icons-only state.  Desktop snapshots default to false; mobile snapshots to true.
+        // This heals broken saves where showIconsOnly was left as true after leaving mobile.
+        if (!('showIconsOnly' in snap)) {
+            snap.showIconsOnly = snap.mode === 'mobile';
+        }
+        snap.version = 20;
         return snap;
     },
 };
@@ -308,6 +318,7 @@ export function generateLayoutSnapshot() {
         version: SNAPSHOT_CURRENT_VERSION,
         timestamp: Date.now(),
         mode: isMobile ? 'mobile' : 'desktop',
+        showIconsOnly: !!settings.get('showIconsOnly'),
         showLeft: refs.leftBody.style.display !== 'none',
         showRight: refs.rightBody.style.display !== 'none',
 
@@ -421,11 +432,17 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     refs.leftBody.style.display = snapshot.showLeft ? 'flex' : 'none';
     refs.rightBody.style.display = snapshot.showRight ? 'flex' : 'none';
 
-    // Sync settings to match snapshot visibility
-    settings.update({
+    // Sync settings to match snapshot state (visibility + icons-only)
+    const syncUpdate = {
         showLeftPane: !!snapshot.showLeft,
-        showRightPane: !!snapshot.showRight
-    });
+        showRightPane: !!snapshot.showRight,
+    };
+    // Restore showIconsOnly only when the snapshot carries an explicit value (v20+).
+    // This ensures desktop↔mobile transitions always land with the correct tab style.
+    if ('showIconsOnly' in snapshot) {
+        syncUpdate.showIconsOnly = !!snapshot.showIconsOnly;
+    }
+    settings.update(syncUpdate);
 
     if (snapshot.columnSizes) {
         // Restore lastFlex first so column expansion/size logic has correct values

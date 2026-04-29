@@ -175,6 +175,8 @@ export function createPane(initialSettings = {}, options = {}) {
   tabStrip.addEventListener('contextmenu', (e) => {
     if (e.target !== tabStrip) return;
     const vs = readPaneViewSettings(pane);
+    const globalIconsOnly = !!settings.get('showIconsOnly');
+    const globalAutoHide = !!settings.get('tabStripAutoHide');
     showContextMenu(e, [
       {
         label: 'Edit Pane',
@@ -184,11 +186,15 @@ export function createPane(initialSettings = {}, options = {}) {
       {
         label: vs.iconOnly ? 'Show Labels' : 'Icons Only',
         icon: vs.iconOnly ? 'fa-solid fa-tag' : 'fa-solid fa-icons',
+        disabled: globalIconsOnly,
+        disabledTitle: 'Overridden by "Show Icons Only (Global)" setting',
         onClick: () => toggleIconsOnly(pane)
       },
       {
-        label: (vs.autoHideOverride || settings.get('tabStripAutoHide')) ? 'Show Tab Strip' : 'Auto-Hide Tab Strip',
-        icon: (vs.autoHideOverride || settings.get('tabStripAutoHide')) ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+        label: (vs.autoHideOverride || globalAutoHide) ? 'Show Tab Strip' : 'Auto-Hide Tab Strip',
+        icon: (vs.autoHideOverride || globalAutoHide) ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
+        disabled: globalAutoHide,
+        disabledTitle: 'Overridden by "Auto-Hide Tab Strip (Global)" setting',
         onClick: () => {
           writePaneViewSettings(pane, { autoHideOverride: !vs.autoHideOverride });
           window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
@@ -740,20 +746,31 @@ export function openViewSettingsDialog(pane) {
   );
 
   // Display section with icons-only toggle
+  const globalIconsOnly = !!settings.get('showIconsOnly');
+  const globalAutoHide = !!settings.get('tabStripAutoHide');
+
   const iconOnlyCheckbox = el('input', {
     type: 'checkbox',
     id: 'ptmt-vs-icon-only'
   });
-  if (vs.iconOnly) {
+  if (vs.iconOnly || globalIconsOnly) {
     iconOnlyCheckbox.checked = true;
+  }
+  if (globalIconsOnly) {
+    iconOnlyCheckbox.disabled = true;
+    iconOnlyCheckbox.title = 'Controlled by "Show Icons Only (Global)" setting';
   }
 
   const autoHideCheckbox = el('input', {
     type: 'checkbox',
     id: 'ptmt-vs-auto-hide'
   });
-  if (vs.autoHideOverride) {
+  if (vs.autoHideOverride || globalAutoHide) {
     autoHideCheckbox.checked = true;
+  }
+  if (globalAutoHide) {
+    autoHideCheckbox.disabled = true;
+    autoHideCheckbox.title = 'Controlled by "Auto-Hide Tab Strip (Global)" setting';
   }
 
   const displaySection = el('div', { className: 'ptmt-vs-section' },
@@ -762,13 +779,13 @@ export function openViewSettingsDialog(pane) {
       'Display'
     ),
     createField(
-      'Icons Only',
-      'Show only tab icons, hide text labels to save space',
+      globalIconsOnly ? 'Icons Only (Global)' : 'Icons Only',
+      globalIconsOnly ? 'Controlled by the global "Show Icons Only" setting' : 'Show only tab icons, hide text labels to save space',
       iconOnlyCheckbox
     ),
     createField(
-      'Auto-Hide Tab Strip',
-      'Minimize tab strip to a line; expand on hover/focus',
+      globalAutoHide ? 'Auto-Hide Tab Strip (Global)' : 'Auto-Hide Tab Strip',
+      globalAutoHide ? 'Controlled by the global "Auto-Hide Tab Strip" setting' : 'Minimize tab strip to a line; expand on hover/focus',
       autoHideCheckbox
     )
   );
