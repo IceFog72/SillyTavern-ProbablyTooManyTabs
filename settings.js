@@ -22,6 +22,7 @@ export class SettingsManager {
         isMobile: false,
         hideContentWhileResizing: false,
         showContextStatusBar: true,
+        showWorldInfoStatusBar: true,
         enableOverride1: false,
         optimizeMessageVisibility: false,
         enableAutoContrast: true,

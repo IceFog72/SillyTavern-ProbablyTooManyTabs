@@ -24,7 +24,7 @@ import { enableInteractions } from './drag-drop.js';
 import { removeMouseDownDrawerHandler, openAllDrawersJq, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver, moveBg1ToSheld, moveBg1BackToPtmtMain } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 import { positionAnchor } from './positionAnchor.js';
-import { initStatusBar } from './context-status-bar.js';
+import { initStatusBar, initWorldInfoStatusBar } from './context-status-bar.js';
 import { themeEngine } from './theme-engine.js';
 import { initColorizer } from './dialogue-colorizer.js';
 import { initCharacterColorizerUI } from './character-colorizer-ui.js';
@@ -36,6 +36,7 @@ import { initInspectorScaleControl, cleanupInspectorScaleControl } from './ui-in
 function initSubsystems() {
     positionAnchor();
     initStatusBar();
+    initWorldInfoStatusBar();
     themeEngine.init();
     initColorizer();
     initCharacterColorizerUI();

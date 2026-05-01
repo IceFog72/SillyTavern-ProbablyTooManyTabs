@@ -252,6 +252,7 @@ export function createSettingsPanel(manager) {
         createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
         createSettingCheckbox('Auto-Hide Tab Strip (Global)', 'tabStripAutoHide'),
         createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
+        createSettingCheckbox('Show World Info Status Bar', 'showWorldInfoStatusBar'),
         createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
         createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing'),
         moveBg1Checkbox,

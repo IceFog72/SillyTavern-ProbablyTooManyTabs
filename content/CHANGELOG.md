@@ -2,6 +2,18 @@
 
 ---
 
+## v0.10.6 — 2026-05-01
+
+*World Info Status Bar*
+
+- ✦ New · **World Info Status Bar** — Shows active World Info entries grouped by world book with strategy indicators
+- ✦ New · Entry strategy display: 🔵 constant, 🔗 vectorized, 🟢 normal
+- ✦ New · Sticky round indicator for entries with active sticky timeouts
+- ✔ Fix · Bar auto-hides when no entries are active
+- © Integration · Based on [SillyTavern-WorldInfoInfo](https://github.com/LenAnderson/SillyTavern-WorldInfoInfo) by LenAnderson
+
+---
+
 ## v0.10.5 — 2026-04-29
 
 *Layout Integrity · Context Menu UX*

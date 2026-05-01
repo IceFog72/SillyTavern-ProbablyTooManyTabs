@@ -141,6 +141,7 @@ body.big-avatars .mes {
 .ptmt-auto-contrast .mes code {
     background: var(--ptmt-code-bg) !important;
     color: var(--ptmt-code-text) !important;
+    overflow-x: auto;
 }
 
 .ptmt-auto-contrast .mes .swipes-counter {
@@ -370,12 +371,12 @@ body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
     height: 16px !important;
     min-width: unset !important;
     min-height: unset !important;
-    
+
     /* Reset global checkbox appearance */
     appearance: checkbox !important;
     -webkit-appearance: checkbox !important;
     -moz-appearance: checkbox !important;
-    
+
     /* Clean styling */
     cursor: pointer !important;
     margin: 0 !important;
@@ -385,7 +386,7 @@ body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
     background: transparent !important;
     box-shadow: none !important;
     filter: none !important;
-    
+
     /* Remove pseudo-elements from global styles */
     accent-color: rgb(102, 0, 0) !important;
 }
@@ -965,13 +966,13 @@ input[type="range"] {
     border-radius: 3px;
     box-shadow: none !important;
     outline: none;
-    background: var(--ST-UI-Border, rgba(255,255,255,0.2));
+    background: var(--ST-UI-Border, rgba(255, 255, 255, 0.2));
     cursor: ew-resize;
     transition: background 150ms ease-in-out;
 }
 
 input[type="range"]:hover {
-    background: var(--ST-Highlight-Background, rgba(0,153,255,0.3));
+    background: var(--ST-Highlight-Background, rgba(0, 153, 255, 0.3));
 }
 
 input[type="range"]:focus-visible {
@@ -985,7 +986,7 @@ input[type="range"]::-webkit-slider-thumb {
     height: 14px;
     border-radius: 50%;
     background: var(--ST-Highlight-Background, #0099ff);
-    border: 2px solid var(--ST-UI-Border, rgba(255,255,255,0.3));
+    border: 2px solid var(--ST-UI-Border, rgba(255, 255, 255, 0.3));
     cursor: pointer;
     transition: all 150ms ease-in-out;
 }
@@ -1017,7 +1018,7 @@ input[type="range"]::-moz-range-thumb {
     height: 14px;
     border-radius: 50%;
     background: var(--ST-Highlight-Background, #0099ff);
-    border: 2px solid var(--ST-UI-Border, rgba(255,255,255,0.3));
+    border: 2px solid var(--ST-UI-Border, rgba(255, 255, 255, 0.3));
     cursor: pointer;
     transition: all 150ms ease-in-out;
 }
@@ -1037,7 +1038,7 @@ input[type="range"]::-moz-range-thumb:active {
     width: auto;
 }
 
-.rm_tag_controls{
+.rm_tag_controls {
     align-items: center;
 }
 

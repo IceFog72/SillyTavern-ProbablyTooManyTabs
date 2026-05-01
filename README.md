@@ -56,6 +56,7 @@ PTMT integrates with these SillyTavern extensions:
 - [SillyTavern-MoonlitEchoesTheme](https://github.com/RivelleDays/SillyTavern-MoonlitEchoesTheme) (popup)
 - [expressions-plus](https://github.com/Tyranomaster/expressions-plus)
 - [SillyTavern-CharacterLibrary](https://github.com/Sillyanonymous/SillyTavern-CharacterLibrary)
+- [SillyTavern-WorldInfoInfo](https://github.com/LenAnderson/SillyTavern-WorldInfoInfo) (World Info integration as status bar)
 
 > **Note**: For popup windows, press the extension's popup button to integrate.
 

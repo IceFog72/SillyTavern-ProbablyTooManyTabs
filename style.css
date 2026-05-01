@@ -53,7 +53,7 @@
   --ST-Main-Text: var(--SmartThemeBodyColor);
   --ST-Italics-Text: var(--SmartThemeEmColor);
   --ST-Underlined-Text: var(--SmartThemeUnderlineColor);
-  --ST-Quote-Text: var(--SmartThemeQuoteColor);
+  --ST-Button-Background: var(--SmartThemeQuoteColor);
   --ST-Text-Shadow: var(--SmartThemeShadowColor);
   --ST-UI-Background: var(--SmartThemeBlurTintColor);
   --ST-Chat-Background: var(--SmartThemeChatTintColor);
@@ -80,7 +80,7 @@
   --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 70%);
-  --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Quote-Text), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Button-Background), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 70%);
 
 
@@ -285,7 +285,7 @@ body.ptmt-Theme-Sharp .ptmt-tab.active {
 /* Smooth: Resizer hover */
 body.ptmt-Theme-RoundedSmooth .ptmt-resizer-vertical:hover,
 body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal:hover {
-  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 30%);
+  background: color-mix(in srgb, var(--ST-Button-Background), transparent 30%);
 }
 
 /* Soft & Smooth: Panel container rounded corners */
@@ -406,6 +406,10 @@ body.ptmt-Theme-RoundedSmooth .drawer-content {
 #extensionTopBar,
 #send_form {
   border-radius: 0 !important;
+}
+
+#form_sheld{
+  margin: unset !important;
 }
 
 #send_form {
@@ -680,7 +684,7 @@ body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal {
 
 .ptmt-resizer-vertical:hover,
 .ptmt-resizer-horizontal:hover {
-  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 60%);
+  background: color-mix(in srgb, var(--ST-Button-Background), transparent 60%);
 }
 
 .ptmt-resizer-vertical.disabled,
@@ -1183,7 +1187,7 @@ select option {
 }
 
 .ptmt-tab.active:hover::after {
-  background: var(--ST-Quote-Text);
+  background: var(--ST-Button-Background);
   box-shadow: 0 0 12px 2px var(--ST-Main-Text);
 }
 
@@ -1208,7 +1212,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStr
 }
 
 .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip .ptmt-tab.active:hover::after {
-  background: var(--ST-Quote-Text) !important;
+  background: var(--ST-Button-Background) !important;
   box-shadow: 0 0 12px 2px var(--ST-Main-Text) !important;
 }
 
@@ -1306,7 +1310,7 @@ body.ptmt-Theme-Sharp .ptmt-tabStrip.vertical .ptmt-tab.active {
 }
 
 .ptmt-tabStrip.vertical .ptmt-tab.active:hover::after {
-  background: var(--ST-Quote-Text) !important;
+  background: var(--ST-Button-Background) !important;
   box-shadow: 0 0 12px 2px var(--ST-Main-Text) !important;
 }
 
@@ -1561,7 +1565,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 
 .ptmt-editor-split,
 .ptmt-editor-pane {
-  border: 1px dashed var(--ST-Quote-Text);
+  border: 1px dashed var(--ST-Button-Background);
   padding: 2px;
   margin-top: 2px !important;
   border-radius: 0.5rem !important;
@@ -1580,7 +1584,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   color: var(--ST-Italics-Text);
   padding: 2px 6px;
   font-size: 0.85em;
-  background: var(--ST-Secondary-Background);
+  background: var(--ST-UI-Border);
   border-bottom: 1px solid var(--ST-UI-Border);
 }
 
@@ -1602,7 +1606,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 .ptmt-editor-title button:hover,
 .ptmt-editor-title select:hover {
   background: color-mix(in srgb, var(--ST-UI-Background), white 20%) !important;
-  border-color: var(--ST-Quote-Text) !important;
+  border-color: var(--ST-Button-Background) !important;
 }
 
 /* Glassmorphism Configuration Buttons */
@@ -1663,7 +1667,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 
 .ptmt-editor-tab:hover {
   background: color-mix(in srgb, var(--ST-UI-Background), white 10%);
-  border-color: var(--ST-Quote-Text);
+  border-color: var(--ST-Button-Background);
 }
 
 .ptmt-editor-tab.dragging {
@@ -1773,11 +1777,11 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 }
 
 .csb-prompt {
-  background-color: color-mix(in oklch, #ff4d4d, var(--ST-Quote-Text) 20%);
+  background-color: color-mix(in oklch, #ff4d4d, var(--ST-Button-Background) 20%);
 }
 
 .csb-world {
-  background-color: color-mix(in oklch, #f1c40f, var(--ST-Quote-Text) 20%);
+  background-color: color-mix(in oklch, #f1c40f, var(--ST-Button-Background) 20%);
 }
 
 .csb-chat {
@@ -1785,7 +1789,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 }
 
 .csb-anchors {
-  background-color: color-mix(in oklch, #4a90e2, var(--ST-Quote-Text) 20%);
+  background-color: color-mix(in oklch, #4a90e2, var(--ST-Button-Background) 20%);
 }
 
 .csb-remaining {
@@ -1904,7 +1908,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .ptmt-custom-icon-input:focus {
   outline: none;
-  border-color: var(--ST-Quote-Text);
+  border-color: var(--ST-Button-Background);
 }
 
 /* Context Menu */
@@ -1932,7 +1936,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .ptmt-context-menu-item:hover {
-  background: color-mix(in srgb, var(--ST-Highlight-Background, var(--ST-Quote-Text)), transparent 80%);
+  background: color-mix(in srgb, var(--ST-Highlight-Background, var(--ST-Button-Background)), transparent 80%);
   padding-left: 20px;
 }
 
@@ -2021,7 +2025,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   margin: 0;
   padding: 16px 20px;
   border-bottom: 1px solid var(--ST-UI-Border);
-  color: var(--ST-Quote-Text);
+  color: var(--ST-Button-Background);
   font-size: 1.1em;
   font-weight: 600;
   letter-spacing: -0.3px;
@@ -2114,7 +2118,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--ST-Quote-Text);
+  color: var(--ST-Button-Background);
   opacity: 0.9;
 }
 
@@ -2186,7 +2190,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 70%);
+  background: color-mix(in srgb, var(--ST-Button-Background), transparent 70%);
   color: var(--ST-Main-Text);
   font-size: 0.75em;
   font-weight: bold;
@@ -2198,7 +2202,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .ptmt-vs-help-icon:hover {
   opacity: 1;
-  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 50%);
+  background: color-mix(in srgb, var(--ST-Button-Background), transparent 50%);
 }
 
 .ptmt-vs-footer {
@@ -2229,7 +2233,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .ptmt-vs-button:hover {
   background: color-mix(in srgb, var(--ST-Chat-Background), transparent 10%);
-  border-color: var(--ST-Quote-Text);
+  border-color: var(--ST-Button-Background);
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
@@ -2765,7 +2769,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-info-tab-btn.active {
   background: var(--ST-UI-Background);
   border-color: var(--ST-UI-Border);
-  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   font-weight: 600;
 }
 
@@ -2804,7 +2808,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 /* Shared inline link style */
 .ptmt-info-link {
-  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   text-decoration: underline;
   text-underline-offset: 2px;
   transition: opacity 0.15s;
@@ -2882,14 +2886,14 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-guide-tip {
   margin-top: 8px !important;
   padding: 7px 10px;
-  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 88%);
-  border-left: 3px solid var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  background: color-mix(in srgb, var(--ST-Button-Background), transparent 88%);
+  border-left: 3px solid var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   border-radius: 0 4px 4px 0;
   font-size: 0.85em;
 }
 
 .ptmt-guide-body a {
-  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   text-decoration: underline;
   text-underline-offset: 2px;
 }
@@ -2920,10 +2924,10 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 /* Highlight the most recent release */
 .ptmt-changelog-latest {
-  background: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 93%);
+  background: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Button-Background)), transparent 93%);
   border-radius: 8px;
   padding: 14px 14px;
-  border: 1px solid color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 75%);
+  border: 1px solid color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Button-Background)), transparent 75%);
   margin-bottom: 6px;
 }
 
@@ -2938,7 +2942,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-changelog-version {
   font-size: 0.95rem;
   font-weight: 700;
-  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
 }
 
 .ptmt-changelog-date {
@@ -3045,7 +3049,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .ptmt-more-card:hover {
-  border-color: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 60%);
+  border-color: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Button-Background)), transparent 60%);
   background: color-mix(in srgb, var(--ST-UI-Background), white 6%);
 }
 
@@ -3057,7 +3061,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 .ptmt-more-card-icon {
   font-size: 1.05rem;
-  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   flex-shrink: 0;
 }
 
@@ -3070,7 +3074,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .ptmt-more-card-title:hover {
-  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   text-decoration: underline;
 }
 
@@ -3123,8 +3127,8 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .ptmt-more-support-link:hover {
-  background: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 82%);
-  border-color: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Quote-Text)), transparent 55%);
+  background: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Button-Background)), transparent 82%);
+  border-color: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Button-Background)), transparent 55%);
   color: var(--ST-Main-Text);
 }
 
@@ -3189,7 +3193,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-size: 0.9rem;
   font-weight: 700;
   margin: 16px 0 6px;
-  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
 }
 
 /* Paragraph */
@@ -3216,9 +3220,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-md-blockquote {
   margin: 10px 0;
   padding: 8px 12px;
-  border-left: 3px solid var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  border-left: 3px solid var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   border-radius: 0 4px 4px 0;
-  background: color-mix(in srgb, var(--ST-Quote-Text), transparent 90%);
+  background: color-mix(in srgb, var(--ST-Button-Background), transparent 90%);
   font-size: 0.85em;
 }
 
@@ -3244,7 +3248,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 /* Links rendered from markdown */
 .ptmt-md-content a {
-  color: var(--ptmt-adaptive-quote, var(--ST-Quote-Text));
+  color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   text-decoration: underline;
   text-underline-offset: 2px;
   transition: opacity 0.15s;
@@ -3405,4 +3409,89 @@ body.ptmt-is-resizing #rm_print_characters_block {
   flex-direction: column;
   gap: 12px;
   padding: 8px 0;
+}
+
+/* World Info Status Bar */
+#world-info-status-bar {
+  display: none;
+  min-height: 28px !important;
+  border-bottom: 1px solid var(--ST-Form-Border, #444);
+  width: 100% !important;
+  position: relative !important;
+  z-index: 10;
+  flex-shrink: 0;
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  background: var(--ST-UI-Background, #2a2a2a);
+  font-size: 12px;
+  overflow-y: hidden;
+  overflow-x: auto;
+  flex-wrap: wrap;
+}
+
+.ptmt-wi-world-group {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  border: 1px solid var(--ST-UI-Border, #444);
+  border-radius: 3px;
+}
+
+.ptmt-wi-world-title {
+  font-size: 11px;
+  font-weight: bold;
+  color: var(--ST-Main-Text, #ccc);
+  background: var(--ST-UI-Border, #444);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ptmt-wi-entries-list {
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.ptmt-wi-entry-item {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 10px;
+  padding: 2px 4px;
+  background: var(--ST-UI-Border, #3d3d3d);
+  color: var(--ST-Main-Text, #ccc);
+  border-radius: 3px;
+  white-space: nowrap;
+  cursor: help;
+  flex-shrink: 0;
+}
+
+.ptmt-wi-entry-item:hover {
+  background: var(--ST-Button-Background, #555);
+}
+
+.ptmt-wi-strategy {
+  font-size: 11px;
+  flex-shrink: 0;
+}
+
+.ptmt-wi-key {
+  flex-shrink: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.ptmt-wi-sticky {
+  font-size: 9px;
+  flex-shrink: 0;
+  color: #f39c12;
 }
