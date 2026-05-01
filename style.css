@@ -54,6 +54,7 @@
   --ST-Italics-Text: var(--SmartThemeEmColor);
   --ST-Underlined-Text: var(--SmartThemeUnderlineColor);
   --ST-Button-Background: var(--SmartThemeQuoteColor);
+  --ST-Quote-Text: var(--SmartThemeQuoteColor);
   --ST-Text-Shadow: var(--SmartThemeShadowColor);
   --ST-UI-Background: var(--SmartThemeBlurTintColor);
   --ST-Chat-Background: var(--SmartThemeChatTintColor);
