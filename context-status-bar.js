@@ -218,17 +218,18 @@ const renderWorldInfoStatusBar = debounce(function () {
             stratEl.title = `Strategy: ${strategy.label}`;
             entryEl.appendChild(stratEl);
 
-            // Entry key/label
+            // Entry key/label - key is an array
             const keyEl = document.createElement('span');
             keyEl.className = 'ptmt-wi-key';
-            const key = Array.isArray(entry.key) ? entry.key[0] : (entry.key || entry.uid || '?');
-            keyEl.textContent = key;
-            
-            // Store tooltip data
-            const tooltipText = `[${worldName}] ${entry.comment?.length ? entry.comment : key}\n${entry.content || ''}`.trim();
-            entryEl.dataset.tooltip = tooltipText;
-            
+            const keyString = Array.isArray(entry.key) ? entry.key.join(', ') : (entry.key || entry.uid || '?');
+            keyEl.textContent = keyString;
             entryEl.appendChild(keyEl);
+
+            // Store tooltip data - match WorldInfoInfo format
+            const displayName = entry.comment?.length ? entry.comment : keyString;
+            const tooltipText = `[${entry.world}] ${displayName}\n---\n${entry.content || ''}`.trim();
+            entryEl.dataset.tooltip = tooltipText;
+            entryEl.title = tooltipText;
 
             // Optional: Sticky indicator
             if (entry.sticky) {
@@ -239,22 +240,27 @@ const renderWorldInfoStatusBar = debounce(function () {
                 entryEl.appendChild(stickyEl);
             }
 
-            // Add custom tooltip on hover
-            entryEl.addEventListener('mouseenter', (e) => {
+            // Add custom tooltip on hover (mouseover bubbles, mouseenter doesn't)
+            entriesList.addEventListener('mouseover', (e) => {
+                const target = e.target.closest('.ptmt-wi-entry');
+                if (!target) return;
+
                 const existing = document.querySelector('.ptmt-wi-tooltip');
                 if (existing) existing.remove();
-                
+
                 const tooltip = document.createElement('div');
                 tooltip.className = 'ptmt-wi-tooltip';
-                tooltip.textContent = entryEl.dataset.tooltip;
+                tooltip.textContent = target.dataset.tooltip;
                 document.body.appendChild(tooltip);
-                
-                const rect = entryEl.getBoundingClientRect();
+
+                const rect = target.getBoundingClientRect();
                 tooltip.style.left = (rect.left + rect.width / 2) + 'px';
                 tooltip.style.top = (rect.top - 10) + 'px';
             });
 
-            entryEl.addEventListener('mouseleave', () => {
+            entriesList.addEventListener('mouseout', (e) => {
+                const target = e.target.closest('.ptmt-wi-entry');
+                if (!target) return;
                 const tooltip = document.querySelector('.ptmt-wi-tooltip');
                 if (tooltip) tooltip.remove();
             });

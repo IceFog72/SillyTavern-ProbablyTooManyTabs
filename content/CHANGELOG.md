@@ -6,10 +6,7 @@
 
 *World Info Status Bar*
 
-- ✦ New · **World Info Status Bar** — Shows active World Info entries grouped by world book with strategy indicators
-- ✦ New · Entry strategy display: 🔵 constant, 🔗 vectorized, 🟢 normal
-- ✦ New · Sticky round indicator for entries with active sticky timeouts
-- ✔ Fix · Bar auto-hides when no entries are active
+- ✦ New · **World Info Status Bar** — Shows active World Info entries
 - © Integration · Based on [SillyTavern-WorldInfoInfo](https://github.com/LenAnderson/SillyTavern-WorldInfoInfo) by LenAnderson
 
 ---

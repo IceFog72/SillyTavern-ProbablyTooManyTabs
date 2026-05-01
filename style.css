@@ -408,7 +408,7 @@ body.ptmt-Theme-RoundedSmooth .drawer-content {
   border-radius: 0 !important;
 }
 
-#form_sheld{
+#form_sheld {
   margin: unset !important;
 }
 
@@ -3481,6 +3481,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-wi-strategy {
   font-size: 11px;
   flex-shrink: 0;
+  pointer-events: none;
 }
 
 .ptmt-wi-key {
