@@ -235,7 +235,7 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
         document.querySelectorAll(SELECTORS.SPLIT).forEach(applySplitOrientation);
         document.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
         applyColumnVisibility();
-        if (reason !== 'manualResize' && reason !== 'tabSwitch') {
+        if (reason !== 'manualResize' && reason !== 'tabSwitch' && reason !== 'paneCollapsed' && reason !== 'splitStructuralChange') {
             recalculateColumnSizes();
         }
         updateResizerDisabledStates();

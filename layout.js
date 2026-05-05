@@ -157,8 +157,8 @@ export function recalculateColumnSizes() {
             // Only recalculate lastFlex if the existing one is missing or tiny (<= 5%)
             if (existingBasis <= 5) {
                 const parentWidth = col.parentElement.getBoundingClientRect().width;
-                const resizerCount = col.parentElement.querySelectorAll('.ptmt-column-resizer').length;
-                const totalResizerWidth = resizerCount * LAYOUT.RESIZER_WIDTH;
+                const columnResizers = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'));
+                const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (r.classList.contains('disabled') ? 0 : LAYOUT.RESIZER_WIDTH), 0);
                 const availableWidth = parentWidth - totalResizerWidth;
 
                 if (currentWidth < minWidth || basis >= 99.9) {
@@ -194,8 +194,8 @@ export function recalculateColumnSizes() {
             let lastFlex = col.dataset.lastFlex;
             const minWidth = calculateElementMinWidth(col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`));
             const parentWidth = col.parentElement.getBoundingClientRect().width;
-            const resizerCount = col.parentElement.querySelectorAll(SELECTORS.COLUMN_RESIZER).length;
-            const totalResizerWidth = resizerCount * LAYOUT.RESIZER_WIDTH;
+            const columnResizers = Array.from(col.parentElement.querySelectorAll(SELECTORS.COLUMN_RESIZER));
+            const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (r.classList.contains('disabled') ? 0 : LAYOUT.RESIZER_WIDTH), 0);
             const availableWidth = parentWidth - totalResizerWidth;
 
 

@@ -214,7 +214,7 @@ function _recalculateSplitSizesImpl(split, actor = null, cache = null) {
     if (totalAvailableSize <= 1) return;
 
     const resizers = Array.from(split.children).filter(c => c.tagName === 'SPLITTER');
-    const totalResizerSize = resizers.length * LAYOUT.RESIZER_WIDTH;
+    const totalResizerSize = resizers.reduce((sum, r) => sum + (r.classList.contains('disabled') ? 0 : LAYOUT.RESIZER_WIDTH), 0);
     const contentAvailableSize = Math.max(0, totalAvailableSize - totalResizerSize);
 
     const childrenInfo = activeChildren.map(child => {
@@ -309,8 +309,8 @@ function _normalizeFlexBasisImpl(activeColumns, targetTotal = 100, actor = null)
 
     if (parentWidth < 100) return;
 
-    const resizerCount = refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER).length;
-    const totalResizerWidth = resizerCount * LAYOUT.RESIZER_WIDTH;
+    const columnResizers = Array.from(refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER));
+    const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (r.classList.contains('disabled') ? 0 : LAYOUT.RESIZER_WIDTH), 0);
 
     const availableWidth = Math.max(1, parentWidth - totalResizerWidth);
 
@@ -348,11 +348,12 @@ function _normalizeFlexBasisImpl(activeColumns, targetTotal = 100, actor = null)
                     return distA - distB;
                 });
             } else {
-                donors.sort((a, b) => {
-                    if (a.col.id === 'ptmt-centerBody') return -1;
-                    if (b.col.id === 'ptmt-centerBody') return 1;
-                    return 0;
-                });
+                // No explicit actor — only steal from center to keep side columns stable
+                const centerOnly = donors.filter(d => d.col.id === 'ptmt-centerBody');
+                if (centerOnly.length > 0) {
+                    donors.length = 0;
+                    donors.push(...centerOnly);
+                }
             }
 
             for (const d of donors) {
@@ -373,12 +374,23 @@ function _normalizeFlexBasisImpl(activeColumns, targetTotal = 100, actor = null)
                 });
             }
         } else {
-            const sorted = [...columnData].sort((a, b) => b.basis - a.basis);
-            if (sorted[0]) sorted[0].basis -= error;
+            // Surplus (error < 0): give it to center first, fall back to largest
+            const center = columnData.find(d => d.col.id === 'ptmt-centerBody');
+            if (center) {
+                center.basis -= error;
+            } else {
+                const sorted = [...columnData].sort((a, b) => b.basis - a.basis);
+                if (sorted[0]) sorted[0].basis -= error;
+            }
         }
     }
 
     columnData.forEach(d => {
-        d.col.style.flex = `1 1 ${d.basis.toFixed(4)}%`;
+        // Side columns are rigid (0 0) so the browser never redistributes overflow to them.
+        // Center absorbs all overflow/underflow from fixed items (collapsed columns, resizers).
+        const isCenter = d.col.id === 'ptmt-centerBody';
+        const newFlex = `${isCenter ? 1 : 0} ${isCenter ? 1 : 0} ${d.basis.toFixed(4)}%`;
+        if (d.col.style.flex === newFlex) return; // skip unchanged — avoids reflow jitter
+        d.col.style.flex = newFlex;
     });
 }
