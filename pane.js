@@ -176,7 +176,12 @@ export function createPane(initialSettings = {}, options = {}) {
     if (e.target !== tabStrip) return;
     const vs = readPaneViewSettings(pane);
     const globalIconsOnly = !!settings.get('showIconsOnly');
-    const globalAutoHide = !!settings.get('tabStripAutoHide');
+    const globalMode = settings.get('tabStripMode') || 'normal';
+    const MODE_CYCLE = ['normal', 'auto-hide', 'shy'];
+    const MODE_LABELS = { 'normal': 'Normal', 'auto-hide': 'Auto-Hide', 'shy': 'Shy' };
+    const MODE_ICONS = { 'normal': 'fa-solid fa-eye', 'auto-hide': 'fa-solid fa-eye-low-vision', 'shy': 'fa-solid fa-eye-slash' };
+    const currentMode = vs.tabStripMode || 'normal';
+    const nextMode = MODE_CYCLE[(MODE_CYCLE.indexOf(currentMode) + 1) % MODE_CYCLE.length];
     showContextMenu(e, [
       {
         label: 'Edit Pane',
@@ -191,12 +196,12 @@ export function createPane(initialSettings = {}, options = {}) {
         onClick: () => toggleIconsOnly(pane)
       },
       {
-        label: (vs.autoHideOverride || globalAutoHide) ? 'Show Tab Strip' : 'Auto-Hide Tab Strip',
-        icon: (vs.autoHideOverride || globalAutoHide) ? 'fa-solid fa-eye' : 'fa-solid fa-eye-slash',
-        disabled: globalAutoHide,
-        disabledTitle: 'Overridden by "Auto-Hide Tab Strip (Global)" setting',
+        label: `Tab Strip: ${MODE_LABELS[currentMode]} → ${MODE_LABELS[nextMode]}`,
+        icon: MODE_ICONS[currentMode],
+        disabled: globalMode !== 'normal',
+        disabledTitle: `Overridden by global "${MODE_LABELS[globalMode]}" setting`,
         onClick: () => {
-          writePaneViewSettings(pane, { autoHideOverride: !vs.autoHideOverride });
+          writePaneViewSettings(pane, { tabStripMode: nextMode });
           window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
         }
       }
@@ -747,7 +752,8 @@ export function openViewSettingsDialog(pane) {
 
   // Display section with icons-only toggle
   const globalIconsOnly = !!settings.get('showIconsOnly');
-  const globalAutoHide = !!settings.get('tabStripAutoHide');
+  const globalMode = settings.get('tabStripMode') || 'normal';
+  const MODE_LABELS = { 'normal': 'Normal', 'auto-hide': 'Auto-Hide', 'shy': 'Shy' };
 
   const iconOnlyCheckbox = el('input', {
     type: 'checkbox',
@@ -761,16 +767,19 @@ export function openViewSettingsDialog(pane) {
     iconOnlyCheckbox.title = 'Controlled by "Show Icons Only (Global)" setting';
   }
 
-  const autoHideCheckbox = el('input', {
-    type: 'checkbox',
-    id: 'ptmt-vs-auto-hide'
+  const tabStripModeSelect = el('select', {
+    id: 'ptmt-vs-tabstrip-mode',
+    className: 'text_pole textarea_compact',
+    style: { width: 'auto', minWidth: '100px' }
   });
-  if (vs.autoHideOverride || globalAutoHide) {
-    autoHideCheckbox.checked = true;
-  }
-  if (globalAutoHide) {
-    autoHideCheckbox.disabled = true;
-    autoHideCheckbox.title = 'Controlled by "Auto-Hide Tab Strip (Global)" setting';
+  ['normal', 'auto-hide', 'shy'].forEach(mode => {
+    const opt = el('option', { value: mode }, MODE_LABELS[mode]);
+    if (mode === (vs.tabStripMode || 'normal')) opt.selected = true;
+    tabStripModeSelect.appendChild(opt);
+  });
+  if (globalMode !== 'normal') {
+    tabStripModeSelect.disabled = true;
+    tabStripModeSelect.title = `Controlled by global "${MODE_LABELS[globalMode]}" setting`;
   }
 
   const displaySection = el('div', { className: 'ptmt-vs-section' },
@@ -784,9 +793,9 @@ export function openViewSettingsDialog(pane) {
       iconOnlyCheckbox
     ),
     createField(
-      globalAutoHide ? 'Auto-Hide Tab Strip (Global)' : 'Auto-Hide Tab Strip',
-      globalAutoHide ? 'Controlled by the global "Auto-Hide Tab Strip" setting' : 'Minimize tab strip to a line; expand on hover/focus',
-      autoHideCheckbox
+      'Tab Strip Mode',
+      'Normal = always visible, Auto-Hide = hide on open panes, Shy = hidden behind indicator bar',
+      tabStripModeSelect
     )
   );
 
@@ -833,7 +842,7 @@ export function openViewSettingsDialog(pane) {
     const col = dialog.querySelector('#ptmt-vs-collapsed').value || 'auto';
     const flow = dialog.querySelector('#ptmt-vs-flow').value || 'default';
     const iconOnly = dialog.querySelector('#ptmt-vs-icon-only').checked || false;
-    const autoHideOverride = dialog.querySelector('#ptmt-vs-auto-hide').checked || false;
+    const tabStripMode = dialog.querySelector('#ptmt-vs-tabstrip-mode').value || 'normal';
 
     writePaneViewSettings(pane, {
       minimalPanelSize: minimal,
@@ -841,7 +850,7 @@ export function openViewSettingsDialog(pane) {
       collapsedOrientation: col,
       contentFlow: flow,
       iconOnly: iconOnly,
-      autoHideOverride: autoHideOverride
+      tabStripMode: tabStripMode
     });
     applyPaneOrientation(pane);
     applyIconsOnly(pane, iconOnly);

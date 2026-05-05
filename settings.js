@@ -14,6 +14,7 @@ export class SettingsManager {
         showRightPane: true,
         showIconsOnly: false,
         tabStripAutoHide: false,
+        tabStripMode: 'normal',
         maxLayersLeft: 3,
         maxLayersCenter: 3,
         maxLayersRight: 3,
@@ -486,6 +487,13 @@ export class SettingsManager {
             console.log("[PTMT] Migrating legacy layout to savedLayoutDesktop");
             extension_settings.PTMT.savedLayoutDesktop = extension_settings.PTMT.savedLayout;
             delete extension_settings.PTMT.savedLayout;
+            this.save();
+        }
+
+        // Migration: tabStripAutoHide (boolean) → tabStripMode (string)
+        if (extension_settings.PTMT?.tabStripAutoHide && this.get('tabStripMode') === 'normal') {
+            console.log("[PTMT] Migrating tabStripAutoHide → tabStripMode: 'auto-hide'");
+            extension_settings.PTMT.tabStripMode = 'auto-hide';
             this.save();
         }
 

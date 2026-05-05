@@ -245,12 +245,34 @@ export function createSettingsPanel(manager) {
         bgColorContainer.style.display = e.target.checked ? 'flex' : 'none';
     });
 
+    // Tab Strip Mode dropdown (replaces old Auto-Hide checkbox)
+    const tabStripModeRow = (() => {
+        const id = 'ptmt-global-tabStripMode';
+        const wrapper = el('div', { className: 'ptmt-setting-row' });
+        const select = el('select', { id, className: 'text_edit' });
+        const modes = { 'normal': 'Normal', 'auto-hide': 'Auto-Hide', 'shy': 'Shy' };
+        Object.entries(modes).forEach(([value, label]) => {
+            const opt = el('option', { value, selected: settings.get('tabStripMode') === value }, label);
+            select.appendChild(opt);
+        });
+        // Fall back: if legacy tabStripAutoHide is true and tabStripMode is 'normal', show auto-hide
+        if (settings.get('tabStripAutoHide') && settings.get('tabStripMode') === 'normal') {
+            select.value = 'auto-hide';
+        }
+        select.addEventListener('change', (e) => {
+            settings.update({ tabStripMode: e.target.value });
+        });
+        const label = el('label', { for: id }, 'Tab Strip Mode (Global)');
+        wrapper.append(select, label);
+        return wrapper;
+    })();
+
     globalGrid.append(
         createSettingCheckbox('Show Left Column', 'showLeftPane'),
         createSettingCheckbox('Show Right Column', 'showRightPane'),
         createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
         createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
-        createSettingCheckbox('Auto-Hide Tab Strip (Global)', 'tabStripAutoHide'),
+        tabStripModeRow,
         createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
         createSettingCheckbox('Show World Info Status Bar', 'showWorldInfoStatusBar'),
         createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),

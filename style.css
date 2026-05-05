@@ -660,6 +660,11 @@ body.ptmt-Theme-RoundedSmooth #ptmt-mainBody {
   overflow: hidden;
 }
 
+/* When a collapsed column only contains shy-minimized panes, shrink min-width to indicator size */
+.ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-pane.ptmt-tabstrip-minimized.view-collapsed):not(:has(.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized))) {
+  min-width: 10px;
+}
+
 body.ptmt-Theme-RoundedSoft .ptmt-resizer-vertical,
 body.ptmt-Theme-RoundedSoft .ptmt-resizer-horizontal,
 body.ptmt-Theme-RoundedSmooth .ptmt-resizer-vertical,
@@ -2615,66 +2620,113 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal {
   grid-template-rows: 0fr 1fr;
 }
-
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed {
   grid-template-rows: 1fr 0fr;
 }
-
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical {
   grid-template-columns: 0fr 1fr;
 }
-
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed {
   grid-template-columns: 1fr 0fr;
 }
 
-/* Allow pointer events when minimized for hover detection on pane */
 .ptmt-pane.ptmt-tabstrip-minimized {
   position: relative;
 }
-
-/* Expand on hover - restore space and visibility */
-.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-tabStrip,
-.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-tabStrip {
-  flex: initial !important;
-  min-width: auto !important;
-  min-height: auto !important;
-  overflow: visible;
-  opacity: 1;
-  pointer-events: auto;
-  visibility: visible;
-}
-
-/* Restore grid templates on hover */
-.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-pane-grid.grid-horizontal,
-.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-pane-grid.grid-horizontal {
-  grid-template-rows: var(--ptmt-collapsed-width) 1fr !important;
-}
-
-.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-pane-grid.grid-horizontal.flow-reversed,
-.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-pane-grid.grid-horizontal.flow-reversed {
-  grid-template-rows: 1fr var(--ptmt-collapsed-width) !important;
-}
-
-.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-pane-grid.grid-vertical,
-.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-pane-grid.grid-vertical {
-  grid-template-columns: var(--ptmt-collapsed-width) 1fr !important;
-}
-
-.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-pane-grid.grid-vertical.flow-reversed,
-.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-pane-grid.grid-vertical.flow-reversed {
-  grid-template-columns: 1fr var(--ptmt-collapsed-width) !important;
-}
-
-/* For vertical tab strips, ensure proper width handling */
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical {
   flex: 0 0 0 !important;
 }
 
-.ptmt-pane.ptmt-tabstrip-minimized:hover .ptmt-tabStrip.vertical,
-.ptmt-pane.ptmt-tabstrip-minimized:focus-within .ptmt-tabStrip.vertical {
+/* ─── Indicator Bar ───────────────────────────────────────────────────────────
+   Used by BOTH auto-hide and shy modes. A thin bar that acts as the hover target
+   to reveal the hidden tab strip. Replaces the old pane-hover approach. */
+
+.ptmt-shy-indicator {
+  position: absolute;
+  z-index: 10;
+  background: var(--ptmt-indicator-color, rgba(255, 255, 255, 0.15));
+  border-radius: 2px;
+  opacity: var(--ptmt-indicator-opacity, 0.5);
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+  pointer-events: auto;
+  flex-shrink: 0;
+}
+.ptmt-shy-indicator:hover {
+  background: var(--ptmt-indicator-hover-color, rgba(255, 255, 255, 0.3));
+}
+
+/* Horizontal: indicator is a horizontal bar at top/bottom */
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal > .ptmt-shy-indicator {
+  height: 4px;
+  width: calc(100% - 16px);
+  left: 8px;
+  top: 2px;
+}
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed > .ptmt-shy-indicator {
+  top: auto;
+  bottom: 2px;
+}
+
+/* Vertical: indicator is a vertical bar at left/right */
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical > .ptmt-shy-indicator {
+  width: 4px;
+  height: calc(100% - 16px);
+  top: 8px;
+  left: 2px;
+}
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed > .ptmt-shy-indicator {
+  left: auto;
+  right: 2px;
+}
+
+/* ─── Indicator Hover → Tab Strip Reveal ──────────────────────────────────── */
+.ptmt-shy-indicator:hover ~ .ptmt-tabStrip,
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:hover {
+  flex: initial !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  overflow: visible;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+}
+.ptmt-shy-indicator:hover ~ .ptmt-tabStrip.vertical,
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical:hover {
   flex: initial !important;
 }
+
+/* Restore grid templates on indicator/tabstrip hover */
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-horizontal,
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-horizontal {
+  grid-template-rows: var(--ptmt-collapsed-width) 1fr !important;
+}
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-horizontal.flow-reversed,
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-rows: 1fr var(--ptmt-collapsed-width) !important;
+}
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-vertical,
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-vertical {
+  grid-template-columns: var(--ptmt-collapsed-width) 1fr !important;
+}
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-vertical.flow-reversed,
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-columns: 1fr var(--ptmt-collapsed-width) !important;
+}
+
+/* Indicator fades out when indicator itself is hovered or when tab strip is visible */
+.ptmt-shy-indicator:hover,
+.ptmt-pane-grid:has(.ptmt-tabStrip:hover) > .ptmt-shy-indicator {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+/* Only expand collapsed side-columns on indicator hover, never the center */
+.ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-shy-indicator:hover),
+.ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-tabStrip:hover) {
+  flex: 0 0 calc(var(--ptmt-shy-hover-panes, 1) * var(--ptmt-collapsed-width) + var(--ptmt-shy-hover-splitters, 0px)) !important;
+  min-width: calc(var(--ptmt-shy-hover-panes, 1) * var(--ptmt-collapsed-width) + var(--ptmt-shy-hover-splitters, 0px)) !important;
+}
+
 
 .ptmt-editor-label-small {
   font-size: 0.8em;

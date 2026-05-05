@@ -1,4 +1,4 @@
-import { el, getRefs, calculateElementMinWidth } from './utils.js';
+import { el, getRefs, calculateElementMinWidth, readPaneViewSettings } from './utils.js';
 import { createPane, findPreferredDescendentOrientation } from './pane.js';
 import { attachColumnResizer } from './resizer.js';
 import { settings } from './settings.js';
@@ -100,10 +100,24 @@ export function recalculateColumnSizes() {
     let collapsedColumn = null;
 
 
+    // Check if a pane is in shy mode (tab strip hidden behind indicator even when collapsed)
+    function isPaneShyCollapsed(pane) {
+        const vs = readPaneViewSettings(pane);
+        const paneMode = vs.tabStripMode || 'normal';
+        const globalMode = settings.get('tabStripMode') || 'normal';
+        // Legacy fallback
+        const effectiveGlobal = (globalMode !== 'normal') ? globalMode : (settings.get('tabStripAutoHide') ? 'auto-hide' : 'normal');
+        const mode = (paneMode !== 'normal') ? paneMode : effectiveGlobal;
+        return mode === 'shy';
+    }
+
     // Helper to calculate the required width of a collapsed column based on its split structure
     function calculateCollapsedColumnWidth(element) {
-        // If it's a pane, it takes up MIN_COLLAPSED_PIXELS
+        // If it's a pane, check if shy mode → use indicator width
         if (element.classList.contains(SELECTORS.PANE.substring(1))) {
+            if (isPaneShyCollapsed(element)) {
+                return LAYOUT.SHY_INDICATOR_WIDTH;
+            }
             return LAYOUT.MIN_COLLAPSED_PIXELS();
         }
 
@@ -132,6 +146,44 @@ export function recalculateColumnSizes() {
             }
         }
         return LAYOUT.MIN_COLLAPSED_PIXELS();
+    }
+
+    // Returns { panes, splitterPx } — the pane count and fixed splitter pixels for the
+    // expanded shy hover width. CSS multiplies panes * --ptmt-collapsed-width + splitterPx,
+    // keeping it theme-responsive regardless of when this is called.
+    function calculateExpandedPaneInfo(element) {
+        if (element.classList.contains(SELECTORS.PANE.substring(1))) {
+            return { panes: 1, splitterPx: 0 };
+        }
+        if (element.classList.contains(SELECTORS.SPLIT.substring(1))) {
+            const children = Array.from(element.children).filter(c =>
+                c.classList.contains(SELECTORS.PANE.substring(1)) ||
+                c.classList.contains(SELECTORS.SPLIT.substring(1))
+            );
+            if (children.length === 0) return { panes: 1, splitterPx: 0 };
+            const isHorizontal = element.classList.contains('horizontal');
+            if (isHorizontal) {
+                // Stacked: width is max of children
+                let maxPanes = 0, maxSplitter = 0;
+                children.forEach(child => {
+                    const info = calculateExpandedPaneInfo(child);
+                    if (info.panes > maxPanes) { maxPanes = info.panes; maxSplitter = info.splitterPx; }
+                });
+                return { panes: maxPanes, splitterPx: maxSplitter };
+            } else {
+                // Side-by-side: sum panes + splitters
+                let totalPanes = 0, totalSplitterPx = 0;
+                children.forEach(child => {
+                    const info = calculateExpandedPaneInfo(child);
+                    totalPanes += info.panes;
+                    totalSplitterPx += info.splitterPx;
+                });
+                const activeSplitters = Array.from(element.children).filter(c => c.tagName === 'SPLITTER' && !c.classList.contains('disabled'));
+                totalSplitterPx += activeSplitters.length * LAYOUT.RESIZER_WIDTH;
+                return { panes: totalPanes, splitterPx: totalSplitterPx };
+            }
+        }
+        return { panes: 1, splitterPx: 0 };
     }
 
     // Step 1: Update collapsed state for each column based on its content, and detect if a state change occurred.
@@ -187,6 +239,13 @@ export function recalculateColumnSizes() {
                 const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`); // helper to find root
                 const width = content ? calculateCollapsedColumnWidth(content) : LAYOUT.MIN_COLLAPSED_PIXELS();
                 col.style.flex = `0 0 ${width}px`;
+
+                // Set theme-responsive hover-expand info:
+                // --ptmt-shy-hover-panes × --ptmt-collapsed-width + --ptmt-shy-hover-splitters
+                // CSS computes the actual px so it's always correct for any theme.
+                const expandInfo = content ? calculateExpandedPaneInfo(content) : { panes: 1, splitterPx: 0 };
+                col.style.setProperty('--ptmt-shy-hover-panes', expandInfo.panes);
+                col.style.setProperty('--ptmt-shy-hover-splitters', `${expandInfo.splitterPx}px`);
             }
 
             collapsedColumn = col; // This column just collapsed.

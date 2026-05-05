@@ -45,72 +45,88 @@ function initSubsystems() {
     createLayoutIfMissing();
 }
 
-// ─── Auto-Hide Tab Strip ─────────────────────────────────────────────────────
+// ─── Tab Strip Mode (Normal / Auto-Hide / Shy) ──────────────────────────────
 
-function initAutoHideTabStrip() {
-    const shouldMinimize = (pane, globalEnabled) => {
-        const isCollapsed = pane.classList.contains('view-collapsed');
-        if (isCollapsed) return false;
-        
-        const vs = readPaneViewSettings(pane);
-        return vs.autoHideOverride || globalEnabled;
-    };
+const TAB_STRIP_MODES = ['normal', 'auto-hide', 'shy'];
 
-    const updateAutoHideState = () => {
-        const globalEnabled = settings.get('tabStripAutoHide');
-        const panes = document.querySelectorAll(SELECTORS.PANE);
-        panes.forEach(pane => {
-            const shouldHide = shouldMinimize(pane, globalEnabled);
-            const hasClass = pane.classList.contains('ptmt-tabstrip-minimized');
-            
-            // Only update DOM if state needs to change
-            if (shouldHide !== hasClass) {
-                pane.classList.toggle('ptmt-tabstrip-minimized', shouldHide);
-            }
-        });
+function getGlobalTabStripMode() {
+    // New setting takes priority; fall back to legacy boolean
+    const explicit = settings.get('tabStripMode');
+    if (explicit && explicit !== 'normal') return explicit;
+    if (settings.get('tabStripAutoHide')) return 'auto-hide';
+    return 'normal';
+}
+
+function getEffectiveTabStripMode(pane) {
+    const isCollapsed = pane.classList.contains('view-collapsed');
+    const vs = readPaneViewSettings(pane);
+
+    // Per-pane override
+    const paneMode = vs.tabStripMode || 'normal';
+    const globalMode = getGlobalTabStripMode();
+
+    // Effective mode: per-pane takes priority if set, otherwise global
+    const mode = (paneMode !== 'normal') ? paneMode : globalMode;
+
+    // In auto-hide, collapsed panes show tab strip normally (icons visible)
+    if (mode === 'auto-hide' && isCollapsed) return 'normal';
+
+    return mode;
+}
+
+function ensureShyIndicator(pane, shouldExist) {
+    const grid = pane.querySelector('.ptmt-pane-grid');
+    if (!grid) return;
+    const existing = grid.querySelector('.ptmt-shy-indicator');
+    if (shouldExist && !existing) {
+        const indicator = document.createElement('div');
+        indicator.className = 'ptmt-shy-indicator';
+        grid.prepend(indicator);
+    } else if (!shouldExist && existing) {
+        existing.remove();
+    }
+}
+
+function applyTabStripMode(pane) {
+    const mode = getEffectiveTabStripMode(pane);
+    // Both auto-hide and shy use .ptmt-tabstrip-minimized + indicator.
+    // The difference is only in getEffectiveTabStripMode: auto-hide returns
+    // 'normal' for collapsed panes, shy returns 'shy' for all panes.
+    const shouldMinimize = (mode === 'auto-hide' || mode === 'shy');
+    pane.classList.toggle('ptmt-tabstrip-minimized', shouldMinimize);
+    ensureShyIndicator(pane, shouldMinimize);
+}
+
+function initTabStripMode() {
+    const updateAll = () => {
+        document.querySelectorAll(SELECTORS.PANE).forEach(applyTabStripMode);
     };
 
     // Initial state
-    updateAutoHideState();
+    updateAll();
 
-    // Use the unified body observer instead of a raw subtree MutationObserver.
-    // This shares the single document.body watcher already used by other subsystems.
+    // Watch for pane additions and class changes (collapse/expand)
     registerBodyObserver(
-        'auto-hide-tabstrip',
+        'tab-strip-mode',
         { childList: true, attributes: true, attributeFilter: ['class'] },
         (mutations) => {
-            const globalEnabled = settings.get('tabStripAutoHide');
-
             for (const mutation of mutations) {
                 if (mutation.type === 'childList') {
-                    if (mutation.addedNodes.length > 0) {
-                        const addedPanes = Array.from(mutation.addedNodes).filter(node =>
-                            node.classList?.contains(SELECTORS.PANE.substring(1))
-                        );
-                        if (addedPanes.length > 0) {
-                            addedPanes.forEach(pane => {
-                                const shouldHide = shouldMinimize(pane, globalEnabled);
-                                if (shouldHide) {
-                                    pane.classList.add('ptmt-tabstrip-minimized');
-                                }
-                            });
+                    for (const node of mutation.addedNodes) {
+                        if (node.classList?.contains(SELECTORS.PANE.substring(1))) {
+                            applyTabStripMode(node);
                         }
                     }
                 } else if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                     const target = mutation.target;
-                    // Only act on pane elements to avoid noise from other class changes.
                     if (!target.classList?.contains(SELECTORS.PANE.substring(1))) continue;
-                    const shouldHide = shouldMinimize(target, globalEnabled);
-                    const hasClass = target.classList.contains('ptmt-tabstrip-minimized');
-                    if (shouldHide !== hasClass) {
-                        target.classList.toggle('ptmt-tabstrip-minimized', shouldHide);
-                    }
+                    applyTabStripMode(target);
                 }
             }
         }
     );
 
-    return updateAutoHideState;
+    return updateAll;
 }
 
 // ─── Save Handler ────────────────────────────────────────────────────────────
@@ -240,8 +256,8 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
         }
         updateResizerDisabledStates();
         // Update auto-hide state when layout changes (catches per-pane setting changes)
-        if (state.updateAutoHideState) {
-            state.updateAutoHideState();
+        if (state.updateTabStripMode) {
+            state.updateTabStripMode();
         }
         saveCurrentLayoutDebounced();
     }, 50);
@@ -307,8 +323,8 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
         SettingsManager.applyTheme(uiTheme);
         applyOverrides();
         // Handle auto-hide tab strip setting
-        if (state.updateAutoHideState) {
-            state.updateAutoHideState();
+        if (state.updateTabStripMode) {
+            state.updateTabStripMode();
         }
         document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
         window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
@@ -509,7 +525,7 @@ function postInit(state, applyOverrides) {
     console.log('[PTMT Layout] Hydration complete. Monitoring layout changes.');
     initDrawerObserver();
     applyOverrides();
-    state.updateAutoHideState = initAutoHideTabStrip();
+    state.updateTabStripMode = initTabStripMode();
 }
 
 // ─── Entry Point ─────────────────────────────────────────────────────────────

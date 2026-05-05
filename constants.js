@@ -86,6 +86,7 @@ export const LAYOUT = {
         const tabSize = parseInt(style.getPropertyValue('--ptmt-tab-size').trim(), 10);
         return Number.isFinite(tabSize) ? tabSize : 38;
     },
+    SHY_INDICATOR_WIDTH: 10, // Width of the shy indicator bar (slightly bigger than the 3px bar + padding)
     NARROW_PANE_THRESHOLD_PX: 120,
     MAX_PANE_LAYERS: 3,
     DEFAULT_MIN_PANEL_SIZE_PX: 250,
