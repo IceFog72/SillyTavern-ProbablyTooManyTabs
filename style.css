@@ -1573,7 +1573,6 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 .ptmt-editor-split,
 .ptmt-editor-pane {
   border: 1px dashed var(--ST-Button-Background);
-  padding: 2px;
   margin-top: 2px !important;
   border-radius: 0.5rem !important;
 }
@@ -1591,8 +1590,14 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   color: var(--ST-Italics-Text);
   padding: 2px 6px;
   font-size: 0.85em;
-  background: var(--ST-UI-Border);
-  border-bottom: 1px solid var(--ST-UI-Border);
+}
+
+.ptmt-editor-pane .ptmt-editor-title {
+  background: color-mix(in srgb, var(--ST-Button-Background), transparent 85%);
+  border-bottom: 1px dashed color-mix(in srgb, var(--ST-Button-Background), transparent 50%);
+  border-radius: 0.4rem 0.4rem 0 0 !important;
+  padding: 6px 8px;
+  margin-bottom: 4px;
 }
 
 .ptmt-editor-title>span {
@@ -1632,6 +1637,15 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   height: 24px;
   width: 24px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s ease;
+}
+
+.ptmt-pane-config-btn:hover,
+.ptmt-tab-config-btn:hover {
+  background: color-mix(in srgb, var(--ST-UI-Background), white 25%) !important;
+  border-color: var(--ST-Button-Background) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
 
 .ptmt-editor-children {
@@ -2620,12 +2634,15 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal {
   grid-template-rows: 0fr 1fr;
 }
+
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed {
   grid-template-rows: 1fr 0fr;
 }
+
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical {
   grid-template-columns: 0fr 1fr;
 }
+
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed {
   grid-template-columns: 1fr 0fr;
 }
@@ -2633,6 +2650,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-pane.ptmt-tabstrip-minimized {
   position: relative;
 }
+
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical {
   flex: 0 0 0 !important;
 }
@@ -2651,36 +2669,39 @@ body.ptmt-is-resizing #rm_print_characters_block {
   pointer-events: auto;
   flex-shrink: 0;
 }
+
 .ptmt-shy-indicator:hover {
   background: var(--ptmt-indicator-hover-color, rgba(255, 255, 255, 0.3));
 }
 
 /* Horizontal: indicator is a horizontal bar at top/bottom */
-.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal > .ptmt-shy-indicator {
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal>.ptmt-shy-indicator {
   height: 4px;
   width: calc(100% - 16px);
   left: 8px;
   top: 2px;
 }
-.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed > .ptmt-shy-indicator {
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed>.ptmt-shy-indicator {
   top: auto;
   bottom: 2px;
 }
 
 /* Vertical: indicator is a vertical bar at left/right */
-.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical > .ptmt-shy-indicator {
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical>.ptmt-shy-indicator {
   width: 4px;
   height: calc(100% - 16px);
   top: 8px;
   left: 2px;
 }
-.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed > .ptmt-shy-indicator {
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed>.ptmt-shy-indicator {
   left: auto;
   right: 2px;
 }
 
 /* ─── Indicator Hover → Tab Strip Reveal ──────────────────────────────────── */
-.ptmt-shy-indicator:hover ~ .ptmt-tabStrip,
+.ptmt-shy-indicator:hover~.ptmt-tabStrip,
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:hover {
   flex: initial !important;
   min-width: auto !important;
@@ -2690,7 +2711,8 @@ body.ptmt-is-resizing #rm_print_characters_block {
   pointer-events: auto !important;
   visibility: visible !important;
 }
-.ptmt-shy-indicator:hover ~ .ptmt-tabStrip.vertical,
+
+.ptmt-shy-indicator:hover~.ptmt-tabStrip.vertical,
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical:hover {
   flex: initial !important;
 }
@@ -2700,14 +2722,17 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-horizontal {
   grid-template-rows: var(--ptmt-collapsed-width) 1fr !important;
 }
+
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-horizontal.flow-reversed,
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-horizontal.flow-reversed {
   grid-template-rows: 1fr var(--ptmt-collapsed-width) !important;
 }
+
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-vertical,
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-vertical {
   grid-template-columns: var(--ptmt-collapsed-width) 1fr !important;
 }
+
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-vertical.flow-reversed,
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-vertical.flow-reversed {
   grid-template-columns: 1fr var(--ptmt-collapsed-width) !important;
@@ -2715,7 +2740,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 /* Indicator fades out when indicator itself is hovered or when tab strip is visible */
 .ptmt-shy-indicator:hover,
-.ptmt-pane-grid:has(.ptmt-tabStrip:hover) > .ptmt-shy-indicator {
+.ptmt-pane-grid:has(.ptmt-tabStrip:hover)>.ptmt-shy-indicator {
   opacity: 0 !important;
   pointer-events: none;
 }
