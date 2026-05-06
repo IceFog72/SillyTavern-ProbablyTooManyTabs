@@ -2668,8 +2668,34 @@ body.ptmt-is-resizing #rm_print_characters_block {
   grid-template-columns: 1fr 0fr;
 }
 
-.ptmt-pane.ptmt-tabstrip-minimized {
-  position: relative;
+/* Ensure shy mode panes inside splits don't collapse to 0px and instead match indicator size */
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-vertical > .ptmt-shy-indicator) {
+  min-width: 10px !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-vertical > .ptmt-shy-indicator:hover),
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-vertical > .ptmt-tabStrip:hover) {
+  min-width: var(--ptmt-collapsed-width) !important;
+}
+
+
+.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-vertical > .ptmt-shy-indicator) .ptmt-pane-grid.grid-vertical,
+.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-vertical > .ptmt-tabStrip) .ptmt-pane-grid.grid-vertical {
+  max-width: 10px !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-horizontal > .ptmt-shy-indicator) {
+  min-height: 10px !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-horizontal > .ptmt-shy-indicator:hover),
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-horizontal > .ptmt-tabStrip:hover) {
+  min-height: var(--ptmt-collapsed-width) !important;
+}
+
+.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-horizontal > .ptmt-shy-indicator) .ptmt-pane-grid.grid-horizontal,
+.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-horizontal > .ptmt-tabStrip) .ptmt-pane-grid.grid-horizontal {
+  max-height: 10px !important;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical {

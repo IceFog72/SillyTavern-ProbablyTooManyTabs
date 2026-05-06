@@ -2,6 +2,14 @@
 
 ---
 
+## v0.11.1 — 2026-05-06
+
+*Shy Mode Polish*
+
+- ✔ Fix · **Shy Mode in Splits** — hovering a shy indicator for a pane inside a split container now perfectly floats the tab strip over adjacent panes instead of pushing them and disrupting the split layout.
+
+---
+
 ## v0.11.0 — 2026-05-05
 
 *Unified Tab Strip Modes & Layout Editor UX*
