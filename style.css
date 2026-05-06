@@ -84,8 +84,8 @@
   --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Button-Background), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 70%);
 
-
-
+  --tool-cool-color-picker-field-label-color: var(--SmartThemeQuoteColor);
+  --tool-cool-color-picker-popup-bg: var(--ST-UI-Background);
   /* Create a theme-aware danger color by mixing the theme body color with red */
   --ptmt-danger-color: color-mix(in srgb, var(--ptmt-adaptive-text), var(--ptmt-adaptive-quote) 70%);
 
@@ -101,7 +101,7 @@
   --ptmt-code-bg: var(--ST-Code-Background);
   --ptmt-code-text: var(--ST-Code-Text);
 
-  --ptmt-transition: 160ms cubic-bezier(.2, .8, .2, 1);
+  --ptmt-transition: 260ms cubic-bezier(.2, .8, .2, 1);
   --shadowWidth: 8;
   --ptmt-tab-border-color: color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
   --ptmt-tab-bg-color: color-mix(in srgb, var(--ST-UI-Background), transparent 30%);
@@ -244,8 +244,11 @@ body.ptmt-Theme-RoundedSmooth .ptmt-tab.active::after {
 
 /* ─── Soft: Hover / Active styles ────────────────────────────────── */
 body.ptmt-Theme-RoundedSoft .ptmt-tab {
-  transition: background 0.18s ease, box-shadow 0.18s ease;
   border: none;
+}
+
+body.ptmt-enable-animations.ptmt-Theme-RoundedSoft .ptmt-tab {
+  transition: background 0.18s ease, box-shadow 0.18s ease;
 }
 
 body.ptmt-Theme-RoundedSoft .ptmt-tab:hover:not(.active) {
@@ -261,8 +264,11 @@ body.ptmt-Theme-RoundedSoft .ptmt-tab.active {
 
 /* ─── Smooth: Glassmorphism hover / active ────────────────────────── */
 body.ptmt-Theme-RoundedSmooth .ptmt-tab {
-  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
   border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+body.ptmt-enable-animations.ptmt-Theme-RoundedSmooth .ptmt-tab {
+  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
 }
 
 body.ptmt-Theme-RoundedSmooth .ptmt-tab:hover:not(.active) {
@@ -338,6 +344,7 @@ body.no-blur body.ptmt-bg-under-chat #chat {
 #movingDivs {
   opacity: 0;
 }
+
 
 /* Disable default UI layout for certain elements */
 #floatingPrompt .panelControlBar,
@@ -661,6 +668,10 @@ body.ptmt-Theme-RoundedSmooth #ptmt-mainBody {
   overflow: hidden;
 }
 
+body.ptmt-enable-animations .ptmt-body-column {
+  transition: flex var(--ptmt-transition), min-width var(--ptmt-transition);
+}
+
 /* When a collapsed column only contains shy-minimized panes, shrink min-width to indicator size */
 .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-pane.ptmt-tabstrip-minimized.view-collapsed):not(:has(.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized))) {
   min-width: 10px;
@@ -677,9 +688,13 @@ body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal {
 .ptmt-resizer-horizontal {
   flex: 0 0 6px;
   background: var(--ST-UI-Background);
-  transition: background var(--ptmt-transition);
   touch-action: none;
   z-index: 9999;
+}
+
+body.ptmt-enable-animations .ptmt-resizer-vertical,
+body.ptmt-enable-animations .ptmt-resizer-horizontal {
+  transition: background var(--ptmt-transition);
 }
 
 .ptmt-resizer-vertical {
@@ -731,11 +746,35 @@ body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal {
   border-radius: var(--ptmt-radius);
 }
 
+/* User already added this block but I'll make sure it's correct */
+body.ptmt-enable-animations .ptmt-pane {
+  transition: min-width var(--ptmt-transition), min-height var(--ptmt-transition);
+}
+
 .ptmt-pane-grid {
   display: grid;
   width: 100%;
   height: 100%;
   box-sizing: border-box;
+}
+
+body.ptmt-enable-animations .ptmt-pane-grid {
+  transition:
+    max-width var(--ptmt-transition),
+    max-height var(--ptmt-transition),
+    gap var(--ptmt-transition),
+    padding var(--ptmt-transition);
+}
+
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid,
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid {
+  transition:
+    grid-template-rows var(--ptmt-transition),
+    grid-template-columns var(--ptmt-transition),
+    max-width var(--ptmt-transition),
+    max-height var(--ptmt-transition),
+    gap var(--ptmt-transition),
+    padding var(--ptmt-transition) !important;
 }
 
 .ptmt-pane-grid.grid-horizontal {
@@ -1000,11 +1039,15 @@ select option {
   border: none;
   color: var(--SmartThemeBodyColor);
   cursor: pointer;
-  transition: background 0.2s, opacity 0.2s;
   z-index: 20;
   padding: 0;
   flex-shrink: 0;
   position: sticky;
+}
+
+body.ptmt-enable-animations .ptmt-scrollbutton-up,
+body.ptmt-enable-animations .ptmt-scrollbutton-down {
+  transition: background 0.2s, opacity 0.2s;
 }
 
 .ptmt-scrollbutton-left,
@@ -1657,6 +1700,10 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   height: 24px;
   width: 24px;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+body.ptmt-enable-animations .ptmt-pane-config-btn,
+body.ptmt-enable-animations .ptmt-tab-config-btn {
   transition: all 0.2s ease;
 }
 
@@ -1963,8 +2010,11 @@ body.ptmt-is-resizing #rm_print_characters_block {
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
   padding: 5px 0;
   min-width: 200px;
-  animation: ptmt-fade-in 0.15s ease-out;
   backdrop-filter: blur(10px);
+}
+
+body.ptmt-enable-animations .ptmt-context-menu {
+  animation: ptmt-fade-in 0.15s ease-out;
 }
 
 .ptmt-context-menu-item {
@@ -2038,9 +2088,12 @@ body.ptmt-is-resizing #rm_print_characters_block {
   overflow: visible;
   color: var(--ST-Main-Text);
   font-family: var(--SmartThemeFontFamily, sans-serif);
-  animation: ptmt-slide-in 0.2s ease-out;
   display: flex;
   flex-direction: column;
+}
+
+body.ptmt-enable-animations .ptmt-view-settings-dialog {
+  animation: ptmt-slide-in 0.2s ease-out;
 }
 
 @keyframes ptmt-slide-in {
@@ -2120,9 +2173,12 @@ body.ptmt-is-resizing #rm_print_characters_block {
   cursor: pointer;
   font-size: 0.9em;
   font-weight: 500;
-  transition: all 0.2s ease;
   min-width: 32px;
   text-align: center;
+}
+
+body.ptmt-enable-animations .ptmt-vs-copy-btn {
+  transition: all 0.2s ease;
 }
 
 .ptmt-vs-copy-btn:hover {
@@ -2196,6 +2252,10 @@ body.ptmt-is-resizing #rm_print_characters_block {
   padding: 6px 10px;
   font-family: inherit;
   font-size: 0.9em;
+}
+
+body.ptmt-enable-animations .ptmt-vs-input-wrapper input,
+body.ptmt-enable-animations .ptmt-vs-input-wrapper select {
   transition: all 0.15s ease;
 }
 
@@ -2239,6 +2299,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   opacity: 0.6;
   cursor: help;
   flex-shrink: 0;
+}
+
+body.ptmt-enable-animations .ptmt-vs-help-icon {
   transition: all 0.15s ease;
 }
 
@@ -2266,11 +2329,14 @@ body.ptmt-is-resizing #rm_print_characters_block {
   cursor: pointer;
   font-weight: 500;
   font-size: 0.9em;
-  transition: all 0.15s ease;
   display: inline-flex;
   align-items: center;
   gap: 6px;
   white-space: nowrap;
+}
+
+body.ptmt-enable-animations .ptmt-vs-button {
+  transition: all 0.15s ease;
 }
 
 .ptmt-vs-button:hover {
@@ -2335,6 +2401,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   padding: 6px 8px !important;
   font-size: 0.9em !important;
   font-family: inherit !important;
+}
+
+body.ptmt-enable-animations .ptmt-vs-avatar-input {
   transition: all 0.15s ease;
 }
 
@@ -2345,7 +2414,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
   background: rgba(0, 0, 0, 0.15) !important;
 }
 
-.ptmt-vs-avatar-input[style*="border-color: red"] {
+body.ptmt-enable-animations .ptmt-vs-avatar-input[style*="border-color: red"] {
   animation: ptmt-color-error 0.3s ease;
 }
 
@@ -2522,7 +2591,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .ptmt-full-width-container {
-  grid-column: span 2;
+  grid-column: span 1;
   display: flex;
   flex-direction: column;
 }
@@ -2563,7 +2632,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .ptmt-avatar-row {
-  grid-column: span 2;
+  grid-column: span 1;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -2649,23 +2718,48 @@ body.ptmt-is-resizing #rm_print_characters_block {
   margin: 0 !important;
   pointer-events: none;
   visibility: hidden;
+  transform: translateY(-8px);
+}
+
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
+  transition:
+    opacity var(--ptmt-transition),
+    transform var(--ptmt-transition),
+    flex-basis var(--ptmt-transition),
+    min-height var(--ptmt-transition),
+    min-width var(--ptmt-transition),
+    margin var(--ptmt-transition),
+    border-width var(--ptmt-transition),
+    visibility 0s var(--ptmt-transition);
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical {
+  transform: translateX(-8px);
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.flow-reversed .ptmt-tabStrip:not(.vertical) {
+  transform: translateY(8px);
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical {
+  transform: translateX(8px);
 }
 
 /* Adjust grid templates to remove track space when minimized */
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal {
-  grid-template-rows: 0fr 1fr;
+  grid-template-rows: 0px 1fr;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed {
-  grid-template-rows: 1fr 0fr;
+  grid-template-rows: 1fr 0px;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical {
-  grid-template-columns: 0fr 1fr;
+  grid-template-columns: 0px 1fr;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed {
-  grid-template-columns: 1fr 0fr;
+  grid-template-columns: 1fr 0px;
 }
 
 /* Ensure shy mode panes inside splits don't collapse to 0px and instead match indicator size */
@@ -2709,43 +2803,75 @@ body.ptmt-is-resizing #rm_print_characters_block {
 .ptmt-shy-indicator {
   position: absolute;
   z-index: 10;
-  background: var(--ptmt-indicator-color, rgba(255, 255, 255, 0.15));
-  border-radius: 2px;
-  opacity: var(--ptmt-indicator-opacity, 0.5);
-  transition: opacity 0.2s ease, background-color 0.2s ease;
+  z-index: 10;
   pointer-events: auto;
   flex-shrink: 0;
 }
 
-.ptmt-shy-indicator:hover {
+.ptmt-shy-indicator::before {
+  content: '';
+  position: absolute;
+  background: var(--ptmt-indicator-color, rgba(255, 255, 255, 0.15));
+  border-radius: 2px;
+  opacity: var(--ptmt-indicator-opacity, 0.5);
+}
+
+body.ptmt-enable-animations .ptmt-shy-indicator::before {
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+.ptmt-shy-indicator:hover::before {
   background: var(--ptmt-indicator-hover-color, rgba(255, 255, 255, 0.3));
 }
 
-/* Horizontal: indicator is a horizontal bar at top/bottom */
+/* Horizontal: indicator hit area is a bar at top/bottom, visual part is centered */
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal>.ptmt-shy-indicator {
+  height: 10px;
+  width: 100%;
+  left: 0;
+  right: 0;
+  top: 0;
+  margin: 0;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal>.ptmt-shy-indicator::before {
   height: 4px;
   width: calc(100% - 16px);
   left: 8px;
-  top: 2px;
+  right: 8px;
+  top: 3px;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed>.ptmt-shy-indicator {
   top: auto;
-  bottom: 2px;
+  bottom: 0;
 }
 
-/* Vertical: indicator is a vertical bar at left/right */
+
+/* Vertical: indicator hit area is a bar at left/right, visual part is centered */
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical>.ptmt-shy-indicator {
+  width: 10px;
+  height: 100%;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  margin: 0;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical>.ptmt-shy-indicator::before {
   width: 4px;
   height: calc(100% - 16px);
   top: 8px;
-  left: 2px;
+  bottom: 8px;
+  left: 3px;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed>.ptmt-shy-indicator {
   left: auto;
-  right: 2px;
+  right: 0;
 }
+
+
 
 /* ─── Indicator Hover → Tab Strip Reveal ──────────────────────────────────── */
 .ptmt-shy-indicator:hover~.ptmt-tabStrip,
@@ -2757,6 +2883,20 @@ body.ptmt-is-resizing #rm_print_characters_block {
   opacity: 1 !important;
   pointer-events: auto !important;
   visibility: visible !important;
+  transform: translate(0, 0) !important;
+}
+
+body.ptmt-enable-animations .ptmt-shy-indicator:hover~.ptmt-tabStrip,
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:hover {
+  transition:
+    opacity var(--ptmt-transition),
+    transform var(--ptmt-transition),
+    flex-basis var(--ptmt-transition),
+    min-height var(--ptmt-transition),
+    min-width var(--ptmt-transition),
+    margin var(--ptmt-transition),
+    border-width var(--ptmt-transition),
+    visibility 0s 0s !important;
 }
 
 .ptmt-shy-indicator:hover~.ptmt-tabStrip.vertical,
@@ -2786,7 +2926,10 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 /* Indicator fades out when indicator itself is hovered or when tab strip is visible */
-.ptmt-shy-indicator:hover,
+.ptmt-shy-indicator:hover {
+  opacity: 0 !important;
+}
+
 .ptmt-pane-grid:has(.ptmt-tabStrip:hover)>.ptmt-shy-indicator {
   opacity: 0 !important;
   pointer-events: none;
@@ -2880,11 +3023,13 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-size: 0.82rem;
   font-weight: 500;
   cursor: pointer;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
   white-space: nowrap;
   position: relative;
   bottom: -1px;
-  /* sits flush on the border-bottom of the nav */
+}
+
+body.ptmt-enable-animations .ptmt-info-tab-btn {
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 
 .ptmt-info-tab-btn:hover:not(.active) {
@@ -2937,6 +3082,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+body.ptmt-enable-animations .ptmt-info-link {
   transition: opacity 0.15s;
 }
 
@@ -3171,6 +3319,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+body.ptmt-enable-animations .ptmt-more-card {
   transition: border-color 0.15s, background 0.15s;
 }
 
@@ -3196,6 +3347,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-weight: 700;
   color: var(--ST-Main-Text);
   text-decoration: none;
+}
+
+body.ptmt-enable-animations .ptmt-more-card-title {
   transition: color 0.15s;
 }
 
@@ -3249,6 +3403,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-size: 0.83rem;
   font-weight: 500;
   text-decoration: none;
+}
+
+body.ptmt-enable-animations .ptmt-more-support-link {
   transition: background 0.15s, border-color 0.15s, color 0.15s;
 }
 
@@ -3377,6 +3534,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
   text-decoration: underline;
   text-underline-offset: 2px;
+}
+
+body.ptmt-enable-animations .ptmt-md-content a {
   transition: opacity 0.15s;
 }
 
@@ -3469,6 +3629,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-size: 16px;
   backdrop-filter: blur(6px) saturate(1.5);
   -webkit-backdrop-filter: blur(6px) saturate(1.5);
+}
+
+body.ptmt-enable-animations .ptmt-compass-zone {
   transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.1s;
 }
 
@@ -3522,6 +3685,9 @@ body.ptmt-is-resizing #rm_print_characters_block {
   border-radius: 4px;
   backdrop-filter: blur(1px);
   -webkit-backdrop-filter: blur(1px);
+}
+
+body.ptmt-enable-animations .ptmt-split-preview {
   transition: left 0.08s, top 0.08s, width 0.08s, height 0.08s;
 }
 
@@ -3621,4 +3787,25 @@ body.ptmt-is-resizing #rm_print_characters_block {
   font-size: 9px;
   flex-shrink: 0;
   color: #f39c12;
+}
+
+/* ==========================================================================
+   FEATURE FLAGS (Global Settings)
+   ========================================================================== */
+
+/* Deleted global animation suppression */
+
+/* 2. Shadows: Disable all box and text shadows if flag is missing */
+body:not(.ptmt-enable-shadows) *,
+body:not(.ptmt-enable-shadows) *::before,
+body:not(.ptmt-enable-shadows) *::after {
+  box-shadow: none !important;
+  text-shadow: none !important;
+}
+
+/* 3. Blur Effect: Disable backdrop-filter blur if flag is missing */
+body:not(.ptmt-enable-blur-effect) *,
+body:not(.ptmt-enable-blur-effect) *::before,
+body:not(.ptmt-enable-blur-effect) *::after {
+  /*backdrop-filter: none !important;*/
 }

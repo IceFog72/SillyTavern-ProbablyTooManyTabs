@@ -313,6 +313,9 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
         document.body.classList.toggle('ptmt-mobile', !!settings.get('isMobile'));
         document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
         document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
+        document.body.classList.toggle('ptmt-enable-animations', !!settings.get('enableAnimations'));
+        document.body.classList.toggle('ptmt-enable-shadows', !!settings.get('enableShadows'));
+        // document.body.classList.toggle('ptmt-enable-blur-effect', !!settings.get('enableBlurEffect'));
         // Keep body bg color var and tab contrast class in sync with settings
         const bodyBgColor = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
         document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
@@ -501,6 +504,9 @@ function postInit(state, applyOverrides) {
     document.body.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
     document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
     document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
+    document.body.classList.toggle('ptmt-enable-animations', !!settings.get('enableAnimations'));
+    document.body.classList.toggle('ptmt-enable-shadows', !!settings.get('enableShadows'));
+    document.body.classList.toggle('ptmt-enable-blur-effect', !!settings.get('enableBlurEffect'));
 
     // Apply body background color CSS variable (fallback matches defaultSettings.bodyBgColor)
     const bodyBgColor = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';

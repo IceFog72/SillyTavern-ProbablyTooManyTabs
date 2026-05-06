@@ -196,7 +196,7 @@ export function createSettingsPanel(manager) {
     }, 'Avatar Sizes');
     avatarDialogBtn.addEventListener('click', openAvatarDialog);
 
-    const syncVisibility = (_enabled) => {}; // visibility controlled by overridesFieldset below
+    const syncVisibility = (_enabled) => { }; // visibility controlled by overridesFieldset below
 
     // Background color picker (fallback matches defaultSettings.bodyBgColor)
     const bodyBgColorValue = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
@@ -263,7 +263,7 @@ export function createSettingsPanel(manager) {
             settings.update({ tabStripMode: e.target.value });
         });
         const label = el('label', { for: id }, 'Tab Strip Mode (Global)');
-        wrapper.append(select, label);
+        wrapper.append(label, select);
         return wrapper;
     })();
 
@@ -271,23 +271,19 @@ export function createSettingsPanel(manager) {
         createSettingCheckbox('Show Left Column', 'showLeftPane'),
         createSettingCheckbox('Show Right Column', 'showRightPane'),
         createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
-        createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
-        tabStripModeRow,
         createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
         createSettingCheckbox('Show World Info Status Bar', 'showWorldInfoStatusBar'),
         createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
-        createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing'),
-        moveBg1Checkbox,
-        bgColorContainer
+        createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing')
     );
 
-    // ─── Extension CSS Overrides Fieldset ────────────────────────────────────────
-    const overridesFieldset = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Extension CSS Overrides'));
+    // ─── Global Style Fieldset ──────────────────────────────────────────
+    const overridesFieldset = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Global Style'));
     const overridesGrid = el('div', { className: 'ptmt-settings-grid' });
     overridesFieldset.appendChild(overridesGrid);
 
     const overridesCheckboxForFieldset = createSettingCheckbox('Enable CSS Overrides', 'enableOverride1');
-    overridesCheckboxForFieldset.style.gridColumn = 'span 2';
+    overridesCheckboxForFieldset.style.gridColumn = 'span 1';
 
     const avatarRowForFieldset = el('div', {
         className: 'ptmt-setting-row ptmt-setting-sub-item ptmt-avatar-row'
@@ -333,12 +329,9 @@ export function createSettingsPanel(manager) {
     };
     overridesCheckboxInputForFieldset.addEventListener('change', (e) => syncFieldsetVisibility(e.target.checked));
 
-    overridesGrid.append(
-        overridesCheckboxForFieldset,
-        avatarRowForFieldset,
-        autoContrastCheckboxForFieldset,
-        optimizeContainerForFieldset
-    );
+    const animCheckbox = createSettingCheckbox('Animations*', 'enableAnimations');
+    const shadowCheckbox = createSettingCheckbox('Shadows*', 'enableShadows');
+
 
     // ─── UI Theme Selector ───────────────────────────────────────────────────────
     const themeSelector = el('select', {
@@ -369,7 +362,26 @@ export function createSettingsPanel(manager) {
         themeSelector
     );
 
-    globalGrid.append(themeSelectorRow);
+    // Final assembly of the Global Style section
+    const refreshStyleGrid = () => {
+        overridesGrid.innerHTML = '';
+        overridesGrid.append(
+            themeSelectorRow,
+            tabStripModeRow,
+            animCheckbox,
+            shadowCheckbox,
+            createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
+            moveBg1Checkbox,
+            bgColorContainer,
+            overridesCheckboxForFieldset,
+            avatarRowForFieldset,
+            autoContrastCheckboxForFieldset,
+            optimizeContainerForFieldset
+        );
+    };
+    refreshStyleGrid();
+
+
 
     const isMobile = settings.get('isMobile');
     const mobileToggleBtn = el('button', {
@@ -407,7 +419,7 @@ export function createSettingsPanel(manager) {
             el('p', {}, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.'),
             el('p', {}, 'If you install a supported extension and its tab does not appear, you may need to reset the layout for it to be added.'),
             el('p', {}, 'Pending Tabs lists extensions or panels available for columns that are not currently in active layout.'),
-            el('p', {}, 'For additional extension tab requests, reach out to me on Discord.')
+            el('p', {}, 'For additional extension integration request as tabs, reach out to me on Discord.')
         )
     );
     panel.appendChild(disclaimerContainer);

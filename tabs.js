@@ -135,7 +135,7 @@ export function createTabElement(title, pid, icon = null, options = {}) {
 
   t.addEventListener('dragstart', ev => {
     t.classList.add('dragging');
-   try {
+    try {
       ev.dataTransfer.setData('text/plain', pid);
       ev.dataTransfer.setData('application/x-ptmt_tab', pid);
     } catch (e) {

@@ -44,26 +44,35 @@ A blue preview overlay shows exactly which half of the pane the new split will o
 
 Open the **Layout Settings** tab (🔧 wrench icon) to access all global controls.
 
-### Column Visibility
+### 1. Columns & Behaviour
 
 - **Show Left Column** — toggles the left column on/off.
 - **Show Right Column** — toggles the right column on/off.
 
 > You cannot hide a column that contains the Layout Settings tab itself. Move the tab to another column first.
 
-### Behaviour
-
 - **Auto-Open First Center Tab** — when all center-column tabs are collapsed, PTMT automatically opens the first one rather than leaving the center empty.
-- **Show Icons Only (Global)** — hides tab labels across all columns, showing only icons. Useful on narrow panes.
-- **Tab Strip Mode (Global)** — sets the default visibility of tab strips. *Normal* keeps tabs always visible. *Auto-Hide* minimizes them to a thin line when the pane is expanded. *Shy* minimizes them even when the pane is collapsed, popping out as a floating overlay on hover.
 - **Show Context Size Status Bar** — shows a coloured progress bar at the top of the center column indicating how many tokens are used (system, prompt, world info, chat, anchors, remaining).
 - **Sync Avatar with Expression** — mirrors the expression image updates to the character's tab icon.
-- **Hide on Resize (Chrome)** — hides some content during column/pane resize to prevent Chrome rendering lag when the character cards list is long.
+- **Hide on Resize** — hides heavy content during column/pane resize to prevent browser rendering lag.
+
+### 2. Global Style
+
+This section controls the visual aesthetic of the extension without affecting your structural layout.
+
+- **UI Theme** — Choose between **Sharp** (classic, tight corners) and **Smooth** (modern, rounded glassmorphism).
+- **Tab Strip Mode** — Sets how tab strips behave. 
+  - *Normal*: Tabs are always visible.
+  - *Auto-Hide*: Tabs minimize to a thin line when the pane is expanded and reveal on hover.
+  - *Shy Mode*: Minimizes tabs to a thin line even when collapsed, appearing as a floating overlay on hover.
+- **Show Icons Only** — Hides all tab text labels, showing only icons for a minimalist look.
+- **Enable Animations** — Toggles the surgical animation system. When on, UI transitions are fluid. When off, PTMT's layout changes are instant, but internal tab content (like chat bubbles or third-party widgets) will still retain their native fluidity.
+- **Enable Shadows** — Toggles visual depth (box-shadows) on panes and menus.
+- **Enable Blur Effect** — Toggles the backdrop-filter blur on glassmorphic elements.
 
 ### Background & Theme
 
 - **Move BG Under Chat** — moves the SillyTavern background image (#bg1) underneath the chat area instead of behind the whole UI. When enabled, reveals a **Background Color** colour picker to set the area outside the chat.
-- **UI Theme** — dropdown to pick between available themes (e.g. Sharp, Smooth). Applies immediately.
 
 ### Layout Actions
 

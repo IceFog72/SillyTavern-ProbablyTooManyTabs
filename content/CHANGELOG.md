@@ -2,6 +2,26 @@
 
 ---
 
+## v0.11.3 — 2026-05-06
+
+*Surgical Animation Control*
+
+- ✦ New · **Opt-in Animation Model** — completely refactored the animation system to be additive rather than suppressive. Instead of forcing animations off globally, PTMT now surgically injects transitions and animations only when the global toggle is active, preventing interference with third-party extensions and internal tab content.
+- ✔ Fix · **Internal Tab Fluidity** — internal chat animations, message bubbles, and external extension UIs inside tabs now retain their native transitions regardless of PTMT's global animation setting.
+- ✔ Fix · **Clean DOM** — removed legacy `animation` attributes from the DOM; all motion is now handled natively via CSS scoping on `body.ptmt-enable-animations`.
+
+---
+
+## v0.11.2 — 2026-05-06
+
+*Global Style Reorganization*
+
+- ✦ New · **Global Style Section** — introduced a dedicated **Global Style** section in the settings panel, separating visual aesthetics from structural layout.
+- ✦ New · **Style Modularization** — moved **UI Theme**, **Animations**, **Shadows**, **Tab Strip Mode**, **Icons Only**, and **Background Over Chat** settings into the Global Style section for better discoverability.
+- © Integration · Refined the settings panel assembly for smoother rendering and more consistent state management.
+
+---
+
 ## v0.11.1 — 2026-05-06
 
 *Shy Mode Polish*
