@@ -972,7 +972,7 @@ input[type="range"] {
 }
 
 input[type="range"]:hover {
-    background: var(--ST-Highlight-Background, rgba(0, 153, 255, 0.3));
+    background: var(--ST-Quote-Text, rgba(0, 153, 255, 0.3));
 }
 
 input[type="range"]:focus-visible {
@@ -985,7 +985,7 @@ input[type="range"]::-webkit-slider-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: var(--ST-Highlight-Background, #0099ff);
+    background: var(--ST-Quote-Text, #0099ff);
     border: 2px solid var(--ST-UI-Border, rgba(255, 255, 255, 0.3));
     cursor: pointer;
     transition: all 150ms ease-in-out;
@@ -1008,7 +1008,7 @@ input[type="range"]::-moz-range-track {
 }
 
 input[type="range"]::-moz-range-progress {
-    background: var(--ST-Highlight-Background, #0099ff);
+    background: var(--ST-Quote-Text, #0099ff);
     height: 4px;
     border-radius: 3px;
 }
@@ -1017,7 +1017,7 @@ input[type="range"]::-moz-range-thumb {
     width: 14px;
     height: 14px;
     border-radius: 50%;
-    background: var(--ST-Highlight-Background, #0099ff);
+    background: var(--ST-Quote-Text, #0099ff);
     border: 2px solid var(--ST-UI-Border, rgba(255, 255, 255, 0.3));
     cursor: pointer;
     transition: all 150ms ease-in-out;

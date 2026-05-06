@@ -450,6 +450,7 @@ body.bubblechat .welcomePanel {
   position: absolute !important;
   z-index: 10000 !important;
   max-height: 100% !important;
+  height: 100% !important;
   top: 0 !important;
 }
 
@@ -1572,13 +1573,13 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 
 .ptmt-editor-split,
 .ptmt-editor-pane {
-  border: 1px dashed var(--ST-Button-Background);
+  border: 1px dashed color-mix(in srgb, var(--ST-Button-Background), transparent 50%);
   margin-top: 2px !important;
   border-radius: 0.5rem !important;
 }
 
 .ptmt-editor-pane.ptmt-pending-pane {
-  border: 1px dashed var(--ST-Main-Text) !important;
+  border: 1px dashed color-mix(in srgb, var(--ST-Main-Text), transparent 50%) !important;
 }
 
 .ptmt-editor-title {
@@ -1593,16 +1594,35 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 }
 
 .ptmt-editor-pane .ptmt-editor-title {
-  background: color-mix(in srgb, var(--ST-Button-Background), transparent 85%);
-  border-bottom: 1px dashed color-mix(in srgb, var(--ST-Button-Background), transparent 50%);
+  background: color-mix(in srgb, var(--ST-Button-Background), transparent 95%);
   border-radius: 0.4rem 0.4rem 0 0 !important;
   padding: 6px 8px;
   margin-bottom: 4px;
 }
 
+.ptmt-pending-pane .ptmt-editor-title {
+  background: color-mix(in srgb, var(--ST-Main-Text), transparent 95%) !important;
+}
+
 .ptmt-editor-title>span {
   flex-grow: 1;
 }
+
+.ptmt-editor-pane-icons {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  opacity: 0.6;
+  font-size: 1.1em;
+  margin-right: 8px;
+  color: var(--ST-Main-Text);
+}
+
+.ptmt-editor-pane-icons span:hover {
+  opacity: 1;
+  color: var(--ptmt-adaptive-quote);
+}
+
 
 .ptmt-editor-title select,
 .ptmt-editor-title button {
@@ -1649,7 +1669,8 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 }
 
 .ptmt-editor-children {
-  padding-left: 8px;
+  padding-left: 6px;
+  padding-right: 2px;
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -1714,7 +1735,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 }
 
 .ptmt-drag-handle:hover {
-  background: var(--ST-Highlight-Background);
+  background: var(--ST-Quote-Text);
   color: var(--ST-Main-Text);
 }
 
@@ -1957,7 +1978,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 .ptmt-context-menu-item:hover {
-  background: color-mix(in srgb, var(--ST-Highlight-Background, var(--ST-Button-Background)), transparent 80%);
+  background: color-mix(in srgb, var(--ST-Quote-Text, var(--ST-Button-Background)), transparent 80%);
   padding-left: 20px;
 }
 

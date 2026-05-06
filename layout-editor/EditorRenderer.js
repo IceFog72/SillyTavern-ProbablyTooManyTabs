@@ -1,4 +1,4 @@
-import { el, createIconElement, hexToRgba } from '../utils.js';
+import { el, createIconElement, hexToRgba, readPaneViewSettings } from '../utils.js';
 import { SELECTORS } from '../constants.js';
 
 export function renderUnifiedEditor(manager) {
@@ -112,8 +112,40 @@ function renderPane(manager, element) {
     const container = el('div', { className: 'ptmt-editor-pane' });
     container.dataset.paneId = element.dataset.paneId;
 
+    const vs = readPaneViewSettings(element);
+
     const titleDiv = el('div', { className: 'ptmt-editor-title' });
     const titleSpan = el('span', {}, 'Pane');
+
+    // Add view settings indicator icons
+    const iconsContainer = el('div', { className: 'ptmt-editor-pane-icons' });
+    const addIcon = (iconClass, title) => {
+        iconsContainer.appendChild(el('span', { className: `fa-solid ${iconClass}`, title }));
+    };
+
+    // 1. Expanded Orientation
+    if (vs.defaultOrientation === 'vertical') addIcon('fa-arrows-up-down', 'Expanded: Vertical');
+    else if (vs.defaultOrientation === 'horizontal') addIcon('fa-arrows-left-right', 'Expanded: Horizontal');
+    else addIcon('fa-expand', 'Expanded: Auto');
+
+    // 2. Collapsed Orientation
+    if (vs.collapsedOrientation === 'vertical') addIcon('fa-up-down', 'Collapsed: Vertical');
+    else if (vs.collapsedOrientation === 'horizontal') addIcon('fa-left-right', 'Collapsed: Horizontal');
+    else addIcon('fa-compress', 'Collapsed: Auto');
+
+    // 3. Flow
+    if (vs.contentFlow === 'reversed') addIcon('fa-arrow-up-wide-short', 'Flow: Reversed');
+    else addIcon('fa-arrow-down-wide-short', 'Flow: Default');
+
+    // 4. Icons Only
+    if (vs.iconOnly) addIcon('fa-icons', 'Icons Only');
+
+    // 5. Tab Strip Mode
+    const tabMode = vs.tabStripMode || 'normal';
+    if (tabMode === 'auto-hide') addIcon('fa-eye-slash', 'Tab Strip: Auto-Hide');
+    else if (tabMode === 'shy') addIcon('fa-ghost', 'Tab Strip: Shy');
+    else addIcon('fa-eye', 'Tab Strip: Normal');
+
     const settingsBtn = el('button', {
         className: SELECTORS.PANE_CONFIG_BTN.substring(1),
         title: 'Configure this pane (size, flow, etc.)',
@@ -124,7 +156,7 @@ function renderPane(manager, element) {
         manager.appApi.openViewSettingsDialog(element);
     });
 
-    titleDiv.append(titleSpan, settingsBtn);
+    titleDiv.append(titleSpan, iconsContainer, settingsBtn);
     container.appendChild(titleDiv);
 
     const tabsContainer = el('div', { className: 'ptmt-editor-tabs-container' });
