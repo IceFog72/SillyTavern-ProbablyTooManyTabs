@@ -2,6 +2,20 @@
 
 ---
 
+## v0.11.0 — 2026-05-05
+
+*Unified Tab Strip Modes & Layout Editor UX*
+
+- ✦ New · **Tab Strip Mode** setting introduced, replacing the old Auto-Hide checkbox. Features three states: **Normal**, **Auto-Hide**, and **Shy**.
+- ✦ New · **Shy Mode** — minimizes the tab strip to a thin indicator bar *even when the pane is collapsed*. Hovering the indicator brings the tab strip out as a sleek floating overlay.
+- ✦ New · **Layout Editor Indicator Icons** — pane titles now display a row of subtle icons indicating their active settings (Expanded/Collapsed Orientation, Flow, Icons Only, Tab Strip Mode) at a glance.
+- ✦ New · Replaced the right-click "Auto-Hide" toggle on tab strips with a **Cycle Tab Strip Mode** button (Normal → Auto-Hide → Shy).
+- ✦ New · Redesigned the Layout Editor with a modern glassmorphism aesthetic and interactive hover states for config buttons.
+- ✔ Fix · **Panel Drift** — resolved an issue where layout columns would micro-shift by a few pixels on each collapse-expand cycle due to splitter widths (6px) not being correctly factored into the flex basis calculation.
+- © Integration · Automated background migration smoothly converts legacy `tabStripAutoHide` settings to the new `tabStripMode` format.
+
+---
+
 ## v0.10.6 — 2026-05-01
 
 *World Info Status Bar*

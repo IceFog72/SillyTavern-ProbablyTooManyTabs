@@ -55,7 +55,7 @@ Open the **Layout Settings** tab (🔧 wrench icon) to access all global control
 
 - **Auto-Open First Center Tab** — when all center-column tabs are collapsed, PTMT automatically opens the first one rather than leaving the center empty.
 - **Show Icons Only (Global)** — hides tab labels across all columns, showing only icons. Useful on narrow panes.
-- **Auto-Hide Tab Strip (Global)** — minimizes the tab strip to a thin line across all columns, expanding only when hovered or focused.
+- **Tab Strip Mode (Global)** — sets the default visibility of tab strips. *Normal* keeps tabs always visible. *Auto-Hide* minimizes them to a thin line when the pane is expanded. *Shy* minimizes them even when the pane is collapsed, popping out as a floating overlay on hover.
 - **Show Context Size Status Bar** — shows a coloured progress bar at the top of the center column indicating how many tokens are used (system, prompt, world info, chat, anchors, remaining).
 - **Sync Avatar with Expression** — mirrors the expression image updates to the character's tab icon.
 - **Hide on Resize (Chrome)** — hides some content during column/pane resize to prevent Chrome rendering lag when the character cards list is long.
@@ -142,13 +142,13 @@ Each column (Left, Center, Right) is shown as a labelled box. If a column is hid
 
 ### Panes
 
-Each pane appears as a box inside its column, with a **⚙ gear button** that opens the **Pane Settings popup**:
+Each pane appears as a box inside its column. The pane title displays a row of status icons showing its active settings at a glance, alongside a **⚙ gear button** that opens the **Pane Settings popup**:
 - **Minimum Panel Width (px)** — smallest width the pane may shrink to during column resize.
 - **When Expanded** — tab strip orientation while the pane is open: Auto, Horizontal, or Vertical.
 - **When Collapsed** — tab strip orientation while the pane is collapsed: Auto, Horizontal, or Vertical.
 - **Content Order** — whether the tab strip appears before (*Tabs First*) or after (*Content First*) the panel body.
 - **Icons Only** checkbox — hide tab labels in just this pane to save space.
-- **Auto-Hide Tab Strip** checkbox — force tab strip to minimize to a line; expand on hover/focus.
+- **Tab Strip Mode** dropdown — override the global visibility behavior for this specific pane (Normal, Auto-Hide, or Shy).
 
 ### Tabs in the Editor
 
@@ -183,7 +183,7 @@ A **Hidden Tabs** storage section at the bottom holds tabs you've intentionally 
 Right-clicking within PTMT opens context menus:
 
 - **Right-click a tab** → **Edit Tab** — opens the Tab Settings popup (rename, icon, colour).
-- **Right-click an empty area of the tab strip** → **Edit Pane** (opens Pane Settings), **Icons Only / Show Labels**, and **Auto-Hide Tab Strip / Show Tab Strip** (quick toggles for that pane).
+- **Right-click an empty area of the tab strip** → **Edit Pane** (opens Pane Settings), **Icons Only / Show Labels** toggle, and **Cycle Tab Strip Mode** (cycles between Normal → Auto-Hide → Shy for that pane).
 
 ---
 
