@@ -2,6 +2,14 @@
 
 ---
 
+## v0.11.4 — 2026-05-08
+
+*Expanded Extension Ecosystem*
+
+- ✦ New · **Supported Extensions** — added native support for [SillyTavern-Tracker](https://github.com/kaldigo/SillyTavern-Tracker) and [SillyTavern-Variable-Viewer](https://github.com/LenAnderson/SillyTavern-Variable-Viewer).
+
+---
+
 ## v0.11.3 — 2026-05-06
 
 *Surgical Animation Control*
