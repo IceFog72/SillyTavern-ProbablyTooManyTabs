@@ -112,7 +112,9 @@ export class SettingsManager {
             { id: 'ptmt-settings-wrapper-content', title: 'Layout Settings', icon: 'fa-screwdriver-wrench' },
             { id: 'ptmt-info-wrapper-content', title: 'Info & Guide', icon: 'fa-circle-info' },
             { id: 'sheld', title: 'Main', icon: 'fa-house' },
-            { id: 'charlib-embedded-container', title: 'CharLib', icon: 'fa-book-open' }
+            { id: 'charlib-embedded-container', title: 'CharLib', icon: 'fa-book-open' },
+            { id: 'trackerInterface', title: 'Tracker', icon: 'fa-chart-simple' },
+            { id: 'vv--root', title: 'Variables', icon: 'fa-code' }
         ],
 
         presets: [],
@@ -120,7 +122,8 @@ export class SettingsManager {
         savedLayoutMobile: null,
 
         defaultLayout: {
-            version: 19,
+            version: 20,
+            showIconsOnly: false,
             showLeft: true,
             showRight: true,
             hiddenTabs: [],
@@ -152,7 +155,9 @@ export class SettingsManager {
                         { searchId: "summaryExtensionPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
                         { searchId: "groupMemberListPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
                         { searchId: "qr--popout", searchClass: "", paneId: "ptmt-default-left-pane" },
-                        { searchId: "ctsi-drawerPopout", searchClass: "", paneId: "ptmt-default-left-pane" }
+                        { searchId: "ctsi-drawerPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
+                        { searchId: "trackerInterface", searchClass: "", paneId: "ptmt-default-left-pane" },
+                        { searchId: "vv--root", searchClass: "", paneId: "ptmt-default-left-pane" }
                     ]
                 },
                 center: {
@@ -236,7 +241,8 @@ export class SettingsManager {
         uiTheme: 'sharp',
 
         mobileLayout: {
-            version: 19,
+            version: 20,
+            showIconsOnly: true,
             showLeft: false,
             showRight: false,
             hiddenTabs: [],
@@ -291,7 +297,9 @@ export class SettingsManager {
                         { searchId: "", searchClass: "galleryImageDraggable", paneId: "ptmt-default-center-pane" },
                         { searchId: "objectiveExtensionPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
                         { searchId: "moonlit_echoes_popout", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "zoomed_avatar", searchClass: "", paneId: "ptmt-default-center-pane" }
+                        { searchId: "zoomed_avatar", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "trackerInterface", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "vv--root", searchClass: "", paneId: "ptmt-default-center-pane" }
                     ]
                 }
             }

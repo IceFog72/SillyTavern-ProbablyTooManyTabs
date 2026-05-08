@@ -371,6 +371,8 @@ body.no-blur body.ptmt-bg-under-chat #chat {
 #extensionSideBar,
 #summaryExtensionPopout,
 #objectiveExtensionPopout,
+#trackerInterface,
+#vv--root,
 #gallery,
 .fillLeft,
 .fillRight,
@@ -1481,6 +1483,42 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
 
 #charlib-embedded-container #mobileSearchBtn {
   display: none !important;
+}
+
+.ptmt-panel-content:has(> #trackerInterface) {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+#trackerInterface {
+  position: relative !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  top: unset !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
+  padding: 10px !important;
+  gap: 10px !important;
+}
+
+.ptmt-panel-content:has(> #vv--root) {
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+#vv--root {
+  position: relative !important;
+  flex: 1 !important;
+  min-height: 0 !important;
+  height: auto !important;
+  top: unset !important;
+  left: auto !important;
+  right: auto !important;
+  bottom: auto !important;
+  z-index: auto !important;
 }
 
 /* ==========================================================================

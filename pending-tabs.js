@@ -234,6 +234,7 @@ export function initPendingTabsManager(allGhostTabs) {
 
     const observeTarget = document.getElementById('movingDivs') || document.body;
     hydrationObserver.observe(observeTarget, { childList: true, subtree: true });
+    hydrationObserver.observe(document.body, { childList: true });
 
     checkForPendingTabs([document.body]);
 }

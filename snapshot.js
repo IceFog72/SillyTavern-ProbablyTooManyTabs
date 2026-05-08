@@ -142,6 +142,26 @@ const SNAPSHOT_MIGRATIONS = {
         if (!('showIconsOnly' in snap)) {
             snap.showIconsOnly = snap.mode === 'mobile';
         }
+
+        // Add trackerInterface and vv--root ghost tabs to left column for existing users
+        const addGhostTabIfMissing = (searchId, paneId) => {
+            const hasInAny = ['left', 'center', 'right'].some(
+                col => (snap.columns?.[col]?.ghostTabs || []).some(t => t.searchId === searchId)
+            );
+            if (!hasInAny) {
+                if (!snap.columns.left.ghostTabs) {
+                    snap.columns.left.ghostTabs = [];
+                }
+                snap.columns.left.ghostTabs.push({
+                    searchId,
+                    searchClass: '',
+                    paneId
+                });
+            }
+        };
+        addGhostTabIfMissing('trackerInterface', 'ptmt-default-left-pane');
+        addGhostTabIfMissing('vv--root', 'ptmt-default-left-pane');
+
         snap.version = 20;
         return snap;
     },

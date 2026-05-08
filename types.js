@@ -112,6 +112,7 @@
  * @property {number} version
  * @property {number} timestamp
  * @property {'mobile'|'desktop'} mode
+ * @property {boolean} showIconsOnly
  * @property {boolean} showLeft
  * @property {boolean} showRight
  * @property {ColumnSizes} columnSizes
