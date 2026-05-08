@@ -171,6 +171,8 @@
  * @property {number} dialogueColorizerBubbleOpacityUser - 0.0 to 1.0
  * @property {1|2} dialogueColorizerDialogColorMode - 1=1st dominant, 2=2nd dominant
  * @property {1|2|3} dialogueColorizerBubbleColorMode - 1=1st dominant, 2=2nd dominant, 3=gradient
+ * @property {{color:string,position:number}[]} dialogueColorizerBubbleGradientStops - Custom gradient stops
+ * @property {number} dialogueColorizerBubbleGradientAngle - Gradient angle in degrees
  * @property {string[]} charCustomColorizerEnabled - char names with custom colorizer enabled
  * @property {Object.<string, Object>} charCustomColorizerSettings - keyed by char name
  * @property {string[]} personaCustomColorizerEnabled - persona filenames with custom colorizer enabled

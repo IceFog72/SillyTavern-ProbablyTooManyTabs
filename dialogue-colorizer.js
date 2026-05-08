@@ -8,7 +8,7 @@ import { eventSource, event_types } from '../../../../script.js';
 import { getContext } from '../../../extensions.js';
 import { power_user } from '../../../power-user.js';
 import { settings } from './settings.js';
-import { debounce, trackObserver } from './utils.js';
+import { debounce, trackObserver, extractColorsFromImage, sortColorsByLightness } from './utils.js';
 
 const DEFAULT_RGB = [225, 138, 36]; // Orange
 
@@ -94,144 +94,6 @@ const ColorUtils = {
         return `rgba(${r}, ${g}, ${b}, ${finalAlpha})`;
     }
 };
-
-
-function getDominantColor(img) {
-    try {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
-        // Use natural dimensions — downsample to reduce canvas memory
-        const w = img.naturalWidth || img.width;
-        const h = img.naturalHeight || img.height;
-        if (!w || !h) return [DEFAULT_RGB];
-
-        // Downsample to max 100px — saves memory (16MB → 40KB for a 2000x2000 image)
-        // and we sample every 10th pixel anyway, so no quality loss
-        const MAX_DIM = 100;
-        const scale = Math.min(MAX_DIM / w, MAX_DIM / h, 1);
-        canvas.width = Math.round(w * scale);
-        canvas.height = Math.round(h * scale);
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        const data = imageData.data;
-        const pixelCount = canvas.width * canvas.height;
-
-        // Sample every 10th pixel for performance (like Color Thief quality=10)
-        const quality = 10;
-
-        // 12 hue buckets × 30° each. All weights are integers.
-        const buckets = [];
-        for (let i = 0; i < 12; i++) {
-            buckets.push({ rSum: 0, gSum: 0, bSum: 0, count: 0 });
-        }
-
-        let greyR = 0, greyG = 0, greyB = 0, greyCount = 0;
-
-        for (let i = 0; i < pixelCount; i += quality) {
-            const off = i * 4;
-            const r = data[off];
-            const g = data[off + 1];
-            const b = data[off + 2];
-            const a = data[off + 3];
-
-            // Skip transparent pixels
-            if (a < 128) continue;
-
-            // Skip near-white and near-black
-            if (r > 250 && g > 250 && b > 250) continue;
-            if (r < 5 && g < 5 && b < 5) continue;
-
-            const max = Math.max(r, g, b);
-            const min = Math.min(r, g, b);
-            const chroma = max - min;
-
-            // If low saturation, accumulate into grey bucket
-            // Saturation check: chroma / max < ~0.1  (using integer: chroma * 10 < max)
-            if (max === 0 || chroma * 10 < max) {
-                greyR += r; greyG += g; greyB += b; greyCount++;
-                continue;
-            }
-
-            // Lightness check (skip very dark and very bright)
-            const luma = r + g + b; // 0–765
-            if (luma < 76 || luma > 688) continue; // ~10% and ~90% of 765
-
-            // Hue calculation — integer math, result in [0, 360)
-            let hue;
-            if (max === r) {
-                hue = 60 * (g - b) / chroma;
-                if (hue < 0) hue += 360;
-            } else if (max === g) {
-                hue = 60 * (b - r) / chroma + 120;
-            } else {
-                hue = 60 * (r - g) / chroma + 240;
-            }
-
-            const bucketIdx = Math.floor(hue / 30) % 12;
-
-            // Weight by saturation (chroma) — integer, no float drift
-            const weight = chroma;
-            buckets[bucketIdx].rSum += r * weight;
-            buckets[bucketIdx].gSum += g * weight;
-            buckets[bucketIdx].bSum += b * weight;
-            buckets[bucketIdx].count += weight;
-        }
-
-        // Sort buckets by weight and pick top 2
-        const sortedBuckets = buckets
-            .map((b, i) => ({ ...b, idx: i }))
-            .filter(b => b.count > 0)
-            .sort((a, b) => b.count - a.count);
-
-        const resultCols = [];
-
-        if (sortedBuckets.length > 0) {
-            // First dominant color
-            const best = sortedBuckets[0];
-            resultCols.push([
-                Math.round(best.rSum / best.count),
-                Math.round(best.gSum / best.count),
-                Math.round(best.bSum / best.count)
-            ]);
-
-            // Second dominant color: Must be sufficiently distinct (hue distance check)
-            // 2 buckets = 60 degrees distance minimum
-            if (sortedBuckets.length > 1) {
-                const firstIdx = best.idx;
-                const second = sortedBuckets.find(b => {
-                    const dist = Math.min(Math.abs(b.idx - firstIdx), 12 - Math.abs(b.idx - firstIdx));
-                    return dist >= 2;
-                });
-
-                if (second) {
-                    resultCols.push([
-                        Math.round(second.rSum / second.count),
-                        Math.round(second.gSum / second.count),
-                        Math.round(second.bSum / second.count)
-                    ]);
-                }
-            }
-        }
-
-        if (resultCols.length > 0) return resultCols;
-
-        // Fallback to grey average
-        if (greyCount > 0) {
-            return [[
-                Math.round(greyR / greyCount),
-                Math.round(greyG / greyCount),
-                Math.round(greyB / greyCount)
-            ]];
-        }
-
-        return [DEFAULT_RGB];
-    } catch (e) {
-        console.error('[PTMT] Color extraction failed:', e);
-        return [DEFAULT_RGB];
-    }
-}
 
 // ─── Avatar identification ────────────────────────────────────────────────────
 
@@ -438,8 +300,7 @@ async function getCharacterColor(info) {
         const domImg = info.domImgElement;
         if (domImg && domImg.complete && domImg.naturalWidth > 0) {
             try {
-                const rgbs = getDominantColor(domImg);
-                const hexes = rgbs.map(rgb => ColorUtils.rgbToHex(rgb));
+                const hexes = extractColorsFromImage(domImg);
                 colorCache.set(info.uid, hexes);
                 console.log(`[PTMT] Extracted colors for ${info.uid}: ${hexes.join(', ')}`);
                 return hexes;
@@ -463,8 +324,7 @@ async function getCharacterColor(info) {
             img.onload = () => {
                 clearTimeout(timeout);
                 try {
-                    const rgbs = getDominantColor(img);
-                    const hexes = rgbs.map(rgb => ColorUtils.rgbToHex(rgb));
+                    const hexes = extractColorsFromImage(img);
                     colorCache.set(info.uid, hexes);
                     console.log(`[PTMT] Extracted colors for ${info.uid} (fallback): ${hexes.join(', ')}`);
                     resolve(hexes);
@@ -487,6 +347,46 @@ async function getCharacterColor(info) {
 
 // ─── CSS generation ───────────────────────────────────────────────────────────
 
+function getCustomColorizerSettings(info) {
+    if (!info || info.type === 'system') return null;
+    const isPersona = info.type === 'persona';
+    const characterKey = isPersona
+        ? buildPersonaKeyForColorizer(info.uid, info.domAvatarUrl)
+        : buildCharacterKeyForColorizer(info.uid, info.domAvatarUrl);
+    const enabledList = isPersona ? settings.get('personaCustomColorizerEnabled') ?? [] : settings.get('charCustomColorizerEnabled') ?? [];
+    const customSettingsMap = isPersona ? settings.get('personaCustomColorizerSettings') ?? {} : settings.get('charCustomColorizerSettings') ?? {};
+    if (enabledList.includes(characterKey) && customSettingsMap[characterKey]) {
+        return customSettingsMap[characterKey];
+    }
+    return null;
+}
+
+function resolveBubbleGradientStops(s, extractedColors, info) {
+    let colors;
+    let angle = 135;
+
+    const custom = getCustomColorizerSettings(info);
+    const storedStops = custom?.bubbleGradientStops ?? settings.get('dialogueColorizerBubbleGradientStops') ?? [];
+    angle = custom?.bubbleGradientAngle ?? settings.get('dialogueColorizerBubbleGradientAngle') ?? 135;
+    if (storedStops.length > 0) {
+        return { stops: storedStops, angle };
+    }
+
+    if (s.bubbleSource === 'static_color') {
+        colors = [s.bubbleStatic1, s.bubbleStatic2];
+    } else {
+        colors = sortColorsByLightness(extractedColors.slice(0, 5));
+    }
+
+    if (colors.length < 2) colors = [colors[0], colors[0]];
+    const stops = colors.map((color, i) => ({
+        color,
+        position: i / (colors.length - 1),
+    }));
+
+    return { stops, angle };
+}
+
 function buildCssRules(safeUid, extractedColors, info) {
     const s = getSettingsForType(info.type, info);
     const controls = getColorizerControlSettings(info.type, info);
@@ -501,28 +401,22 @@ function buildCssRules(safeUid, extractedColors, info) {
     let dialogColor;
     if (s.dialogSource === 'static_color') {
         dialogColor = s.dialogStatic;
-        console.log(`[PTMT] buildCssRules() using STATIC dialogue color: ${dialogColor}`);
     } else {
         const prim = extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
         const sec = extractedColors[1] || prim;
         dialogColor = dialogMode === 2 ? sec : prim;
     }
 
-    // 2. Resolve Bubble Colors
-    let bPrim, bSec;
+    // 2. Resolve Bubble Colors — single-color modes still need bPrim for border/var
+    let bPrim;
     if (s.bubbleSource === 'static_color') {
         bPrim = s.bubbleStatic1;
-        bSec = s.bubbleStatic2;
-        console.log(`[PTMT] buildCssRules() using STATIC bubble colors: ${bPrim}, ${bSec}`);
     } else {
         bPrim = extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
-        bSec = extractedColors[1] || bPrim;
     }
 
     if (target & 1) { // QUOTED_TEXT
-        // Standard rule: Pure extracted color
         const standardRule = `color: ${dialogColor} !important;`;
-        // Adaptive rule: Only active when .ptmt-auto-contrast is on the body
         const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) 25%) !important;`;
 
         css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${standardRule} }\n`;
@@ -534,26 +428,23 @@ function buildCssRules(safeUid, extractedColors, info) {
         css += `.ptmt-auto-contrast .bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${adaptiveRule} }\n`;
     }
     if (target & 2) { // BUBBLES
-        const rgbaBg1 = ColorUtils.hexToRgba(bPrim, opacity);
-        const rgbaBg2 = ColorUtils.hexToRgba(bSec, opacity);
         const rgbaBorder = ColorUtils.hexToRgba(bPrim, Math.min(1.0, opacity * 2.5 + 0.1));
 
-        // Emit the colorizer color with opacity baked into the alpha channel.
-        // CSS oklch formula uses alpha directly to blend against the wallpaper —
-        // no ST message background involved when the colorizer is in control.
         css += `#chat .mes[xdc-author-uid="${safeUid}"] { --ptmt-mes-colorizer-color: ${ColorUtils.hexToRgba(bPrim, opacity)}; }\n`;
 
         let background;
         if (bubbleMode === 3) {
-            background = `linear-gradient(135deg, ${rgbaBg1}, ${rgbaBg2})`;
+            const { stops, angle } = resolveBubbleGradientStops(s, extractedColors, info);
+            const sorted = [...stops].sort((a, b) => a.position - b.position);
+            const parts = sorted.map(st => `${ColorUtils.hexToRgba(st.color, opacity)} ${Math.round(st.position * 100)}%`);
+            background = `linear-gradient(${angle}deg, ${parts.join(', ')})`;
         } else if (bubbleMode === 2) {
-            background = rgbaBg2;
+            const bSec = s.bubbleSource === 'static_color' ? s.bubbleStatic2 : (extractedColors[1] || bPrim);
+            background = ColorUtils.hexToRgba(bSec, opacity);
         } else {
-            background = rgbaBg1;
+            background = ColorUtils.hexToRgba(bPrim, opacity);
         }
 
-        // When the colorizer owns the bubble background, neutralize ST's default blur tint
-        // so it doesn't bleed through the colorizer-controlled background colour.
         css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background: ${background}; border-color: ${rgbaBorder}; --SmartThemeBotMesBlurTintColor: transparent; --SmartThemeUserMesBlurTintColor: transparent; }\n`;
     }
     return css;

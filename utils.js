@@ -37,6 +37,20 @@ export function hexToRgba(hex) {
     return '';
 }
 
+function hexToLuminance(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 8) hex = hex.slice(0, 6);
+    if (hex.length !== 6) return 0;
+    const r = parseInt(hex.substring(0, 2), 16) / 255;
+    const g = parseInt(hex.substring(2, 4), 16) / 255;
+    const b = parseInt(hex.substring(4, 6), 16) / 255;
+    return 0.2126 * r + 0.7152 * g + 0.0722 * b;
+}
+
+export function sortColorsByLightness(hexColors) {
+    return [...hexColors].sort((a, b) => hexToLuminance(a) - hexToLuminance(b));
+}
+
 // Moved here to prevent circular dependency cycles between layout.js and pane.js
 export function getRefs() {
     if (_refs) {
@@ -391,5 +405,170 @@ function cleanupBodyObserver() {
     }
     bodyObserverStarted = false;
     bodyHandlers.clear();
+}
+
+// ─── Color extraction from images ─────────────────────────────────────────
+// Adapted from theme-creator.js — k-means clustering in CIELAB space
+
+const DEFAULT_RGB = [225, 138, 36]; // Orange
+
+function rgbToHex([r, g, b]) {
+    return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
+}
+
+function rgbToLab({ r, g, b }) {
+    r /= 255; g /= 255; b /= 255;
+    r = r > 0.04045 ? Math.pow((r + 0.055) / 1.055, 2.4) : r / 12.92;
+    g = g > 0.04045 ? Math.pow((g + 0.055) / 1.055, 2.4) : g / 12.92;
+    b = b > 0.04045 ? Math.pow((b + 0.055) / 1.055, 2.4) : b / 12.92;
+    r *= 100; g *= 100; b *= 100;
+    const x = r * 0.4124564 + g * 0.3575761 + b * 0.1804375;
+    const y = r * 0.2126729 + g * 0.7151522 + b * 0.0721750;
+    const z = r * 0.0193339 + g * 0.1191920 + b * 0.9503041;
+    const fx = x / 95.047 > 0.008856 ? Math.pow(x / 95.047, 1/3) : (7.787 * x / 95.047) + 16/116;
+    const fy = y / 100.000 > 0.008856 ? Math.pow(y / 100.000, 1/3) : (7.787 * y / 100.000) + 16/116;
+    const fz = z / 108.883 > 0.008856 ? Math.pow(z / 108.883, 1/3) : (7.787 * z / 108.883) + 16/116;
+    return { l: 116 * fy - 16, a: 500 * (fx - fy), b: 200 * (fy - fz) };
+}
+
+function labToRgb({ l, a, b }) {
+    let y = (l + 16) / 116;
+    let x = a / 500 + y;
+    let z = y - b / 200;
+    const x3 = Math.pow(x, 3), y3 = Math.pow(y, 3), z3 = Math.pow(z, 3);
+    x = x3 > 0.008856 ? x3 : (x - 16/116) / 7.787;
+    y = y3 > 0.008856 ? y3 : (y - 16/116) / 7.787;
+    z = z3 > 0.008856 ? z3 : (z - 16/116) / 7.787;
+    x *= 95.047; y *= 100.000; z *= 108.883;
+    let r = (x * 3.2404542 + y * -1.5371385 + z * -0.4985314) / 100;
+    let g = (x * -0.9692660 + y * 1.8760108 + z * 0.0415560) / 100;
+    let b2 = (x * 0.0556434 + y * -0.2040259 + z * 1.0572252) / 100;
+    r = r > 0.0031308 ? 1.055 * Math.pow(r, 1/2.4) - 0.055 : r * 12.92;
+    g = g > 0.0031308 ? 1.055 * Math.pow(g, 1/2.4) - 0.055 : g * 12.92;
+    b2 = b2 > 0.0031308 ? 1.055 * Math.pow(b2, 1/2.4) - 0.055 : b2 * 12.92;
+    return [Math.max(0, Math.min(255, Math.round(r * 255))), Math.max(0, Math.min(255, Math.round(g * 255))), Math.max(0, Math.min(255, Math.round(b2 * 255)))];
+}
+
+function distanceLab(lab1, lab2) {
+    return Math.sqrt(Math.pow(lab1.l - lab2.l, 2) + Math.pow(lab1.a - lab2.a, 2) + Math.pow(lab1.b - lab2.b, 2));
+}
+
+function kmeans(colors, k, maxIterations = 20) {
+    const n = colors.length;
+    k = Math.min(k, n);
+    if (k < 1) return [];
+    const labs = colors.map(c => rgbToLab(c));
+    let centroids = colors.slice(0, k).map(c => rgbToLab(c));
+    let finalCounts = new Array(k).fill(0);
+
+    for (let iter = 0; iter < maxIterations; iter++) {
+        const assignments = new Array(n).fill(0);
+        const sums = Array.from({ length: k }, () => ({ l: 0, a: 0, b: 0, count: 0 }));
+
+        for (let i = 0; i < n; i++) {
+            const lab = labs[i];
+            let minDist = Infinity;
+            for (let j = 0; j < k; j++) {
+                const dist = distanceLab(lab, centroids[j]);
+                if (dist < minDist) { minDist = dist; assignments[i] = j; }
+            }
+            sums[assignments[i]].l += lab.l;
+            sums[assignments[i]].a += lab.a;
+            sums[assignments[i]].b += lab.b;
+            sums[assignments[i]].count++;
+        }
+
+        finalCounts = sums.map(s => s.count);
+
+        let changed = false;
+        for (let j = 0; j < k; j++) {
+            if (sums[j].count > 0) {
+                const newCentroid = { l: sums[j].l / sums[j].count, a: sums[j].a / sums[j].count, b: sums[j].b / sums[j].count };
+                if (distanceLab(newCentroid, centroids[j]) > 0.1) changed = true;
+                centroids[j] = newCentroid;
+            }
+        }
+        if (!changed) break;
+    }
+
+    const indexed = centroids.map((c, i) => ({ centroid: c, size: finalCounts[i] }));
+    indexed.sort((a, b) => b.size - a.size);
+
+    return indexed.map(item => labToRgb(item.centroid));
+}
+
+/**
+ * Extract dominant colors from an image element using k-means in LAB space.
+ * @param {HTMLImageElement} img - The image element to extract from
+ * @param {number} [numColors=5] - Number of dominant colors to extract
+ * @returns {string[]} Array of hex color strings (e.g. ["#e18a24", ...])
+ */
+export function extractColorsFromImage(img, numColors = 5) {
+    try {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        const w = img.naturalWidth || img.width;
+        const h = img.naturalHeight || img.height;
+        if (!w || !h) return [rgbToHex(DEFAULT_RGB)];
+
+        const MAX_DIM = 100;
+        const scale = Math.min(MAX_DIM / w, MAX_DIM / h, 1);
+        canvas.width = Math.round(w * scale);
+        canvas.height = Math.round(h * scale);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        const pixelCount = canvas.width * canvas.height;
+
+        const colors = [];
+        let greyR = 0, greyG = 0, greyB = 0, greyCount = 0;
+
+        for (let i = 0; i < pixelCount; i++) {
+            const off = i * 4;
+            const r = data[off];
+            const g = data[off + 1];
+            const b = data[off + 2];
+            const a = data[off + 3];
+
+            if (a < 128) continue;
+            if (r > 250 && g > 250 && b > 250) continue;
+            if (r < 5 && g < 5 && b < 5) continue;
+
+            const max = Math.max(r, g, b);
+            const min = Math.min(r, g, b);
+            const chroma = max - min;
+
+            if (max === 0 || chroma * 10 < max) {
+                greyR += r; greyG += g; greyB += b; greyCount++;
+                continue;
+            }
+
+            const luma = r + g + b;
+            if (luma < 76 || luma > 688) continue;
+
+            colors.push({ r, g, b });
+        }
+
+        if (colors.length === 0) {
+            if (greyCount > 0) {
+                return [rgbToHex([Math.round(greyR / greyCount), Math.round(greyG / greyCount), Math.round(greyB / greyCount)])];
+            }
+            return [rgbToHex(DEFAULT_RGB)];
+        }
+
+        const step = Math.max(1, Math.floor(colors.length / 10000));
+        const sampled = step > 1 ? colors.filter((_, i) => i % step === 0) : colors;
+
+        const k = Math.min(numColors, sampled.length);
+        const centroids = kmeans(sampled, k);
+
+        if (centroids.length > 0) return centroids.map(rgb => rgbToHex(rgb));
+        return [rgbToHex(DEFAULT_RGB)];
+    } catch (e) {
+        console.error('[PTMT] Color extraction failed:', e);
+        return [rgbToHex(DEFAULT_RGB)];
+    }
 }
 

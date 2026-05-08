@@ -8,7 +8,28 @@
 import { eventSource, event_types } from '../../../../script.js';
 import { getContext } from '../../../extensions.js';
 import { settings } from './settings.js';
-import { el, trackObserver } from './utils.js';
+import { el, trackObserver, debounce, extractColorsFromImage, sortColorsByLightness } from './utils.js';
+import { GradientEditor } from './gradient-editor.js';
+
+// ─── Helpers ─────────────────────────────────────────────────────────────────
+
+function autoPopulateGradientFromAvatar(gradientEditor, imgElement) {
+    if (!gradientEditor || !imgElement || !imgElement.complete || !imgElement.naturalWidth) return false;
+    const hexes = sortColorsByLightness(extractColorsFromImage(imgElement));
+    if (!hexes || hexes.length === 0) return false;
+    gradientEditor.colors = hexes;
+    gradientEditor.stops = hexes.map((color, i) => ({
+        color,
+        position: i / Math.max(hexes.length - 1, 1),
+    }));
+    gradientEditor.angle = 135;
+    return true;
+}
+
+// ─── Debounced save helpers ─────────────────────────────────────────────────
+
+const scheduleUpdateCharacter = debounce(() => updateCharacterSettings(), 200);
+const scheduleUpdatePersona = debounce(() => updatePersonaSettings(), 200);
 
 // ─── Ensure color picker library is loaded ────────────────────────────────────
 
@@ -168,6 +189,55 @@ function createPersonalColorizerUI(isPersona = false) {
         bubbleModeSelect
     ]));
 
+    // Gradient editor (hidden by default, shown when bubble mode is Gradient)
+    const gradientRow = el('div', { className: 'ptmt-setting-row', style: 'display: none; flex-direction: column; padding-left: 0;' });
+    const gradientEditor = new GradientEditor({
+        stops: [],
+        angle: 135,
+        showAngle: true,
+        onChange: () => {
+            if (isPersona) {
+                scheduleUpdatePersona();
+            } else {
+                scheduleUpdateCharacter();
+            }
+        },
+    });
+    gradientEditor.mount(gradientRow);
+    const resetGradientBtn = el('button', {
+        className: 'ptmt-ge-add-btn',
+        type: 'button',
+        style: 'align-self: flex-start;',
+    }, 'Reset to Auto');
+    resetGradientBtn.addEventListener('click', () => {
+        const img = isPersona
+            ? document.querySelector('#user_avatar_block .avatar img')
+            : document.getElementById('avatar_load_preview');
+        if (img && autoPopulateGradientFromAvatar(gradientEditor, img)) {
+            // auto-populated — editor's onChange won't fire, save explicitly
+        } else {
+            gradientEditor.stops = [];
+            gradientEditor.angle = 135;
+        }
+        if (isPersona) scheduleUpdatePersona();
+        else scheduleUpdateCharacter();
+    });
+
+    // Temp: log onChange calls
+    const origOnChange = gradientEditor._onChange;
+    gradientEditor._onChange = (data) => {
+        console.log('[PTMT-DEBUG] gradient onChange, stops:', JSON.stringify(data.stops.map(s => s.color)));
+        origOnChange(data);
+    };
+    gradientRow.appendChild(resetGradientBtn);
+    settingsSection.appendChild(gradientRow);
+
+    const syncBubbleModeVis = () => {
+        gradientRow.style.display = bubbleModeSelect.value === '3' ? 'flex' : 'none';
+    };
+    bubbleModeSelect.addEventListener('change', syncBubbleModeVis);
+    syncBubbleModeVis();
+
     // Opacity slider for character or user
     const opacityLabel = isPersona ? 'User Bubble Opacity' : 'Char Bubble Opacity';
     const defaultOpacity = isPersona ? 0.1 : 0.1;
@@ -219,6 +289,9 @@ function createPersonalColorizerUI(isPersona = false) {
         dialogModeSelect,
         bubbleModeSelect,
         opacitySlider,
+        gradientEditor,
+        gradientRow,
+        resetGradientBtn,
     };
 }
 
@@ -403,6 +476,24 @@ function loadCharacterSettings() {
     charColorizerUI.dialogStaticRow.style.display = charColorizerUI.dialogSrcSelect.value === 'static_color' ? 'flex' : 'none';
     charColorizerUI.bubbleStaticRow.style.display = charColorizerUI.bubbleSrcSelect.value === 'static_color' ? 'flex' : 'none';
 
+    // Load gradient editor
+    if (charColorizerUI.gradientEditor) {
+        const gradientStops = customSettings.bubbleGradientStops ?? [];
+        const gradientAngle = customSettings.bubbleGradientAngle ?? 135;
+
+        if (gradientStops.length > 0) {
+            charColorizerUI.gradientEditor.stops = gradientStops;
+            charColorizerUI.gradientEditor.angle = gradientAngle;
+        } else if (customSettings.bubbleSource !== 'static_color') {
+            const avatarPreview = document.getElementById('avatar_load_preview');
+            if (avatarPreview) {
+                autoPopulateGradientFromAvatar(charColorizerUI.gradientEditor, avatarPreview);
+            }
+        }
+
+        charColorizerUI.gradientRow.style.display = String(customSettings.bubbleColorMode ?? 3) === '3' ? 'flex' : 'none';
+    }
+
     // Ensure UI reflects global enable state
     updatePersonalColorizerEnableState();
 }
@@ -414,7 +505,10 @@ function loadCharacterSettings() {
 function updateCharacterSettings() {
     if (isUpdatingCharSettings) return; // Guard against recursion
 
-    if (!charColorizerUI || !currentCharacterId || !currentAvatarFilename) return;
+    if (!charColorizerUI || !currentCharacterId || !currentAvatarFilename) {
+        console.log('[PTMT-DEBUG] updateCharacterSettings: early return, missing refs', {hasUI: !!charColorizerUI, id: currentCharacterId, av: currentAvatarFilename});
+        return;
+    }
 
     isUpdatingCharSettings = true;
     try {
@@ -443,6 +537,8 @@ function updateCharacterSettings() {
 
             // Build new settings, only updating fields that may have changed
             // Colors only update if explicitly changed by color picker events (via latest* vars)
+            const gradientStops = charColorizerUI.gradientEditor ? charColorizerUI.gradientEditor.stops : [];
+            const gradientAngle = charColorizerUI.gradientEditor ? charColorizerUI.gradientEditor.angle : 135;
             const newSettings = {
                 dialogSource: charColorizerUI.dialogSrcSelect.value,
                 dialogStatic: latestDialogStaticColor,
@@ -453,7 +549,12 @@ function updateCharacterSettings() {
                 dialogColorMode: parseInt(charColorizerUI.dialogModeSelect.value, 10),
                 bubbleColorMode: parseInt(charColorizerUI.bubbleModeSelect.value, 10),
                 bubbleOpacity: parseFloat(charColorizerUI.opacitySlider.value),
+                bubbleGradientStops: gradientStops,
+                bubbleGradientAngle: gradientAngle,
             };
+
+            const gradientStopsChanged = JSON.stringify(oldSettings.bubbleGradientStops ?? []) !== JSON.stringify(gradientStops) ||
+                (oldSettings.bubbleGradientAngle ?? 135) !== gradientAngle;
 
             // Detect what actually changed
             const colorSourceChanged =
@@ -471,8 +572,9 @@ function updateCharacterSettings() {
             const opacityChanged = oldSettings.bubbleOpacity !== newSettings.bubbleOpacity;
 
             // Only log/save if something actually changed
-            if (colorSourceChanged || colorModeChanged || targetChanged || opacityChanged) {
+            if (colorSourceChanged || colorModeChanged || targetChanged || opacityChanged || gradientStopsChanged) {
                 console.log(`[PTMT] ✓ Saving character "${currentCharacterId}" colorizer settings:`, newSettings);
+                console.log('[PTMT-DEBUG] changes:', {colorSourceChanged, colorModeChanged, targetChanged, opacityChanged, gradientStopsChanged});
                 customSettingsMap[currentCharacterId] = newSettings;
 
                 settings.update({
@@ -481,8 +583,9 @@ function updateCharacterSettings() {
                 });
 
                 // Trigger refresh with appropriate cache strategy
-                if (colorSourceChanged) {
-                    // Color source changed - clear cache to re-extract
+                if (colorSourceChanged || gradientStopsChanged) {
+                    // Color source or gradient stops changed - clear cache to re-extract
+                    console.log('[PTMT-DEBUG] dispatching full refresh');
                     window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: true } }));
                 } else {
                     // Only visual changes (target, modes, opacity) - keep cache
@@ -655,6 +758,24 @@ function loadPersonaSettings() {
     personaColorizerUI.dialogStaticRow.style.display = personaColorizerUI.dialogSrcSelect.value === 'static_color' ? 'flex' : 'none';
     personaColorizerUI.bubbleStaticRow.style.display = personaColorizerUI.bubbleSrcSelect.value === 'static_color' ? 'flex' : 'none';
 
+    // Load gradient editor
+    if (personaColorizerUI.gradientEditor) {
+        const gradientStops = customSettings.bubbleGradientStops ?? [];
+        const gradientAngle = customSettings.bubbleGradientAngle ?? 135;
+
+        if (gradientStops.length > 0) {
+            personaColorizerUI.gradientEditor.stops = gradientStops;
+            personaColorizerUI.gradientEditor.angle = gradientAngle;
+        } else if (customSettings.bubbleSource !== 'static_color') {
+            const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
+            if (userAvatarImg) {
+                autoPopulateGradientFromAvatar(personaColorizerUI.gradientEditor, userAvatarImg);
+            }
+        }
+
+        personaColorizerUI.gradientRow.style.display = String(customSettings.bubbleColorMode ?? 3) === '3' ? 'flex' : 'none';
+    }
+
     // Ensure UI reflects global enable state
     updatePersonalColorizerEnableState();
 }
@@ -705,6 +826,8 @@ function updatePersonaSettings() {
             };
 
             // Build new settings, only updating fields that may have changed
+            const gradientStops = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.stops : [];
+            const gradientAngle = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.angle : 135;
             const newSettings = {
                 dialogSource: personaColorizerUI.dialogSrcSelect.value,
                 dialogStatic: latestPersonaDialogColor,
@@ -715,7 +838,12 @@ function updatePersonaSettings() {
                 dialogColorMode: parseInt(personaColorizerUI.dialogModeSelect.value, 10),
                 bubbleColorMode: parseInt(personaColorizerUI.bubbleModeSelect.value, 10),
                 bubbleOpacity: parseFloat(personaColorizerUI.opacitySlider.value),
+                bubbleGradientStops: gradientStops,
+                bubbleGradientAngle: gradientAngle,
             };
+
+            const gradientStopsChanged = JSON.stringify(oldSettings.bubbleGradientStops ?? []) !== JSON.stringify(gradientStops) ||
+                (oldSettings.bubbleGradientAngle ?? 135) !== gradientAngle;
 
             // Detect what actually changed
             const colorSourceChanged =
@@ -733,7 +861,7 @@ function updatePersonaSettings() {
             const opacityChanged = oldSettings.bubbleOpacity !== newSettings.bubbleOpacity;
 
             // Only log/save if something actually changed
-            if (colorSourceChanged || colorModeChanged || targetChanged || opacityChanged) {
+            if (colorSourceChanged || colorModeChanged || targetChanged || opacityChanged || gradientStopsChanged) {
                 console.log(`[PTMT] ✓ Saving persona "${cleanFileName}" colorizer settings:`, newSettings);
                 customSettingsMap[cleanFileName] = newSettings;
 
@@ -743,8 +871,8 @@ function updatePersonaSettings() {
                 });
 
                 // Trigger refresh with appropriate cache strategy
-                if (colorSourceChanged) {
-                    // Color source changed - clear cache to re-extract
+                if (colorSourceChanged || gradientStopsChanged) {
+                    // Color source or gradient stops changed - clear cache to re-extract
                     window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: true } }));
                 } else {
                     // Only visual changes (target, modes, opacity) - keep cache

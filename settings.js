@@ -52,6 +52,9 @@ export class SettingsManager {
         dialogueColorizerDialogColorMode: 1,
         // Bubble color mode: 1 = 1st dominant, 2 = 2nd dominant, 3 = gradient
         dialogueColorizerBubbleColorMode: 3,
+        // Custom gradient stops for bubble gradient mode (empty = auto from extracted colors)
+        dialogueColorizerBubbleGradientStops: [],
+        dialogueColorizerBubbleGradientAngle: 135,
         
         // Per-character custom colorizer settings
         charCustomColorizerEnabled: [], // Array of char names with custom colorizer enabled

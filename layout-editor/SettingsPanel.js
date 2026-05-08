@@ -2,6 +2,7 @@ import { el } from '../utils.js';
 import { EVENTS } from '../constants.js';
 import { SettingsManager } from '../settings.js';
 import { moveBg1ToSheld, moveBg1BackToPtmtMain } from '../misc-helpers.js';
+import { GradientEditor } from '../gradient-editor.js';
 
 export function createSettingsPanel(manager) {
     const { settings, appApi } = manager;
@@ -530,6 +531,43 @@ export function createDialogueColorizerSettings(settings) {
     ]);
     bubbleModeSel.value = String(settings.get('dialogueColorizerBubbleColorMode') ?? 3);
     grid.appendChild(row([lbl('Bubble Color Mode', 'ptmt-col-bubble-mode'), bubbleModeSel]));
+
+    // ─── Gradient Editor ─────────────────────────────────────────────────────
+    const gradientRow = el('div', { className: 'ptmt-setting-row ptmt-gradient-row', style: 'display: none; flex-direction: column;' });
+    const gradientEditor = new GradientEditor({
+        stops: settings.get('dialogueColorizerBubbleGradientStops') ?? [],
+        angle: settings.get('dialogueColorizerBubbleGradientAngle') ?? 135,
+        showAngle: true,
+        onChange: ({ stops, angle }) => {
+            settings.update({
+                dialogueColorizerBubbleGradientStops: stops,
+                dialogueColorizerBubbleGradientAngle: angle,
+            });
+        },
+    });
+    gradientEditor.mount(gradientRow);
+
+    const resetGradientBtn = el('button', {
+        className: 'ptmt-ge-add-btn',
+        type: 'button',
+        style: 'align-self: flex-start;',
+    }, 'Reset to Auto');
+    resetGradientBtn.addEventListener('click', () => {
+        settings.update({
+            dialogueColorizerBubbleGradientStops: [],
+            dialogueColorizerBubbleGradientAngle: 135,
+        });
+        gradientEditor.stops = [];
+        gradientEditor.angle = 135;
+    });
+    gradientRow.appendChild(resetGradientBtn);
+
+    const syncGradientVis = () => {
+        gradientRow.style.display = bubbleModeSel.value === '3' ? 'flex' : 'none';
+    };
+    bubbleModeSel.addEventListener('change', syncGradientVis);
+    syncGradientVis();
+    grid.appendChild(gradientRow);
 
     const opacityBotVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1) * 100)}%`);
     const opacityBotSlider = el('input', {
