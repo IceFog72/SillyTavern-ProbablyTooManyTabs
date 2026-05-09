@@ -772,12 +772,20 @@ body.ptmt-enable-animations .ptmt-pane {
   width: 100%;
   height: 100%;
   box-sizing: border-box;
+  --ptmt-panel-enter-x: 0;
+  --ptmt-panel-enter-y: 5px;
+  --ptmt-panel-exit-x: 0;
+  --ptmt-panel-exit-y: -4px;
+  --ptmt-tabstrip-hidden-x: 0;
+  --ptmt-tabstrip-hidden-y: -8px;
 }
 
 body.ptmt-enable-animations .ptmt-pane-grid {
   transition:
     max-width var(--ptmt-transition),
     max-height var(--ptmt-transition),
+    grid-template-columns var(--ptmt-transition),
+    grid-template-rows var(--ptmt-transition),
     gap var(--ptmt-transition),
     padding var(--ptmt-transition);
 }
@@ -786,6 +794,8 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-ind
 body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid {
   transition:
     opacity 120ms ease,
+    grid-template-columns 120ms ease,
+    grid-template-rows 120ms ease,
     gap 120ms ease,
     padding 120ms ease !important;
 }
@@ -799,17 +809,29 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStri
 .ptmt-pane-grid.grid-horizontal.flow-reversed {
   grid-template-rows: 1fr var(--ptmt-collapsed-width);
   grid-template-areas: "content" "tabs";
+  --ptmt-panel-enter-y: -5px;
+  --ptmt-panel-exit-y: 4px;
+  --ptmt-tabstrip-hidden-y: 8px;
 }
 
 .ptmt-pane-grid.grid-vertical {
   grid-template-columns: var(--ptmt-collapsed-width) 1fr;
   grid-template-rows: 1fr;
   grid-template-areas: "tabs content";
+  --ptmt-panel-enter-x: 5px;
+  --ptmt-panel-enter-y: 0;
+  --ptmt-panel-exit-x: -4px;
+  --ptmt-panel-exit-y: 0;
+  --ptmt-tabstrip-hidden-x: -8px;
+  --ptmt-tabstrip-hidden-y: 0;
 }
 
 .ptmt-pane-grid.grid-vertical.flow-reversed {
   grid-template-columns: 1fr var(--ptmt-collapsed-width);
   grid-template-areas: "content tabs";
+  --ptmt-panel-enter-x: -5px;
+  --ptmt-panel-exit-x: 4px;
+  --ptmt-tabstrip-hidden-x: 8px;
 }
 
 .ptmt-pane-grid .ptmt-tabStrip {
@@ -845,6 +867,20 @@ body.ptmt-enable-animations .ptmt-pane.view-collapsed {
 .ptmt-pane.view-collapsed .ptmt-pane-grid {
   gap: 0;
   padding: 0;
+}
+
+.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-horizontal,
+.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-columns: 1fr;
+  grid-template-rows: var(--ptmt-collapsed-width);
+  grid-template-areas: "tabs";
+}
+
+.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-vertical,
+.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-columns: var(--ptmt-collapsed-width);
+  grid-template-rows: 1fr;
+  grid-template-areas: "tabs";
 }
 
 
@@ -1511,7 +1547,7 @@ body.ptmt-enable-animations .ptmt-panel.ptmt-panel-exiting {
 @keyframes ptmt-panel-enter {
   from {
     opacity: 0;
-    transform: translateY(5px) scale(0.995);
+    transform: translate(var(--ptmt-panel-enter-x, 0), var(--ptmt-panel-enter-y, 5px)) scale(0.995);
   }
 
   to {
@@ -1528,7 +1564,7 @@ body.ptmt-enable-animations .ptmt-panel.ptmt-panel-exiting {
 
   to {
     opacity: 0;
-    transform: translateY(-4px) scale(0.995);
+    transform: translate(var(--ptmt-panel-exit-x, 0), var(--ptmt-panel-exit-y, -4px)) scale(0.995);
   }
 }
 
@@ -2868,7 +2904,7 @@ body.ptmt-enable-animations .ptmt-vs-avatar-input[style*="border-color: red"] {
   margin: 0 !important;
   pointer-events: none;
   visibility: hidden;
-  transform: translateY(-8px);
+  transform: translate(var(--ptmt-tabstrip-hidden-x, 0), var(--ptmt-tabstrip-hidden-y, -8px));
 }
 
 body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
@@ -2876,18 +2912,6 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
     opacity 120ms ease,
     transform 120ms ease,
     visibility 0s 120ms;
-}
-
-.ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical {
-  transform: translateX(-8px);
-}
-
-.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.flow-reversed .ptmt-tabStrip:not(.vertical) {
-  transform: translateY(8px);
-}
-
-.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip.vertical {
-  transform: translateX(8px);
 }
 
 /* Adjust grid templates to remove track space when minimized */

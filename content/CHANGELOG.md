@@ -9,6 +9,8 @@
 - ✦ New · **Existing Pane Drop Targets** — when dragging over a pane that is already part of a split, the split compass now shows an extra target for the neighboring existing pane so tabs can be moved into it directly.
 - ✔ Fix · **Tab Strip Drag Updates** — corrected the drag fast-path so tab-strip drop indicators continue updating when hovering the same tab-strip element.
 - ✔ Fix · **Split Compass Robustness** — disabled split directions no longer visually activate, invalid drag sessions are guarded, and existing-pane targets are positioned from actual pane geometry.
+- ✔ Fix · **Orientation-Aware Panel Motion** — panel switch animations now mirror correctly for top, bottom, left, and right tab strip flows.
+- ✔ Fix · **Shy Tab Strip Motion** — shy-mode tab strip reveal/hide now uses consistent transform and grid-track transitions across horizontal, vertical, and reversed panes.
 
 ---
 
