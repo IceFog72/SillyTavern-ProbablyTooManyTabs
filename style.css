@@ -242,6 +242,13 @@ body.ptmt-Theme-RoundedSmooth .ptmt-tab.active::after {
   display: none;
 }
 
+body.ptmt-Theme-RoundedSoft .ptmt-tab,
+body.ptmt-Theme-RoundedSoft .ptmt-tab *,
+body.ptmt-Theme-RoundedSmooth .ptmt-tab,
+body.ptmt-Theme-RoundedSmooth .ptmt-tab * {
+  text-shadow: none !important;
+}
+
 /* ─── Soft: Hover / Active styles ────────────────────────────────── */
 body.ptmt-Theme-RoundedSoft .ptmt-tab {
   border: none;
@@ -268,20 +275,20 @@ body.ptmt-Theme-RoundedSmooth .ptmt-tab {
 }
 
 body.ptmt-enable-animations.ptmt-Theme-RoundedSmooth .ptmt-tab {
-  transition: background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease;
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
 }
 
 body.ptmt-Theme-RoundedSmooth .ptmt-tab:hover:not(.active) {
   background: color-mix(in srgb, var(--ptmt-tab-inactive-bg), white 14%);
   border-color: rgba(255, 255, 255, 0.18);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1), inset 0 -1px 0 rgba(0, 0, 0, 0.1);
+  box-shadow: none;
   filter: none;
 }
 
 body.ptmt-Theme-RoundedSmooth .ptmt-tab.active {
   background: var(--ptmt-tab-bg-color) !important;
   border-color: color-mix(in srgb, var(--ptmt-tab-active-color), transparent 60%);
-  box-shadow: inset 0 0 12px rgba(0, 0, 0, 0.15);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 body.ptmt-Theme-Sharp .ptmt-tab.active {
@@ -333,10 +340,9 @@ body.ptmt-bg-under-chat #ptmt-mainBody {
 
 body.ptmt-bg-under-chat #chat {
   backdrop-filter: blur(var(--ST-Blur-Strength));
-  will-change: backdrop-filter;
 }
 
-body.no-blur body.ptmt-bg-under-chat #chat {
+body.no-blur.ptmt-bg-under-chat #chat {
   backdrop-filter: none;
   will-change: auto;
 }
@@ -649,7 +655,6 @@ body,
   min-width: 0;
   position: relative;
   backdrop-filter: blur(var(--ST-Blur-Strength));
-  will-change: backdrop-filter;
 }
 
 body.ptmt-Theme-RoundedSoft #ptmt-mainBody,
@@ -672,6 +677,11 @@ body.ptmt-Theme-RoundedSmooth #ptmt-mainBody {
 
 body.ptmt-enable-animations .ptmt-body-column {
   transition: flex var(--ptmt-transition), min-width var(--ptmt-transition);
+}
+
+body.ptmt-enable-animations .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-shy-indicator:hover),
+body.ptmt-enable-animations .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-tabStrip:hover) {
+  transition: flex 120ms ease, min-width 120ms ease;
 }
 
 /* When a collapsed column only contains shy-minimized panes, shrink min-width to indicator size */
@@ -750,7 +760,11 @@ body.ptmt-enable-animations .ptmt-resizer-horizontal {
 
 /* User already added this block but I'll make sure it's correct */
 body.ptmt-enable-animations .ptmt-pane {
-  transition: min-width var(--ptmt-transition), min-height var(--ptmt-transition);
+  transition:
+    flex var(--ptmt-transition),
+    min-width var(--ptmt-transition),
+    min-height var(--ptmt-transition),
+    opacity 160ms ease;
 }
 
 .ptmt-pane-grid {
@@ -771,12 +785,9 @@ body.ptmt-enable-animations .ptmt-pane-grid {
 body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid,
 body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid {
   transition:
-    grid-template-rows var(--ptmt-transition),
-    grid-template-columns var(--ptmt-transition),
-    max-width var(--ptmt-transition),
-    max-height var(--ptmt-transition),
-    gap var(--ptmt-transition),
-    padding var(--ptmt-transition) !important;
+    opacity 120ms ease,
+    gap 120ms ease,
+    padding 120ms ease !important;
 }
 
 .ptmt-pane-grid.grid-horizontal {
@@ -821,6 +832,10 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStri
 .ptmt-pane.view-collapsed {
   min-width: 0 !important;
   min-height: 0 !important;
+}
+
+body.ptmt-enable-animations .ptmt-pane.view-collapsed {
+  opacity: 0.96;
 }
 
 /* When content is hidden, the grid gap + padding still consume space and push the
@@ -915,6 +930,18 @@ select option {
   color: var(--ptmt-tab-default-color);
   z-index: 1;
   overflow: hidden;
+  transform: translateZ(0);
+}
+
+body.ptmt-enable-animations .ptmt-tab {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    filter 150ms ease,
+    opacity 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
 }
 
 .ptmt-tab-bg {
@@ -927,12 +954,18 @@ select option {
 .ptmt-tab:hover:not(.active) {
   background: var(--ptmt-tab-hover-bg);
   filter: brightness(1.1);
+  transform: translateY(-1px);
 }
 
 .ptmt-tab.active {
   cursor: default;
   background: var(--ptmt-tab-bg-color) !important;
   border-bottom-color: transparent;
+  transform: translateY(0);
+}
+
+body.ptmt-enable-animations .ptmt-tab.collapsed:not(.active) {
+  opacity: 0.68;
 }
 
 /* Tab Icon */
@@ -1009,7 +1042,6 @@ select option {
   min-width: 0;
   box-sizing: border-box;
   background: color-mix(in srgb, var(--ST-UI-Background), transparent 80%);
-  will-change: backdrop-filter;
   overflow-x: auto;
   overflow-y: hidden;
   flex-wrap: nowrap;
@@ -1435,6 +1467,7 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   background: var(--ptmt-panel-bg);
   isolation: isolate;
   transform: translateZ(0);
+  position: relative;
 
 }
 
@@ -1450,10 +1483,53 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   min-height: 0;
   min-width: 0;
   overflow: hidden;
+  position: relative;
+  z-index: 0;
 }
 
 .ptmt-panel.hidden {
   display: none;
+}
+
+.ptmt-panel.active {
+  z-index: 1;
+}
+
+body.ptmt-enable-animations .ptmt-panel.ptmt-panel-entering {
+  animation: ptmt-panel-enter 180ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+body.ptmt-enable-animations .ptmt-panel.ptmt-panel-exiting {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: ptmt-panel-exit 180ms cubic-bezier(.4, 0, .2, 1) both;
+}
+
+@keyframes ptmt-panel-enter {
+  from {
+    opacity: 0;
+    transform: translateY(5px) scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ptmt-panel-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.995);
+  }
 }
 
 .ptmt-panel-content {
@@ -1997,9 +2073,12 @@ body.ptmt-is-resizing #rm_print_characters_block {
 @media (prefers-reduced-motion: reduce) {
 
   .ptmt-tab,
+  .ptmt-pane,
+  .ptmt-panel,
   .ptmt-resizer-vertical,
   .ptmt-resizer-horizontal {
     transition: none !important;
+    animation: none !important;
   }
 }
 
@@ -2794,14 +2873,9 @@ body.ptmt-enable-animations .ptmt-vs-avatar-input[style*="border-color: red"] {
 
 body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
   transition:
-    opacity var(--ptmt-transition),
-    transform var(--ptmt-transition),
-    flex-basis var(--ptmt-transition),
-    min-height var(--ptmt-transition),
-    min-width var(--ptmt-transition),
-    margin var(--ptmt-transition),
-    border-width var(--ptmt-transition),
-    visibility 0s var(--ptmt-transition);
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s 120ms;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical {
@@ -2844,8 +2918,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
 }
 
 
-.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-vertical > .ptmt-shy-indicator) .ptmt-pane-grid.grid-vertical,
-.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-vertical > .ptmt-tabStrip) .ptmt-pane-grid.grid-vertical {
+.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-vertical > .ptmt-shy-indicator) .ptmt-pane-grid.grid-vertical {
   max-width: 10px !important;
 }
 
@@ -2858,8 +2931,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
   min-height: var(--ptmt-collapsed-width) !important;
 }
 
-.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-horizontal > .ptmt-shy-indicator) .ptmt-pane-grid.grid-horizontal,
-.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-horizontal > .ptmt-tabStrip) .ptmt-pane-grid.grid-horizontal {
+.ptmt-pane.view-collapsed.ptmt-tabstrip-minimized:has(.ptmt-pane-grid.grid-horizontal > .ptmt-shy-indicator) .ptmt-pane-grid.grid-horizontal {
   max-height: 10px !important;
 }
 
@@ -2960,13 +3032,8 @@ body.ptmt-enable-animations .ptmt-shy-indicator::before {
 body.ptmt-enable-animations .ptmt-shy-indicator:hover~.ptmt-tabStrip,
 body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:hover {
   transition:
-    opacity var(--ptmt-transition),
-    transform var(--ptmt-transition),
-    flex-basis var(--ptmt-transition),
-    min-height var(--ptmt-transition),
-    min-width var(--ptmt-transition),
-    margin var(--ptmt-transition),
-    border-width var(--ptmt-transition),
+    opacity 120ms ease,
+    transform 120ms ease,
     visibility 0s 0s !important;
 }
 
@@ -2979,21 +3046,25 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-horizontal,
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-horizontal {
   grid-template-rows: var(--ptmt-collapsed-width) 1fr !important;
+  max-height: none !important;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-horizontal.flow-reversed,
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-horizontal.flow-reversed {
   grid-template-rows: 1fr var(--ptmt-collapsed-width) !important;
+  max-height: none !important;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-vertical,
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-vertical {
   grid-template-columns: var(--ptmt-collapsed-width) 1fr !important;
+  max-width: none !important;
 }
 
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid.grid-vertical.flow-reversed,
 .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid.grid-vertical.flow-reversed {
   grid-template-columns: 1fr var(--ptmt-collapsed-width) !important;
+  max-width: none !important;
 }
 
 /* Indicator fades out when indicator itself is hovered or when tab strip is visible */
@@ -4122,5 +4193,6 @@ body:not(.ptmt-enable-shadows) *::after {
 body:not(.ptmt-enable-blur-effect) *,
 body:not(.ptmt-enable-blur-effect) *::before,
 body:not(.ptmt-enable-blur-effect) *::after {
-  /*backdrop-filter: none !important;*/
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }

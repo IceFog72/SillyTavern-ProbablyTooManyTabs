@@ -14,6 +14,12 @@ import { showContextMenu } from './context-menu.js';
 /** @typedef {import('./types.js').ViewSettings} ViewSettings */
 
 const makeId = (prefix = 'ptmt') => `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
+const PANEL_SWITCH_ANIMATION_MS = 180;
+
+function shouldAnimatePanels() {
+  return document.body.classList.contains('ptmt-enable-animations')
+    && !window.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+}
 
 export const registerPanelDom = (panelEl, title) => {
   const pid = panelEl.dataset.panelId || makeId('panel');
@@ -32,6 +38,41 @@ export const getActivePane = () => {
   const refs = getRefs();
   return activeTab ? getPaneForTabElement(activeTab) : refs.centerBody.querySelector('.ptmt-pane');
 };
+
+function setPanelVisible(panel, visible) {
+  if (!panel) return;
+
+  if (panel._ptmtPanelAnimTimer) {
+    clearTimeout(panel._ptmtPanelAnimTimer);
+    panel._ptmtPanelAnimTimer = null;
+  }
+
+  panel.classList.remove('ptmt-panel-entering', 'ptmt-panel-exiting');
+
+  if (!shouldAnimatePanels()) {
+    panel.classList.toggle('hidden', !visible);
+    return;
+  }
+
+  if (visible) {
+    panel.classList.remove('hidden');
+    panel.classList.add('ptmt-panel-entering');
+    panel._ptmtPanelAnimTimer = setTimeout(() => {
+      panel.classList.remove('ptmt-panel-entering');
+      panel._ptmtPanelAnimTimer = null;
+    }, PANEL_SWITCH_ANIMATION_MS);
+    return;
+  }
+
+  if (panel.classList.contains('hidden')) return;
+
+  panel.classList.add('ptmt-panel-exiting');
+  panel._ptmtPanelAnimTimer = setTimeout(() => {
+    panel.classList.add('hidden');
+    panel.classList.remove('ptmt-panel-exiting');
+    panel._ptmtPanelAnimTimer = null;
+  }, PANEL_SWITCH_ANIMATION_MS);
+}
 
 export function createPanelElement(title) {
   const panel = el('div', { className: 'ptmt-panel hidden' });
@@ -217,7 +258,9 @@ export function setActivePanelInPane(pane, pid = null, preserveCollapsedState = 
 
     if (p) {
       if (p.classList.contains('active') !== isTarget) p.classList.toggle('active', isTarget);
-      if (p.classList.contains('hidden') !== !isTarget) p.classList.toggle('hidden', !isTarget);
+      if (p.classList.contains('hidden') !== !isTarget || p.classList.contains('ptmt-panel-exiting')) {
+        setPanelVisible(p, isTarget);
+      }
 
       if (!preserveCollapsedState) {
         const wasCollapsed = p.classList.contains('collapsed');
@@ -285,7 +328,7 @@ export function closeTabById(pid) {
         const firstTab = document.querySelector('#ptmt-centerBody .ptmt-tab:not(.ptmt-view-settings):not([data-for=""])');
         if (firstTab && firstTab.dataset.for !== pid) {
           if (tab) setTabCollapsed(pid, true);
-          if (panel) panel.classList.add('hidden');
+          setPanelVisible(panel, false);
           openTab(firstTab.dataset.for);
           return true;
         } else if (firstTab && firstTab.dataset.for === pid) {
@@ -296,7 +339,7 @@ export function closeTabById(pid) {
   }
 
   if (tab) setTabCollapsed(pid, true);
-  if (panel) panel.classList.add('hidden');
+  setPanelVisible(panel, false);
   if (tab?.classList.contains('active')) setActivePanelInPane(pane);
 
   removePaneIfEmpty(pane);
