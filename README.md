@@ -4,6 +4,8 @@ An extension that transforms the SillyTavern interface into a flexible tabbed wo
 <img width="2560" height="1368" alt="image" src="https://github.com/user-attachments/assets/433334af-47a7-4328-ab55-a70e1da03ef6" />
 
 ---
+https://youtu.be/U-8KmMOxBiY?si=MeKfrM42STPKlSpf
+---
 
 ## Features
 
