@@ -22,7 +22,7 @@ function autoPopulateGradientFromAvatar(gradientEditor, imgElement) {
         color,
         position: i / Math.max(hexes.length - 1, 1),
     }));
-    gradientEditor.angle = 135;
+    gradientEditor.angle = 225;
     return true;
 }
 
@@ -148,24 +148,26 @@ function createPersonalColorizerUI(isPersona = false) {
     dialogStaticRow.style.display = 'none';
     settingsSection.appendChild(dialogStaticRow);
 
-    // Dialogue Color Mode dropdown
-    const dialogModeSelect = dropdown(`${prefix}-dialog-mode`, [
-        { value: '1', label: '1st Dominant' },
-        { value: '2', label: '2nd Dominant' },
-    ], '1');
-    settingsSection.appendChild(row([
-        lbl('Dialogue Color Mode', `${prefix}-dialog-mode`),
-        dialogModeSelect
-    ]));
+    // Bubble Color Mode — replaces old Bubble Color Source + Bubble Color Mode
+    const sourceOptionsBubble = [
+        { value: 'avatar_light', label: 'Avatar Light (Auto)' },
+        { value: 'avatar_dark', label: 'Avatar Dark (Auto)' },
+        { value: 'static_color', label: 'Static' },
+        { value: 'gradient', label: 'Gradient' },
+    ];
+    const bubbleModeSelect = dropdown(`${prefix}-bubble-mode`, sourceOptionsBubble, 'gradient');
+    const bubbleColorSwatch = el('span', {
+        className: 'ptmt-bubble-swatch',
+        style: 'display: none; width: 20px; height: 20px; border-radius: 3px; border: 1px solid #888; margin-left: 6px; vertical-align: middle; background: #888;',
+    });
+    const bubbleModeRow = row([
+        lbl('Bubble Color Mode', `${prefix}-bubble-mode`),
+        bubbleModeSelect,
+        bubbleColorSwatch,
+    ]);
+    settingsSection.appendChild(bubbleModeRow);
 
-    // Bubble color source
-    const bubbleSrcSelect = dropdown(`${prefix}-bubble-src`, sourceOptions, 'avatar_vibrant');
-    settingsSection.appendChild(row([
-        lbl('Bubble Color Source', `${prefix}-bubble-src`),
-        bubbleSrcSelect
-    ]));
-
-    // Bubble static colors (hidden by default)
+    // Bubble static colors (shown when mode is static_color)
     const bubbleStatic1 = colorPicker(`${prefix}-bubble-static-1`, '#da6745ff');
     const bubbleStatic2 = colorPicker(`${prefix}-bubble-static-2`, '#da6745ff');
     const bubbleStaticRow = row([
@@ -173,28 +175,18 @@ function createPersonalColorizerUI(isPersona = false) {
             bubbleStatic1,
             bubbleStatic2
         ),
-        lbl('Bubble Static Colors (Gradient)', `${prefix}-bubble-static-1`)
+        lbl('Bubble Static Colors', `${prefix}-bubble-static-1`)
     ]);
     bubbleStaticRow.style.display = 'none';
     settingsSection.appendChild(bubbleStaticRow);
 
-    // Bubble Color Mode dropdown
-    const bubbleModeSelect = dropdown(`${prefix}-bubble-mode`, [
-        { value: '1', label: '1st Dominant' },
-        { value: '2', label: '2nd Dominant' },
-        { value: '3', label: 'Gradient' },
-    ], '3');
-    settingsSection.appendChild(row([
-        lbl('Bubble Color Mode', `${prefix}-bubble-mode`),
-        bubbleModeSelect
-    ]));
-
-    // Gradient editor (hidden by default, shown when bubble mode is Gradient)
+    // Gradient editor (shown when mode is gradient)
     const gradientRow = el('div', { className: 'ptmt-setting-row', style: 'display: none; flex-direction: column; padding-left: 0;' });
     const gradientEditor = new GradientEditor({
         stops: [],
-        angle: 135,
+        angle: 225,
         showAngle: true,
+        showReset: true,
         onChange: () => {
             if (isPersona) {
                 scheduleUpdatePersona();
@@ -202,38 +194,27 @@ function createPersonalColorizerUI(isPersona = false) {
                 scheduleUpdateCharacter();
             }
         },
+        onReset: () => {
+            const img = isPersona
+                ? document.querySelector('#user_avatar_block .avatar img')
+                : document.getElementById('avatar_load_preview');
+            if (img && autoPopulateGradientFromAvatar(gradientEditor, img)) {
+            } else {
+                gradientEditor.stops = [];
+                gradientEditor.angle = 225;
+            }
+            if (isPersona) scheduleUpdatePersona();
+            else scheduleUpdateCharacter();
+        },
     });
     gradientEditor.mount(gradientRow);
-    const resetGradientBtn = el('button', {
-        className: 'ptmt-ge-add-btn',
-        type: 'button',
-        style: 'align-self: flex-start;',
-    }, 'Reset to Auto');
-    resetGradientBtn.addEventListener('click', () => {
-        const img = isPersona
-            ? document.querySelector('#user_avatar_block .avatar img')
-            : document.getElementById('avatar_load_preview');
-        if (img && autoPopulateGradientFromAvatar(gradientEditor, img)) {
-            // auto-populated — editor's onChange won't fire, save explicitly
-        } else {
-            gradientEditor.stops = [];
-            gradientEditor.angle = 135;
-        }
-        if (isPersona) scheduleUpdatePersona();
-        else scheduleUpdateCharacter();
-    });
-
-    // Temp: log onChange calls
-    const origOnChange = gradientEditor._onChange;
-    gradientEditor._onChange = (data) => {
-        console.log('[PTMT-DEBUG] gradient onChange, stops:', JSON.stringify(data.stops.map(s => s.color)));
-        origOnChange(data);
-    };
-    gradientRow.appendChild(resetGradientBtn);
     settingsSection.appendChild(gradientRow);
 
     const syncBubbleModeVis = () => {
-        gradientRow.style.display = bubbleModeSelect.value === '3' ? 'flex' : 'none';
+        const mode = bubbleModeSelect.value;
+        bubbleStaticRow.style.display = mode === 'static_color' ? 'flex' : 'none';
+        gradientRow.style.display = mode === 'gradient' ? 'flex' : 'none';
+        bubbleColorSwatch.style.display = (mode === 'avatar_light' || mode === 'avatar_dark') ? 'inline-block' : 'none';
     };
     bubbleModeSelect.addEventListener('change', syncBubbleModeVis);
     syncBubbleModeVis();
@@ -268,30 +249,24 @@ function createPersonalColorizerUI(isPersona = false) {
     const syncDialogVisibility = () => {
         dialogStaticRow.style.display = dialogSrcSelect.value === 'static_color' ? 'flex' : 'none';
     };
-    const syncBubbleVisibility = () => {
-        bubbleStaticRow.style.display = bubbleSrcSelect.value === 'static_color' ? 'flex' : 'none';
-    };
     dialogSrcSelect.addEventListener('change', syncDialogVisibility);
-    bubbleSrcSelect.addEventListener('change', syncBubbleVisibility);
 
     return {
         container,
         enableCheckbox,
         dialogSrcSelect,
         dialogStaticColor,
-        bubbleSrcSelect,
+        bubbleColorSwatch,
         bubbleStatic1,
         bubbleStatic2,
         dialogStaticRow,
         bubbleStaticRow,
         settingsSection,
         targetSelect,
-        dialogModeSelect,
         bubbleModeSelect,
         opacitySlider,
         gradientEditor,
         gradientRow,
-        resetGradientBtn,
     };
 }
 
@@ -362,7 +337,6 @@ function initCharacterColorizer() {
     // Listen for settings changes
     ui.enableCheckbox.addEventListener('change', updateCharacterSettings);
     ui.dialogSrcSelect.addEventListener('change', updateCharacterSettings);
-    ui.bubbleSrcSelect.addEventListener('change', updateCharacterSettings);
 
     // Color picker changes - capture the color value from event details
     ui.dialogStaticColor.addEventListener('change', (e) => {
@@ -383,9 +357,8 @@ function initCharacterColorizer() {
 
     // New control listeners
     ui.targetSelect.addEventListener('change', updateCharacterSettings);
-    ui.dialogModeSelect.addEventListener('change', updateCharacterSettings);
     ui.bubbleModeSelect.addEventListener('change', updateCharacterSettings);
-    ui.opacitySlider.addEventListener('input', updateCharacterSettings);
+    ui.opacitySlider.addEventListener('input', scheduleUpdateCharacter);
 
     // Update UI when character is selected
     eventSource.on(event_types.CHARACTER_EDITOR_OPENED, () => {
@@ -437,6 +410,7 @@ function loadCharacterSettings() {
     const customSettings = customSettingsMap[currentCharacterId] || {};
 
     console.log(`[PTMT] Character Editor: "${charName}" (${cleanFileName}) → Key: "${currentCharacterId}" | Enabled: ${isEnabled}`);
+    console.log(`[PTMT]   ↳ bubbleOpacity: ${customSettings.bubbleOpacity} (${typeof customSettings.bubbleOpacity})`);
 
     // Load UI values
     charColorizerUI.enableCheckbox.checked = isEnabled;
@@ -444,26 +418,12 @@ function loadCharacterSettings() {
 
     // Update dropdowns
     charColorizerUI.dialogSrcSelect.value = customSettings.dialogSource ?? 'avatar_vibrant';
-    charColorizerUI.bubbleSrcSelect.value = customSettings.bubbleSource ?? 'avatar_vibrant';
 
-    // Update color pickers (toolcool-color-picker)
-    const dialogStaticColor = customSettings.dialogStatic ?? '#da6745ff';
-    const bubbleStatic1 = customSettings.bubbleStatic1 ?? '#da6745ff';
-    const bubbleStatic2 = customSettings.bubbleStatic2 ?? '#da6745ff';
-
-    charColorizerUI.dialogStaticColor.setAttribute('color', dialogStaticColor);
-    charColorizerUI.bubbleStatic1.setAttribute('color', bubbleStatic1);
-    charColorizerUI.bubbleStatic2.setAttribute('color', bubbleStatic2);
-
-    // Store in module-level variables so change events can use them
-    latestDialogStaticColor = dialogStaticColor;
-    latestBubbleStatic1 = bubbleStatic1;
-    latestBubbleStatic2 = bubbleStatic2;
-
-    // Update range controls
+    // Update range controls & opacity slider BEFORE color pickers
+    // (color picker setAttribute triggers change events that call updateCharacterSettings)
     charColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
-    charColorizerUI.dialogModeSelect.value = String(customSettings.dialogColorMode ?? 1);
-    charColorizerUI.bubbleModeSelect.value = String(customSettings.bubbleColorMode ?? 3);
+    const bubbleMode = customSettings.bubbleMode ?? customSettings.bubbleColorMode === 3 ? 'gradient' : 'avatar_light';
+    charColorizerUI.bubbleModeSelect.value = bubbleMode;
 
     const opacityValue = customSettings.bubbleOpacity ?? 0.1;
     charColorizerUI.opacitySlider.value = opacityValue.toString();
@@ -472,26 +432,42 @@ function loadCharacterSettings() {
         opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
     }
 
-    // Sync visibility
-    charColorizerUI.dialogStaticRow.style.display = charColorizerUI.dialogSrcSelect.value === 'static_color' ? 'flex' : 'none';
-    charColorizerUI.bubbleStaticRow.style.display = charColorizerUI.bubbleSrcSelect.value === 'static_color' ? 'flex' : 'none';
-
-    // Load gradient editor
+    // Load gradient editor BEFORE color pickers
     if (charColorizerUI.gradientEditor) {
         const gradientStops = customSettings.bubbleGradientStops ?? [];
-        const gradientAngle = customSettings.bubbleGradientAngle ?? 135;
+        const gradientAngle = customSettings.bubbleGradientAngle ?? 225;
 
+        // Always populate palette from avatar colors (all available)
+        const avatarPreview = document.getElementById('avatar_load_preview');
+        if (avatarPreview && avatarPreview.complete && avatarPreview.naturalWidth) {
+            const hexes = sortColorsByLightness(extractColorsFromImage(avatarPreview));
+            if (hexes.length > 0) {
+                charColorizerUI.gradientEditor.colors = hexes;
+            }
+        }
+        // Set stops from saved data (determines active colors and positions)
         if (gradientStops.length > 0) {
             charColorizerUI.gradientEditor.stops = gradientStops;
             charColorizerUI.gradientEditor.angle = gradientAngle;
-        } else if (customSettings.bubbleSource !== 'static_color') {
-            const avatarPreview = document.getElementById('avatar_load_preview');
+        } else if (bubbleMode !== 'static_color' && customSettings.bubbleSource !== 'static_color') {
             if (avatarPreview) {
                 autoPopulateGradientFromAvatar(charColorizerUI.gradientEditor, avatarPreview);
             }
         }
 
-        charColorizerUI.gradientRow.style.display = String(customSettings.bubbleColorMode ?? 3) === '3' ? 'flex' : 'none';
+        charColorizerUI.gradientRow.style.display = bubbleMode === 'gradient' ? 'flex' : 'none';
+    }
+
+    // Sync bubble mode visibility
+    const bubbleModeVis = bubbleMode === 'static_color' ? 'flex' : 'none';
+    charColorizerUI.bubbleStaticRow.style.display = bubbleModeVis;
+    charColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
+    // Update swatch color for auto modes
+    if (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') {
+        const avatarPreview = document.getElementById('avatar_load_preview');
+        if (avatarPreview) {
+            updateBubbleColorSwatch(charColorizerUI, bubbleMode, avatarPreview);
+        }
     }
 
     // Ensure UI reflects global enable state
@@ -503,12 +479,9 @@ function loadCharacterSettings() {
  * Only saves when the enable checkbox is turned ON
  */
 function updateCharacterSettings() {
-    if (isUpdatingCharSettings) return; // Guard against recursion
+    if (isUpdatingCharSettings) return;
 
-    if (!charColorizerUI || !currentCharacterId || !currentAvatarFilename) {
-        console.log('[PTMT-DEBUG] updateCharacterSettings: early return, missing refs', {hasUI: !!charColorizerUI, id: currentCharacterId, av: currentAvatarFilename});
-        return;
-    }
+    if (!charColorizerUI || !currentCharacterId || !currentAvatarFilename) return;
 
     isUpdatingCharSettings = true;
     try {
@@ -526,55 +499,45 @@ function updateCharacterSettings() {
             const oldSettings = customSettingsMap[currentCharacterId] || {
                 dialogSource: 'avatar_vibrant',
                 dialogStatic: '#da6745ff',
-                bubbleSource: 'avatar_vibrant',
                 bubbleStatic1: '#da6745ff',
                 bubbleStatic2: '#da6745ff',
                 colorizeTarget: 3,
-                dialogColorMode: 1,
-                bubbleColorMode: 3,
                 bubbleOpacity: 0.1,
             };
 
             // Build new settings, only updating fields that may have changed
             // Colors only update if explicitly changed by color picker events (via latest* vars)
             const gradientStops = charColorizerUI.gradientEditor ? charColorizerUI.gradientEditor.stops : [];
-            const gradientAngle = charColorizerUI.gradientEditor ? charColorizerUI.gradientEditor.angle : 135;
+            const gradientAngle = charColorizerUI.gradientEditor ? charColorizerUI.gradientEditor.angle : 225;
             const newSettings = {
                 dialogSource: charColorizerUI.dialogSrcSelect.value,
                 dialogStatic: latestDialogStaticColor,
-                bubbleSource: charColorizerUI.bubbleSrcSelect.value,
+                bubbleMode: charColorizerUI.bubbleModeSelect.value,
                 bubbleStatic1: latestBubbleStatic1,
                 bubbleStatic2: latestBubbleStatic2,
                 colorizeTarget: parseInt(charColorizerUI.targetSelect.value, 10),
-                dialogColorMode: parseInt(charColorizerUI.dialogModeSelect.value, 10),
-                bubbleColorMode: parseInt(charColorizerUI.bubbleModeSelect.value, 10),
                 bubbleOpacity: parseFloat(charColorizerUI.opacitySlider.value),
                 bubbleGradientStops: gradientStops,
                 bubbleGradientAngle: gradientAngle,
             };
 
             const gradientStopsChanged = JSON.stringify(oldSettings.bubbleGradientStops ?? []) !== JSON.stringify(gradientStops) ||
-                (oldSettings.bubbleGradientAngle ?? 135) !== gradientAngle;
+                (oldSettings.bubbleGradientAngle ?? 225) !== gradientAngle;
 
             // Detect what actually changed
             const colorSourceChanged =
                 oldSettings.dialogSource !== newSettings.dialogSource ||
-                oldSettings.bubbleSource !== newSettings.bubbleSource ||
+                oldSettings.bubbleMode !== newSettings.bubbleMode ||
                 oldSettings.dialogStatic !== newSettings.dialogStatic ||
                 oldSettings.bubbleStatic1 !== newSettings.bubbleStatic1 ||
                 oldSettings.bubbleStatic2 !== newSettings.bubbleStatic2;
-
-            const colorModeChanged =
-                oldSettings.dialogColorMode !== newSettings.dialogColorMode ||
-                oldSettings.bubbleColorMode !== newSettings.bubbleColorMode;
 
             const targetChanged = oldSettings.colorizeTarget !== newSettings.colorizeTarget;
             const opacityChanged = oldSettings.bubbleOpacity !== newSettings.bubbleOpacity;
 
             // Only log/save if something actually changed
-            if (colorSourceChanged || colorModeChanged || targetChanged || opacityChanged || gradientStopsChanged) {
+            if (colorSourceChanged || targetChanged || opacityChanged || gradientStopsChanged) {
                 console.log(`[PTMT] ✓ Saving character "${currentCharacterId}" colorizer settings:`, newSettings);
-                console.log('[PTMT-DEBUG] changes:', {colorSourceChanged, colorModeChanged, targetChanged, opacityChanged, gradientStopsChanged});
                 customSettingsMap[currentCharacterId] = newSettings;
 
                 settings.update({
@@ -585,7 +548,6 @@ function updateCharacterSettings() {
                 // Trigger refresh with appropriate cache strategy
                 if (colorSourceChanged || gradientStopsChanged) {
                     // Color source or gradient stops changed - clear cache to re-extract
-                    console.log('[PTMT-DEBUG] dispatching full refresh');
                     window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: true } }));
                 } else {
                     // Only visual changes (target, modes, opacity) - keep cache
@@ -653,7 +615,6 @@ function initPersonaColorizer() {
     // Listen for settings changes
     ui.enableCheckbox.addEventListener('change', updatePersonaSettings);
     ui.dialogSrcSelect.addEventListener('change', updatePersonaSettings);
-    ui.bubbleSrcSelect.addEventListener('change', updatePersonaSettings);
 
     // Color picker changes - capture the color value from event details
     ui.dialogStaticColor.addEventListener('change', (e) => {
@@ -674,9 +635,8 @@ function initPersonaColorizer() {
 
     // New control listeners
     ui.targetSelect.addEventListener('change', updatePersonaSettings);
-    ui.dialogModeSelect.addEventListener('change', updatePersonaSettings);
     ui.bubbleModeSelect.addEventListener('change', updatePersonaSettings);
-    ui.opacitySlider.addEventListener('input', updatePersonaSettings);
+    ui.opacitySlider.addEventListener('input', scheduleUpdatePersona);
 
     // Update UI when persona changes
     eventSource.on(event_types.PERSONA_CHANGED, () => {
@@ -719,6 +679,7 @@ function loadPersonaSettings() {
     const customSettings = customSettingsMap[cleanFileName] || {};
 
     console.log(`[PTMT] Persona Editor: "${cleanFileName}" | Enabled: ${isEnabled} | Saved Files: [${Object.keys(customSettingsMap).join(', ')}]`);
+    console.log(`[PTMT]   ↳ bubbleOpacity: ${customSettings.bubbleOpacity} (${typeof customSettings.bubbleOpacity})`);
 
     // Load UI values
     personaColorizerUI.enableCheckbox.checked = isEnabled;
@@ -726,9 +687,55 @@ function loadPersonaSettings() {
 
     // Update dropdowns
     personaColorizerUI.dialogSrcSelect.value = customSettings.dialogSource ?? 'avatar_vibrant';
-    personaColorizerUI.bubbleSrcSelect.value = customSettings.bubbleSource ?? 'avatar_vibrant';
 
-    // Update color pickers (toolcool-color-picker)
+    // Update range controls & opacity slider BEFORE color pickers
+    personaColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
+    const bubbleMode = customSettings.bubbleMode ?? customSettings.bubbleColorMode === 3 ? 'gradient' : 'avatar_light';
+    personaColorizerUI.bubbleModeSelect.value = bubbleMode;
+
+    const opacityValue = customSettings.bubbleOpacity ?? 0.1;
+    personaColorizerUI.opacitySlider.value = opacityValue.toString();
+    const opacityDisplay = personaColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
+    if (opacityDisplay) {
+        opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
+    }
+
+    // Load gradient editor BEFORE color pickers
+    if (personaColorizerUI.gradientEditor) {
+        const gradientStops = customSettings.bubbleGradientStops ?? [];
+        const gradientAngle = customSettings.bubbleGradientAngle ?? 225;
+
+        // Always populate palette from avatar colors
+        const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
+        if (userAvatarImg && userAvatarImg.complete && userAvatarImg.naturalWidth) {
+            const hexes = sortColorsByLightness(extractColorsFromImage(userAvatarImg));
+            if (hexes.length > 0) {
+                personaColorizerUI.gradientEditor.colors = hexes;
+            }
+        }
+        if (gradientStops.length > 0) {
+            personaColorizerUI.gradientEditor.stops = gradientStops;
+            personaColorizerUI.gradientEditor.angle = gradientAngle;
+        } else if (bubbleMode !== 'static_color' && customSettings.bubbleSource !== 'static_color') {
+            if (userAvatarImg) {
+                autoPopulateGradientFromAvatar(personaColorizerUI.gradientEditor, userAvatarImg);
+            }
+        }
+
+        personaColorizerUI.gradientRow.style.display = bubbleMode === 'gradient' ? 'flex' : 'none';
+    }
+
+    // Sync bubble mode visibility
+    personaColorizerUI.bubbleStaticRow.style.display = bubbleMode === 'static_color' ? 'flex' : 'none';
+    personaColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
+    if (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') {
+        const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
+        if (userAvatarImg) {
+            updateBubbleColorSwatch(personaColorizerUI, bubbleMode, userAvatarImg);
+        }
+    }
+
+    // Update color pickers LAST — setAttribute triggers change events
     const dialogStaticColor = customSettings.dialogStatic ?? '#537fddff';
     const bubbleStatic1 = customSettings.bubbleStatic1 ?? '#537fddff';
     const bubbleStatic2 = customSettings.bubbleStatic2 ?? '#537fddff';
@@ -742,45 +749,51 @@ function loadPersonaSettings() {
     latestPersonaBubble1 = bubbleStatic1;
     latestPersonaBubble2 = bubbleStatic2;
 
-    // Update range controls
-    personaColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
-    personaColorizerUI.dialogModeSelect.value = String(customSettings.dialogColorMode ?? 1);
-    personaColorizerUI.bubbleModeSelect.value = String(customSettings.bubbleColorMode ?? 3);
-
-    const opacityValue = customSettings.bubbleOpacity ?? 0.1;
-    personaColorizerUI.opacitySlider.value = opacityValue.toString();
-    const opacityDisplay = personaColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
-    if (opacityDisplay) {
-        opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
-    }
-
     // Sync visibility
-    personaColorizerUI.dialogStaticRow.style.display = personaColorizerUI.dialogSrcSelect.value === 'static_color' ? 'flex' : 'none';
-    personaColorizerUI.bubbleStaticRow.style.display = personaColorizerUI.bubbleSrcSelect.value === 'static_color' ? 'flex' : 'none';
-
-    // Load gradient editor
-    if (personaColorizerUI.gradientEditor) {
-        const gradientStops = customSettings.bubbleGradientStops ?? [];
-        const gradientAngle = customSettings.bubbleGradientAngle ?? 135;
-
-        if (gradientStops.length > 0) {
-            personaColorizerUI.gradientEditor.stops = gradientStops;
-            personaColorizerUI.gradientEditor.angle = gradientAngle;
-        } else if (customSettings.bubbleSource !== 'static_color') {
-            const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
-            if (userAvatarImg) {
-                autoPopulateGradientFromAvatar(personaColorizerUI.gradientEditor, userAvatarImg);
-            }
-        }
-
-        personaColorizerUI.gradientRow.style.display = String(customSettings.bubbleColorMode ?? 3) === '3' ? 'flex' : 'none';
-    }
 
     // Ensure UI reflects global enable state
     updatePersonalColorizerEnableState();
 }
 
 /**
+ * Update the bubble color swatch for avatar_light/avatar_dark modes
+ * by extracting colors from the avatar image and picking darkest/lightest.
+ */
+function updateBubbleColorSwatch(ui, mode, imgElement) {
+    if (!ui?.bubbleColorSwatch || !imgElement) return;
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    canvas.width = imgElement.naturalWidth || 100;
+    canvas.height = imgElement.naturalHeight || 100;
+    ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const colorMap = {};
+    for (let i = 0; i < imageData.length; i += 16) {
+        const r = imageData[i], g = imageData[i + 1], b = imageData[i + 2];
+        const key = `${Math.round(r / 32) * 32},${Math.round(g / 32) * 32},${Math.round(b / 32) * 32}`;
+        colorMap[key] = (colorMap[key] || 0) + 1;
+    }
+    const sorted = Object.keys(colorMap).sort((a, b) => colorMap[b] - colorMap[a]);
+    const top5 = sorted.slice(0, 5).map(k => {
+        const [r, g, b] = k.split(',').map(Number);
+        return '#' + [r, g, b].map(c => Math.min(255, c + 16).toString(16).padStart(2, '0')).join('');
+    });
+    const sortedByLightness = top5.map(h => {
+        const r = parseInt(h.slice(1, 3), 16);
+        const g = parseInt(h.slice(3, 5), 16);
+        const b = parseInt(h.slice(5, 7), 16);
+        const [, , l] = ColorUtils.rgbToHsl([r, g, b]);
+        return { hex: h, l };
+    }).sort((a, b) => a.l - b.l);
+    const picked = mode === 'avatar_light' ? sortedByLightness[sortedByLightness.length - 1] : sortedByLightness[0];
+    if (picked) {
+        ui.bubbleColorSwatch.style.background = picked.hex;
+    }
+}
+
+/**
+ * Save persona colorizer settings when UI changes
  * Save persona colorizer settings when UI changes
  * Only saves when the enable checkbox is turned ON
  */
@@ -816,52 +829,43 @@ function updatePersonaSettings() {
             const oldSettings = customSettingsMap[cleanFileName] || {
                 dialogSource: 'avatar_vibrant',
                 dialogStatic: '#537fddff',
-                bubbleSource: 'avatar_vibrant',
                 bubbleStatic1: '#537fddff',
                 bubbleStatic2: '#537fddff',
                 colorizeTarget: 3,
-                dialogColorMode: 1,
-                bubbleColorMode: 3,
                 bubbleOpacity: 0.1,
             };
 
             // Build new settings, only updating fields that may have changed
             const gradientStops = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.stops : [];
-            const gradientAngle = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.angle : 135;
+            const gradientAngle = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.angle : 225;
             const newSettings = {
                 dialogSource: personaColorizerUI.dialogSrcSelect.value,
                 dialogStatic: latestPersonaDialogColor,
-                bubbleSource: personaColorizerUI.bubbleSrcSelect.value,
+                bubbleMode: personaColorizerUI.bubbleModeSelect.value,
                 bubbleStatic1: latestPersonaBubble1,
                 bubbleStatic2: latestPersonaBubble2,
                 colorizeTarget: parseInt(personaColorizerUI.targetSelect.value, 10),
-                dialogColorMode: parseInt(personaColorizerUI.dialogModeSelect.value, 10),
-                bubbleColorMode: parseInt(personaColorizerUI.bubbleModeSelect.value, 10),
                 bubbleOpacity: parseFloat(personaColorizerUI.opacitySlider.value),
                 bubbleGradientStops: gradientStops,
                 bubbleGradientAngle: gradientAngle,
             };
 
             const gradientStopsChanged = JSON.stringify(oldSettings.bubbleGradientStops ?? []) !== JSON.stringify(gradientStops) ||
-                (oldSettings.bubbleGradientAngle ?? 135) !== gradientAngle;
+                (oldSettings.bubbleGradientAngle ?? 225) !== gradientAngle;
 
             // Detect what actually changed
             const colorSourceChanged =
                 oldSettings.dialogSource !== newSettings.dialogSource ||
-                oldSettings.bubbleSource !== newSettings.bubbleSource ||
+                oldSettings.bubbleMode !== newSettings.bubbleMode ||
                 oldSettings.dialogStatic !== newSettings.dialogStatic ||
                 oldSettings.bubbleStatic1 !== newSettings.bubbleStatic1 ||
                 oldSettings.bubbleStatic2 !== newSettings.bubbleStatic2;
-
-            const colorModeChanged =
-                oldSettings.dialogColorMode !== newSettings.dialogColorMode ||
-                oldSettings.bubbleColorMode !== newSettings.bubbleColorMode;
 
             const targetChanged = oldSettings.colorizeTarget !== newSettings.colorizeTarget;
             const opacityChanged = oldSettings.bubbleOpacity !== newSettings.bubbleOpacity;
 
             // Only log/save if something actually changed
-            if (colorSourceChanged || colorModeChanged || targetChanged || opacityChanged || gradientStopsChanged) {
+            if (colorSourceChanged || targetChanged || opacityChanged || gradientStopsChanged) {
                 console.log(`[PTMT] ✓ Saving persona "${cleanFileName}" colorizer settings:`, newSettings);
                 customSettingsMap[cleanFileName] = newSettings;
 

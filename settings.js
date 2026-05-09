@@ -48,13 +48,11 @@ export class SettingsManager {
         // Opacity for bubble backgrounds (0.0 to 1.0)
         dialogueColorizerBubbleOpacityBot: 0.1,
         dialogueColorizerBubbleOpacityUser: 0.1,
-        // Dialog color mode: 1 = 1st dominant, 2 = 2nd dominant
-        dialogueColorizerDialogColorMode: 1,
-        // Bubble color mode: 1 = 1st dominant, 2 = 2nd dominant, 3 = gradient
-        dialogueColorizerBubbleColorMode: 3,
+        // Bubble color mode: avatar_light, avatar_dark, static_color, gradient
+        dialogueColorizerBubbleMode: 'gradient',
         // Custom gradient stops for bubble gradient mode (empty = auto from extracted colors)
         dialogueColorizerBubbleGradientStops: [],
-        dialogueColorizerBubbleGradientAngle: 135,
+        dialogueColorizerBubbleGradientAngle: 225,
         
         // Per-character custom colorizer settings
         charCustomColorizerEnabled: [], // Array of char names with custom colorizer enabled

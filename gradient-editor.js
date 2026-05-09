@@ -1,19 +1,24 @@
 import { el } from './utils.js';
 
 let pickerIdCounter = 0;
+const COLOR_INPUT_ID = 'ptmt-ge-color-input';
 
 export class GradientEditor {
     constructor({
         stops = [],
         onChange = () => {},
-        angle = 135,
+        angle = 225,
         showAngle = true,
+        showReset = false,
+        onReset = () => {},
         colors = [],
     } = {}) {
         this._stops = stops.length > 0 ? [...stops] : [];
         this._onChange = onChange;
+        this._onReset = onReset;
         this._angle = angle;
         this._showAngle = showAngle;
+        this._showReset = showReset;
         this._id = `ge-${++pickerIdCounter}`;
         this._root = null;
         this._previewBar = null;
@@ -37,6 +42,7 @@ export class GradientEditor {
 
     set stops(newStops) {
         this._stops = [...newStops];
+        this._normalizeStops();
         if (this._allColors.length === 0 && newStops.length > 0) {
             this._allColors = [...new Set(newStops.map(s => s.color))];
         }
@@ -80,6 +86,10 @@ export class GradientEditor {
         const palette = el('div', { className: 'ptmt-ge-palette' });
         this._paletteEl = palette;
 
+        const topRow = el('div', { className: 'ptmt-ge-top-row' });
+        topRow.appendChild(palette);
+        topRow.appendChild(this._buildControls());
+
         const previewBar = el('div', { className: 'ptmt-ge-preview-bar' });
         this._previewBar = previewBar;
 
@@ -87,9 +97,8 @@ export class GradientEditor {
         this._thumbTrack = thumbTrack;
         previewBar.appendChild(thumbTrack);
 
-        this._root.appendChild(palette);
+        this._root.appendChild(topRow);
         this._root.appendChild(previewBar);
-        this._root.appendChild(this._buildControls());
 
         container.appendChild(this._root);
 
@@ -109,7 +118,6 @@ export class GradientEditor {
         const controls = el('div', { className: 'ptmt-ge-controls' });
 
         if (this._showAngle) {
-            const angleLbl = el('span', { className: 'ptmt-ge-angle-label' }, 'Angle:');
             const angleInp = el('input', {
                 type: 'range', min: '0', max: '360', step: '1',
                 value: String(this._angle),
@@ -124,7 +132,6 @@ export class GradientEditor {
                 this._updatePreview();
                 this._emitChange();
             });
-            controls.appendChild(angleLbl);
             controls.appendChild(angleInp);
             controls.appendChild(angleVal);
         }
@@ -144,6 +151,26 @@ export class GradientEditor {
             swatch.addEventListener('click', () => this._toggleColor(color));
             this._paletteEl.appendChild(swatch);
         });
+        // "+" button to add custom color
+        const addBtn = el('button', {
+            className: 'ptmt-ge-add-btn',
+            type: 'button',
+            title: 'Add custom color',
+            textContent: '+',
+        });
+        addBtn.addEventListener('click', () => this._pickCustomColor());
+        this._paletteEl.appendChild(addBtn);
+        // Reset button at end of palette
+        if (this._showReset) {
+            const resetBtn = el('button', {
+                className: 'ptmt-ge-reset-btn',
+                type: 'button',
+                title: 'Reset to auto-detected colors',
+                innerHTML: '&#x21bb;',
+            });
+            resetBtn.addEventListener('click', () => this._onReset());
+            this._paletteEl.appendChild(resetBtn);
+        }
     }
 
     _toggleColor(color) {
@@ -175,6 +202,46 @@ export class GradientEditor {
         this._emitChange();
     }
 
+    _pickCustomColor() {
+        let input = document.getElementById(COLOR_INPUT_ID);
+        if (!input) {
+            input = document.createElement('input');
+            input.id = COLOR_INPUT_ID;
+            input.type = 'color';
+            input.style.position = 'fixed';
+            input.style.opacity = '0';
+            input.style.pointerEvents = 'none';
+            document.body.appendChild(input);
+        }
+        const handler = () => {
+            const color = input.value;
+            input.removeEventListener('input', handler);
+            // Add to stops at largest gap
+            if (this._stops.length === 0) {
+                this._stops.push({ color, position: 0.5 });
+            } else {
+                const sorted = [...this._stops].sort((a, b) => a.position - b.position);
+                let maxGap = 0;
+                let insertPos = 0.5;
+                for (let i = 0; i < sorted.length - 1; i++) {
+                    const gap = sorted[i + 1].position - sorted[i].position;
+                    if (gap > maxGap) {
+                        maxGap = gap;
+                        insertPos = (sorted[i].position + sorted[i + 1].position) / 2;
+                    }
+                }
+                this._stops.push({ color, position: Math.round(insertPos * 100) / 100 });
+            }
+            this._normalizeStops();
+            this._renderStops();
+            this._renderPalette();
+            this._updatePreview();
+            this._emitChange();
+        };
+        input.addEventListener('input', handler);
+        input.click();
+    }
+
     _renderStops() {
         if (!this._thumbTrack) return;
         this._thumbTrack.innerHTML = '';
@@ -194,6 +261,25 @@ export class GradientEditor {
 
             thumb.appendChild(dot);
             thumb.appendChild(posLbl);
+
+            // Delete button for non-palette (custom) colors
+            if (!this._allColors.includes(stop.color)) {
+                const delBtn = el('span', { className: 'ptmt-ge-thumb-del', textContent: '✕' });
+                delBtn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    const idx = this._stops.findIndex(s => s.color === stop.color && s.position === stop.position);
+                    if (idx !== -1 && this._stops.length > 1) {
+                        this._stops.splice(idx, 1);
+                        this._normalizeStops();
+                        this._renderStops();
+                        this._renderPalette();
+                        this._updatePreview();
+                        this._emitChange();
+                    }
+                });
+                thumb.appendChild(delBtn);
+            }
+
             this._thumbTrack.appendChild(thumb);
             this._bindDrag(thumb, i);
         });
@@ -201,7 +287,10 @@ export class GradientEditor {
 
     _updatePreview() {
         if (!this._previewBar) return;
-        this._previewBar.style.background = this.cssGradient;
+        const parts = this._stops
+            .sort((a, b) => a.position - b.position)
+            .map(s => `${s.color} ${Math.round(s.position * 100)}%`);
+        this._previewBar.style.background = `linear-gradient(90deg, ${parts.join(', ')})`;
     }
 
     _bindDrag(thumb, index) {

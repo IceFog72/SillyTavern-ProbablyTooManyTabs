@@ -120,7 +120,7 @@ function getAvatarFileInfo(message) {
     }
 
     if (chName) {
-        const safeName = chName.replace(/\W/g, '_').toLowerCase();
+        const safeName = (chName || '').trim().replace(/\W/g, '_').toLowerCase();
         const ctx = getContext();
         const found = ctx.characters?.find(c => c.name === chName);
         const avatarFileName = found?.avatar || (src.includes('file=') ? decodeURIComponent(src.match(/[?&]file=([^&]+)/i)?.[1] || '') : src.split('/').pop());
@@ -153,13 +153,18 @@ function buildCharacterKeyForColorizer(uid, domAvatarUrl) {
         return identifier;  // System messages or no avatar
     }
     
+    // Apply same normalization as buildCharacterKey in character-colorizer-ui.js:
+    //   charName.replace(/\W/g, '_').toLowerCase()
+    // (chName is already trimmed in getAvatarFileInfo before normalization)
+    const normalizedId = identifier.replace(/\W/g, '_').toLowerCase();
+    
     // Extract avatar filename from URL
     const fileMatch = domAvatarUrl.match(/[?&]file=([^&]+)/i);
     const avatarFileName = fileMatch ? decodeURIComponent(fileMatch[1]) : domAvatarUrl.split('/').pop() || 'unknown.png';
     const cleanFileName = avatarFileName.split(/[?#]/)[0];
     
     // Return combined key WITHOUT the uid prefix: "kaede__Kaede.png" not "char:kaede__Kaede.png"
-    return `${identifier}__${cleanFileName}`;
+    return `${normalizedId}__${cleanFileName}`;
 }
 
 /**
@@ -181,8 +186,7 @@ function getColorizerControlSettings(type, info) {
     if (!info || info.type === 'system') {
         return {
             target: settings.get('dialogueColorizerColorizeTarget') ?? 3,
-            dialogMode: settings.get('dialogueColorizerDialogColorMode') ?? 1,
-            bubbleMode: settings.get('dialogueColorizerBubbleColorMode') ?? 3,
+            bubbleMode: settings.get('dialogueColorizerBubbleMode') ?? 'gradient',
             opacity: type === 'persona' ? (settings.get('dialogueColorizerBubbleOpacityUser') ?? 0.1) : (settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1),
         };
     }
@@ -201,21 +205,20 @@ function getColorizerControlSettings(type, info) {
     if (enabledList.includes(characterKey) && customSettingsMap[characterKey]) {
         // Use custom settings
         const custom = customSettingsMap[characterKey];
-        console.log(`[PTMT] ✓ Using CUSTOM colorizer for ${type} "${characterKey}"`);
+        console.log(`[PTMT] ✓ Using CUSTOM colorizer for ${type} "${characterKey}" — opacity=${custom.bubbleOpacity} | full:`, custom);
         return {
             target: custom.colorizeTarget ?? 3,
-            dialogMode: custom.dialogColorMode ?? 1,
-            bubbleMode: custom.bubbleColorMode ?? 3,
+            bubbleMode: custom.bubbleMode ?? 'gradient',
             opacity: custom.bubbleOpacity ?? 0.1,
         };
     }
     
     // Fall back to global settings
+    console.log(`[PTMT] ⚠ Fallback to GLOBAL for ${type} "${characterKey}" — NOT in customSettingsMap`);
     const globalOpacity = isPersona ? (settings.get('dialogueColorizerBubbleOpacityUser') ?? 0.1) : (settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1);
     return {
         target: settings.get('dialogueColorizerColorizeTarget') ?? 3,
-        dialogMode: settings.get('dialogueColorizerDialogColorMode') ?? 1,
-        bubbleMode: settings.get('dialogueColorizerBubbleColorMode') ?? 3,
+        bubbleMode: settings.get('dialogueColorizerBubbleMode') ?? 'gradient',
         opacity: globalOpacity,
     };
 }
@@ -259,7 +262,7 @@ function getSettingsForType(type, info) {
             bubbleStatic1: custom.bubbleStatic1 ?? '#da6745ff',
             bubbleStatic2: custom.bubbleStatic2 ?? '#da6745ff',
         };
-        console.log(`[PTMT] getSettingsForType() using CUSTOM for ${characterKey}:`, result);
+        console.log(`[PTMT] getSettingsForType() using CUSTOM for ${characterKey}:`, result, `| full:`, custom);
         return result;
     }
     
@@ -363,20 +366,17 @@ function getCustomColorizerSettings(info) {
 
 function resolveBubbleGradientStops(s, extractedColors, info) {
     let colors;
-    let angle = 135;
+    let angle = 225;
 
     const custom = getCustomColorizerSettings(info);
     const storedStops = custom?.bubbleGradientStops ?? settings.get('dialogueColorizerBubbleGradientStops') ?? [];
-    angle = custom?.bubbleGradientAngle ?? settings.get('dialogueColorizerBubbleGradientAngle') ?? 135;
+    angle = custom?.bubbleGradientAngle ?? settings.get('dialogueColorizerBubbleGradientAngle') ?? 225;
     if (storedStops.length > 0) {
         return { stops: storedStops, angle };
     }
 
-    if (s.bubbleSource === 'static_color') {
-        colors = [s.bubbleStatic1, s.bubbleStatic2];
-    } else {
-        colors = sortColorsByLightness(extractedColors.slice(0, 5));
-    }
+    // No custom stops — auto-generate from extracted colors
+    colors = sortColorsByLightness(extractedColors.slice(0, 5));
 
     if (colors.length < 2) colors = [colors[0], colors[0]];
     const stops = colors.map((color, i) => ({
@@ -387,6 +387,33 @@ function resolveBubbleGradientStops(s, extractedColors, info) {
     return { stops, angle };
 }
 
+/**
+ * Pick the most saturated light color from extracted palette for dialogue text.
+ * Filters for colors with reasonable lightness (not too dark, not near-white/pastel)
+ * and picks the one with highest saturation.
+ */
+function pickBestDialogColor(extractedColors) {
+    let best = null;
+    let bestScore = -1;
+    for (const hex of extractedColors) {
+        const r = parseInt(hex.slice(1, 3), 16);
+        const g = parseInt(hex.slice(3, 5), 16);
+        const b = parseInt(hex.slice(5, 7), 16);
+        const [h, s, l] = ColorUtils.rgbToHsl([r, g, b]);
+        // Prefer colors that are light enough (l > 0.35) but not washed out (l < 0.85)
+        // Score by saturation, with a bonus for the ideal lightness range
+        if (l > 0.35 && l < 0.85) {
+            const lightnessBonus = 1 - Math.abs(l - 0.55) * 2; // peak at l=0.55
+            const score = s * lightnessBonus;
+            if (score > bestScore) {
+                bestScore = score;
+                best = hex;
+            }
+        }
+    }
+    return best || extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
+}
+
 function buildCssRules(safeUid, extractedColors, info) {
     const s = getSettingsForType(info.type, info);
     const controls = getColorizerControlSettings(info.type, info);
@@ -394,25 +421,29 @@ function buildCssRules(safeUid, extractedColors, info) {
     const opacity = controls.opacity;
     let css = '';
 
-    const dialogMode = controls.dialogMode;
     const bubbleMode = controls.bubbleMode;
 
-    // 1. Resolve Dialogue Color
+    // 1. Resolve Dialogue Color — pick most saturated light color from palette
     let dialogColor;
     if (s.dialogSource === 'static_color') {
         dialogColor = s.dialogStatic;
     } else {
-        const prim = extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
-        const sec = extractedColors[1] || prim;
-        dialogColor = dialogMode === 2 ? sec : prim;
+        dialogColor = pickBestDialogColor(extractedColors);
     }
 
-    // 2. Resolve Bubble Colors — single-color modes still need bPrim for border/var
+    // 2. Resolve Bubble Colors
+    const sortedColors = sortColorsByLightness(extractedColors.slice(0, 5));
     let bPrim;
-    if (s.bubbleSource === 'static_color') {
+    if (bubbleMode === 'static_color') {
         bPrim = s.bubbleStatic1;
+    } else if (bubbleMode === 'avatar_light') {
+        bPrim = sortedColors[sortedColors.length - 1] || ColorUtils.rgbToHex(DEFAULT_RGB);
+    } else if (bubbleMode === 'avatar_dark') {
+        bPrim = sortedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
     } else {
-        bPrim = extractedColors[0] || ColorUtils.rgbToHex(DEFAULT_RGB);
+        // gradient — use first stop or default
+        const { stops } = resolveBubbleGradientStops(s, extractedColors, info);
+        bPrim = stops[0]?.color || ColorUtils.rgbToHex(DEFAULT_RGB);
     }
 
     if (target & 1) { // QUOTED_TEXT
@@ -433,15 +464,15 @@ function buildCssRules(safeUid, extractedColors, info) {
         css += `#chat .mes[xdc-author-uid="${safeUid}"] { --ptmt-mes-colorizer-color: ${ColorUtils.hexToRgba(bPrim, opacity)}; }\n`;
 
         let background;
-        if (bubbleMode === 3) {
+        if (bubbleMode === 'gradient') {
             const { stops, angle } = resolveBubbleGradientStops(s, extractedColors, info);
             const sorted = [...stops].sort((a, b) => a.position - b.position);
             const parts = sorted.map(st => `${ColorUtils.hexToRgba(st.color, opacity)} ${Math.round(st.position * 100)}%`);
             background = `linear-gradient(${angle}deg, ${parts.join(', ')})`;
-        } else if (bubbleMode === 2) {
-            const bSec = s.bubbleSource === 'static_color' ? s.bubbleStatic2 : (extractedColors[1] || bPrim);
-            background = ColorUtils.hexToRgba(bSec, opacity);
+        } else if (bubbleMode === 'static_color') {
+            background = ColorUtils.hexToRgba(bPrim, opacity);
         } else {
+            // avatar_light or avatar_dark — single color
             background = ColorUtils.hexToRgba(bPrim, opacity);
         }
 
@@ -572,15 +603,14 @@ export function initColorizer() {
             'dialogueColorizerPersonaSource', 'dialogueColorizerPersonaStaticColor',
             'dialogueColorizerPersonaBubbleSource', 'dialogueColorizerPersonaBubbleStaticColor1', 'dialogueColorizerPersonaBubbleStaticColor2',
             'dialogueColorizerColorizeTarget', 'dialogueColorizerBubbleOpacityBot', 'dialogueColorizerBubbleOpacityUser',
-            'dialogueColorizerDialogColorMode', 'dialogueColorizerBubbleColorMode',
+            'dialogueColorizerBubbleMode',
         ];
         if (keys.some(k => colorizerKeys.includes(k))) {
             const noExtractionKeys = [
                 'dialogueColorizerBubbleOpacityBot',
                 'dialogueColorizerBubbleOpacityUser',
                 'dialogueColorizerColorizeTarget',
-                'dialogueColorizerDialogColorMode',
-                'dialogueColorizerBubbleColorMode'
+                'dialogueColorizerBubbleMode'
             ];
             if (!keys.some(k => !noExtractionKeys.includes(k))) {
                 // All changed keys are visual-only, don't clear cache

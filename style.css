@@ -1952,7 +1952,7 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 #ptmt-split-overlay {
   position: absolute;
-  background: linear-gradient(135deg,
+  background: linear-gradient(225deg,
       color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 80%),
       color-mix(in srgb, var(--ptmt-adaptive-bw), transparent 95%));
   border: 2px solid var(--ptmt-adaptive-quote);
@@ -3028,11 +3028,18 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   width: 100%;
 }
 
+.ptmt-ge-top-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
 .ptmt-ge-palette {
   display: flex;
   gap: 6px;
   flex-wrap: wrap;
-  margin-bottom: 6px;
+  flex: 1;
 }
 
 .ptmt-ge-swatch {
@@ -3094,7 +3101,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   height: 14px;
   border-radius: 50%;
   border: 2px solid var(--SmartThemeBodyBackgroundColor, #fff);
-  box-shadow: 0 0 0 1px var(--SmartThemeBorderColor, #555), 0 2px 4px rgba(0,0,0,0.3);
+  box-shadow: 0 0 0 1px var(--SmartThemeBorderColor, #555), 0 2px 4px rgba(0, 0, 0, 0.3);
   pointer-events: none;
 }
 
@@ -3106,26 +3113,70 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   text-shadow: 0 0 3px var(--SmartThemeBodyBackgroundColor, #000);
 }
 
+.ptmt-ge-thumb-del {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--SmartThemeButtonColor, #4a9eff);
+  color: var(--SmartThemeButtonTextColor, #fff);
+  font-size: 0.55em;
+  line-height: 14px;
+  text-align: center;
+  cursor: pointer;
+  z-index: 3;
+  pointer-events: auto;
+  border: 1px solid var(--SmartThemeBodyBackgroundColor, #fff);
+}
+
+.ptmt-ge-thumb-del:hover {
+  filter: brightness(1.2);
+}
+
 .ptmt-ge-controls {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: 6px;
+  flex-shrink: 0;
 }
 
 .ptmt-ge-add-btn {
+  width: 24px;
+  height: 24px;
   background: var(--SmartThemeButtonColor, #4a9eff);
   color: var(--SmartThemeButtonTextColor, #fff);
   border: none;
   border-radius: 4px;
-  padding: 3px 12px;
-  font-size: 0.85em;
+  font-size: 1.1em;
+  line-height: 1;
   cursor: pointer;
-  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .ptmt-ge-add-btn:hover {
   filter: brightness(1.15);
+}
+
+.ptmt-ge-reset-btn {
+  background: none;
+  border: 1px solid var(--SmartThemeBorderColor, #555);
+  border-radius: 4px;
+  color: var(--SmartThemeBodyTextColor, #ccc);
+  font-size: 1.1em;
+  line-height: 1;
+  cursor: pointer;
+  padding: 2px 6px;
+  flex-shrink: 0;
+}
+
+.ptmt-ge-reset-btn:hover {
+  background: var(--SmartThemeButtonColor, #4a9eff);
+  color: var(--SmartThemeButtonTextColor, #fff);
 }
 
 .ptmt-ge-angle-label {
