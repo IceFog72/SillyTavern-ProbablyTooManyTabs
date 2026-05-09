@@ -289,7 +289,7 @@ export function attachColumnResizer(resizer) {
 
             // Cache total column resizer size once at drag start
             const totalResizerSize = $$(SELECTORS.COLUMN_RESIZER, refs.mainBody)
-                .reduce((sum, r) => sum + r.getBoundingClientRect()[sizeProp], 0);
+                .reduce((sum, r) => sum + (r.style.display === 'none' || r.classList.contains('disabled') ? 0 : r.getBoundingClientRect()[sizeProp]), 0);
 
             return { refs, initialSizes, minWidthA, minWidthB, aKey, bKey, parentRectAtStart, totalResizerSize, sizeProp, aChildInfo: getChildInfo(aElem), bChildInfo: getChildInfo(bElem) };
         },
@@ -409,7 +409,11 @@ export function updateResizerDisabledStates() {
             }
 
             const disabled = !!isACollapsed || !!isBCollapsed;
+            const wasDisabled = r.classList.contains('disabled');
             r.classList.toggle('disabled', disabled);
+            if (wasDisabled !== disabled) {
+                invalidateMinWidthCache(r.parentElement);
+            }
         });
     } catch (e) {
         console.warn("[PTMT] Error updating resizer states:", e);

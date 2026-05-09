@@ -10,6 +10,8 @@ import { parseFlexBasis, getBasis, normalizeFlexBasis } from './layout-math.js';
 /** @typedef {import('./types.js').PaneNode} PaneNode */
 /** @typedef {import('./types.js').SplitNode} SplitNode */
 
+const isActiveColumnResizer = r => r && r.style.display !== 'none' && !r.classList.contains('disabled');
+
 
 export function createLayoutIfMissing() {
     if (document.getElementById('ptmt-main')) return getRefs();
@@ -210,7 +212,7 @@ export function recalculateColumnSizes() {
             if (existingBasis <= 5) {
                 const parentWidth = col.parentElement.getBoundingClientRect().width;
                 const columnResizers = Array.from(col.parentElement.querySelectorAll('.ptmt-column-resizer'));
-                const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (r.classList.contains('disabled') ? 0 : LAYOUT.RESIZER_WIDTH), 0);
+                const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (isActiveColumnResizer(r) ? LAYOUT.RESIZER_WIDTH : 0), 0);
                 const availableWidth = parentWidth - totalResizerWidth;
 
                 if (currentWidth < minWidth || basis >= 99.9) {
@@ -254,7 +256,7 @@ export function recalculateColumnSizes() {
             const minWidth = calculateElementMinWidth(col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`));
             const parentWidth = col.parentElement.getBoundingClientRect().width;
             const columnResizers = Array.from(col.parentElement.querySelectorAll(SELECTORS.COLUMN_RESIZER));
-            const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (r.classList.contains('disabled') ? 0 : LAYOUT.RESIZER_WIDTH), 0);
+            const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (isActiveColumnResizer(r) ? LAYOUT.RESIZER_WIDTH : 0), 0);
             const availableWidth = parentWidth - totalResizerWidth;
 
 
@@ -283,9 +285,14 @@ export function recalculateColumnSizes() {
             protectedColumn = col; // This column just re-opened.
         } else if (isContentFullyCollapsed && wasColumnCollapsed) {
             // If already collapsed, ensure the width is correct (in case orientation or content changed)
-            const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`);
-            const width = content ? calculateCollapsedColumnWidth(content) : LAYOUT.MIN_COLLAPSED_PIXELS();
-            col.style.flex = `0 0 ${width}px`;
+            const preferred = findPreferredDescendentOrientation(col);
+            if (preferred === 'horizontal') {
+                col.style.flex = col.dataset.lastFlex || '1 1 20%';
+            } else {
+                const content = col.querySelector(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`);
+                const width = content ? calculateCollapsedColumnWidth(content) : LAYOUT.MIN_COLLAPSED_PIXELS();
+                col.style.flex = `0 0 ${width}px`;
+            }
         }
 
     });

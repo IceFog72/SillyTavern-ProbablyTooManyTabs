@@ -6,6 +6,8 @@ import { getRefs, calculateElementMinWidth, readPaneViewSettings, getElementDept
 
 export const pxToPercent = (px, total) => !Number.isFinite(total) || total <= 0 ? 50 : Math.max(0, Math.min(100, (px / total) * 100));
 
+const isActiveColumnResizer = r => r && r.style.display !== 'none' && !r.classList.contains('disabled');
+
 
 export function parseFlexBasis(flexString) {
     if (!flexString) return null;
@@ -310,7 +312,7 @@ function _normalizeFlexBasisImpl(activeColumns, targetTotal = 100, actor = null)
     if (parentWidth < 100) return;
 
     const columnResizers = Array.from(refs.mainBody.querySelectorAll(SELECTORS.COLUMN_RESIZER));
-    const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (r.classList.contains('disabled') ? 0 : LAYOUT.RESIZER_WIDTH), 0);
+    const totalResizerWidth = columnResizers.reduce((sum, r) => sum + (isActiveColumnResizer(r) ? LAYOUT.RESIZER_WIDTH : 0), 0);
 
     const availableWidth = Math.max(1, parentWidth - totalResizerWidth);
 

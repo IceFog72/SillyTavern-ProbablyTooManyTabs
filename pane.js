@@ -505,6 +505,14 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
 
   const srcPane = getPaneForPanel(movingPanel);
   const parent = targetPane.parentElement;
+  const existingPanels = Array.from(targetPane._panelContainer.children);
+  const existingTabs = Array.from(targetPane._tabStrip.children).filter(c => c.classList.contains(SELECTORS.TAB.substring(1)));
+  const movingTab = getTabById(movingPanel.dataset.panelId);
+
+  if (existingPanels.length === 1 && existingPanels[0] === movingPanel && existingTabs.length === 1 && existingTabs[0] === movingTab) {
+    moveTabIntoPaneAtIndex(movingPanel, targetPane, 0);
+    return;
+  }
 
   const split = el('div', { className: SELECTORS.SPLIT.substring(1) });
   split.dataset.naturalOrientation = vertical ? 'vertical' : 'horizontal';
@@ -517,9 +525,6 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
 
   const pane1 = createPane(originalSettings);
   const pane2 = createPane(originalSettings);
-
-  const existingPanels = Array.from(targetPane._panelContainer.children);
-  const existingTabs = Array.from(targetPane._tabStrip.children).filter(c => c.classList.contains(SELECTORS.TAB.substring(1)));
 
   const destinationPaneForExisting = newFirst ? pane2 : pane1;
   existingPanels.forEach(p => destinationPaneForExisting._panelContainer.appendChild(p));
@@ -852,8 +857,12 @@ export function openViewSettingsDialog(pane) {
       iconOnly: iconOnly,
       tabStripMode: tabStripMode
     });
+    invalidateMinWidthCache(pane);
     applyPaneOrientation(pane);
     applyIconsOnly(pane, iconOnly);
+    recalculateAllSplitsRecursively();
+    recalculateColumnSizes();
+    updateResizerDisabledStates();
     dialog.remove();
     window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
   });
