@@ -45,14 +45,18 @@ export class SettingsManager {
         dialogueColorizerPersonaBubbleStaticColor2: '#537fddff',
         // Bitmask: 1=quoted text, 2=bubbles, 3=both
         dialogueColorizerColorizeTarget: 3,
+        dialogueColorizerPersonaColorizeTarget: 3,
         // Opacity for bubble backgrounds (0.0 to 1.0)
         dialogueColorizerBubbleOpacityBot: 0.1,
         dialogueColorizerBubbleOpacityUser: 0.1,
-        // Bubble color mode: avatar_light, avatar_dark, static_color, gradient
+        // Bubble color mode: avatar_light, avatar_dark, static_color, gradient (auto inner-palette pair)
         dialogueColorizerBubbleMode: 'gradient',
-        // Custom gradient stops for bubble gradient mode (empty = auto from extracted colors)
+        dialogueColorizerPersonaBubbleMode: 'gradient',
+        // Custom gradient stops for bubble gradient mode (empty = auto second-darkest + second-lightest)
         dialogueColorizerBubbleGradientStops: [],
         dialogueColorizerBubbleGradientAngle: 225,
+        dialogueColorizerPersonaBubbleGradientStops: [],
+        dialogueColorizerPersonaBubbleGradientAngle: 225,
         
         // Per-character custom colorizer settings
         charCustomColorizerEnabled: [], // Array of char names with custom colorizer enabled

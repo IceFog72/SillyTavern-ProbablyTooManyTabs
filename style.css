@@ -1583,6 +1583,10 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   margin-bottom: 0;
 }
 
+.ptmt-settings-grid>.ptmt-grid-full {
+  grid-column: 1 / -1;
+}
+
 #ptmt-unified-editor {
   display: flex;
   flex-direction: row;
@@ -2505,6 +2509,35 @@ body.ptmt-enable-animations .ptmt-vs-avatar-input[style*="border-color: red"] {
   min-width: 200px;
 }
 
+.ptmt-colorizer-settings .ptmt-setting-row {
+  min-width: 0;
+}
+
+.ptmt-colorizer-settings select {
+  max-width: 100%;
+}
+
+.ptmt-colorizer-subsection {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.ptmt-colorizer-enable-row {
+  flex-wrap: wrap;
+}
+
+.ptmt-colorizer-enable-row label,
+.ptmt-colorizer-enable-row .menu_button {
+  text-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.ptmt-colorizer-enable-row .menu_button {
+  margin-left: auto;
+}
+
 /* Wrap opacity controls: label and value on row 1, slider on row 2 */
 .ptmt-setting-row:has(.ptmt-opacity-slider) {
   flex-wrap: wrap;
@@ -3048,6 +3081,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   border-radius: 4px;
   cursor: pointer;
   border: 2px solid transparent;
+  padding: 0;
   transition: border-color 0.15s, opacity 0.15s;
   opacity: 0.45;
 }
@@ -3072,6 +3106,18 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   border: 1px solid var(--SmartThemeBorderColor, #555);
   overflow: visible;
   background: none;
+  touch-action: none;
+}
+
+.ptmt-ge-empty {
+  position: absolute;
+  inset: 0;
+  align-items: center;
+  justify-content: center;
+  color: var(--SmartThemeBodyTextColor, #ccc);
+  font-size: 0.75em;
+  opacity: 0.65;
+  pointer-events: none;
 }
 
 .ptmt-ge-thumb-track {
@@ -3090,6 +3136,12 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   flex-direction: column;
   align-items: center;
   z-index: 2;
+  appearance: none;
+  background: none;
+  border: 0;
+  color: inherit;
+  padding: 0;
+  touch-action: none;
 }
 
 .ptmt-ge-thumb:active {

@@ -1,7 +1,61 @@
 import { el } from './utils.js';
 
-let pickerIdCounter = 0;
+let editorIdCounter = 0;
+let stopIdCounter = 0;
+
 const COLOR_INPUT_ID = 'ptmt-ge-color-input';
+const DEFAULT_COLOR = '#ffffff';
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function normalizePosition(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 0;
+    return Math.round(clamp(number, 0, 1) * 1000) / 1000;
+}
+
+function normalizeAngle(value) {
+    const number = Number(value);
+    if (!Number.isFinite(number)) return 225;
+    return Math.round(clamp(number, 0, 360));
+}
+
+function isHexColor(value) {
+    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value.trim());
+}
+
+function normalizeColor(value) {
+    return isHexColor(value) ? value.trim().toLowerCase() : DEFAULT_COLOR;
+}
+
+function createStop({ color = DEFAULT_COLOR, position = 0.5, id = null } = {}) {
+    return {
+        id: id || `ptmt-ge-stop-${++stopIdCounter}`,
+        color: normalizeColor(color),
+        position: normalizePosition(position),
+    };
+}
+
+function serializeStops(stops) {
+    return [...stops]
+        .sort((a, b) => a.position - b.position)
+        .map(({ color, position }) => ({ color, position }));
+}
+
+function gradientCss(stops, angle) {
+    const sorted = serializeStops(stops);
+    if (sorted.length === 0) return 'none';
+    if (sorted.length === 1) return sorted[0].color;
+    const parts = sorted.map(stop => `${stop.color} ${Math.round(stop.position * 100)}%`);
+    return `linear-gradient(${angle}deg, ${parts.join(', ')})`;
+}
+
+function shouldFlipStopAxis(angle) {
+    const normalized = ((normalizeAngle(angle) % 360) + 360) % 360;
+    return normalized >= 180 && normalized < 360;
+}
 
 export class GradientEditor {
     constructor({
@@ -10,53 +64,53 @@ export class GradientEditor {
         angle = 225,
         showAngle = true,
         showReset = false,
+        showPalette = true,
+        showTrack = true,
         onReset = () => {},
         colors = [],
     } = {}) {
-        this._stops = stops.length > 0 ? [...stops] : [];
+        this._id = `ptmt-ge-${++editorIdCounter}`;
+        this._stops = this._normalizeStops(stops);
+        this._palette = this._normalizePalette(colors.length > 0 ? colors : stops.map(stop => stop.color));
+        this._angle = normalizeAngle(angle);
         this._onChange = onChange;
         this._onReset = onReset;
-        this._angle = angle;
         this._showAngle = showAngle;
         this._showReset = showReset;
-        this._id = `ge-${++pickerIdCounter}`;
-        this._root = null;
-        this._previewBar = null;
-        this._thumbTrack = null;
-        this._angleInput = null;
-        this._dragging = null;
-        this._paletteEl = null;
+        this._showPalette = showPalette;
+        this._showTrack = showTrack;
 
-        if (colors.length > 0) {
-            this._allColors = [...colors];
-        } else if (stops.length > 0) {
-            this._allColors = [...new Set(stops.map(s => s.color))];
-        } else {
-            this._allColors = [];
-        }
+        this._root = null;
+        this._paletteEl = null;
+        this._trackEl = null;
+        this._thumbLayerEl = null;
+        this._angleInput = null;
+        this._angleValue = null;
+        this._emptyEl = null;
+
+        this._drag = null;
+        this._boundMove = null;
+        this._boundEnd = null;
     }
 
     get stops() {
-        return [...this._stops];
+        return serializeStops(this._stops);
     }
 
-    set stops(newStops) {
-        this._stops = [...newStops];
-        this._normalizeStops();
-        if (this._allColors.length === 0 && newStops.length > 0) {
-            this._allColors = [...new Set(newStops.map(s => s.color))];
+    set stops(value) {
+        this._stops = this._normalizeStops(value);
+        if (this._palette.length === 0) {
+            this._palette = this._normalizePalette(this._stops.map(stop => stop.color));
         }
-        this._renderStops();
-        this._renderPalette();
-        this._updatePreview();
+        this._render();
     }
 
     get colors() {
-        return [...this._allColors];
+        return [...this._palette];
     }
 
-    set colors(newColors) {
-        this._allColors = [...newColors];
+    set colors(value) {
+        this._palette = this._normalizePalette(value);
         this._renderPalette();
     }
 
@@ -64,141 +118,213 @@ export class GradientEditor {
         return this._angle;
     }
 
-    set angle(deg) {
-        this._angle = deg;
-        if (this._angleInput) this._angleInput.value = deg;
+    set angle(value) {
+        this._angle = normalizeAngle(value);
+        if (this._angleInput) this._angleInput.value = String(this._angle);
+        if (this._angleValue) this._angleValue.textContent = `${this._angle}deg`;
+        this._renderStops();
         this._updatePreview();
     }
 
     get cssGradient() {
-        if (this._stops.length === 0) return 'none';
-        const parts = this._stops
-            .sort((a, b) => a.position - b.position)
-            .map(s => `${s.color} ${Math.round(s.position * 100)}%`);
-        return `linear-gradient(${this._angle}deg, ${parts.join(', ')})`;
+        return gradientCss(this._stops, this._angle);
+    }
+
+    _positionToDisplay(position) {
+        return shouldFlipStopAxis(this._angle) ? 1 - normalizePosition(position) : normalizePosition(position);
+    }
+
+    _displayToPosition(displayPosition) {
+        return shouldFlipStopAxis(this._angle) ? 1 - normalizePosition(displayPosition) : normalizePosition(displayPosition);
     }
 
     mount(container) {
         if (this._root) return;
 
-        this._root = el('div', { className: 'ptmt-gradient-editor', id: this._id });
-
-        const palette = el('div', { className: 'ptmt-ge-palette' });
-        this._paletteEl = palette;
+        this._root = el('div', { id: this._id, className: 'ptmt-gradient-editor' });
 
         const topRow = el('div', { className: 'ptmt-ge-top-row' });
-        topRow.appendChild(palette);
+        if (this._showPalette) {
+            this._paletteEl = el('div', { className: 'ptmt-ge-palette' });
+            topRow.appendChild(this._paletteEl);
+        }
         topRow.appendChild(this._buildControls());
 
-        const previewBar = el('div', { className: 'ptmt-ge-preview-bar' });
-        this._previewBar = previewBar;
+        if (this._showTrack) {
+            this._trackEl = el('div', {
+                className: 'ptmt-ge-preview-bar',
+                role: 'slider',
+                tabindex: '0',
+                title: 'Click to add a color stop',
+            });
+            this._thumbLayerEl = el('div', { className: 'ptmt-ge-thumb-track' });
+            this._emptyEl = el('div', { className: 'ptmt-ge-empty' }, 'No gradient stops');
+            this._trackEl.append(this._emptyEl, this._thumbLayerEl);
 
-        const thumbTrack = el('div', { className: 'ptmt-ge-thumb-track' });
-        this._thumbTrack = thumbTrack;
-        previewBar.appendChild(thumbTrack);
+            this._trackEl.addEventListener('pointerdown', (event) => this._handleTrackPointerDown(event));
+            this._trackEl.addEventListener('keydown', (event) => this._handleTrackKeyDown(event));
+        }
 
         this._root.appendChild(topRow);
-        this._root.appendChild(previewBar);
-
+        if (this._trackEl) this._root.appendChild(this._trackEl);
         container.appendChild(this._root);
-
-        this._renderStops();
-        this._renderPalette();
-        this._updatePreview();
+        this._render();
     }
 
     destroy() {
-        if (this._root && this._root.parentElement) {
-            this._root.parentElement.removeChild(this._root);
-        }
+        this._stopDrag();
+        this._root?.remove();
         this._root = null;
+        this._paletteEl = null;
+        this._trackEl = null;
+        this._thumbLayerEl = null;
+        this._angleInput = null;
+        this._angleValue = null;
+        this._emptyEl = null;
     }
 
     _buildControls() {
         const controls = el('div', { className: 'ptmt-ge-controls' });
 
         if (this._showAngle) {
-            const angleInp = el('input', {
-                type: 'range', min: '0', max: '360', step: '1',
+            this._angleInput = el('input', {
+                type: 'range',
+                min: '0',
+                max: '360',
+                step: '1',
                 value: String(this._angle),
                 className: 'ptmt-ge-angle-slider',
+                title: 'Gradient angle',
             });
-            this._angleInput = angleInp;
-            const angleVal = el('span', { className: 'ptmt-ge-angle-value' }, `${this._angle}°`);
-            angleInp.addEventListener('input', () => {
-                const v = parseInt(angleInp.value, 10);
-                this._angle = v;
-                angleVal.textContent = `${v}°`;
+            this._angleValue = el('span', { className: 'ptmt-ge-angle-value' }, `${this._angle}deg`);
+            this._angleInput.addEventListener('input', () => {
+                this._angle = normalizeAngle(this._angleInput.value);
+                this._angleValue.textContent = `${this._angle}deg`;
+                this._renderStops();
                 this._updatePreview();
                 this._emitChange();
             });
-            controls.appendChild(angleInp);
-            controls.appendChild(angleVal);
+
+            controls.append(this._angleInput, this._angleValue);
+        }
+
+        if (this._showReset && !this._showPalette) {
+            const resetButton = el('button', {
+                type: 'button',
+                className: 'ptmt-ge-reset-btn',
+                title: 'Reset gradient',
+                textContent: 'Reset',
+            });
+            resetButton.addEventListener('click', () => this._onReset());
+            controls.appendChild(resetButton);
         }
 
         return controls;
     }
 
+    _render() {
+        this._renderPalette();
+        this._renderStops();
+        this._updatePreview();
+    }
+
     _renderPalette() {
         if (!this._paletteEl) return;
-        this._paletteEl.innerHTML = '';
-        this._allColors.forEach(color => {
-            const active = this._stops.some(s => s.color === color);
-            const swatch = el('div', {
-                className: `ptmt-ge-swatch${active ? ' active' : ''}`,
+        this._paletteEl.replaceChildren();
+
+        for (const color of this._palette) {
+            const isActive = this._stops.some(stop => stop.color === color);
+            const swatch = el('button', {
+                type: 'button',
+                className: `ptmt-ge-swatch${isActive ? ' active' : ''}`,
+                title: isActive ? 'Remove this color from the gradient' : 'Add this color to the gradient',
                 style: `background-color: ${color};`,
             });
-            swatch.addEventListener('click', () => this._toggleColor(color));
+            swatch.addEventListener('click', () => this._togglePaletteColor(color));
             this._paletteEl.appendChild(swatch);
-        });
-        // "+" button to add custom color
-        const addBtn = el('button', {
-            className: 'ptmt-ge-add-btn',
+        }
+
+        const addColorButton = el('button', {
             type: 'button',
+            className: 'ptmt-ge-add-btn',
             title: 'Add custom color',
             textContent: '+',
         });
-        addBtn.addEventListener('click', () => this._pickCustomColor());
-        this._paletteEl.appendChild(addBtn);
-        // Reset button at end of palette
+        addColorButton.addEventListener('click', () => this._pickCustomColor());
+        this._paletteEl.appendChild(addColorButton);
+
         if (this._showReset) {
-            const resetBtn = el('button', {
-                className: 'ptmt-ge-reset-btn',
+            const resetButton = el('button', {
                 type: 'button',
+                className: 'ptmt-ge-reset-btn',
                 title: 'Reset to auto-detected colors',
-                innerHTML: '&#x21bb;',
+                textContent: 'Reset',
             });
-            resetBtn.addEventListener('click', () => this._onReset());
-            this._paletteEl.appendChild(resetBtn);
+            resetButton.addEventListener('click', () => this._onReset());
+            this._paletteEl.appendChild(resetButton);
         }
     }
 
-    _toggleColor(color) {
-        const idx = this._stops.findIndex(s => s.color === color);
-        if (idx !== -1) {
-            if (this._stops.length <= 1) return;
-            this._stops.splice(idx, 1);
-        } else {
-            if (this._stops.length === 0) {
-                this._stops.push({ color, position: 0.5 });
-            } else {
-                const sorted = [...this._stops].sort((a, b) => a.position - b.position);
-                let maxGap = 0;
-                let insertPos = 0.5;
-                for (let i = 0; i < sorted.length - 1; i++) {
-                    const gap = sorted[i + 1].position - sorted[i].position;
-                    if (gap > maxGap) {
-                        maxGap = gap;
-                        insertPos = (sorted[i].position + sorted[i + 1].position) / 2;
-                    }
-                }
-                this._stops.push({ color, position: Math.round(insertPos * 100) / 100 });
+    _renderStops() {
+        if (!this._thumbLayerEl) return;
+        this._thumbLayerEl.replaceChildren();
+
+        const sorted = [...this._stops].sort((a, b) => a.position - b.position);
+        for (const stop of sorted) {
+            const thumb = el('button', {
+                type: 'button',
+                className: 'ptmt-ge-thumb',
+                style: `left: ${this._positionToDisplay(stop.position) * 100}%;`,
+                title: `Stop at ${Math.round(stop.position * 100)}%`,
+                dataset: { stopId: stop.id },
+            });
+
+            const dot = el('span', {
+                className: 'ptmt-ge-thumb-dot',
+                style: `background-color: ${stop.color};`,
+            });
+            const label = el('span', { className: 'ptmt-ge-thumb-pos' }, `${Math.round(stop.position * 100)}%`);
+            thumb.append(dot, label);
+
+            if (this._stops.length > 1) {
+                const deleteButton = el('span', {
+                    className: 'ptmt-ge-thumb-del',
+                    title: 'Remove stop',
+                    textContent: 'x',
+                });
+                deleteButton.addEventListener('pointerdown', event => event.stopPropagation());
+                deleteButton.addEventListener('click', event => {
+                    event.stopPropagation();
+                    this._removeStop(stop.id);
+                });
+                thumb.appendChild(deleteButton);
             }
+
+            thumb.addEventListener('pointerdown', event => this._startDrag(event, stop.id));
+            thumb.addEventListener('keydown', event => this._handleThumbKeyDown(event, stop.id));
+            this._thumbLayerEl.appendChild(thumb);
         }
-        this._normalizeStops();
-        this._renderStops();
-        this._renderPalette();
-        this._updatePreview();
+    }
+
+    _updatePreview() {
+        if (!this._trackEl || !this._emptyEl) return;
+        this._trackEl.style.background = this.cssGradient;
+        this._emptyEl.style.display = this._stops.length === 0 ? 'flex' : 'none';
+    }
+
+    _togglePaletteColor(color) {
+        const normalized = normalizeColor(color);
+        const matching = this._stops.filter(stop => stop.color === normalized);
+
+        if (matching.length > 0) {
+            if (this._stops.length <= matching.length) return;
+            const removeIds = new Set(matching.map(stop => stop.id));
+            this._stops = this._stops.filter(stop => !removeIds.has(stop.id));
+        } else {
+            this._addStop(normalized, this._findOpenPosition());
+        }
+
+        this._render();
         this._emitChange();
     }
 
@@ -213,138 +339,219 @@ export class GradientEditor {
             input.style.pointerEvents = 'none';
             document.body.appendChild(input);
         }
-        const handler = () => {
-            const color = input.value;
-            input.removeEventListener('input', handler);
-            // Add to stops at largest gap
-            if (this._stops.length === 0) {
-                this._stops.push({ color, position: 0.5 });
-            } else {
-                const sorted = [...this._stops].sort((a, b) => a.position - b.position);
-                let maxGap = 0;
-                let insertPos = 0.5;
-                for (let i = 0; i < sorted.length - 1; i++) {
-                    const gap = sorted[i + 1].position - sorted[i].position;
-                    if (gap > maxGap) {
-                        maxGap = gap;
-                        insertPos = (sorted[i].position + sorted[i + 1].position) / 2;
-                    }
-                }
-                this._stops.push({ color, position: Math.round(insertPos * 100) / 100 });
-            }
-            this._normalizeStops();
-            this._renderStops();
-            this._renderPalette();
-            this._updatePreview();
+
+        input.value = this._stops.at(-1)?.color || this._palette.at(-1) || DEFAULT_COLOR;
+        input.onchange = () => {
+            const color = normalizeColor(input.value);
+            this._addPaletteColor(color);
+            this._addStop(color, this._findOpenPosition());
+            input.onchange = null;
+            this._render();
             this._emitChange();
         };
-        input.addEventListener('input', handler);
         input.click();
     }
 
-    _renderStops() {
-        if (!this._thumbTrack) return;
-        this._thumbTrack.innerHTML = '';
-        this._stops.forEach((stop, i) => {
-            const thumb = el('div', {
-                className: 'ptmt-ge-thumb',
-                style: `left: ${stop.position * 100}%;`,
-                'data-index': String(i),
-            });
-
-            const dot = el('div', {
-                className: 'ptmt-ge-thumb-dot',
-                style: `background-color: ${stop.color};`,
-            });
-
-            const posLbl = el('span', { className: 'ptmt-ge-thumb-pos' }, `${Math.round(stop.position * 100)}%`);
-
-            thumb.appendChild(dot);
-            thumb.appendChild(posLbl);
-
-            // Delete button for non-palette (custom) colors
-            if (!this._allColors.includes(stop.color)) {
-                const delBtn = el('span', { className: 'ptmt-ge-thumb-del', textContent: '✕' });
-                delBtn.addEventListener('click', (e) => {
-                    e.stopPropagation();
-                    const idx = this._stops.findIndex(s => s.color === stop.color && s.position === stop.position);
-                    if (idx !== -1 && this._stops.length > 1) {
-                        this._stops.splice(idx, 1);
-                        this._normalizeStops();
-                        this._renderStops();
-                        this._renderPalette();
-                        this._updatePreview();
-                        this._emitChange();
-                    }
-                });
-                thumb.appendChild(delBtn);
-            }
-
-            this._thumbTrack.appendChild(thumb);
-            this._bindDrag(thumb, i);
-        });
+    _handleTrackPointerDown(event) {
+        if (event.button !== 0) return;
+        if (event.target.closest?.('.ptmt-ge-thumb')) return;
+        const position = this._positionFromPointer(event);
+        const color = this._colorForInsertedStop(position);
+        this._addStop(color, position);
+        this._render();
+        this._emitChange();
     }
 
-    _updatePreview() {
-        if (!this._previewBar) return;
-        const parts = this._stops
-            .sort((a, b) => a.position - b.position)
-            .map(s => `${s.color} ${Math.round(s.position * 100)}%`);
-        this._previewBar.style.background = `linear-gradient(90deg, ${parts.join(', ')})`;
+    _handleTrackKeyDown(event) {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        const color = this._palette[0] || this._stops[0]?.color || DEFAULT_COLOR;
+        this._addStop(color, this._findOpenPosition());
+        this._render();
+        this._emitChange();
     }
 
-    _bindDrag(thumb, index) {
-        const onMove = (e) => {
-            e.preventDefault();
-            const rect = this._previewBar.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            let pos = (clientX - rect.left) / rect.width;
-            pos = Math.max(0.01, Math.min(0.99, pos));
+    _handleThumbKeyDown(event, stopId) {
+        const stop = this._stops.find(item => item.id === stopId);
+        if (!stop) return;
 
-            if (index === 0) pos = 0;
-            else if (index === this._stops.length - 1) pos = 1;
+        const step = event.shiftKey ? 0.1 : 0.01;
+        const direction = shouldFlipStopAxis(this._angle) ? -1 : 1;
+        if (event.key === 'ArrowLeft') {
+            event.preventDefault();
+            stop.position = normalizePosition(stop.position - (step * direction));
+        } else if (event.key === 'ArrowRight') {
+            event.preventDefault();
+            stop.position = normalizePosition(stop.position + (step * direction));
+        } else if (event.key === 'Home') {
+            event.preventDefault();
+            stop.position = this._displayToPosition(0);
+        } else if (event.key === 'End') {
+            event.preventDefault();
+            stop.position = this._displayToPosition(1);
+        } else if ((event.key === 'Delete' || event.key === 'Backspace') && this._stops.length > 1) {
+            event.preventDefault();
+            this._removeStop(stopId);
+            return;
+        } else {
+            return;
+        }
 
-            this._stops[index].position = Math.round(pos * 100) / 100;
-            thumb.style.left = `${this._stops[index].position * 100}%`;
-            const posLbl = thumb.querySelector('.ptmt-ge-thumb-pos');
-            if (posLbl) posLbl.textContent = `${Math.round(this._stops[index].position * 100)}%`;
-
-            this._updatePreview();
-        };
-
-        const onUp = () => {
-            document.removeEventListener('mousemove', onMove);
-            document.removeEventListener('mouseup', onUp);
-            document.removeEventListener('touchmove', onMove);
-            document.removeEventListener('touchend', onUp);
-            this._dragging = null;
-            this._emitChange();
-        };
-
-        thumb.addEventListener('mousedown', (e) => {
-            e.preventDefault();
-            this._dragging = index;
-            document.addEventListener('mousemove', onMove);
-            document.addEventListener('mouseup', onUp);
-        });
-
-        thumb.addEventListener('touchstart', (e) => {
-            this._dragging = index;
-            document.addEventListener('touchmove', onMove, { passive: false });
-            document.addEventListener('touchend', onUp);
-        }, { passive: true });
+        this._renderStops();
+        this._updatePreview();
+        this._emitChange();
     }
 
-    _normalizeStops() {
+    _startDrag(event, stopId) {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        event.stopPropagation();
+
+        const stop = this._stops.find(item => item.id === stopId);
+        if (!stop || !this._trackEl) return;
+
+        this._drag = { stopId };
+        event.currentTarget.setPointerCapture?.(event.pointerId);
+
+        this._boundMove = moveEvent => this._moveDrag(moveEvent);
+        this._boundEnd = () => this._endDrag();
+        document.addEventListener('pointermove', this._boundMove);
+        document.addEventListener('pointerup', this._boundEnd, { once: true });
+        document.addEventListener('pointercancel', this._boundEnd, { once: true });
+    }
+
+    _moveDrag(event) {
+        if (!this._drag) return;
+        event.preventDefault();
+
+        const stop = this._stops.find(item => item.id === this._drag.stopId);
+        if (!stop) return;
+
+        stop.position = this._positionFromPointer(event);
+        const thumb = this._thumbLayerEl?.querySelector(`[data-stop-id="${CSS.escape(stop.id)}"]`);
+        if (thumb) {
+            thumb.style.left = `${this._positionToDisplay(stop.position) * 100}%`;
+            const label = thumb.querySelector('.ptmt-ge-thumb-pos');
+            if (label) label.textContent = `${Math.round(stop.position * 100)}%`;
+            thumb.title = `Stop at ${Math.round(stop.position * 100)}%`;
+        }
+        this._updatePreview();
+    }
+
+    _endDrag() {
+        if (!this._drag) return;
+        this._stopDrag();
         this._stops.sort((a, b) => a.position - b.position);
-        if (this._stops.length === 0) return;
-        this._stops[0].position = 0;
-        this._stops[this._stops.length - 1].position = 1;
+        this._renderStops();
+        this._updatePreview();
+        this._emitChange();
+    }
+
+    _stopDrag() {
+        if (this._boundMove) {
+            document.removeEventListener('pointermove', this._boundMove);
+            this._boundMove = null;
+        }
+        if (this._boundEnd) {
+            document.removeEventListener('pointerup', this._boundEnd);
+            document.removeEventListener('pointercancel', this._boundEnd);
+            this._boundEnd = null;
+        }
+        this._drag = null;
+    }
+
+    _positionFromPointer(event) {
+        const rect = this._trackEl.getBoundingClientRect();
+        if (!rect.width) return 0;
+        return this._displayToPosition((event.clientX - rect.left) / rect.width);
+    }
+
+    _addStop(color, position) {
+        this._stops.push(createStop({ color, position }));
+        this._stops.sort((a, b) => a.position - b.position);
+    }
+
+    _removeStop(stopId) {
+        if (this._stops.length <= 1) return;
+        this._stops = this._stops.filter(stop => stop.id !== stopId);
+        this._render();
+        this._emitChange();
+    }
+
+    _addPaletteColor(color) {
+        const normalized = normalizeColor(color);
+        if (!this._palette.includes(normalized)) {
+            this._palette.push(normalized);
+        }
+    }
+
+    _findOpenPosition() {
+        const sorted = [...this._stops].sort((a, b) => a.position - b.position);
+        if (sorted.length === 0) return 0.5;
+        if (sorted.length === 1) return sorted[0].position <= 0.5 ? 1 : 0;
+
+        let bestPosition = 0.5;
+        let bestGap = -1;
+        const candidates = [
+            { gap: sorted[0].position, position: sorted[0].position / 2 },
+            { gap: 1 - sorted[sorted.length - 1].position, position: (1 + sorted[sorted.length - 1].position) / 2 },
+        ];
+
+        for (let i = 0; i < sorted.length - 1; i++) {
+            const gap = sorted[i + 1].position - sorted[i].position;
+            candidates.push({ gap, position: sorted[i].position + gap / 2 });
+        }
+
+        for (const candidate of candidates) {
+            if (candidate.gap > bestGap) {
+                bestGap = candidate.gap;
+                bestPosition = candidate.position;
+            }
+        }
+
+        return normalizePosition(bestPosition);
+    }
+
+    _colorForInsertedStop(position) {
+        if (this._stops.length === 0) return this._palette[0] || DEFAULT_COLOR;
+        const sorted = [...this._stops].sort((a, b) => a.position - b.position);
+        let nearest = sorted[0];
+        let distance = Math.abs(position - nearest.position);
+        for (const stop of sorted.slice(1)) {
+            const nextDistance = Math.abs(position - stop.position);
+            if (nextDistance < distance) {
+                nearest = stop;
+                distance = nextDistance;
+            }
+        }
+        return nearest.color;
+    }
+
+    _normalizeStops(stops) {
+        if (!Array.isArray(stops)) return [];
+        return stops
+            .filter(stop => stop && isHexColor(stop.color))
+            .map(stop => createStop(stop))
+            .sort((a, b) => a.position - b.position);
+    }
+
+    _normalizePalette(colors) {
+        if (!Array.isArray(colors)) return [];
+        const seen = new Set();
+        const normalized = [];
+        for (const color of colors) {
+            if (!isHexColor(color)) continue;
+            const clean = normalizeColor(color);
+            if (seen.has(clean)) continue;
+            seen.add(clean);
+            normalized.push(clean);
+        }
+        return normalized;
     }
 
     _emitChange() {
         this._onChange({
-            stops: [...this._stops],
+            stops: serializeStops(this._stops),
             angle: this._angle,
             cssGradient: this.cssGradient,
         });

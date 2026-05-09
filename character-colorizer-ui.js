@@ -10,6 +10,11 @@ import { getContext } from '../../../extensions.js';
 import { settings } from './settings.js';
 import { el, trackObserver, debounce, extractColorsFromImage, sortColorsByLightness } from './utils.js';
 import { GradientEditor } from './gradient-editor.js';
+import {
+    buildCharacterColorizerKeyFromParts,
+    extractAvatarFilenameFromUrl,
+    normalizeBubbleMode,
+} from './colorizer-helpers.js';
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -17,11 +22,19 @@ function autoPopulateGradientFromAvatar(gradientEditor, imgElement) {
     if (!gradientEditor || !imgElement || !imgElement.complete || !imgElement.naturalWidth) return false;
     const hexes = sortColorsByLightness(extractColorsFromImage(imgElement));
     if (!hexes || hexes.length === 0) return false;
+    let autoColors;
+    if (hexes.length >= 4) {
+        autoColors = [hexes[1], hexes[hexes.length - 2]];
+    } else if (hexes.length >= 2) {
+        autoColors = [hexes[0], hexes[hexes.length - 1]];
+    } else {
+        autoColors = [hexes[0], hexes[0]];
+    }
     gradientEditor.colors = hexes;
-    gradientEditor.stops = hexes.map((color, i) => ({
-        color,
-        position: i / Math.max(hexes.length - 1, 1),
-    }));
+    gradientEditor.stops = [
+        { color: autoColors[0], position: 0 },
+        { color: autoColors[1], position: 1 },
+    ];
     gradientEditor.angle = 225;
     return true;
 }
@@ -49,6 +62,8 @@ function ensureColorPickerLoaded() {
  */
 function createPersonalColorizerUI(isPersona = false) {
     ensureColorPickerLoaded();
+
+    const defaultStaticColor = isPersona ? '#537fddff' : '#da6745ff';
 
     const sourceOptions = [
         { value: 'avatar_vibrant', label: 'Avatar Vibrant (auto)' },
@@ -140,7 +155,7 @@ function createPersonalColorizerUI(isPersona = false) {
     ]));
 
     // Dialogue static color (hidden by default)
-    const dialogStaticColor = colorPicker(`${prefix}-dialog-static`, '#da6745ff');
+    const dialogStaticColor = colorPicker(`${prefix}-dialog-static`, defaultStaticColor);
     const dialogStaticRow = row([
         dialogStaticColor,
         lbl('Dialogue Static Color', `${prefix}-dialog-static`)
@@ -153,7 +168,7 @@ function createPersonalColorizerUI(isPersona = false) {
         { value: 'avatar_light', label: 'Avatar Light (Auto)' },
         { value: 'avatar_dark', label: 'Avatar Dark (Auto)' },
         { value: 'static_color', label: 'Static' },
-        { value: 'gradient', label: 'Gradient' },
+        { value: 'gradient', label: 'Gradient Auto' },
     ];
     const bubbleModeSelect = dropdown(`${prefix}-bubble-mode`, sourceOptionsBubble, 'gradient');
     const bubbleColorSwatch = el('span', {
@@ -168,8 +183,8 @@ function createPersonalColorizerUI(isPersona = false) {
     settingsSection.appendChild(bubbleModeRow);
 
     // Bubble static colors (shown when mode is static_color)
-    const bubbleStatic1 = colorPicker(`${prefix}-bubble-static-1`, '#da6745ff');
-    const bubbleStatic2 = colorPicker(`${prefix}-bubble-static-2`, '#da6745ff');
+    const bubbleStatic1 = colorPicker(`${prefix}-bubble-static-1`, defaultStaticColor);
+    const bubbleStatic2 = colorPicker(`${prefix}-bubble-static-2`, defaultStaticColor);
     const bubbleStaticRow = row([
         el('div', { className: 'ptmt-color-picker-pair' },
             bubbleStatic1,
@@ -267,6 +282,8 @@ function createPersonalColorizerUI(isPersona = false) {
         opacitySlider,
         gradientEditor,
         gradientRow,
+        syncDialogVisibility,
+        syncBubbleModeVis,
     };
 }
 
@@ -296,15 +313,6 @@ function updatePersonalColorizerEnableState() {
         personaColorizerUI.container.style.pointerEvents = globalEnabled ? 'auto' : 'none';
         personaColorizerUI.enableCheckbox.disabled = !globalEnabled;
     }
-}
-
-/**
- * Generate unique character key from name + avatar to avoid collisions
- * e.g. "alice__alice_v1.png" for character "Alice" with avatar "alice_v1.png"
- */
-function buildCharacterKey(charName, avatarFilename) {
-    const normalizedName = charName.replace(/\W/g, '_').toLowerCase();
-    return `${normalizedName}__${avatarFilename}`;
 }
 
 // Store latest color picker values (since getAttribute doesn't update in real-time)
@@ -383,95 +391,112 @@ function initCharacterColorizer() {
 function loadCharacterSettings() {
     if (!charColorizerUI) return;
 
-    const charNameElem = document.querySelector('#rm_button_selected_ch h2');
-    const nameInput = document.getElementById('character_name_pole');
-    const avatarPreview = document.getElementById('avatar_load_preview');
-    const charName = nameInput?.value?.trim() || charNameElem?.textContent?.trim();
-    const avatarSrc = avatarPreview?.getAttribute('src');
-
-    if (!charName || !avatarSrc) {
-        charColorizerUI.enableCheckbox.checked = false;
-        charColorizerUI.settingsSection.style.display = 'none';
-        return;
-    }
-
-    // Extract avatar filename from src
-    const fileMatch = avatarSrc.match(/[?&]file=([^&]+)/i);
-    const avatarFileName = fileMatch ? decodeURIComponent(fileMatch[1]) : avatarSrc.split('/').pop() || 'unknown.png';
-    const cleanFileName = avatarFileName.split(/[?#]/)[0];
-
-    // Build unique key: name + avatar to avoid collisions when multiple cards have same name
-    currentCharacterId = buildCharacterKey(charName, cleanFileName);
-    currentAvatarFilename = cleanFileName;
-    const enabledList = settings.get('charCustomColorizerEnabled') ?? [];
-    const customSettingsMap = settings.get('charCustomColorizerSettings') ?? {};
-
-    const isEnabled = enabledList.includes(currentCharacterId);
-    const customSettings = customSettingsMap[currentCharacterId] || {};
-
-    console.log(`[PTMT] Character Editor: "${charName}" (${cleanFileName}) → Key: "${currentCharacterId}" | Enabled: ${isEnabled}`);
-    console.log(`[PTMT]   ↳ bubbleOpacity: ${customSettings.bubbleOpacity} (${typeof customSettings.bubbleOpacity})`);
-
-    // Load UI values
-    charColorizerUI.enableCheckbox.checked = isEnabled;
-    charColorizerUI.settingsSection.style.display = isEnabled ? 'block' : 'none';
-
-    // Update dropdowns
-    charColorizerUI.dialogSrcSelect.value = customSettings.dialogSource ?? 'avatar_vibrant';
-
-    // Update range controls & opacity slider BEFORE color pickers
-    // (color picker setAttribute triggers change events that call updateCharacterSettings)
-    charColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
-    const bubbleMode = customSettings.bubbleMode ?? customSettings.bubbleColorMode === 3 ? 'gradient' : 'avatar_light';
-    charColorizerUI.bubbleModeSelect.value = bubbleMode;
-
-    const opacityValue = customSettings.bubbleOpacity ?? 0.1;
-    charColorizerUI.opacitySlider.value = opacityValue.toString();
-    const opacityDisplay = charColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
-    if (opacityDisplay) {
-        opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
-    }
-
-    // Load gradient editor BEFORE color pickers
-    if (charColorizerUI.gradientEditor) {
-        const gradientStops = customSettings.bubbleGradientStops ?? [];
-        const gradientAngle = customSettings.bubbleGradientAngle ?? 225;
-
-        // Always populate palette from avatar colors (all available)
+    isUpdatingCharSettings = true;
+    try {
+        const charNameElem = document.querySelector('#rm_button_selected_ch h2');
+        const nameInput = document.getElementById('character_name_pole');
         const avatarPreview = document.getElementById('avatar_load_preview');
-        if (avatarPreview && avatarPreview.complete && avatarPreview.naturalWidth) {
-            const hexes = sortColorsByLightness(extractColorsFromImage(avatarPreview));
-            if (hexes.length > 0) {
-                charColorizerUI.gradientEditor.colors = hexes;
-            }
+        const charName = nameInput?.value?.trim() || charNameElem?.textContent?.trim();
+        const avatarSrc = avatarPreview?.getAttribute('src');
+
+        if (!charName || !avatarSrc) {
+            charColorizerUI.enableCheckbox.checked = false;
+            charColorizerUI.settingsSection.style.display = 'none';
+            return;
         }
-        // Set stops from saved data (determines active colors and positions)
-        if (gradientStops.length > 0) {
-            charColorizerUI.gradientEditor.stops = gradientStops;
-            charColorizerUI.gradientEditor.angle = gradientAngle;
-        } else if (bubbleMode !== 'static_color' && customSettings.bubbleSource !== 'static_color') {
+
+        // Extract avatar filename from src
+        const cleanFileName = extractAvatarFilenameFromUrl(avatarSrc, 'unknown.png');
+
+        // Build unique key: name + avatar to avoid collisions when multiple cards have same name
+        currentCharacterId = buildCharacterColorizerKeyFromParts(charName, cleanFileName);
+        currentAvatarFilename = cleanFileName;
+        const enabledList = settings.get('charCustomColorizerEnabled') ?? [];
+        const customSettingsMap = settings.get('charCustomColorizerSettings') ?? {};
+
+        const isEnabled = enabledList.includes(currentCharacterId);
+        const customSettings = customSettingsMap[currentCharacterId] || {};
+
+        console.log(`[PTMT] Character Editor: "${charName}" (${cleanFileName}) → Key: "${currentCharacterId}" | Enabled: ${isEnabled}`);
+        console.log(`[PTMT]   ↳ bubbleOpacity: ${customSettings.bubbleOpacity} (${typeof customSettings.bubbleOpacity})`);
+
+        // Load UI values
+        charColorizerUI.enableCheckbox.checked = isEnabled;
+        charColorizerUI.settingsSection.style.display = isEnabled ? 'block' : 'none';
+
+        // Update dropdowns
+        charColorizerUI.dialogSrcSelect.value = customSettings.dialogSource ?? 'avatar_vibrant';
+        charColorizerUI.syncDialogVisibility?.();
+
+        // Update range controls & opacity slider BEFORE color pickers
+        // (color picker setAttribute triggers change events that call updateCharacterSettings)
+        charColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
+        const bubbleMode = normalizeBubbleMode(customSettings, 'gradient');
+        charColorizerUI.bubbleModeSelect.value = bubbleMode;
+
+        const opacityValue = customSettings.bubbleOpacity ?? 0.1;
+        charColorizerUI.opacitySlider.value = opacityValue.toString();
+        const opacityDisplay = charColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
+        if (opacityDisplay) {
+            opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
+        }
+
+        // Load gradient editor BEFORE color pickers
+        if (charColorizerUI.gradientEditor) {
+            const gradientStops = customSettings.bubbleGradientStops ?? [];
+            const gradientAngle = customSettings.bubbleGradientAngle ?? 225;
+
+            // Always populate palette from avatar colors (all available)
+            const avatarPreview = document.getElementById('avatar_load_preview');
+            if (avatarPreview && avatarPreview.complete && avatarPreview.naturalWidth) {
+                const hexes = sortColorsByLightness(extractColorsFromImage(avatarPreview));
+                if (hexes.length > 0) {
+                    charColorizerUI.gradientEditor.colors = hexes;
+                }
+            }
+            // Set stops from saved data (determines active colors and positions)
+            if (gradientStops.length > 0) {
+                charColorizerUI.gradientEditor.stops = gradientStops;
+                charColorizerUI.gradientEditor.angle = gradientAngle;
+            } else if (bubbleMode === 'gradient') {
+                if (avatarPreview) {
+                    autoPopulateGradientFromAvatar(charColorizerUI.gradientEditor, avatarPreview);
+                }
+            }
+
+            charColorizerUI.syncBubbleModeVis?.();
+        }
+
+        // Sync bubble mode visibility
+        const bubbleModeVis = bubbleMode === 'static_color' ? 'flex' : 'none';
+        charColorizerUI.bubbleStaticRow.style.display = bubbleModeVis;
+        charColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
+        // Update swatch color for auto modes
+        if (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') {
+            const avatarPreview = document.getElementById('avatar_load_preview');
             if (avatarPreview) {
-                autoPopulateGradientFromAvatar(charColorizerUI.gradientEditor, avatarPreview);
+                updateBubbleColorSwatch(charColorizerUI, bubbleMode, avatarPreview);
             }
         }
 
-        charColorizerUI.gradientRow.style.display = bubbleMode === 'gradient' ? 'flex' : 'none';
-    }
+        // Update color pickers LAST; setAttribute can trigger change events.
+        const dialogStaticColor = customSettings.dialogStatic ?? '#da6745ff';
+        const bubbleStatic1 = customSettings.bubbleStatic1 ?? '#da6745ff';
+        const bubbleStatic2 = customSettings.bubbleStatic2 ?? '#da6745ff';
 
-    // Sync bubble mode visibility
-    const bubbleModeVis = bubbleMode === 'static_color' ? 'flex' : 'none';
-    charColorizerUI.bubbleStaticRow.style.display = bubbleModeVis;
-    charColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
-    // Update swatch color for auto modes
-    if (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') {
-        const avatarPreview = document.getElementById('avatar_load_preview');
-        if (avatarPreview) {
-            updateBubbleColorSwatch(charColorizerUI, bubbleMode, avatarPreview);
-        }
-    }
+        charColorizerUI.dialogStaticColor.setAttribute('color', dialogStaticColor);
+        charColorizerUI.bubbleStatic1.setAttribute('color', bubbleStatic1);
+        charColorizerUI.bubbleStatic2.setAttribute('color', bubbleStatic2);
 
-    // Ensure UI reflects global enable state
-    updatePersonalColorizerEnableState();
+        latestDialogStaticColor = dialogStaticColor;
+        latestBubbleStatic1 = bubbleStatic1;
+        latestBubbleStatic2 = bubbleStatic2;
+
+        // Ensure UI reflects global enable state
+        updatePersonalColorizerEnableState();
+    } finally {
+        isUpdatingCharSettings = false;
+    }
 }
 
 /**
@@ -661,98 +686,100 @@ function initPersonaColorizer() {
 function loadPersonaSettings() {
     if (!personaColorizerUI) return;
 
-    // Get current persona from DOM/API
-    const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
-    if (!userAvatarImg) return;
-
-    const src = userAvatarImg.getAttribute('src');
-    if (!src) return;
-
-    const fileMatch = src.match(/[?&]file=([^&]+)/i);
-    const avatarFileName = fileMatch ? decodeURIComponent(fileMatch[1]) : src.split('/').pop() || 'user.png';
-    const cleanFileName = avatarFileName.split(/[?#]/)[0];
-
-    const enabledList = settings.get('personaCustomColorizerEnabled') ?? [];
-    const customSettingsMap = settings.get('personaCustomColorizerSettings') ?? {};
-
-    const isEnabled = enabledList.includes(cleanFileName);
-    const customSettings = customSettingsMap[cleanFileName] || {};
-
-    console.log(`[PTMT] Persona Editor: "${cleanFileName}" | Enabled: ${isEnabled} | Saved Files: [${Object.keys(customSettingsMap).join(', ')}]`);
-    console.log(`[PTMT]   ↳ bubbleOpacity: ${customSettings.bubbleOpacity} (${typeof customSettings.bubbleOpacity})`);
-
-    // Load UI values
-    personaColorizerUI.enableCheckbox.checked = isEnabled;
-    personaColorizerUI.settingsSection.style.display = isEnabled ? 'block' : 'none';
-
-    // Update dropdowns
-    personaColorizerUI.dialogSrcSelect.value = customSettings.dialogSource ?? 'avatar_vibrant';
-
-    // Update range controls & opacity slider BEFORE color pickers
-    personaColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
-    const bubbleMode = customSettings.bubbleMode ?? customSettings.bubbleColorMode === 3 ? 'gradient' : 'avatar_light';
-    personaColorizerUI.bubbleModeSelect.value = bubbleMode;
-
-    const opacityValue = customSettings.bubbleOpacity ?? 0.1;
-    personaColorizerUI.opacitySlider.value = opacityValue.toString();
-    const opacityDisplay = personaColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
-    if (opacityDisplay) {
-        opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
-    }
-
-    // Load gradient editor BEFORE color pickers
-    if (personaColorizerUI.gradientEditor) {
-        const gradientStops = customSettings.bubbleGradientStops ?? [];
-        const gradientAngle = customSettings.bubbleGradientAngle ?? 225;
-
-        // Always populate palette from avatar colors
+    isUpdatingPersonaSettings = true;
+    try {
+        // Get current persona from DOM/API
         const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
-        if (userAvatarImg && userAvatarImg.complete && userAvatarImg.naturalWidth) {
-            const hexes = sortColorsByLightness(extractColorsFromImage(userAvatarImg));
-            if (hexes.length > 0) {
-                personaColorizerUI.gradientEditor.colors = hexes;
-            }
+        if (!userAvatarImg) return;
+
+        const src = userAvatarImg.getAttribute('src');
+        if (!src) return;
+
+        const cleanFileName = extractAvatarFilenameFromUrl(src, 'user.png');
+
+        const enabledList = settings.get('personaCustomColorizerEnabled') ?? [];
+        const customSettingsMap = settings.get('personaCustomColorizerSettings') ?? {};
+
+        const isEnabled = enabledList.includes(cleanFileName);
+        const customSettings = customSettingsMap[cleanFileName] || {};
+
+        console.log(`[PTMT] Persona Editor: "${cleanFileName}" | Enabled: ${isEnabled} | Saved Files: [${Object.keys(customSettingsMap).join(', ')}]`);
+        console.log(`[PTMT]   ↳ bubbleOpacity: ${customSettings.bubbleOpacity} (${typeof customSettings.bubbleOpacity})`);
+
+        // Load UI values
+        personaColorizerUI.enableCheckbox.checked = isEnabled;
+        personaColorizerUI.settingsSection.style.display = isEnabled ? 'block' : 'none';
+
+        // Update dropdowns
+        personaColorizerUI.dialogSrcSelect.value = customSettings.dialogSource ?? 'avatar_vibrant';
+        personaColorizerUI.syncDialogVisibility?.();
+
+        // Update range controls & opacity slider BEFORE color pickers
+        personaColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
+        const bubbleMode = normalizeBubbleMode(customSettings, 'gradient');
+        personaColorizerUI.bubbleModeSelect.value = bubbleMode;
+
+        const opacityValue = customSettings.bubbleOpacity ?? 0.1;
+        personaColorizerUI.opacitySlider.value = opacityValue.toString();
+        const opacityDisplay = personaColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
+        if (opacityDisplay) {
+            opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
         }
-        if (gradientStops.length > 0) {
-            personaColorizerUI.gradientEditor.stops = gradientStops;
-            personaColorizerUI.gradientEditor.angle = gradientAngle;
-        } else if (bubbleMode !== 'static_color' && customSettings.bubbleSource !== 'static_color') {
+
+        // Load gradient editor BEFORE color pickers
+        if (personaColorizerUI.gradientEditor) {
+            const gradientStops = customSettings.bubbleGradientStops ?? [];
+            const gradientAngle = customSettings.bubbleGradientAngle ?? 225;
+
+            // Always populate palette from avatar colors
+            const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
+            if (userAvatarImg && userAvatarImg.complete && userAvatarImg.naturalWidth) {
+                const hexes = sortColorsByLightness(extractColorsFromImage(userAvatarImg));
+                if (hexes.length > 0) {
+                    personaColorizerUI.gradientEditor.colors = hexes;
+                }
+            }
+            if (gradientStops.length > 0) {
+                personaColorizerUI.gradientEditor.stops = gradientStops;
+                personaColorizerUI.gradientEditor.angle = gradientAngle;
+            } else if (bubbleMode === 'gradient') {
+                if (userAvatarImg) {
+                    autoPopulateGradientFromAvatar(personaColorizerUI.gradientEditor, userAvatarImg);
+                }
+            }
+
+            personaColorizerUI.syncBubbleModeVis?.();
+        }
+
+        // Sync bubble mode visibility
+        personaColorizerUI.bubbleStaticRow.style.display = bubbleMode === 'static_color' ? 'flex' : 'none';
+        personaColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
+        if (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') {
+            const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
             if (userAvatarImg) {
-                autoPopulateGradientFromAvatar(personaColorizerUI.gradientEditor, userAvatarImg);
+                updateBubbleColorSwatch(personaColorizerUI, bubbleMode, userAvatarImg);
             }
         }
 
-        personaColorizerUI.gradientRow.style.display = bubbleMode === 'gradient' ? 'flex' : 'none';
+        // Update color pickers LAST; setAttribute triggers change events.
+        const dialogStaticColor = customSettings.dialogStatic ?? '#537fddff';
+        const bubbleStatic1 = customSettings.bubbleStatic1 ?? '#537fddff';
+        const bubbleStatic2 = customSettings.bubbleStatic2 ?? '#537fddff';
+
+        personaColorizerUI.dialogStaticColor.setAttribute('color', dialogStaticColor);
+        personaColorizerUI.bubbleStatic1.setAttribute('color', bubbleStatic1);
+        personaColorizerUI.bubbleStatic2.setAttribute('color', bubbleStatic2);
+
+        // Store in module-level variables so change events can use them.
+        latestPersonaDialogColor = dialogStaticColor;
+        latestPersonaBubble1 = bubbleStatic1;
+        latestPersonaBubble2 = bubbleStatic2;
+
+        // Ensure UI reflects global enable state
+        updatePersonalColorizerEnableState();
+    } finally {
+        isUpdatingPersonaSettings = false;
     }
-
-    // Sync bubble mode visibility
-    personaColorizerUI.bubbleStaticRow.style.display = bubbleMode === 'static_color' ? 'flex' : 'none';
-    personaColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
-    if (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') {
-        const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
-        if (userAvatarImg) {
-            updateBubbleColorSwatch(personaColorizerUI, bubbleMode, userAvatarImg);
-        }
-    }
-
-    // Update color pickers LAST — setAttribute triggers change events
-    const dialogStaticColor = customSettings.dialogStatic ?? '#537fddff';
-    const bubbleStatic1 = customSettings.bubbleStatic1 ?? '#537fddff';
-    const bubbleStatic2 = customSettings.bubbleStatic2 ?? '#537fddff';
-
-    personaColorizerUI.dialogStaticColor.setAttribute('color', dialogStaticColor);
-    personaColorizerUI.bubbleStatic1.setAttribute('color', bubbleStatic1);
-    personaColorizerUI.bubbleStatic2.setAttribute('color', bubbleStatic2);
-
-    // Store in module-level variables so change events can use them
-    latestPersonaDialogColor = dialogStaticColor;
-    latestPersonaBubble1 = bubbleStatic1;
-    latestPersonaBubble2 = bubbleStatic2;
-
-    // Sync visibility
-
-    // Ensure UI reflects global enable state
-    updatePersonalColorizerEnableState();
 }
 
 /**
@@ -761,34 +788,10 @@ function loadPersonaSettings() {
  */
 function updateBubbleColorSwatch(ui, mode, imgElement) {
     if (!ui?.bubbleColorSwatch || !imgElement) return;
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    canvas.width = imgElement.naturalWidth || 100;
-    canvas.height = imgElement.naturalHeight || 100;
-    ctx.drawImage(imgElement, 0, 0, canvas.width, canvas.height);
-    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
-    const colorMap = {};
-    for (let i = 0; i < imageData.length; i += 16) {
-        const r = imageData[i], g = imageData[i + 1], b = imageData[i + 2];
-        const key = `${Math.round(r / 32) * 32},${Math.round(g / 32) * 32},${Math.round(b / 32) * 32}`;
-        colorMap[key] = (colorMap[key] || 0) + 1;
-    }
-    const sorted = Object.keys(colorMap).sort((a, b) => colorMap[b] - colorMap[a]);
-    const top5 = sorted.slice(0, 5).map(k => {
-        const [r, g, b] = k.split(',').map(Number);
-        return '#' + [r, g, b].map(c => Math.min(255, c + 16).toString(16).padStart(2, '0')).join('');
-    });
-    const sortedByLightness = top5.map(h => {
-        const r = parseInt(h.slice(1, 3), 16);
-        const g = parseInt(h.slice(3, 5), 16);
-        const b = parseInt(h.slice(5, 7), 16);
-        const [, , l] = ColorUtils.rgbToHsl([r, g, b]);
-        return { hex: h, l };
-    }).sort((a, b) => a.l - b.l);
-    const picked = mode === 'avatar_light' ? sortedByLightness[sortedByLightness.length - 1] : sortedByLightness[0];
+    const colors = sortColorsByLightness(extractColorsFromImage(imgElement, 5));
+    const picked = mode === 'avatar_light' ? colors[colors.length - 1] : colors[0];
     if (picked) {
-        ui.bubbleColorSwatch.style.background = picked.hex;
+        ui.bubbleColorSwatch.style.background = picked;
     }
 }
 
@@ -811,9 +814,7 @@ function updatePersonaSettings() {
         const src = userAvatarImg.getAttribute('src');
         if (!src) return;
 
-        const fileMatch = src.match(/[?&]file=([^&]+)/i);
-        const avatarFileName = fileMatch ? decodeURIComponent(fileMatch[1]) : src.split('/').pop() || 'user.png';
-        const cleanFileName = avatarFileName.split(/[?#]/)[0];
+        const cleanFileName = extractAvatarFilenameFromUrl(src, 'user.png');
 
         const isEnabled = personaColorizerUI.enableCheckbox.checked;
         const enabledList = settings.get('personaCustomColorizerEnabled') ?? [];

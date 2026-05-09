@@ -455,13 +455,14 @@ export function createDialogueColorizerSettings(settings) {
         return inp;
     };
 
-    const dropdown = (id, key, options) => {
+    const dropdown = (id, key, options, { numeric = false } = {}) => {
         const sel = el('select', { id });
-        options.forEach(o => sel.appendChild(el('option', { value: o.value, selected: settings.get(key) === o.value }, o.label)));
-        sel.addEventListener('change', e => settings.update({ [key]: e.target.value }));
-        if (typeof settings.get(key) === 'number') {
-            sel.addEventListener('change', e => settings.update({ [key]: parseInt(e.target.value, 10) }));
-        }
+        const current = settings.get(key);
+        options.forEach(o => sel.appendChild(el('option', { value: o.value, selected: String(current) === String(o.value) }, o.label)));
+        sel.addEventListener('change', e => {
+            const value = numeric ? parseInt(e.target.value, 10) : e.target.value;
+            settings.update({ [key]: value });
+        });
         return sel;
     };
 
@@ -495,154 +496,33 @@ export function createDialogueColorizerSettings(settings) {
         return pickerElement;
     };
 
+    const bubbleModeOptions = [
+        { value: 'avatar_light', label: 'Avatar Light (Auto)' },
+        { value: 'avatar_dark', label: 'Avatar Dark (Auto)' },
+        { value: 'static_color', label: 'Static' },
+        { value: 'gradient', label: 'Gradient Auto' },
+    ];
+
+    const targetOptions = [
+        { value: '1', label: 'Quoted Text Only' },
+        { value: '2', label: 'Chat Bubbles Only' },
+        { value: '3', label: 'Both' },
+    ];
+
     const sourceOptions = [
         { value: 'avatar_vibrant', label: 'Avatar Vibrant (auto)' },
         { value: 'static_color', label: 'Static Color' },
     ];
 
-    const container = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Dialogue Colorizer'));
+    const container = el('fieldset', { className: 'ptmt-settings-fieldset ptmt-colorizer-settings' }, el('legend', {}, 'Dialogue Colorizer'));
     const grid = el('div', { className: 'ptmt-settings-grid' });
     container.appendChild(grid);
 
-    grid.appendChild(row([
-        checkbox('ptmt-col-enable', 'enableDialogueColorizer'),
-        lbl('Enable Dialogue Colorizer', 'ptmt-col-enable'),
-    ]));
-
-    const targetSel = dropdown('ptmt-col-target', 'dialogueColorizerColorizeTarget', [
-        { value: '1', label: 'Quoted Text Only' },
-        { value: '2', label: 'Chat Bubbles Only' },
-        { value: '3', label: 'Both' },
-    ]);
-    targetSel.value = String(settings.get('dialogueColorizerColorizeTarget') ?? 1);
-    grid.appendChild(row([lbl('Colorize Target', 'ptmt-col-target'), targetSel]));
-
-    const bubbleModeSel = dropdown('ptmt-col-bubble-mode', 'dialogueColorizerBubbleMode', [
-        { value: 'avatar_light', label: 'Avatar Light (Auto)' },
-        { value: 'avatar_dark', label: 'Avatar Dark (Auto)' },
-        { value: 'static_color', label: 'Static' },
-        { value: 'gradient', label: 'Gradient' },
-    ]);
-    bubbleModeSel.value = settings.get('dialogueColorizerBubbleMode') ?? 'gradient';
-    grid.appendChild(row([lbl('Bubble Color Mode', 'ptmt-col-bubble-mode'), bubbleModeSel]));
-
-    // ─── Gradient Editor ─────────────────────────────────────────────────────
-    const gradientRow = el('div', { className: 'ptmt-setting-row ptmt-gradient-row', style: 'display: none; flex-direction: column;' });
-    const gradientEditor = new GradientEditor({
-        stops: settings.get('dialogueColorizerBubbleGradientStops') ?? [],
-        angle: settings.get('dialogueColorizerBubbleGradientAngle') ?? 225,
-        showAngle: true,
-        showReset: true,
-        onChange: ({ stops, angle }) => {
-            settings.update({
-                dialogueColorizerBubbleGradientStops: stops,
-                dialogueColorizerBubbleGradientAngle: angle,
-            });
-        },
-        onReset: () => {
-            settings.update({
-                dialogueColorizerBubbleGradientStops: [],
-                dialogueColorizerBubbleGradientAngle: 225,
-            });
-            gradientEditor.stops = [];
-            gradientEditor.angle = 225;
-        },
-    });
-    gradientEditor.mount(gradientRow);
-
-    const syncGradientVis = () => {
-        gradientRow.style.display = bubbleModeSel.value === 'gradient' ? 'flex' : 'none';
-    };
-    bubbleModeSel.addEventListener('change', syncGradientVis);
-    syncGradientVis();
-    grid.appendChild(gradientRow);
-
-    const opacityBotVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1) * 100)}%`);
-    const opacityBotSlider = el('input', {
-        type: 'range', min: '0', max: '1', step: '0.01',
-        value: settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1,
-        className: 'ptmt-opacity-slider'
-    });
-    opacityBotSlider.addEventListener('input', () => {
-        const val = parseFloat(opacityBotSlider.value);
-        opacityBotVal.textContent = `${Math.round(val * 100)}%`;
-        settings.update({ dialogueColorizerBubbleOpacityBot: val });
-    });
-    grid.appendChild(row([lbl('Char Bubble Opacity', 'ptmt-bubble-opacity-bot'), opacityBotSlider, opacityBotVal]));
-
-    const opacityUserVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round((settings.get('dialogueColorizerBubbleOpacityUser') ?? 0.1) * 100)}%`);
-    const opacityUserSlider = el('input', {
-        type: 'range', min: '0', max: '1', step: '0.01',
-        value: settings.get('dialogueColorizerBubbleOpacityUser') ?? 0.1,
-        className: 'ptmt-opacity-slider'
-    });
-    opacityUserSlider.addEventListener('input', () => {
-        const val = parseFloat(opacityUserSlider.value);
-        opacityUserVal.textContent = `${Math.round(val * 100)}%`;
-        settings.update({ dialogueColorizerBubbleOpacityUser: val });
-    });
-    grid.appendChild(row([lbl('User Bubble Opacity', 'ptmt-bubble-opacity-user'), opacityUserSlider, opacityUserVal]));
-
-    const charSection = el('fieldset', {}, el('legend', {}, 'Characters'));
-    const charDialogSrc = row([lbl('Dialogue Color Source', 'ptmt-col-charsrc'), dropdown('ptmt-col-charsrc', 'dialogueColorizerSource', sourceOptions)]);
-    const charDialogStatic = row([colorPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-charstaticcolor')]);
-    const charBubbleMode = row([lbl('Bubble Color Mode', 'ptmt-col-charbubblemode'), dropdown('ptmt-col-charbubblemode', 'dialogueColorizerBubbleMode', [
-        { value: 'avatar_light', label: 'Avatar Light (Auto)' },
-        { value: 'avatar_dark', label: 'Avatar Dark (Auto)' },
-        { value: 'static_color', label: 'Static' },
-        { value: 'gradient', label: 'Gradient' },
-    ])]);
-    charBubbleMode.querySelector('select').value = settings.get('dialogueColorizerBubbleMode') ?? 'gradient';
-    const charBubbleStatic = row([
-        el('div', { className: 'ptmt-color-picker-pair' },
-            colorPicker('ptmt-col-charbubblestatic1', 'dialogueColorizerBubbleStaticColor1'),
-            colorPicker('ptmt-col-charbubblestatic2', 'dialogueColorizerBubbleStaticColor2')
-        ),
-        lbl('Bubble Static Colors (Gradients)', 'ptmt-col-charbubblestatic'),
-    ]);
-
-    const syncCharVis = () => {
-        charDialogStatic.style.display = charDialogSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
-        charBubbleStatic.style.display = charBubbleMode.querySelector('select').value === 'static_color' ? 'flex' : 'none';
-    };
-    charDialogSrc.querySelector('select').addEventListener('change', syncCharVis);
-    charBubbleMode.querySelector('select').addEventListener('change', syncCharVis);
-    syncCharVis();
-    charSection.append(charDialogSrc, charDialogStatic, charBubbleMode, charBubbleStatic);
-    grid.appendChild(charSection);
-
-    const personaSection = el('fieldset', {}, el('legend', {}, 'Personas (User)'));
-    const personaDialogSrc = row([lbl('Dialogue Color Source', 'ptmt-col-personasrc'), dropdown('ptmt-col-personasrc', 'dialogueColorizerPersonaSource', sourceOptions)]);
-    const personaDialogStatic = row([colorPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-personastaticcolor')]);
-    const personaBubbleMode = row([lbl('Bubble Color Mode', 'ptmt-col-personabubblemode'), dropdown('ptmt-col-personabubblemode', 'dialogueColorizerBubbleMode', [
-        { value: 'avatar_light', label: 'Avatar Light (Auto)' },
-        { value: 'avatar_dark', label: 'Avatar Dark (Auto)' },
-        { value: 'static_color', label: 'Static' },
-        { value: 'gradient', label: 'Gradient' },
-    ])]);
-    personaBubbleMode.querySelector('select').value = settings.get('dialogueColorizerBubbleMode') ?? 'gradient';
-    const personaBubbleStatic = row([
-        el('div', { className: 'ptmt-color-picker-pair' },
-            colorPicker('ptmt-col-personabubblestatic1', 'dialogueColorizerBubbleStaticColor1'),
-            colorPicker('ptmt-col-personabubblestatic2', 'dialogueColorizerBubbleStaticColor2')
-        ),
-        lbl('Bubble Static Colors (Gradients)', 'ptmt-col-personabubblestatic'),
-    ]);
-
-    const syncPersonaVis = () => {
-        personaDialogStatic.style.display = personaDialogSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
-        personaBubbleStatic.style.display = personaBubbleMode.querySelector('select').value === 'static_color' ? 'flex' : 'none';
-    };
-    personaDialogSrc.querySelector('select').addEventListener('change', syncPersonaVis);
-    personaBubbleMode.querySelector('select').addEventListener('change', syncPersonaVis);
-    syncPersonaVis();
-    personaSection.append(personaDialogSrc, personaDialogStatic, personaBubbleMode, personaBubbleStatic);
-    grid.appendChild(personaSection);
-
+    const enableInput = checkbox('ptmt-col-enable', 'enableDialogueColorizer');
     const wipeBtn = el('button', {
         className: 'menu_button',
-        style: 'margin-top: 8px; align-self: center;',
-        textContent: 'Wipe All Character Color Settings',
+        type: 'button',
+        textContent: 'Wipe All',
     });
     wipeBtn.addEventListener('click', () => {
         if (!confirm('This will remove ALL per-character and per-persona colorizer settings. Global settings are not affected. Continue?')) return;
@@ -655,7 +535,140 @@ export function createDialogueColorizerSettings(settings) {
         window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: true } }));
         window.dispatchEvent(new CustomEvent('ptmt:settingsChanged', { detail: { changed: ['charCustomColorizerEnabled', 'personaCustomColorizerEnabled'] } }));
     });
-    container.appendChild(wipeBtn);
+    grid.appendChild(row([
+        enableInput,
+        lbl('Enable Dialogue Colorizer', 'ptmt-col-enable'),
+        wipeBtn,
+    ], { className: 'ptmt-setting-row ptmt-grid-full ptmt-colorizer-enable-row' }));
+
+    const opacityControl = (id, key, labelText) => {
+        const value = settings.get(key) ?? 0.1;
+        const valueLabel = el('span', { className: 'ptmt-opacity-value' }, `${Math.round(value * 100)}%`);
+        const slider = el('input', {
+            id,
+            type: 'range',
+            min: '0',
+            max: '1',
+            step: '0.01',
+            value,
+            className: 'ptmt-opacity-slider',
+        });
+        slider.addEventListener('input', () => {
+            const val = parseFloat(slider.value);
+            valueLabel.textContent = `${Math.round(val * 100)}%`;
+            settings.update({ [key]: val });
+        });
+        return row([lbl(labelText, id), slider, valueLabel]);
+    };
+
+    const gradientControl = ({ prefix, stopsKey, angleKey, modeSelect }) => {
+        const gradientRow = el('div', { className: 'ptmt-setting-row ptmt-gradient-row', style: 'display: none; flex-direction: column;' });
+        const gradientEditor = new GradientEditor({
+            stops: settings.get(stopsKey) ?? [],
+            angle: settings.get(angleKey) ?? 225,
+            showAngle: true,
+            showReset: false,
+            showPalette: false,
+            showTrack: false,
+            onChange: ({ stops, angle }) => settings.update({ [stopsKey]: stops, [angleKey]: angle }),
+            onReset: () => {
+                settings.update({ [stopsKey]: [], [angleKey]: 225 });
+                gradientEditor.stops = [];
+                gradientEditor.angle = 225;
+            },
+        });
+        gradientEditor.mount(gradientRow);
+
+        const sync = () => {
+            gradientRow.style.display = modeSelect.value === 'gradient' ? 'flex' : 'none';
+        };
+        modeSelect.addEventListener('change', sync);
+        sync();
+        gradientRow.dataset.gradientFor = prefix;
+        return gradientRow;
+    };
+
+    const charSection = el('fieldset', { className: 'ptmt-colorizer-subsection' }, el('legend', {}, 'Characters'));
+    const charTarget = dropdown('ptmt-col-char-target', 'dialogueColorizerColorizeTarget', targetOptions, { numeric: true });
+    const charDialogSrc = row([lbl('Dialogue Color Source', 'ptmt-col-charsrc'), dropdown('ptmt-col-charsrc', 'dialogueColorizerSource', sourceOptions)]);
+    const charDialogStatic = row([colorPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-charstaticcolor')]);
+    const charBubbleMode = dropdown('ptmt-col-charbubblemode', 'dialogueColorizerBubbleMode', bubbleModeOptions);
+    const charGradient = gradientControl({
+        prefix: 'characters',
+        stopsKey: 'dialogueColorizerBubbleGradientStops',
+        angleKey: 'dialogueColorizerBubbleGradientAngle',
+        modeSelect: charBubbleMode,
+    });
+    const charBubbleStatic = row([
+        el('div', { className: 'ptmt-color-picker-pair' },
+            colorPicker('ptmt-col-charbubblestatic1', 'dialogueColorizerBubbleStaticColor1'),
+            colorPicker('ptmt-col-charbubblestatic2', 'dialogueColorizerBubbleStaticColor2')
+        ),
+        lbl('Bubble Static Colors', 'ptmt-col-charbubblestatic'),
+    ]);
+
+    const syncCharVis = () => {
+        charDialogStatic.style.display = charDialogSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
+        charBubbleStatic.style.display = charBubbleMode.value === 'static_color' ? 'flex' : 'none';
+    };
+    charDialogSrc.querySelector('select').addEventListener('change', syncCharVis);
+    charBubbleMode.addEventListener('change', syncCharVis);
+    syncCharVis();
+    charSection.append(
+        row([lbl('Colorize Target', 'ptmt-col-char-target'), charTarget]),
+        charDialogSrc,
+        charDialogStatic,
+        row([lbl('Bubble Color Mode', 'ptmt-col-charbubblemode'), charBubbleMode]),
+        charGradient,
+        charBubbleStatic,
+        opacityControl('ptmt-bubble-opacity-bot', 'dialogueColorizerBubbleOpacityBot', 'Bubble Opacity')
+    );
+    grid.appendChild(charSection);
+
+    const personaSection = el('fieldset', { className: 'ptmt-colorizer-subsection' }, el('legend', {}, 'Personas (User)'));
+    const personaTarget = dropdown('ptmt-col-persona-target', 'dialogueColorizerPersonaColorizeTarget', targetOptions, { numeric: true });
+    const personaDialogSrc = row([lbl('Dialogue Color Source', 'ptmt-col-personasrc'), dropdown('ptmt-col-personasrc', 'dialogueColorizerPersonaSource', sourceOptions)]);
+    const personaDialogStatic = row([colorPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-personastaticcolor')]);
+    const personaBubbleMode = dropdown('ptmt-col-personabubblemode', 'dialogueColorizerPersonaBubbleMode', bubbleModeOptions);
+    const personaGradient = gradientControl({
+        prefix: 'personas',
+        stopsKey: 'dialogueColorizerPersonaBubbleGradientStops',
+        angleKey: 'dialogueColorizerPersonaBubbleGradientAngle',
+        modeSelect: personaBubbleMode,
+    });
+    const personaBubbleStatic = row([
+        el('div', { className: 'ptmt-color-picker-pair' },
+            colorPicker('ptmt-col-personabubblestatic1', 'dialogueColorizerPersonaBubbleStaticColor1'),
+            colorPicker('ptmt-col-personabubblestatic2', 'dialogueColorizerPersonaBubbleStaticColor2')
+        ),
+        lbl('Bubble Static Colors', 'ptmt-col-personabubblestatic'),
+    ]);
+
+    const syncPersonaVis = () => {
+        personaDialogStatic.style.display = personaDialogSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
+        personaBubbleStatic.style.display = personaBubbleMode.value === 'static_color' ? 'flex' : 'none';
+    };
+    personaDialogSrc.querySelector('select').addEventListener('change', syncPersonaVis);
+    personaBubbleMode.addEventListener('change', syncPersonaVis);
+    syncPersonaVis();
+    personaSection.append(
+        row([lbl('Colorize Target', 'ptmt-col-persona-target'), personaTarget]),
+        personaDialogSrc,
+        personaDialogStatic,
+        row([lbl('Bubble Color Mode', 'ptmt-col-personabubblemode'), personaBubbleMode]),
+        personaGradient,
+        personaBubbleStatic,
+        opacityControl('ptmt-bubble-opacity-user', 'dialogueColorizerBubbleOpacityUser', 'Bubble Opacity')
+    );
+    grid.appendChild(personaSection);
+
+    const syncEnabledVisibility = () => {
+        const display = enableInput.checked ? '' : 'none';
+        charSection.style.display = display;
+        personaSection.style.display = display;
+    };
+    enableInput.addEventListener('change', syncEnabledVisibility);
+    syncEnabledVisibility();
 
     return container;
 }

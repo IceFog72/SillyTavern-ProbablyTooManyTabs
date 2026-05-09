@@ -14,3 +14,5 @@ __tests__/
 .github/
 /docs
 docker-compose2.yml
+SCAN_NOTES.md
+ARCHITECTURE.md

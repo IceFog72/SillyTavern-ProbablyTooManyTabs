@@ -167,11 +167,15 @@
  * @property {string} dialogueColorizerPersonaBubbleStaticColor1
  * @property {string} dialogueColorizerPersonaBubbleStaticColor2
  * @property {1|2|3} dialogueColorizerColorizeTarget - Bitmask: 1=quoted text, 2=bubbles, 3=both
+ * @property {1|2|3} dialogueColorizerPersonaColorizeTarget - Bitmask: 1=quoted text, 2=bubbles, 3=both
  * @property {number} dialogueColorizerBubbleOpacityBot - 0.0 to 1.0
  * @property {number} dialogueColorizerBubbleOpacityUser - 0.0 to 1.0
- * @property {'avatar_light'|'avatar_dark'|'static_color'|'gradient'} dialogueColorizerBubbleMode
- * @property {{color:string,position:number}[]} dialogueColorizerBubbleGradientStops - Custom gradient stops
+ * @property {'avatar_light'|'avatar_dark'|'static_color'|'gradient'} dialogueColorizerBubbleMode - gradient means auto inner-palette gradient unless custom stops are set
+ * @property {'avatar_light'|'avatar_dark'|'static_color'|'gradient'} dialogueColorizerPersonaBubbleMode - gradient means auto inner-palette gradient unless custom stops are set
+ * @property {{color:string,position:number}[]} dialogueColorizerBubbleGradientStops - Custom gradient stops; empty uses auto second-darkest + second-lightest
  * @property {number} dialogueColorizerBubbleGradientAngle - Gradient angle in degrees
+ * @property {{color:string,position:number}[]} dialogueColorizerPersonaBubbleGradientStops - Custom gradient stops; empty uses auto second-darkest + second-lightest
+ * @property {number} dialogueColorizerPersonaBubbleGradientAngle - Gradient angle in degrees
  * @property {string[]} charCustomColorizerEnabled - char names with custom colorizer enabled
  * @property {Object.<string, Object>} charCustomColorizerSettings - keyed by char name
  * @property {string[]} personaCustomColorizerEnabled - persona filenames with custom colorizer enabled
