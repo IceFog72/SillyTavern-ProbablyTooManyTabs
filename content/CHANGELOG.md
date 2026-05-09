@@ -2,6 +2,17 @@
 
 ---
 
+## v0.11.5 — 2026-05-09
+
+*Dialogue Colorizer Rewrite*
+
+- ✦ Refactor/New · **Split Character / Persona Controls** — Layout Settings now gives Characters and Personas (User) their own Colorize Target, Bubble Color Mode, gradient angle, static colours, and opacity controls.
+- ✦ New · **Gradient Bubble Mode** — bubble gradients now pick the inner avatar palette pair (second-darkest + second-lightest when available)
+- ✦ New · **Gradient Editor Rebuild** — rebuilt the gradient editor with stable stop dragging, keyboard support, reset handling, and angle-aware thumb flipping for 180°+ / 270°+ gradients.
+- © Migration · Legacy per-character and per-persona Dialogue Colorizer overrides are reset once for the new key format. Global Dialogue Colorizer settings and layout settings are preserved.
+
+---
+
 ## v0.11.4 — 2026-05-08
 
 *Expanded Extension Ecosystem*

@@ -105,22 +105,24 @@ Tints quoted dialogue text and/or chat bubble backgrounds using each character's
 ### Global Settings
 
 - **Enable Dialogue Colorizer** — master switch for all colorizer effects.
-- **Colorize Target** — choose what gets tinted:
-  - *Quoted Text Only*
-  - *Chat Bubbles Only*
-  - *Both*
-- **Dialogue Color Mode** — which dominant colour is extracted from the avatar for dialogue tinting: *1st Dominant* or *2nd Dominant*.
-- **Bubble Color Mode** — colour used for bubble backgrounds: *1st Dominant*, *2nd Dominant*, or *Gradient* (blends two dominant colours).
-- **Char Bubble Opacity** — slider (0–100 %) for the character bubble background opacity.
-- **User Bubble Opacity** — slider (0–100 %) for the user/persona bubble background opacity.
+- **Wipe All** — resets all Dialogue Colorizer settings to defaults, including per-character and per-persona overrides.
+
+When the master switch is off, the Characters and Personas (User) sub-sections are hidden.
 
 **Characters sub-section:**
-- *Dialogue Color Source* — auto-extract from avatar (*Avatar Vibrant*) or use a fixed *Static Color*.
+- *Colorize Target* — choose what gets tinted: *Quoted Text Only*, *Chat Bubbles Only*, or *Both*.
+- *Dialogue Color Source* — extract from avatar (*Avatar Vibrant*) or use a fixed *Static Color*.
 - *Dialogue Static Color* — colour picker (shown when Static Color is selected).
-- *Bubble Color Source* — same choice for bubble backgrounds.
-- *Bubble Static Colors (Gradients)* — two colour pickers for the start/end of the gradient.
+- *Bubble Color Mode*:
+  - *Avatar Light* — uses the lightest colour from the avatar palette.
+  - *Avatar Dark* — uses the darkest colour from the avatar palette.
+  - *Static* — uses the two Bubble Static Colors.
+  - *Gradient* — builds a two-colour gradient from the avatar palette, using the inner lightness pair when enough colours are available.
+- *Gradient Angle* — shown for Gradient. Global settings only control the angle; the gradient colours are chosen automatically from each avatar.
+- *Bubble Static Colors* — two colour pickers shown for Static mode.
+- *Bubble Opacity* — slider (0–100 %) for character bubble backgrounds.
 
-**Personas (User) sub-section** — same controls as Characters, applied to the user's persona avatar.
+**Personas (User) sub-section** — same controls as Characters, but stored separately and applied to the user's persona avatar.
 
 ### Personal Dialogue Colorizer
 
@@ -131,13 +133,18 @@ Override the global dialogue colorizer settings for individual characters or per
 
 When enabled, both provide these controls (in order):
 1. **Colorize Target** — override global target setting
-2. **Dialogue Color Source** — auto-extract or static colour for dialogue
-3. **Dialogue Color Mode** — which dominant colour to use
-4. **Bubble Color Source** — auto-extract or static colour for bubbles
-5. **Bubble Color Mode** — bubble style (1st dominant, 2nd dominant, or gradient)
-6. **Char/User Bubble Opacity** — opacity override for this character or persona
+2. **Dialogue Color Source** — avatar-extracted or static colour for dialogue
+3. **Dialogue Static Color** — shown when Static Color is selected
+4. **Bubble Color Mode** — Avatar Light, Avatar Dark, Static, or Gradient
+5. **Bubble Static Colors** — shown when Static is selected
+6. **Gradient Editor** — shown when Gradient is selected; lets you adjust colours, stop positions, and angle for this specific character or persona
+7. **Char/User Bubble Opacity** — opacity override for this character or persona
+
+Gradient starts from the avatar palette. If at least four colours are extracted, PTMT uses the second-darkest and second-lightest colours; with fewer colours, it falls back to the available darkest/lightest pair.
 
 Settings are saved automatically and persist across sessions. Disable the toggle to revert to global settings for that character or persona.
+
+After the v0.11.5 colorizer rewrite, old per-character and per-persona overrides are reset once because the storage keys changed. Global Dialogue Colorizer settings are preserved.
 
 ---
 

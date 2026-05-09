@@ -18,7 +18,7 @@ import {
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
-function autoPopulateGradientFromAvatar(gradientEditor, imgElement) {
+function autoPopulateGradientFromAvatar(gradientEditor, imgElement, angle = 225) {
     if (!gradientEditor || !imgElement || !imgElement.complete || !imgElement.naturalWidth) return false;
     const hexes = sortColorsByLightness(extractColorsFromImage(imgElement));
     if (!hexes || hexes.length === 0) return false;
@@ -35,7 +35,7 @@ function autoPopulateGradientFromAvatar(gradientEditor, imgElement) {
         { color: autoColors[0], position: 0 },
         { color: autoColors[1], position: 1 },
     ];
-    gradientEditor.angle = 225;
+    gradientEditor.angle = angle;
     return true;
 }
 
@@ -64,9 +64,10 @@ function createPersonalColorizerUI(isPersona = false) {
     ensureColorPickerLoaded();
 
     const defaultStaticColor = isPersona ? '#537fddff' : '#da6745ff';
+    const defaultGradientAngle = isPersona ? 125 : 225;
 
     const sourceOptions = [
-        { value: 'avatar_vibrant', label: 'Avatar Vibrant (auto)' },
+        { value: 'avatar_vibrant', label: 'Avatar Vibrant' },
         { value: 'static_color', label: 'Static Color' },
     ];
 
@@ -74,12 +75,14 @@ function createPersonalColorizerUI(isPersona = false) {
     const title = isPersona ? 'Persona Dialogue Colorizer' : 'Character Dialogue Colorizer';
 
     // Color picker: uses toolcool-color-picker like layout settings
-    const colorPicker = (id, initialColor) => {
+    const colorPicker = (id, initialColor, labelText = '') => {
         const pickerElement = el('toolcool-color-picker', {
             id,
             'popup-position': 'left',
             'button-width': '40px',
-            'button-height': '32px'
+            'button-height': '32px',
+            title: labelText,
+            'aria-label': labelText,
         });
         pickerElement.setAttribute('color', initialColor);
         return pickerElement;
@@ -155,7 +158,7 @@ function createPersonalColorizerUI(isPersona = false) {
     ]));
 
     // Dialogue static color (hidden by default)
-    const dialogStaticColor = colorPicker(`${prefix}-dialog-static`, defaultStaticColor);
+    const dialogStaticColor = colorPicker(`${prefix}-dialog-static`, defaultStaticColor, 'Dialogue Static Color');
     const dialogStaticRow = row([
         dialogStaticColor,
         lbl('Dialogue Static Color', `${prefix}-dialog-static`)
@@ -165,10 +168,10 @@ function createPersonalColorizerUI(isPersona = false) {
 
     // Bubble Color Mode — replaces old Bubble Color Source + Bubble Color Mode
     const sourceOptionsBubble = [
-        { value: 'avatar_light', label: 'Avatar Light (Auto)' },
-        { value: 'avatar_dark', label: 'Avatar Dark (Auto)' },
+        { value: 'avatar_light', label: 'Avatar Light' },
+        { value: 'avatar_dark', label: 'Avatar Dark' },
         { value: 'static_color', label: 'Static' },
-        { value: 'gradient', label: 'Gradient Auto' },
+        { value: 'gradient', label: 'Gradient' },
     ];
     const bubbleModeSelect = dropdown(`${prefix}-bubble-mode`, sourceOptionsBubble, 'gradient');
     const bubbleColorSwatch = el('span', {
@@ -183,12 +186,12 @@ function createPersonalColorizerUI(isPersona = false) {
     settingsSection.appendChild(bubbleModeRow);
 
     // Bubble static colors (shown when mode is static_color)
-    const bubbleStatic1 = colorPicker(`${prefix}-bubble-static-1`, defaultStaticColor);
-    const bubbleStatic2 = colorPicker(`${prefix}-bubble-static-2`, defaultStaticColor);
+    const bubbleStatic1 = colorPicker(`${prefix}-bubble-static-1`, defaultStaticColor, 'Bubble Static Color 1');
+    const bubbleStatic2 = colorPicker(`${prefix}-bubble-static-2`, defaultStaticColor, 'Bubble Static Color 2');
     const bubbleStaticRow = row([
         el('div', { className: 'ptmt-color-picker-pair' },
-            bubbleStatic1,
-            bubbleStatic2
+            bubbleStatic1
+            //  bubbleStatic2
         ),
         lbl('Bubble Static Colors', `${prefix}-bubble-static-1`)
     ]);
@@ -199,7 +202,7 @@ function createPersonalColorizerUI(isPersona = false) {
     const gradientRow = el('div', { className: 'ptmt-setting-row', style: 'display: none; flex-direction: column; padding-left: 0;' });
     const gradientEditor = new GradientEditor({
         stops: [],
-        angle: 225,
+        angle: defaultGradientAngle,
         showAngle: true,
         showReset: true,
         onChange: () => {
@@ -213,10 +216,10 @@ function createPersonalColorizerUI(isPersona = false) {
             const img = isPersona
                 ? document.querySelector('#user_avatar_block .avatar img')
                 : document.getElementById('avatar_load_preview');
-            if (img && autoPopulateGradientFromAvatar(gradientEditor, img)) {
+            if (img && autoPopulateGradientFromAvatar(gradientEditor, img, defaultGradientAngle)) {
             } else {
                 gradientEditor.stops = [];
-                gradientEditor.angle = 225;
+                gradientEditor.angle = defaultGradientAngle;
             }
             if (isPersona) scheduleUpdatePersona();
             else scheduleUpdateCharacter();
@@ -460,7 +463,7 @@ function loadCharacterSettings() {
                 charColorizerUI.gradientEditor.angle = gradientAngle;
             } else if (bubbleMode === 'gradient') {
                 if (avatarPreview) {
-                    autoPopulateGradientFromAvatar(charColorizerUI.gradientEditor, avatarPreview);
+                    autoPopulateGradientFromAvatar(charColorizerUI.gradientEditor, avatarPreview, 225);
                 }
             }
 
@@ -729,7 +732,7 @@ function loadPersonaSettings() {
         // Load gradient editor BEFORE color pickers
         if (personaColorizerUI.gradientEditor) {
             const gradientStops = customSettings.bubbleGradientStops ?? [];
-            const gradientAngle = customSettings.bubbleGradientAngle ?? 225;
+            const gradientAngle = customSettings.bubbleGradientAngle ?? 125;
 
             // Always populate palette from avatar colors
             const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
@@ -744,7 +747,7 @@ function loadPersonaSettings() {
                 personaColorizerUI.gradientEditor.angle = gradientAngle;
             } else if (bubbleMode === 'gradient') {
                 if (userAvatarImg) {
-                    autoPopulateGradientFromAvatar(personaColorizerUI.gradientEditor, userAvatarImg);
+                    autoPopulateGradientFromAvatar(personaColorizerUI.gradientEditor, userAvatarImg, 125);
                 }
             }
 
@@ -838,7 +841,7 @@ function updatePersonaSettings() {
 
             // Build new settings, only updating fields that may have changed
             const gradientStops = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.stops : [];
-            const gradientAngle = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.angle : 225;
+            const gradientAngle = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.angle : 125;
             const newSettings = {
                 dialogSource: personaColorizerUI.dialogSrcSelect.value,
                 dialogStatic: latestPersonaDialogColor,
@@ -852,7 +855,7 @@ function updatePersonaSettings() {
             };
 
             const gradientStopsChanged = JSON.stringify(oldSettings.bubbleGradientStops ?? []) !== JSON.stringify(gradientStops) ||
-                (oldSettings.bubbleGradientAngle ?? 225) !== gradientAngle;
+                (oldSettings.bubbleGradientAngle ?? 125) !== gradientAngle;
 
             // Detect what actually changed
             const colorSourceChanged =

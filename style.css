@@ -3087,7 +3087,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
 }
 
 .ptmt-ge-swatch.active {
-  border-color: var(--SmartThemeBodyTextColor, #ccc);
+  border-color: var(--ST-Quote-Text, #ccc);
   opacity: 1;
 }
 
@@ -3114,7 +3114,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   inset: 0;
   align-items: center;
   justify-content: center;
-  color: var(--SmartThemeBodyTextColor, #ccc);
+  color: var(--ST-Quote-Text, #ccc);
   font-size: 0.75em;
   opacity: 0.65;
   pointer-events: none;
@@ -3152,17 +3152,21 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  border: 2px solid var(--SmartThemeBodyBackgroundColor, #fff);
+  border: 2px solid var(--ST-UI-Background, #fff);
   box-shadow: 0 0 0 1px var(--SmartThemeBorderColor, #555), 0 2px 4px rgba(0, 0, 0, 0.3);
   pointer-events: none;
 }
 
 .ptmt-ge-thumb-pos {
   font-size: 0.65em;
-  color: var(--SmartThemeBodyTextColor, #ccc);
+  color: var(--ST-Quote-Text, #ccc);
   white-space: nowrap;
   margin-top: 2px;
-  text-shadow: 0 0 3px var(--SmartThemeBodyBackgroundColor, #000);
+  text-shadow: 0 0 3px var(--ST-Text-Shadow, #000);
+  border: 1px solid var(--ST-UI-Background, #fff);
+  border-radius: 6px;
+  background: var(--ST-UI-Background);
+  padding: 1px;
 }
 
 .ptmt-ge-thumb-del {
@@ -3180,7 +3184,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   cursor: pointer;
   z-index: 3;
   pointer-events: auto;
-  border: 1px solid var(--SmartThemeBodyBackgroundColor, #fff);
+  border: 1px solid var(--ST-UI-Background, #fff);
 }
 
 .ptmt-ge-thumb-del:hover {
@@ -3218,7 +3222,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   background: none;
   border: 1px solid var(--SmartThemeBorderColor, #555);
   border-radius: 4px;
-  color: var(--SmartThemeBodyTextColor, #ccc);
+  color: var(--ST-Quote-Text, #ccc);
   font-size: 1.1em;
   line-height: 1;
   cursor: pointer;

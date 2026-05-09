@@ -176,6 +176,7 @@
  * @property {number} dialogueColorizerBubbleGradientAngle - Gradient angle in degrees
  * @property {{color:string,position:number}[]} dialogueColorizerPersonaBubbleGradientStops - Custom gradient stops; empty uses auto second-darkest + second-lightest
  * @property {number} dialogueColorizerPersonaBubbleGradientAngle - Gradient angle in degrees
+ * @property {number} dialogueColorizerSettingsVersion - One-time migration marker for Dialogue Colorizer settings
  * @property {string[]} charCustomColorizerEnabled - char names with custom colorizer enabled
  * @property {Object.<string, Object>} charCustomColorizerSettings - keyed by char name
  * @property {string[]} personaCustomColorizerEnabled - persona filenames with custom colorizer enabled

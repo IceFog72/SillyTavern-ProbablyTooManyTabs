@@ -497,10 +497,10 @@ export function createDialogueColorizerSettings(settings) {
     };
 
     const bubbleModeOptions = [
-        { value: 'avatar_light', label: 'Avatar Light (Auto)' },
-        { value: 'avatar_dark', label: 'Avatar Dark (Auto)' },
+        { value: 'avatar_light', label: 'Avatar Light' },
+        { value: 'avatar_dark', label: 'Avatar Dark' },
         { value: 'static_color', label: 'Static' },
-        { value: 'gradient', label: 'Gradient Auto' },
+        { value: 'gradient', label: 'Gradient' },
     ];
 
     const targetOptions = [
@@ -510,7 +510,7 @@ export function createDialogueColorizerSettings(settings) {
     ];
 
     const sourceOptions = [
-        { value: 'avatar_vibrant', label: 'Avatar Vibrant (auto)' },
+        { value: 'avatar_vibrant', label: 'Avatar Vibrant' },
         { value: 'static_color', label: 'Static Color' },
     ];
 
@@ -524,16 +524,20 @@ export function createDialogueColorizerSettings(settings) {
         type: 'button',
         textContent: 'Wipe All',
     });
-    wipeBtn.addEventListener('click', () => {
-        if (!confirm('This will remove ALL per-character and per-persona colorizer settings. Global settings are not affected. Continue?')) return;
-        settings.update({
-            charCustomColorizerEnabled: [],
-            charCustomColorizerSettings: {},
-            personaCustomColorizerEnabled: [],
-            personaCustomColorizerSettings: {},
-        });
+    wipeBtn.addEventListener('click', async () => {
+        if (!confirm('This will reset ALL Dialogue Colorizer settings, including per-character and per-persona overrides. Continue?')) return;
+        const defaults = SettingsManager.defaultSettings;
+        const resetSettings = Object.fromEntries(
+            Object.entries(defaults).filter(([key]) =>
+                key === 'enableDialogueColorizer' ||
+                key.startsWith('dialogueColorizer') ||
+                key.startsWith('charCustomColorizer') ||
+                key.startsWith('personaCustomColorizer')
+            )
+        );
+        await settings.update(resetSettings, true);
+        resetVisibleControls();
         window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: true } }));
-        window.dispatchEvent(new CustomEvent('ptmt:settingsChanged', { detail: { changed: ['charCustomColorizerEnabled', 'personaCustomColorizerEnabled'] } }));
     });
     grid.appendChild(row([
         enableInput,
@@ -585,6 +589,7 @@ export function createDialogueColorizerSettings(settings) {
         modeSelect.addEventListener('change', sync);
         sync();
         gradientRow.dataset.gradientFor = prefix;
+        gradientRow.ptmtGradientEditor = gradientEditor;
         return gradientRow;
     };
 
@@ -614,6 +619,7 @@ export function createDialogueColorizerSettings(settings) {
     charDialogSrc.querySelector('select').addEventListener('change', syncCharVis);
     charBubbleMode.addEventListener('change', syncCharVis);
     syncCharVis();
+    const charOpacity = opacityControl('ptmt-bubble-opacity-bot', 'dialogueColorizerBubbleOpacityBot', 'Bubble Opacity');
     charSection.append(
         row([lbl('Colorize Target', 'ptmt-col-char-target'), charTarget]),
         charDialogSrc,
@@ -621,7 +627,7 @@ export function createDialogueColorizerSettings(settings) {
         row([lbl('Bubble Color Mode', 'ptmt-col-charbubblemode'), charBubbleMode]),
         charGradient,
         charBubbleStatic,
-        opacityControl('ptmt-bubble-opacity-bot', 'dialogueColorizerBubbleOpacityBot', 'Bubble Opacity')
+        charOpacity
     );
     grid.appendChild(charSection);
 
@@ -651,6 +657,7 @@ export function createDialogueColorizerSettings(settings) {
     personaDialogSrc.querySelector('select').addEventListener('change', syncPersonaVis);
     personaBubbleMode.addEventListener('change', syncPersonaVis);
     syncPersonaVis();
+    const personaOpacity = opacityControl('ptmt-bubble-opacity-user', 'dialogueColorizerBubbleOpacityUser', 'Bubble Opacity');
     personaSection.append(
         row([lbl('Colorize Target', 'ptmt-col-persona-target'), personaTarget]),
         personaDialogSrc,
@@ -658,9 +665,50 @@ export function createDialogueColorizerSettings(settings) {
         row([lbl('Bubble Color Mode', 'ptmt-col-personabubblemode'), personaBubbleMode]),
         personaGradient,
         personaBubbleStatic,
-        opacityControl('ptmt-bubble-opacity-user', 'dialogueColorizerBubbleOpacityUser', 'Bubble Opacity')
+        personaOpacity
     );
     grid.appendChild(personaSection);
+
+    const resetVisibleControls = () => {
+        const defaults = SettingsManager.defaultSettings;
+        const setPicker = (id, key) => document.getElementById(id)?.setAttribute('color', defaults[key]);
+        const setOpacity = (opacityRow, key) => {
+            const slider = opacityRow.querySelector('.ptmt-opacity-slider');
+            const valueLabel = opacityRow.querySelector('.ptmt-opacity-value');
+            const value = defaults[key];
+            if (slider) slider.value = value;
+            if (valueLabel) valueLabel.textContent = `${Math.round(value * 100)}%`;
+        };
+        const setGradient = (gradientRow, stopsKey, angleKey) => {
+            const editor = gradientRow.ptmtGradientEditor;
+            if (!editor) return;
+            editor.stops = defaults[stopsKey];
+            editor.angle = defaults[angleKey];
+        };
+
+        enableInput.checked = defaults.enableDialogueColorizer;
+        charTarget.value = String(defaults.dialogueColorizerColorizeTarget);
+        charDialogSrc.querySelector('select').value = defaults.dialogueColorizerSource;
+        charBubbleMode.value = defaults.dialogueColorizerBubbleMode;
+        setPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor');
+        setPicker('ptmt-col-charbubblestatic1', 'dialogueColorizerBubbleStaticColor1');
+        setPicker('ptmt-col-charbubblestatic2', 'dialogueColorizerBubbleStaticColor2');
+        setGradient(charGradient, 'dialogueColorizerBubbleGradientStops', 'dialogueColorizerBubbleGradientAngle');
+        setOpacity(charOpacity, 'dialogueColorizerBubbleOpacityBot');
+
+        personaTarget.value = String(defaults.dialogueColorizerPersonaColorizeTarget);
+        personaDialogSrc.querySelector('select').value = defaults.dialogueColorizerPersonaSource;
+        personaBubbleMode.value = defaults.dialogueColorizerPersonaBubbleMode;
+        setPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor');
+        setPicker('ptmt-col-personabubblestatic1', 'dialogueColorizerPersonaBubbleStaticColor1');
+        setPicker('ptmt-col-personabubblestatic2', 'dialogueColorizerPersonaBubbleStaticColor2');
+        setGradient(personaGradient, 'dialogueColorizerPersonaBubbleGradientStops', 'dialogueColorizerPersonaBubbleGradientAngle');
+        setOpacity(personaOpacity, 'dialogueColorizerBubbleOpacityUser');
+
+        syncCharVis();
+        syncPersonaVis();
+        syncEnabledVisibility();
+    };
 
     const syncEnabledVisibility = () => {
         const display = enableInput.checked ? '' : 'none';

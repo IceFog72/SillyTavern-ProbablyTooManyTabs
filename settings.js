@@ -56,7 +56,8 @@ export class SettingsManager {
         dialogueColorizerBubbleGradientStops: [],
         dialogueColorizerBubbleGradientAngle: 225,
         dialogueColorizerPersonaBubbleGradientStops: [],
-        dialogueColorizerPersonaBubbleGradientAngle: 225,
+        dialogueColorizerPersonaBubbleGradientAngle: 125,
+        dialogueColorizerSettingsVersion: 2,
         
         // Per-character custom colorizer settings
         charCustomColorizerEnabled: [], // Array of char names with custom colorizer enabled
@@ -496,6 +497,7 @@ export class SettingsManager {
     }
 
     constructor() {
+        this._settingsMigrated = false;
         this.initializeSettings();
 
         // Migration: Move old savedLayout to savedLayoutDesktop
@@ -510,6 +512,10 @@ export class SettingsManager {
         if (extension_settings.PTMT?.tabStripAutoHide && this.get('tabStripMode') === 'normal') {
             console.log("[PTMT] Migrating tabStripAutoHide → tabStripMode: 'auto-hide'");
             extension_settings.PTMT.tabStripMode = 'auto-hide';
+            this._settingsMigrated = true;
+        }
+
+        if (this._settingsMigrated) {
             this.save();
         }
 
@@ -526,6 +532,7 @@ export class SettingsManager {
             extension_settings.PTMT = {};
         }
         const loadedSettings = extension_settings.PTMT;
+        this._settingsMigrated = this.migrateDialogueColorizerSettings(loadedSettings) || this._settingsMigrated;
 
         // Merge panel mappings by ID instead of overwriting
         const defaultMappings = SettingsManager.defaultSettings.panelMappings || [];
@@ -564,6 +571,29 @@ export class SettingsManager {
             ...loadedSettings,
             panelMappings: mergedMappings
         };
+    }
+
+    migrateDialogueColorizerSettings(loadedSettings) {
+        const currentVersion = SettingsManager.defaultSettings.dialogueColorizerSettingsVersion;
+        const loadedVersion = Number(loadedSettings.dialogueColorizerSettingsVersion || 0);
+        if (loadedVersion >= currentVersion) return;
+
+        const hasCustomColorizerSettings =
+            (Array.isArray(loadedSettings.charCustomColorizerEnabled) && loadedSettings.charCustomColorizerEnabled.length > 0) ||
+            (loadedSettings.charCustomColorizerSettings && Object.keys(loadedSettings.charCustomColorizerSettings).length > 0) ||
+            (Array.isArray(loadedSettings.personaCustomColorizerEnabled) && loadedSettings.personaCustomColorizerEnabled.length > 0) ||
+            (loadedSettings.personaCustomColorizerSettings && Object.keys(loadedSettings.personaCustomColorizerSettings).length > 0);
+
+        if (hasCustomColorizerSettings) {
+            console.log('[PTMT] Resetting legacy Dialogue Colorizer per-character/persona settings for v2 key format.');
+            loadedSettings.charCustomColorizerEnabled = [];
+            loadedSettings.charCustomColorizerSettings = {};
+            loadedSettings.personaCustomColorizerEnabled = [];
+            loadedSettings.personaCustomColorizerSettings = {};
+        }
+
+        loadedSettings.dialogueColorizerSettingsVersion = currentVersion;
+        return true;
     }
 
     getActiveLayoutKey() {
