@@ -2,6 +2,16 @@
 
 ---
 
+## v0.11.6 — 2026-05-09
+
+*Split Compass Routing*
+
+- ✦ New · **Existing Pane Drop Targets** — when dragging over a pane that is already part of a split, the split compass now shows an extra target for the neighboring existing pane so tabs can be moved into it directly.
+- ✔ Fix · **Tab Strip Drag Updates** — corrected the drag fast-path so tab-strip drop indicators continue updating when hovering the same tab-strip element.
+- ✔ Fix · **Split Compass Robustness** — disabled split directions no longer visually activate, invalid drag sessions are guarded, and existing-pane targets are positioned from actual pane geometry.
+
+---
+
 ## v0.11.5 — 2026-05-09
 
 *Dialogue Colorizer Rewrite*

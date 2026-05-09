@@ -42,12 +42,13 @@ function updateDragSession(paneUnder, mainBodyRect) {
 
 let compassEl          = null;
 let compassCurrentPane = null;
-let compassHoveredZone = null;   // 'center'|'top'|'bottom'|'left'|'right'|null
+let compassHoveredZone = null;   // 'center'|'top'|'bottom'|'left'|'right'|'existing-*'|null
 
 // Zone rects + precomputed preview rects — recomputed ONLY when the pane changes.
 // Avoids getBoundingClientRect() on every dragover frame.
-let cachedZoneRects    = null;   // Array<{zone, left, right, top, bottom}>
-let cachedPreviews     = null;   // {top,bottom,left,right,center} → {x,y,w,h}
+let cachedZoneRects       = null;   // Array<{zone, left, right, top, bottom}>
+let cachedPreviews        = null;   // {top,bottom,left,right,center,...} → {x,y,w,h}
+let cachedExistingTargets = null;   // {existing-top,existing-bottom,existing-left,existing-right} → pane
 
 function getOrCreateCompass() {
   if (compassEl) return compassEl;
@@ -61,9 +62,63 @@ function getOrCreateCompass() {
       <div class="ptmt-compass-zone ptmt-compass-right"  data-zone="right" ><i class="fa-solid fa-caret-right"></i></div>
     </div>
     <div class="ptmt-compass-zone ptmt-compass-bottom"  data-zone="bottom" ><i class="fa-solid fa-caret-down"></i></div>
+    <div class="ptmt-compass-zone ptmt-compass-existing ptmt-compass-existing-top"    data-zone="existing-top"   title="Move to existing pane above"><i class="fa-solid fa-window-restore"></i></div>
+    <div class="ptmt-compass-zone ptmt-compass-existing ptmt-compass-existing-bottom" data-zone="existing-bottom" title="Move to existing pane below"><i class="fa-solid fa-window-restore"></i></div>
+    <div class="ptmt-compass-zone ptmt-compass-existing ptmt-compass-existing-left"   data-zone="existing-left"   title="Move to existing pane on the left"><i class="fa-solid fa-window-restore"></i></div>
+    <div class="ptmt-compass-zone ptmt-compass-existing ptmt-compass-existing-right"  data-zone="existing-right"  title="Move to existing pane on the right"><i class="fa-solid fa-window-restore"></i></div>
   `;
   document.body.appendChild(compassEl);
   return compassEl;
+}
+
+function getStructuralChildren(split) {
+  return Array.from(split?.children || []).filter(el =>
+    el.classList?.contains('ptmt-pane') || el.classList?.contains('ptmt-split')
+  );
+}
+
+function getFirstPaneInElement(element) {
+  if (!element) return null;
+  if (element.classList?.contains('ptmt-pane')) return element;
+  return element.querySelector?.('.ptmt-pane') || null;
+}
+
+function getPaneDirection(fromPane, toPane) {
+  const fromRect = (fromPane._panelContainer || fromPane).getBoundingClientRect();
+  const toRect = (toPane._panelContainer || toPane).getBoundingClientRect();
+  const fromCenterX = fromRect.left + fromRect.width / 2;
+  const fromCenterY = fromRect.top + fromRect.height / 2;
+  const toCenterX = toRect.left + toRect.width / 2;
+  const toCenterY = toRect.top + toRect.height / 2;
+  const dx = toCenterX - fromCenterX;
+  const dy = toCenterY - fromCenterY;
+
+  if (Math.abs(dx) >= Math.abs(dy)) {
+    return dx < 0 ? 'left' : 'right';
+  }
+  return dy < 0 ? 'top' : 'bottom';
+}
+
+function getExistingPaneTargets(pane) {
+  const parentSplit = pane?.parentElement;
+  if (!parentSplit?.classList?.contains('ptmt-split')) return {};
+
+  const children = getStructuralChildren(parentSplit);
+  const index = children.indexOf(pane);
+  if (index < 0) return {};
+
+  const targets = {};
+  const siblingPanes = [
+    getFirstPaneInElement(children[index - 1]),
+    getFirstPaneInElement(children[index + 1]),
+  ].filter(Boolean);
+
+  for (const siblingPane of siblingPanes) {
+    const direction = getPaneDirection(pane, siblingPane);
+    targets[`existing-${direction}`] = siblingPane;
+  }
+
+  return targets;
 }
 
 /** Position compass on a pane and (re)cache all geometry. */
@@ -81,6 +136,11 @@ function showCompassOnPane(pane, canSplit) {
     compass.style.display = 'flex';
     compassCurrentPane = pane;
 
+    cachedExistingTargets = getExistingPaneTargets(pane);
+    compass.querySelectorAll('.ptmt-compass-existing').forEach(el => {
+      el.classList.toggle('ptmt-compass-existing-available', !!cachedExistingTargets?.[el.dataset.zone]);
+    });
+
     // Precompute zone rects from the freshly positioned compass
     cachedZoneRects = Array.from(compass.querySelectorAll('.ptmt-compass-zone')).map(el => {
       const zr = el.getBoundingClientRect();
@@ -96,6 +156,12 @@ function showCompassOnPane(pane, canSplit) {
       bottom: { x: r.left,                    y: r.top + r.height * HALF,   w: r.width,        h: r.height * HALF },
       center: null,  // no preview for center drop
     };
+
+    for (const [zone, targetPane] of Object.entries(cachedExistingTargets)) {
+      const targetContainer = targetPane._panelContainer || targetPane;
+      const tr = targetContainer.getBoundingClientRect();
+      cachedPreviews[zone] = { x: tr.left, y: tr.top, w: tr.width, h: tr.height };
+    }
   }
 
   compass.classList.toggle('ptmt-compass-no-split', !canSplit);
@@ -107,6 +173,7 @@ function hideCompass() {
   compassHoveredZone = null;
   cachedZoneRects    = null;
   cachedPreviews     = null;
+  cachedExistingTargets = null;
   hideSplitPreview();
 }
 
@@ -125,14 +192,16 @@ function getZoneUnderPoint(clientX, clientY) {
 function updateCompassHighlight(zone, canSplit) {
   if (compassHoveredZone === zone) return;  // no change — skip all DOM writes
   compassHoveredZone = zone;
+  const isExistingZone = zone?.startsWith('existing-');
+  const splitZoneDisabled = zone && zone !== 'center' && !isExistingZone && !canSplit;
 
   if (cachedZoneRects) {
     for (const z of cachedZoneRects) {
-      z.el.classList.toggle('ptmt-compass-zone-active', z.zone === zone);
+      z.el.classList.toggle('ptmt-compass-zone-active', z.zone === zone && !splitZoneDisabled);
     }
   }
 
-  if (!zone || zone === 'center' || !canSplit) {
+  if (!zone || zone === 'center' || splitZoneDisabled) {
     hideSplitPreview();
     return;
   }
@@ -191,9 +260,10 @@ function processDragEvent(ev, { performDrop = false } = {}) {
   const clientX = ev.clientX;
   const clientY = ev.clientY;
   const elUnder = document.elementFromPoint(clientX, clientY) || ev.target;
+  const overTabStrip = !!(elUnder?.closest?.('.ptmt-tabStrip'));
 
   if (elUnder === lastElementUnder && !performDrop && dragSession) {
-    if (!dragSession.overTabStrip) {
+    if (!overTabStrip) {
       // Same element — but we can still do the cheap zone hittest without reading DOM
       if (compassCurrentPane) {
         const zone    = getZoneUnderPoint(clientX, clientY);
@@ -216,6 +286,7 @@ function processDragEvent(ev, { performDrop = false } = {}) {
   if (!dragSession || dragSession.pane !== ctx.paneUnder) {
     updateDragSession(ctx.paneUnder, refs.mainBody.getBoundingClientRect());
   }
+  if (!dragSession) { hideDropIndicator(); hideCompass(); return; }
 
   if (ctx.clientX > dragSession.mainBodyRect.right - 10) {
     hideDropIndicator(); hideCompass(); return;
@@ -242,11 +313,19 @@ function processDragEvent(ev, { performDrop = false } = {}) {
 
   // ── Drop: commit ───────────────────────────────────────────────────────────
   const zone  = compassHoveredZone ?? getZoneUnderPoint(cx, cy);
+  const existingTargetPane = zone?.startsWith('existing-') ? cachedExistingTargets?.[zone] : null;
   hideCompass();
   hideDropIndicator();
 
   const panel = getPanelById(ctx.pid);
   if (!panel) return;
+
+  if (existingTargetPane) {
+    const targetIndex = existingTargetPane._tabStrip?.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)').length || 0;
+    moveTabIntoPaneAtIndex(panel, existingTargetPane, targetIndex);
+    openTab(panel.dataset.panelId);
+    return;
+  }
 
   if (!zone || zone === 'center' || !canSplit) {
     const index = computeDropIndexFromSession(cx, cy);
@@ -257,7 +336,7 @@ function processDragEvent(ev, { performDrop = false } = {}) {
 
   const vertical = zone === 'left' || zone === 'right';
   const newFirst  = zone === 'left' || zone === 'top';
-    splitPaneWithPane(paneUnder, panel, vertical, newFirst);
+  splitPaneWithPane(paneUnder, panel, vertical, newFirst);
   openTab(panel.dataset.panelId);
 }
 

@@ -3936,6 +3936,47 @@ body.ptmt-enable-animations .ptmt-compass-zone {
   transform: scale(1.12);
 }
 
+/* Extra drop targets for panes that already exist beside the hovered pane */
+.ptmt-compass-existing {
+  --compass-size: 32px;
+  position: absolute;
+  display: none;
+  font-size: 13px;
+  background: rgba(40, 145, 120, 0.84);
+  border-color: rgba(125, 225, 205, 0.62);
+  color: #dcfff7;
+}
+
+.ptmt-compass-existing-available {
+  display: flex;
+}
+
+.ptmt-compass-existing-top {
+  left: calc(50% - 16px);
+  top: -40px;
+}
+
+.ptmt-compass-existing-bottom {
+  left: calc(50% - 16px);
+  bottom: -40px;
+}
+
+.ptmt-compass-existing-left {
+  left: -40px;
+  top: calc(50% - 16px);
+}
+
+.ptmt-compass-existing-right {
+  right: -40px;
+  top: calc(50% - 16px);
+}
+
+.ptmt-compass-existing.ptmt-compass-zone-active {
+  background: rgba(48, 190, 155, 0.98) !important;
+  border-color: rgba(185, 255, 235, 0.9) !important;
+  color: #fff !important;
+}
+
 /* When splitting is disabled (max layers reached), hide directional zones */
 .ptmt-compass-no-split .ptmt-compass-top,
 .ptmt-compass-no-split .ptmt-compass-bottom,
