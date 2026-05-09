@@ -3274,7 +3274,7 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   background: var(--SmartThemeButtonColor, #4a9eff);
   color: var(--SmartThemeButtonTextColor, #fff);
   font-size: 0.55em;
-  line-height: 14px;
+  line-height: 10px;
   text-align: center;
   cursor: pointer;
   z-index: 3;

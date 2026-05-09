@@ -233,6 +233,7 @@ function createPersonalColorizerUI(isPersona = false) {
         bubbleStaticRow.style.display = mode === 'static_color' ? 'flex' : 'none';
         gradientRow.style.display = mode === 'gradient' ? 'flex' : 'none';
         bubbleColorSwatch.style.display = (mode === 'avatar_light' || mode === 'avatar_dark') ? 'inline-block' : 'none';
+        refreshBubbleColorSwatch({ bubbleColorSwatch, bubbleModeSelect }, isPersona);
     };
     bubbleModeSelect.addEventListener('change', syncBubbleModeVis);
     syncBubbleModeVis();
@@ -474,13 +475,7 @@ function loadCharacterSettings() {
         const bubbleModeVis = bubbleMode === 'static_color' ? 'flex' : 'none';
         charColorizerUI.bubbleStaticRow.style.display = bubbleModeVis;
         charColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
-        // Update swatch color for auto modes
-        if (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') {
-            const avatarPreview = document.getElementById('avatar_load_preview');
-            if (avatarPreview) {
-                updateBubbleColorSwatch(charColorizerUI, bubbleMode, avatarPreview);
-            }
-        }
+        refreshBubbleColorSwatch(charColorizerUI, false);
 
         // Update color pickers LAST; setAttribute can trigger change events.
         const dialogStaticColor = customSettings.dialogStatic ?? '#da6745ff';
@@ -757,12 +752,7 @@ function loadPersonaSettings() {
         // Sync bubble mode visibility
         personaColorizerUI.bubbleStaticRow.style.display = bubbleMode === 'static_color' ? 'flex' : 'none';
         personaColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
-        if (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') {
-            const userAvatarImg = document.querySelector('#user_avatar_block .avatar img');
-            if (userAvatarImg) {
-                updateBubbleColorSwatch(personaColorizerUI, bubbleMode, userAvatarImg);
-            }
-        }
+        refreshBubbleColorSwatch(personaColorizerUI, true);
 
         // Update color pickers LAST; setAttribute triggers change events.
         const dialogStaticColor = customSettings.dialogStatic ?? '#537fddff';
@@ -796,6 +786,32 @@ function updateBubbleColorSwatch(ui, mode, imgElement) {
     if (picked) {
         ui.bubbleColorSwatch.style.background = picked;
     }
+}
+
+function getColorizerAvatarImage(isPersona) {
+    return isPersona
+        ? document.querySelector('#user_avatar_block .avatar img')
+        : document.getElementById('avatar_load_preview');
+}
+
+function refreshBubbleColorSwatch(ui, isPersona) {
+    const mode = ui?.bubbleModeSelect?.value;
+    if (mode !== 'avatar_light' && mode !== 'avatar_dark') return;
+
+    const img = getColorizerAvatarImage(isPersona);
+    if (!img) return;
+
+    if (img.complete && img.naturalWidth) {
+        updateBubbleColorSwatch(ui, mode, img);
+        return;
+    }
+
+    img.addEventListener('load', () => {
+        const currentMode = ui?.bubbleModeSelect?.value;
+        if (currentMode === 'avatar_light' || currentMode === 'avatar_dark') {
+            updateBubbleColorSwatch(ui, currentMode, img);
+        }
+    }, { once: true });
 }
 
 /**
