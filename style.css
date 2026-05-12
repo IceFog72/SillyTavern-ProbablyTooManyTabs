@@ -839,29 +839,7 @@ body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal {
   padding: 0;
 }
 
-.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-horizontal {
-  grid-template-columns: 1fr;
-  grid-template-rows: var(--ptmt-collapsed-width) 0px;
-  grid-template-areas: "tabs" "content";
-}
-
-.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-horizontal.flow-reversed {
-  grid-template-columns: 1fr;
-  grid-template-rows: 0px var(--ptmt-collapsed-width);
-  grid-template-areas: "content" "tabs";
-}
-
-.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-vertical {
-  grid-template-columns: var(--ptmt-collapsed-width) 0px;
-  grid-template-rows: 1fr;
-  grid-template-areas: "tabs content";
-}
-
-.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-vertical.flow-reversed {
-  grid-template-columns: 0px var(--ptmt-collapsed-width);
-  grid-template-rows: 1fr;
-  grid-template-areas: "content tabs";
-}
+/* (Grid tracking smoothly delegates to 1fr via natural collapse) */
 
 
 /* Specific Content Height Overrides based on Grid Orientation */
