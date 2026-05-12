@@ -2,6 +2,15 @@
 
 ---
 
+## v0.12.1 — 2026-05-13
+
+*Shy Mode Stability*
+
+- ✔ Fix · **Reversed Flow Runaway Hover** — fixed an issue where the tab strip would slide away from the cursor during shy mode reveal in reversed flow panes (tabs on the right/bottom). The strip now correctly anchors to the outer pane edge and expands inward.
+- ✔ Fix · **Shy Mode Hover Loop** — fixed an infinite flickering loop that occurred when moving the mouse slightly during the shy tab strip reveal. The tab strip now elevates above the main content area to securely capture pointer events without interference.
+
+---
+
 ## v0.12.0 — 2026-05-12
 
 *Theme Palette & Modern Controls*

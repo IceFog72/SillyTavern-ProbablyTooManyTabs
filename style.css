@@ -263,9 +263,6 @@ body.ptmt-Theme-RoundedSoft .ptmt-tab {
   border: none;
 }
 
-body.ptmt-enable-animations.ptmt-Theme-RoundedSoft .ptmt-tab {
-  transition: background 0.18s ease, box-shadow 0.18s ease;
-}
 
 body.ptmt-Theme-RoundedSoft .ptmt-tab:hover:not(.active) {
   background: color-mix(in srgb, var(--ptmt-tab-inactive-bg), white 12%);
@@ -283,9 +280,6 @@ body.ptmt-Theme-RoundedSmooth .ptmt-tab {
   border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-body.ptmt-enable-animations.ptmt-Theme-RoundedSmooth .ptmt-tab {
-  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
-}
 
 body.ptmt-Theme-RoundedSmooth .ptmt-tab:hover:not(.active) {
   background: color-mix(in srgb, var(--ptmt-tab-inactive-bg), white 14%);
@@ -679,14 +673,7 @@ body.ptmt-Theme-RoundedSmooth #ptmt-mainBody {
   overflow: hidden;
 }
 
-body.ptmt-enable-animations .ptmt-body-column {
-  transition: flex var(--ptmt-transition), min-width var(--ptmt-transition);
-}
 
-body.ptmt-enable-animations .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-shy-indicator:hover),
-body.ptmt-enable-animations .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-tabStrip:hover) {
-  transition: flex 120ms ease, min-width 120ms ease;
-}
 
 /* When a collapsed column only contains shy-minimized panes, shrink min-width to indicator size */
 .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-pane.ptmt-tabstrip-minimized.view-collapsed):not(:has(.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized))) {
@@ -708,10 +695,6 @@ body.ptmt-Theme-RoundedSmooth .ptmt-resizer-horizontal {
   z-index: 9999;
 }
 
-body.ptmt-enable-animations .ptmt-resizer-vertical,
-body.ptmt-enable-animations .ptmt-resizer-horizontal {
-  transition: background var(--ptmt-transition);
-}
 
 .ptmt-resizer-vertical {
   cursor: col-resize;
@@ -762,14 +745,6 @@ body.ptmt-enable-animations .ptmt-resizer-horizontal {
   border-radius: var(--ptmt-radius);
 }
 
-/* Pane transition — animates flex sizing and opacity */
-body.ptmt-enable-animations .ptmt-pane {
-  transition:
-    flex var(--ptmt-transition),
-    min-width var(--ptmt-transition),
-    min-height var(--ptmt-transition),
-    opacity 160ms ease;
-}
 
 .ptmt-pane-grid {
   display: grid;
@@ -784,25 +759,7 @@ body.ptmt-enable-animations .ptmt-pane {
   --ptmt-tabstrip-hidden-y: -8px;
 }
 
-body.ptmt-enable-animations .ptmt-pane-grid {
-  transition:
-    max-width var(--ptmt-transition),
-    max-height var(--ptmt-transition),
-    grid-template-columns var(--ptmt-transition),
-    grid-template-rows var(--ptmt-transition),
-    gap var(--ptmt-transition),
-    padding var(--ptmt-transition);
-}
 
-body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid,
-body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid {
-  transition:
-    opacity 120ms ease,
-    grid-template-columns 120ms ease,
-    grid-template-rows 120ms ease,
-    gap 120ms ease,
-    padding 120ms ease !important;
-}
 
 .ptmt-pane-grid.grid-horizontal {
   grid-template-columns: 1fr;
@@ -842,6 +799,18 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStri
   grid-area: tabs;
 }
 
+/* Fix for reversed shy-mode hovering: anchor the tabstrip to the outer edge 
+   so it spans inward and doesn't run away from the cursor during animation */
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip {
+  justify-self: end;
+  width: var(--ptmt-collapsed-width) !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tabStrip {
+  align-self: end;
+  height: var(--ptmt-collapsed-width) !important;
+}
+
 .ptmt-pane-grid .ptmt-panelContainer {
   grid-area: content;
   min-width: 0;
@@ -860,9 +829,6 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStri
   min-height: 0 !important;
 }
 
-body.ptmt-enable-animations .ptmt-pane.view-collapsed {
-  opacity: 0.96;
-}
 
 /* When content is hidden, the grid gap + padding still consume space and push the
    tab strip beyond the collapsed column width. Zero them out so the track fills
@@ -873,18 +839,28 @@ body.ptmt-enable-animations .ptmt-pane.view-collapsed {
   padding: 0;
 }
 
-.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-horizontal,
-.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-horizontal.flow-reversed {
+.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-horizontal {
   grid-template-columns: 1fr;
-  grid-template-rows: var(--ptmt-collapsed-width);
-  grid-template-areas: "tabs";
+  grid-template-rows: var(--ptmt-collapsed-width) 0px;
+  grid-template-areas: "tabs" "content";
 }
 
-.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-vertical,
-.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-vertical.flow-reversed {
-  grid-template-columns: var(--ptmt-collapsed-width);
+.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-columns: 1fr;
+  grid-template-rows: 0px var(--ptmt-collapsed-width);
+  grid-template-areas: "content" "tabs";
+}
+
+.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-vertical {
+  grid-template-columns: var(--ptmt-collapsed-width) 0px;
   grid-template-rows: 1fr;
-  grid-template-areas: "tabs";
+  grid-template-areas: "tabs content";
+}
+
+.ptmt-pane.view-collapsed:not(.ptmt-tabstrip-minimized) .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-columns: 0px var(--ptmt-collapsed-width);
+  grid-template-rows: 1fr;
+  grid-template-areas: "content tabs";
 }
 
 
@@ -973,16 +949,6 @@ select option {
   transform: translateZ(0);
 }
 
-body.ptmt-enable-animations .ptmt-tab {
-  transition:
-    background-color 150ms ease,
-    border-color 150ms ease,
-    color 150ms ease,
-    filter 150ms ease,
-    opacity 150ms ease,
-    transform 150ms ease,
-    box-shadow 150ms ease;
-}
 
 .ptmt-tab-bg {
   position: absolute;
@@ -1004,9 +970,6 @@ body.ptmt-enable-animations .ptmt-tab {
   transform: translateY(0);
 }
 
-body.ptmt-enable-animations .ptmt-tab.collapsed:not(.active) {
-  opacity: 0.76;
-}
 
 /* Tab Icon */
 .ptmt-tab-icon .fa-solid::before {
@@ -1119,10 +1082,6 @@ body.ptmt-enable-animations .ptmt-tab.collapsed:not(.active) {
   position: sticky;
 }
 
-body.ptmt-enable-animations .ptmt-scrollbutton-up,
-body.ptmt-enable-animations .ptmt-scrollbutton-down {
-  transition: background 0.2s, opacity 0.2s;
-}
 
 .ptmt-scrollbutton-left,
 .ptmt-scrollbutton-right {
@@ -1535,42 +1494,9 @@ body.ptmt-Theme-Sharp .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tabStrip
   z-index: 1;
 }
 
-body.ptmt-enable-animations .ptmt-panel.ptmt-panel-entering {
-  animation: ptmt-panel-enter 180ms cubic-bezier(.2, .8, .2, 1) both;
-}
 
-body.ptmt-enable-animations .ptmt-panel.ptmt-panel-exiting {
-  display: flex;
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  pointer-events: none;
-  animation: ptmt-panel-exit 180ms cubic-bezier(.4, 0, .2, 1) both;
-}
 
-@keyframes ptmt-panel-enter {
-  from {
-    opacity: 0;
-    transform: translate(var(--ptmt-panel-enter-x, 0), var(--ptmt-panel-enter-y, 5px)) scale(0.995);
-  }
 
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-@keyframes ptmt-panel-exit {
-  from {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-
-  to {
-    opacity: 0;
-    transform: translate(var(--ptmt-panel-exit-x, 0), var(--ptmt-panel-exit-y, -4px)) scale(0.995);
-  }
-}
 
 .ptmt-panel-content {
   flex: 1 1 auto;
@@ -1860,10 +1786,6 @@ body.ptmt-enable-animations .ptmt-panel.ptmt-panel-exiting {
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-body.ptmt-enable-animations .ptmt-pane-config-btn,
-body.ptmt-enable-animations .ptmt-tab-config-btn {
-  transition: all 0.2s ease;
-}
 
 .ptmt-pane-config-btn:hover,
 .ptmt-tab-config-btn:hover {
@@ -2110,18 +2032,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
 }
 
 
-@media (prefers-reduced-motion: reduce) {
-
-  .ptmt-tab,
-  .ptmt-pane,
-  .ptmt-panel,
-  .ptmt-resizer-vertical,
-  .ptmt-resizer-horizontal {
-    transition: none !important;
-    animation: none !important;
-  }
-}
-
 @media screen and (max-width: 800px) {
   .ptmt-tab {
     padding: 6px;
@@ -2174,9 +2084,6 @@ body.ptmt-is-resizing #rm_print_characters_block {
   backdrop-filter: blur(10px);
 }
 
-body.ptmt-enable-animations .ptmt-context-menu {
-  animation: ptmt-fade-in 0.15s ease-out;
-}
 
 .ptmt-context-menu-item {
   display: flex;
@@ -2217,17 +2124,6 @@ body.ptmt-enable-animations .ptmt-context-menu {
   padding-left: 16px;
 }
 
-@keyframes ptmt-fade-in {
-  from {
-    opacity: 0;
-    transform: translateY(-8px) scale(0.98);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
 
 /* Settings Dialog */
 .ptmt-view-settings-dialog {
@@ -2253,21 +2149,7 @@ body.ptmt-enable-animations .ptmt-context-menu {
   flex-direction: column;
 }
 
-body.ptmt-enable-animations .ptmt-view-settings-dialog {
-  animation: ptmt-slide-in 0.2s ease-out;
-}
 
-@keyframes ptmt-slide-in {
-  from {
-    opacity: 0;
-    transform: translate(-50%, -48%);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate(-50%, -50%);
-  }
-}
 
 .ptmt-vs-content {
   display: flex;
@@ -2338,9 +2220,6 @@ body.ptmt-enable-animations .ptmt-view-settings-dialog {
   text-align: center;
 }
 
-body.ptmt-enable-animations .ptmt-vs-copy-btn {
-  transition: all 0.2s ease;
-}
 
 .ptmt-vs-copy-btn:hover {
   background: color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 50%) !important;
@@ -2415,10 +2294,6 @@ body.ptmt-enable-animations .ptmt-vs-copy-btn {
   font-size: 0.9em;
 }
 
-body.ptmt-enable-animations .ptmt-vs-input-wrapper input,
-body.ptmt-enable-animations .ptmt-vs-input-wrapper select {
-  transition: all 0.15s ease;
-}
 
 .ptmt-vs-input-wrapper input:not([type="checkbox"]):not([type="radio"]),
 .ptmt-vs-input-wrapper select {
@@ -2462,9 +2337,6 @@ body.ptmt-enable-animations .ptmt-vs-input-wrapper select {
   flex-shrink: 0;
 }
 
-body.ptmt-enable-animations .ptmt-vs-help-icon {
-  transition: all 0.15s ease;
-}
 
 .ptmt-vs-help-icon:hover {
   opacity: 1;
@@ -2496,9 +2368,6 @@ body.ptmt-enable-animations .ptmt-vs-help-icon {
   white-space: nowrap;
 }
 
-body.ptmt-enable-animations .ptmt-vs-button {
-  transition: all 0.15s ease;
-}
 
 .ptmt-vs-button:hover {
   background: color-mix(in srgb, var(--ST-Chat-Background), transparent 10%);
@@ -2563,9 +2432,6 @@ body.ptmt-enable-animations .ptmt-vs-button {
   font-family: inherit !important;
 }
 
-body.ptmt-enable-animations .ptmt-vs-avatar-input {
-  transition: all 0.15s ease;
-}
 
 .ptmt-vs-avatar-input:focus {
   border-color: var(--ptmt-adaptive-quote) !important;
@@ -2574,25 +2440,7 @@ body.ptmt-enable-animations .ptmt-vs-avatar-input {
   background: rgba(0, 0, 0, 0.15) !important;
 }
 
-body.ptmt-enable-animations .ptmt-vs-avatar-input[style*="border-color: red"] {
-  animation: ptmt-color-error 0.3s ease;
-}
 
-@keyframes ptmt-color-error {
-
-  0%,
-  100% {
-    transform: translateX(0);
-  }
-
-  25% {
-    transform: translateX(-2px);
-  }
-
-  75% {
-    transform: translateX(2px);
-  }
-}
 
 
 /* Layout Settings UI Classes */
@@ -2886,6 +2734,267 @@ body.ptmt-enable-animations .ptmt-vs-avatar-input[style*="border-color: red"] {
 }
 
 /* ==========================================================================
+   ANIMATION RULES
+   ========================================================================== */
+
+body.ptmt-enable-animations.ptmt-Theme-RoundedSoft .ptmt-tab {
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+body.ptmt-enable-animations.ptmt-Theme-RoundedSmooth .ptmt-tab {
+  transition: background-color 0.14s ease, border-color 0.14s ease, color 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
+}
+
+body.ptmt-enable-animations .ptmt-body-column {
+  transition: flex var(--ptmt-transition), min-width var(--ptmt-transition);
+}
+
+body.ptmt-enable-animations .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-shy-indicator:hover),
+body.ptmt-enable-animations .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-tabStrip:hover) {
+  transition: flex 120ms ease, min-width 120ms ease;
+}
+
+body.ptmt-enable-animations .ptmt-resizer-vertical,
+body.ptmt-enable-animations .ptmt-resizer-horizontal {
+  transition: background var(--ptmt-transition);
+}
+
+body.ptmt-enable-animations .ptmt-pane {
+  transition:
+    flex var(--ptmt-transition),
+    min-width var(--ptmt-transition),
+    min-height var(--ptmt-transition),
+    opacity 160ms ease;
+}
+
+body.ptmt-enable-animations .ptmt-pane-grid {
+  transition:
+    max-width var(--ptmt-transition),
+    max-height var(--ptmt-transition),
+    grid-template-columns var(--ptmt-transition),
+    grid-template-rows var(--ptmt-transition),
+    gap var(--ptmt-transition),
+    padding var(--ptmt-transition);
+}
+
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-pane-grid,
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-pane-grid {
+  transition:
+    opacity 120ms ease,
+    grid-template-columns 120ms ease,
+    grid-template-rows 120ms ease,
+    gap 120ms ease,
+    padding 120ms ease !important;
+}
+
+body.ptmt-enable-animations .ptmt-pane.view-collapsed {
+  opacity: 0.96;
+}
+
+body.ptmt-enable-animations .ptmt-tab {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    color 150ms ease,
+    filter 150ms ease,
+    opacity 150ms ease,
+    transform 150ms ease,
+    box-shadow 150ms ease;
+}
+
+body.ptmt-enable-animations .ptmt-tab.collapsed:not(.active) {
+  opacity: 0.76;
+}
+
+body.ptmt-enable-animations .ptmt-scrollbutton-up,
+body.ptmt-enable-animations .ptmt-scrollbutton-down {
+  transition: background 0.2s, opacity 0.2s;
+}
+
+body.ptmt-enable-animations .ptmt-panel.ptmt-panel-entering {
+  animation: ptmt-panel-enter 180ms cubic-bezier(.2, .8, .2, 1) both;
+}
+
+body.ptmt-enable-animations .ptmt-panel.ptmt-panel-exiting {
+  display: flex;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  animation: ptmt-panel-exit 180ms cubic-bezier(.4, 0, .2, 1) both;
+}
+
+@keyframes ptmt-panel-enter {
+  from {
+    opacity: 0;
+    transform: translate(var(--ptmt-panel-enter-x, 0), var(--ptmt-panel-enter-y, 5px)) scale(0.995);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes ptmt-panel-exit {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate(var(--ptmt-panel-exit-x, 0), var(--ptmt-panel-exit-y, -4px)) scale(0.995);
+  }
+}
+
+body.ptmt-enable-animations .ptmt-pane-config-btn,
+body.ptmt-enable-animations .ptmt-tab-config-btn {
+  transition: all 0.2s ease;
+}
+
+body.ptmt-enable-animations .ptmt-context-menu {
+  animation: ptmt-fade-in 0.15s ease-out;
+}
+
+@keyframes ptmt-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.98);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+body.ptmt-enable-animations .ptmt-view-settings-dialog {
+  animation: ptmt-slide-in 0.2s ease-out;
+}
+
+@keyframes ptmt-slide-in {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -48%);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%);
+  }
+}
+
+body.ptmt-enable-animations .ptmt-vs-copy-btn {
+  transition: all 0.2s ease;
+}
+
+body.ptmt-enable-animations .ptmt-vs-input-wrapper input,
+body.ptmt-enable-animations .ptmt-vs-input-wrapper select {
+  transition: all 0.15s ease;
+}
+
+body.ptmt-enable-animations .ptmt-vs-help-icon {
+  transition: all 0.15s ease;
+}
+
+body.ptmt-enable-animations .ptmt-vs-button {
+  transition: all 0.15s ease;
+}
+
+body.ptmt-enable-animations .ptmt-vs-avatar-input {
+  transition: all 0.15s ease;
+}
+
+body.ptmt-enable-animations .ptmt-vs-avatar-input[style*="border-color: red"] {
+  animation: ptmt-color-error 0.3s ease;
+}
+
+body.ptmt-enable-animations .ptmt-ge-swatch {
+  transition: border-color 0.15s, opacity 0.15s;
+}
+
+@keyframes ptmt-color-error {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  25% {
+    transform: translateX(-2px);
+  }
+
+  75% {
+    transform: translateX(2px);
+  }
+}
+
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s 120ms;
+}
+
+body.ptmt-enable-animations .ptmt-shy-indicator::before {
+  transition: opacity 0.2s ease, background-color 0.2s ease;
+}
+
+body.ptmt-enable-animations .ptmt-shy-indicator:hover~.ptmt-tabStrip,
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:hover {
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 0s 0s !important;
+}
+
+body.ptmt-enable-animations .ptmt-info-tab-btn {
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+body.ptmt-enable-animations .ptmt-info-link {
+  transition: opacity 0.15s;
+}
+
+body.ptmt-enable-animations .ptmt-more-card {
+  transition: border-color 0.15s, background 0.15s;
+}
+
+body.ptmt-enable-animations .ptmt-more-card-title {
+  transition: color 0.15s;
+}
+
+body.ptmt-enable-animations .ptmt-more-support-link {
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+
+body.ptmt-enable-animations .ptmt-md-content a {
+  transition: opacity 0.15s;
+}
+
+body.ptmt-enable-animations .ptmt-compass-zone {
+  transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.1s;
+}
+
+body.ptmt-enable-animations .ptmt-split-preview {
+  transition: left 0.08s, top 0.08s, width 0.08s, height 0.08s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+  .ptmt-tab,
+  .ptmt-pane,
+  .ptmt-panel,
+  .ptmt-resizer-vertical,
+  .ptmt-resizer-horizontal,
+  .ptmt-ge-swatch {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+/* ==========================================================================
    7. AUTO-HIDE TAB STRIP
    ========================================================================== */
 
@@ -2908,14 +3017,9 @@ body.ptmt-enable-animations .ptmt-vs-avatar-input[style*="border-color: red"] {
   pointer-events: none;
   visibility: hidden;
   transform: translate(var(--ptmt-tabstrip-hidden-x, 0), var(--ptmt-tabstrip-hidden-y, -8px));
+  z-index: 20 !important;
 }
 
-body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease,
-    visibility 0s 120ms;
-}
 
 /* Adjust grid templates to remove track space when minimized */
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal {
@@ -2985,9 +3089,6 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
   opacity: var(--ptmt-indicator-opacity, 0.5);
 }
 
-body.ptmt-enable-animations .ptmt-shy-indicator::before {
-  transition: opacity 0.2s ease, background-color 0.2s ease;
-}
 
 .ptmt-shy-indicator:hover::before {
   background: var(--ptmt-indicator-hover-color, rgba(255, 255, 255, 0.3));
@@ -3055,13 +3156,6 @@ body.ptmt-enable-animations .ptmt-shy-indicator::before {
   transform: translate(0, 0) !important;
 }
 
-body.ptmt-enable-animations .ptmt-shy-indicator:hover~.ptmt-tabStrip,
-body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:hover {
-  transition:
-    opacity 120ms ease,
-    transform 120ms ease,
-    visibility 0s 0s !important;
-}
 
 .ptmt-shy-indicator:hover~.ptmt-tabStrip.vertical,
 .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip.vertical:hover {
@@ -3179,7 +3273,6 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   cursor: pointer;
   border: 2px solid transparent;
   padding: 0;
-  transition: border-color 0.15s, opacity 0.15s;
   opacity: 0.45;
 }
 
@@ -3399,9 +3492,6 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip:ho
   bottom: -1px;
 }
 
-body.ptmt-enable-animations .ptmt-info-tab-btn {
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
 
 .ptmt-info-tab-btn:hover:not(.active) {
   background: color-mix(in srgb, var(--ST-UI-Background), white 8%);
@@ -3455,9 +3545,6 @@ body.ptmt-enable-animations .ptmt-info-tab-btn {
   text-underline-offset: 2px;
 }
 
-body.ptmt-enable-animations .ptmt-info-link {
-  transition: opacity 0.15s;
-}
 
 .ptmt-info-link:hover {
   opacity: 0.75;
@@ -3692,9 +3779,6 @@ body.ptmt-enable-animations .ptmt-info-link {
   gap: 6px;
 }
 
-body.ptmt-enable-animations .ptmt-more-card {
-  transition: border-color 0.15s, background 0.15s;
-}
 
 .ptmt-more-card:hover {
   border-color: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Button-Background)), transparent 60%);
@@ -3720,9 +3804,6 @@ body.ptmt-enable-animations .ptmt-more-card {
   text-decoration: none;
 }
 
-body.ptmt-enable-animations .ptmt-more-card-title {
-  transition: color 0.15s;
-}
 
 .ptmt-more-card-title:hover {
   color: var(--ptmt-adaptive-quote, var(--ST-Button-Background));
@@ -3776,9 +3857,6 @@ body.ptmt-enable-animations .ptmt-more-card-title {
   text-decoration: none;
 }
 
-body.ptmt-enable-animations .ptmt-more-support-link {
-  transition: background 0.15s, border-color 0.15s, color 0.15s;
-}
 
 .ptmt-more-support-link:hover {
   background: color-mix(in srgb, var(--ptmt-adaptive-quote, var(--ST-Button-Background)), transparent 82%);
@@ -3907,9 +3985,6 @@ body.ptmt-enable-animations .ptmt-more-support-link {
   text-underline-offset: 2px;
 }
 
-body.ptmt-enable-animations .ptmt-md-content a {
-  transition: opacity 0.15s;
-}
 
 .ptmt-md-content a:hover {
   opacity: 0.75;
@@ -4002,9 +4077,6 @@ body.ptmt-enable-animations .ptmt-md-content a {
   -webkit-backdrop-filter: blur(6px) saturate(1.5);
 }
 
-body.ptmt-enable-animations .ptmt-compass-zone {
-  transition: background 0.1s, border-color 0.1s, color 0.1s, transform 0.1s;
-}
 
 /* Center zone is slightly larger */
 .ptmt-compass-center {
@@ -4099,9 +4171,6 @@ body.ptmt-enable-animations .ptmt-compass-zone {
   -webkit-backdrop-filter: blur(1px);
 }
 
-body.ptmt-enable-animations .ptmt-split-preview {
-  transition: left 0.08s, top 0.08s, width 0.08s, height 0.08s;
-}
 
 /* ─────────────────────────────────────────────────────────────────────────────
    CHARACTER & PERSONA COLORIZER UI (using inline-drawer structure)
