@@ -73,6 +73,9 @@ This section controls the visual aesthetic of the extension without affecting yo
 ### Background & Theme
 
 - **Move BG Under Chat** — moves the SillyTavern background image (#bg1) underneath the chat area instead of behind the whole UI. When enabled, reveals a **Background Color** colour picker to set the area outside the chat.
+- **Theme Colors** — extra PTMT colour pickers for UI Background 2, Text Box Background, Tabs Color, and Tabs Background.
+- **Generate colors from background** — the wand button in Theme Colors samples the active background image and fills the SillyTavern/PTMT theme colour pickers automatically.
+- **Palette Profile** — the dropdown beside the wand controls the generated palette style. *Alpha* profiles keep the main UI tint translucent; *Solid* profiles make the main UI tint opaque while leaving supporting generated colours mostly translucent.
 
 ### Layout Actions
 
@@ -93,7 +96,7 @@ When enabled, additional controls appear:
   - *Character List*: avatar width, height, and scale factor.
   - All fields accept valid CSS units: `px`, `%`, `vh`, `vw`, `em`, `rem`, `vmin`, `vmax`.
   - A **Reset All** button restores all avatar values to defaults.
-- **Auto Contrast Text Colors** — automatically adjusts chat text colour for contrast when the Dialogue Colorizer tints bubble backgrounds.
+- **Auto Contrast Text Colors** — automatically adjusts UI and chat text colour for contrast. Chat messages use their own adaptive calculation based on chat/message bubble backgrounds rather than the global UI background, so Dialogue Colorizer bubble colours and gradients stay readable.
 - **Optimize Performance with Long Chat** — uses an IntersectionObserver to only render messages currently in view. Reduces frame budget in very long chats. *Minor scroll jumps may occur until each message has been seen once.*
 
 ---
@@ -129,6 +132,7 @@ When the master switch is off, the Characters and Personas (User) sub-sections a
 Override the global dialogue colorizer settings for individual characters or personas:
 
 - **Character Editor** — At the top of a character's bio section, find the **Character Dialogue Colorizer** panel with a toggle to enable personal settings.
+- **Character Palette** — above Character Dialogue Colorizer, use the wand button to generate the same Theme Colors from the current character image instead of the background. The selector beside it uses the same palette profiles as the background generator.
 - **Persona Management** — In the persona selector, find the **Persona Dialogue Colorizer** panel with a toggle to enable personal settings.
 
 When enabled, both provide these controls (in order):
@@ -140,11 +144,13 @@ When enabled, both provide these controls (in order):
 6. **Gradient Editor** — shown when Gradient is selected; lets you adjust colours, stop positions, and angle for this specific character or persona
 7. **Char/User Bubble Opacity** — opacity override for this character or persona
 
-Gradient starts from the avatar palette. If at least four colours are extracted, PTMT uses the second-darkest and second-lightest colours; with fewer colours, it falls back to the available darkest/lightest pair.
+Gradient starts from the avatar palette. If at least four colours are extracted, PTMT uses the second-darkest and second-lightest colours; with fewer colours, it falls back to the available darkest/lightest pair. Auto Contrast Text Colors evaluates message text against those bubble colours/gradients separately from the global UI background.
 
 Settings are saved automatically and persist across sessions. Disable the toggle to revert to global settings for that character or persona.
 
 After the v0.11.5 colorizer rewrite, old per-character and per-persona overrides are reset once because the storage keys changed. Global Dialogue Colorizer settings are preserved.
+
+Generated palettes update the colour pickers visually, but translucent theme colours remain saved as `rgba(...)` so alpha is preserved.
 
 ---
 

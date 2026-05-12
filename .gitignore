@@ -16,3 +16,6 @@ __tests__/
 docker-compose2.yml
 SCAN_NOTES.md
 ARCHITECTURE.md
+theme-preview/
+tools/
+run-theme-preview.sh

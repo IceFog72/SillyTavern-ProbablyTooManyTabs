@@ -30,6 +30,7 @@ import { initColorizer } from './dialogue-colorizer.js';
 import { initCharacterColorizerUI } from './character-colorizer-ui.js';
 import { initAvatarExpressionSync } from './avatar-expression-sync.js';
 import { initInspectorScaleControl, cleanupInspectorScaleControl } from './ui-injection.js';
+import { initThemeColors } from './theme-colors.js';
 
 // ─── Subsystem Init ──────────────────────────────────────────────────────────
 
@@ -42,7 +43,55 @@ function initSubsystems() {
     initCharacterColorizerUI();
     initAvatarExpressionSync();
     initInspectorScaleControl();
+    initRangeStyleSync();
     createLayoutIfMissing();
+}
+
+function updateRangeStyle(input) {
+    if (!(input instanceof HTMLInputElement) || input.type !== 'range') return;
+
+    const min = Number.isFinite(Number(input.min)) ? Number(input.min) : 0;
+    const max = Number.isFinite(Number(input.max)) ? Number(input.max) : 100;
+    const value = Number.isFinite(Number(input.value)) ? Number(input.value) : min;
+    const span = Math.max(1, max - min);
+    const percent = Math.max(0, Math.min(100, ((value - min) / span) * 100));
+    input.style.setProperty('--value', `${percent}%`);
+}
+
+function updateRangesIn(root = document) {
+    if (root instanceof HTMLInputElement && root.type === 'range') {
+        updateRangeStyle(root);
+        return;
+    }
+
+    root.querySelectorAll?.('input[type="range"]').forEach(updateRangeStyle);
+}
+
+function initRangeStyleSync() {
+    updateRangesIn();
+
+    const updateFromEvent = (event) => updateRangeStyle(event.target);
+    document.addEventListener('input', updateFromEvent, true);
+    document.addEventListener('change', updateFromEvent, true);
+    trackListener(document, 'input', updateFromEvent, true);
+    trackListener(document, 'change', updateFromEvent, true);
+
+    registerBodyObserver(
+        'range-style-sync',
+        { childList: true, attributes: true, attributeFilter: ['value', 'min', 'max'] },
+        (mutations) => {
+            for (const mutation of mutations) {
+                if (mutation.type === 'attributes') {
+                    updateRangesIn(mutation.target);
+                    continue;
+                }
+
+                for (const node of mutation.addedNodes) {
+                    if (node instanceof Element) updateRangesIn(node);
+                }
+            }
+        }
+    );
 }
 
 // ─── Tab Strip Mode (Normal / Auto-Hide / Shy) ──────────────────────────────
@@ -546,6 +595,7 @@ function postInit(state, applyOverrides) {
         const state = { isPTMTResetting: false, isHydrating: true };
 
         initSubsystems();
+        initThemeColors();
         const saveCurrentLayoutDebounced = createSaveHandler(state);
         const api = createApi(state);
         window.ptmtTabs = api;

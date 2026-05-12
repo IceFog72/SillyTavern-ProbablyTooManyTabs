@@ -2,6 +2,20 @@
 
 ---
 
+## v0.12.0 — 2026-05-12
+
+*Theme Palette & Modern Controls*
+
+- ✦ New · **Background Palette Generator** — Theme Colors now includes a wand button that generates SillyTavern and PTMT theme colours from the active background image.
+- ✦ New · **Palette Profiles** — added shared Alpha/Solid palette profiles for generated themes, with Solid making the main UI tint opaque while preserving the supporting alpha values.
+- ✦ New · **Character Image Palette Generator** — the Character Editor now adds a Character Palette header above Character Dialogue Colorizer, with a wand button and profile selector that generate the same theme colours from the current character image.
+- ✔ Fix · **Color Picker Stability** — generated `rgba(...)` colours are preserved for the theme while picker swatches receive safe hex values, preventing accidental alpha loss.
+- ✔ Fix · **Message Adaptive Contrast** — chat messages keep their own contrast model based on chat/message bubble backgrounds, including Character Dialogue Colorizer bubble colours and gradients.
+- ✔ Fix · **Generated Text Shadows** — generated text shadow colour now moves opposite the main text polarity: darker for bright text, brighter for dark text.
+- ✦ Polish · **Modern Flat ST Controls** — refreshed sliders, toggles, checkboxes, inputs, drawers, and settings panels with compact flat styling and consistent theme-derived colours.
+
+---
+
 ## v0.11.6 — 2026-05-09
 
 *Split Compass Routing*

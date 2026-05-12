@@ -45,9 +45,11 @@
   --ptmt-panel-padding: 0px;
 
   /* Tab Colors - Icon and label share the same color */
-  --ptmt-tab-default-color: var(--ptmt-adaptive-em);
-  --ptmt-tab-hover-color: var(--ptmt-adaptive-quote);
-  --ptmt-tab-active-color: var(--ptmt-adaptive-text);
+  --ST-Tabs-Color: var(--ptmt-adaptive-em);
+  --ST-Tabs-Background: color-mix(in srgb, var(--ST-UI-Background), transparent 30%);
+  --ptmt-tab-default-color: var(--ST-Tabs-Color, var(--ptmt-adaptive-em));
+  --ptmt-tab-hover-color: var(--ST-Quote-Text);
+  --ptmt-tab-active-color: var(--ST-Main-Text);
 
   /* Base Theme Aliases - Mapped to SillyTavern's SmartTheme system */
   --ST-Main-Text: var(--SmartThemeBodyColor);
@@ -57,8 +59,10 @@
   --ST-Quote-Text: var(--SmartThemeQuoteColor);
   --ST-Text-Shadow: var(--SmartThemeShadowColor);
   --ST-UI-Background: var(--SmartThemeBlurTintColor);
+  --ST-UI-Background-2: color-mix(in srgb, var(--ptmt-adaptive-quote) 10%, var(--ptmt-adaptive-em) 10%);
   --ST-Chat-Background: var(--SmartThemeChatTintColor);
   --ST-UI-Border: var(--SmartThemeBorderColor);
+  --ST-TextBox-Background: var(--black30a);
   --ST-User-Message-Background: var(--SmartThemeUserMesBlurTintColor);
   --ST-Bot-Message-Background: var(--SmartThemeBotMesBlurTintColor);
   --ST-Blur-Strength: var(--SmartThemeBlurStrength);
@@ -83,6 +87,7 @@
   --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Button-Background), var(--ptmt-adaptive-bw) 70%);
   --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-shadow-reverse: color-mix(in oklch, var(--ST-Text-Shadow), oklch(from var(--ptmt-ui-composite) clamp(0, (l - 0.45) * 100, 1) 0 0 / 1) 70%);
 
   --tool-cool-color-picker-field-label-color: var(--SmartThemeQuoteColor);
   --tool-cool-color-picker-popup-bg: var(--ST-UI-Background);
@@ -104,13 +109,17 @@
   --ptmt-transition: 260ms cubic-bezier(.2, .8, .2, 1);
   --shadowWidth: 8;
   --ptmt-tab-border-color: color-mix(in srgb, var(--ST-UI-Border), transparent 30%);
-  --ptmt-tab-bg-color: color-mix(in srgb, var(--ST-UI-Background), transparent 30%);
-  --ptmt-tab-inactive-bg: color-mix(in srgb, var(--ST-UI-Background), transparent 60%);
+  --ptmt-tab-bg-color: var(--ST-Tabs-Background, color-mix(in srgb, var(--ST-UI-Background), transparent 30%));
+  --ptmt-tab-inactive-bg: var(--ST-Tabs-Background);
   --ptmt-tab-hover-bg: color-mix(in srgb, var(--ST-UI-Background), var(--ptmt-adaptive-quote) 10%);
   --ptmt-shadow-soft: 0 4px 12px -2px color-mix(in srgb, var(--ptmt-adaptive-shadow), transparent 70%);
   --tts-bottom-offset: 39px;
   --ptmt-panel-bg: var(--ST-UI-Background);
   --ptmt-panel-border: var(--ST-UI-Border);
+}
+
+.text_pole {
+  background-color: var(--ST-TextBox-Background, var(--black30a));
 }
 
 /* ==========================================================================
@@ -287,7 +296,7 @@ body.ptmt-Theme-RoundedSmooth .ptmt-tab:hover:not(.active) {
 
 body.ptmt-Theme-RoundedSmooth .ptmt-tab.active {
   background: var(--ptmt-tab-bg-color) !important;
-  border-color: color-mix(in srgb, var(--ptmt-tab-active-color), transparent 60%);
+  border-color: color-mix(in srgb, var(--ST-Quote-Text), transparent 60%);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
@@ -308,18 +317,13 @@ body.ptmt-Theme-RoundedSmooth .ptmt-pane-grid .ptmt-panelContainer {
   border-radius: var(--ptmt-radius);
 }
 
-/* Soft & Smooth: panel container spacing — orientation-aware breathing room.
-   grid-horizontal: strip is top/bottom → margin top/bottom to create gap.
-   grid-vertical:   strip is left/right → margin left/right to create gap. */
+body.ptmt-Theme-RoundedSoft .ptmt-pane-grid.grid-vertical .ptmt-panelContainer,
+body.ptmt-Theme-RoundedSmooth .ptmt-pane-grid.grid-vertical .ptmt-panelContainer,
 body.ptmt-Theme-RoundedSoft .ptmt-pane-grid.grid-horizontal .ptmt-panelContainer,
 body.ptmt-Theme-RoundedSmooth .ptmt-pane-grid.grid-horizontal .ptmt-panelContainer {
   margin: var(--ptmt-grid-gap) 0;
 }
 
-body.ptmt-Theme-RoundedSoft .ptmt-pane-grid.grid-vertical .ptmt-panelContainer,
-body.ptmt-Theme-RoundedSmooth .ptmt-pane-grid.grid-vertical .ptmt-panelContainer {
-  margin: var(--ptmt-grid-gap) 0;
-}
 
 /* ==========================================================================
    2. CORE SILLYTAVERN OVERRIDES
@@ -758,7 +762,7 @@ body.ptmt-enable-animations .ptmt-resizer-horizontal {
   border-radius: var(--ptmt-radius);
 }
 
-/* User already added this block but I'll make sure it's correct */
+/* Pane transition — animates flex sizing and opacity */
 body.ptmt-enable-animations .ptmt-pane {
   transition:
     flex var(--ptmt-transition),
@@ -1001,7 +1005,7 @@ body.ptmt-enable-animations .ptmt-tab {
 }
 
 body.ptmt-enable-animations .ptmt-tab.collapsed:not(.active) {
-  opacity: 0.68;
+  opacity: 0.76;
 }
 
 /* Tab Icon */
@@ -2520,7 +2524,6 @@ body.ptmt-enable-animations .ptmt-vs-button {
 
 .ptmt-vs-button.primary {
   background: linear-gradient(135deg, var(--ptmt-adaptive-quote) 0%, color-mix(in srgb, var(--ptmt-adaptive-quote), black 15%) 100%);
-  color: #fff;
   border: none;
   box-shadow: 0 2px 8px color-mix(in srgb, var(--ptmt-adaptive-quote), transparent 60%);
   font-weight: 600;
@@ -2969,7 +2972,6 @@ body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
 
 .ptmt-shy-indicator {
   position: absolute;
-  z-index: 10;
   z-index: 10;
   pointer-events: auto;
   flex-shrink: 0;

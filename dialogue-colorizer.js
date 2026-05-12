@@ -340,6 +340,43 @@ function pickBestDialogColor(extractedColors) {
     return best || extractedColors[0] || DEFAULT_HEX;
 }
 
+function hexToRgb(hex) {
+    const safeHex = normalizeHexColor(hex);
+    return [
+        parseInt(safeHex.slice(1, 3), 16),
+        parseInt(safeHex.slice(3, 5), 16),
+        parseInt(safeHex.slice(5, 7), 16),
+    ];
+}
+
+function mixHexColors(colors) {
+    if (!colors.length) return DEFAULT_HEX;
+
+    const total = colors.reduce((sum, item) => sum + item.weight, 0) || 1;
+    const mixed = colors.reduce((acc, item) => {
+        const [r, g, b] = hexToRgb(item.color);
+        const weight = item.weight / total;
+        acc[0] += r * weight;
+        acc[1] += g * weight;
+        acc[2] += b * weight;
+        return acc;
+    }, [0, 0, 0]);
+
+    return rgbToHex(mixed);
+}
+
+function getGradientContrastColor(sortedStops) {
+    if (sortedStops.length === 0) return DEFAULT_HEX;
+    if (sortedStops.length === 1) return normalizeHexColor(sortedStops[0].color, DEFAULT_HEX);
+
+    return mixHexColors(sortedStops.map((stop, index) => {
+        const previous = sortedStops[index - 1]?.position ?? stop.position;
+        const next = sortedStops[index + 1]?.position ?? stop.position;
+        const weight = Math.max(0.01, (next - previous) / 2);
+        return { color: normalizeHexColor(stop.color, DEFAULT_HEX), weight };
+    }));
+}
+
 function buildCssRules(safeUid, extractedColors, info) {
     const s = getSettingsForType(info.type, info);
     const controls = getColorizerControlSettings(info.type, info);
@@ -374,7 +411,7 @@ function buildCssRules(safeUid, extractedColors, info) {
 
     if (target & 1) { // QUOTED_TEXT
         const standardRule = `color: ${dialogColor} !important;`;
-        const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) 25%) !important;`;
+        const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) var(--ptmt-dialogue-contrast-mix, 38%)) !important;`;
 
         css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${standardRule} }\n`;
         css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_reasoning q { ${standardRule} }\n`;
@@ -386,8 +423,7 @@ function buildCssRules(safeUid, extractedColors, info) {
     }
     if (target & 2) { // BUBBLES
         const rgbaBorder = hexToRgbaWithAlpha(bPrim, Math.min(1.0, opacity * 2.5 + 0.1));
-
-        css += `#chat .mes[xdc-author-uid="${safeUid}"] { --ptmt-mes-colorizer-color: ${hexToRgbaWithAlpha(bPrim, opacity)}; }\n`;
+        let contrastColor = bPrim;
 
         let background;
         if (bubbleMode === 'gradient') {
@@ -404,6 +440,7 @@ function buildCssRules(safeUid, extractedColors, info) {
                 const parts = sorted.map(st => `${hexToRgbaWithAlpha(st.color, opacity)} ${Math.round(st.position * 100)}%`);
                 background = `linear-gradient(${angle}deg, ${parts.join(', ')})`;
             }
+            contrastColor = getGradientContrastColor(sorted);
         } else if (bubbleMode === 'static_color') {
             background = hexToRgbaWithAlpha(bPrim, opacity);
         } else {
@@ -411,6 +448,7 @@ function buildCssRules(safeUid, extractedColors, info) {
             background = hexToRgbaWithAlpha(bPrim, opacity);
         }
 
+        css += `#chat .mes[xdc-author-uid="${safeUid}"] { --ptmt-mes-colorizer-color: ${hexToRgbaWithAlpha(contrastColor, opacity)}; }\n`;
         css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background: ${background}; border-color: ${rgbaBorder}; --SmartThemeBotMesBlurTintColor: transparent; --SmartThemeUserMesBlurTintColor: transparent; }\n`;
     }
     return css;
