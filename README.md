@@ -112,4 +112,4 @@ SillyTavern-ProbablyTooManyTabs/
 
 ## License
 
-MIT License - See [LICENSE](LICENSE) for details.
+GNU License - See [LICENSE](LICENSE) for details.
