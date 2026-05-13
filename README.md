@@ -66,7 +66,7 @@ PTMT integrates with these SillyTavern extensions:
 - [SillyTavern-Tracker](https://github.com/kaldigo/SillyTavern-Tracker)
 - [SillyTavern-Variable-Viewer](https://github.com/LenAnderson/SillyTavern-Variable-Viewer)
 
-> **Note**: For popup windows, press the extension's popup button to integrate.
+> **Note**: For popup windows, press the extension's popup button to be added as tab
 
 **Need another extension adapted?** Reach out on Discord.
 
