@@ -1345,7 +1345,7 @@ input[type="checkbox"]:checked:hover {
 #cfgConfig,
 #floatingPrompt,
 #logprobsViewer {
-    background: var(--ST-UI-Background, #0f1723) !important;
+    background: oklch(from var(--ST-UI-Background, #0f1723) l c h / 1) !important;
     border: 0;
     border-radius: var(--ptmt-control-radius);
     box-shadow: none !important;

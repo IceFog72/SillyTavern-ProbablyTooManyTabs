@@ -43,6 +43,12 @@ export class SettingsManager {
         dialogueColorizerPersonaBubbleSource: 'avatar_vibrant',
         dialogueColorizerPersonaBubbleStaticColor1: '#537fddff',
         dialogueColorizerPersonaBubbleStaticColor2: '#537fddff',
+        messageRailEnabled: false,
+        messageRailFilter: 'all',
+        messageRailExcludeSystem: true,
+        messageRailMaxDots: 64,
+        messageRailSide: 'right',
+        messageRailScrollBehavior: 'smooth',
         // Bitmask: 1=quoted text, 2=bubbles, 3=both
         dialogueColorizerColorizeTarget: 3,
         dialogueColorizerPersonaColorizeTarget: 3,

@@ -275,7 +275,8 @@ export function createSettingsPanel(manager) {
         createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
         createSettingCheckbox('Show World Info Status Bar', 'showWorldInfoStatusBar'),
         createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
-        createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing')
+        createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing'),
+        createSettingCheckbox('Enable Message Rail', 'messageRailEnabled')
     );
 
     // ─── Global Style Fieldset ──────────────────────────────────────────
@@ -430,7 +431,21 @@ export function createSettingsPanel(manager) {
     const discordLink = el('a', { href: 'https://discord.gg/2tJcWeMjFQ', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Discord (IceFog\'s AI Brew Bar)');
     const patreonLink = el('a', { href: 'https://www.patreon.com/cw/IceFog72', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Patreon');
 
-    linksWrapper.append(discordLink, patreonLink);
+    // GitHub Star Badge (Shields.io) - Reliable & no script needed
+    const githubLink = el('a', {
+        href: 'https://github.com/IceFog72/SillyTavern-ProbablyTooManyTabs',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        style: 'display: inline-flex; align-items: center;'
+    },
+        el('img', {
+            src: 'https://img.shields.io/github/stars/IceFog72/SillyTavern-ProbablyTooManyTabs?style=social',
+            alt: 'GitHub stars',
+            style: 'height: 20px;'
+        })
+    );
+
+    linksWrapper.append(discordLink, patreonLink, githubLink);
     supportLinksContainer.appendChild(linksWrapper);
     panel.appendChild(supportLinksContainer);
 

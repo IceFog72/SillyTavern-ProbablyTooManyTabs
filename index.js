@@ -31,6 +31,7 @@ import { initCharacterColorizerUI } from './character-colorizer-ui.js';
 import { initAvatarExpressionSync } from './avatar-expression-sync.js';
 import { initInspectorScaleControl, cleanupInspectorScaleControl } from './ui-injection.js';
 import { initThemeColors } from './theme-colors.js';
+import { initMessageRail } from './message-rail.js';
 
 // ─── Subsystem Init ──────────────────────────────────────────────────────────
 
@@ -43,6 +44,7 @@ function initSubsystems() {
     initCharacterColorizerUI();
     initAvatarExpressionSync();
     initInspectorScaleControl();
+    initMessageRail();
     initRangeStyleSync();
     createLayoutIfMissing();
 }

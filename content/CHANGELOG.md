@@ -2,6 +2,15 @@
 
 ---
 
+## v0.12.2 — 2026-05-13
+
+*Message Rail & UI Opacity*
+
+- ✦ New · **Integrated Message Rail** — ported and rebranded the GPT Message Rail extension into a built-in PTMT subsystem. It provides a sleek, vertical message indicator rail that expands on hover for rapid chat navigation.
+- ✔ Fix · **Panel Background Opacity** — forced background alpha to 1 (fully opaque) for drawers, popups, draggable panels, and zoomed avatars in `overrides-1.css`, ensuring text readability is preserved.
+
+---
+
 ## v0.12.1 — 2026-05-13
 
 *Shy Mode Stability*

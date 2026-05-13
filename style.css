@@ -4269,3 +4269,189 @@ body:not(.ptmt-enable-blur-effect) *::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
+
+/* --- Message Rail --- */
+#chat.gmr-chat-host {
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--SmartThemeBodyColor, #d8d8d8) 30%, transparent) transparent;
+}
+
+#gpt-message-rail,
+#gpt-message-rail * {
+    box-sizing: border-box;
+}
+
+#gpt-message-rail {
+    position: fixed;
+    top: 50%;
+    right: 16px;
+    z-index: 2999;
+    transform: translateY(-50%);
+    display: flex;
+    align-items: center;
+    user-select: none;
+}
+
+#gpt-message-rail[hidden] {
+    display: none !important;
+}
+
+#gpt-message-rail.gmr-left {
+    left: 10px;
+    right: auto;
+    flex-direction: row;
+}
+
+#gpt-message-rail.gmr-right {
+    right: 10px;
+    left: auto;
+    flex-direction: row-reverse;
+}
+
+#gpt-message-rail .gmr-dots {
+    display: flex;
+    width: 36px;
+    max-height: min(72vh, 560px);
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 8px;
+    padding: 8px 0;
+    overflow-x: hidden;
+    overflow-y: hidden;
+    pointer-events: auto;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    transition:
+        background-color 150ms ease,
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+    scrollbar-width: thin;
+    scrollbar-color: color-mix(in srgb, var(--SmartThemeBodyColor, #d8d8d8) 30%, transparent) transparent;
+}
+
+#chat.gmr-chat-host::-webkit-scrollbar,
+#gpt-message-rail .gmr-dots::-webkit-scrollbar {
+    width: 4px;
+}
+
+#chat.gmr-chat-host::-webkit-scrollbar-track,
+#gpt-message-rail .gmr-dots::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+#chat.gmr-chat-host::-webkit-scrollbar-thumb,
+#gpt-message-rail .gmr-dots::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--SmartThemeBodyColor, #d8d8d8) 30%, transparent);
+    border-radius: 4px;
+}
+
+#gpt-message-rail.gmr-left .gmr-dots {
+    align-items: flex-start;
+}
+
+#gpt-message-rail .gmr-dot {
+    width: 18px;
+    height: 2px;
+    min-height: 2px;
+    padding: 0;
+    border: 0;
+    border-radius: 4px;
+    background: transparent;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 12px;
+    opacity: 1;
+    transition: background-color 150ms ease;
+}
+
+#gpt-message-rail .gmr-dot::after {
+    content: '';
+    display: block;
+    width: 18px;
+    height: 2px;
+    background: color-mix(in srgb, var(--SmartThemeBodyColor, #d8d8d8) 48%, transparent);
+    border-radius: 999px;
+    transition: all 150ms ease;
+    flex-shrink: 0;
+}
+
+#gpt-message-rail .gmr-dot::before {
+    content: attr(aria-label);
+    color: var(--SmartThemeBodyColor, #eee);
+    font-size: 13px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex: 1;
+    text-align: left;
+    opacity: 0;
+}
+
+#gpt-message-rail .gmr-dot:hover::after,
+#gpt-message-rail .gmr-dot:focus-visible::after {
+    width: 24px;
+    background: var(--SmartThemeBodyColor, #fff);
+}
+
+#gpt-message-rail .gmr-dot.gmr-active::after {
+    width: 28px;
+    height: 3px;
+    background: var(--SmartThemeQuoteColor, #8ab4ff);
+    box-shadow: 0 0 10px color-mix(in srgb, var(--SmartThemeQuoteColor, #8ab4ff) 60%, transparent);
+}
+
+#gpt-message-rail.gmr-left .gmr-dot {
+    justify-content: flex-start;
+    flex-direction: row-reverse;
+}
+
+#gpt-message-rail.gmr-left .gmr-dot::before {
+    text-align: right;
+}
+
+.mes.gmr-pulse {
+    animation: gmr-message-pulse 900ms ease;
+}
+
+@keyframes gmr-message-pulse {
+    0% {
+        box-shadow: 0 0 0 0 color-mix(in srgb, var(--SmartThemeQuoteColor, #8ab4ff) 60%, transparent);
+    }
+
+    35% {
+        box-shadow: 0 0 0 4px color-mix(in srgb, var(--SmartThemeQuoteColor, #8ab4ff) 32%, transparent);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 transparent;
+    }
+}
+
+/* Expanding Panel on Hover */
+#gpt-message-rail:hover .gmr-dots {
+    width: 320px;
+    background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #111) 86%, transparent);
+    border-color: color-mix(in srgb, var(--SmartThemeBorderColor, #666) 70%, transparent);
+    padding: 12px;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5);
+    overflow-y: auto;
+}
+
+#gpt-message-rail:hover .gmr-dot {
+    width: 100%;
+    height: 28px;
+    min-height: 28px;
+    padding: 0 8px;
+}
+
+#gpt-message-rail:hover .gmr-dot::before {
+    opacity: 1;
+}
+
+#gpt-message-rail:hover .gmr-dot:hover {
+    background: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 10%, transparent);
+}
