@@ -417,6 +417,9 @@ body.big-avatars .mes .mesAvatarWrapper:has(.avatar[style*="display: none"]) {
 /* Hover state */
 #chat .mes .del_checkbox:hover {
     opacity: 0.8 !important;
+}
+
+body.ptmt-enable-animations #chat .mes .del_checkbox:hover {
     transition: opacity 0.2s ease !important;
 }
 
@@ -509,8 +512,12 @@ body.big-avatars .mes .swipe_right {
     height: auto !important;
     padding: 0 !important;
     opacity: 0.5;
-    transition: opacity 0.2s, transform 0.1s;
     cursor: pointer;
+}
+
+body.ptmt-enable-animations body.big-avatars .mes .swipe_left,
+body.ptmt-enable-animations body.big-avatars .mes .swipe_right {
+    transition: opacity 0.2s, transform 0.1s;
 }
 
 body.big-avatars .mes .swipe_left:hover,
@@ -576,6 +583,10 @@ body.big-avatars .mes .swipe_right:hover {
     border-radius: 0.5rem;
     visibility: hidden;
     opacity: 0;
+}
+
+body.ptmt-enable-animations .mes_buttons,
+body.ptmt-enable-animations .mes_reasoning_actions {
     transition: opacity 0.2s;
 }
 
@@ -771,11 +782,14 @@ textarea:disabled {
     border: 1px solid var(--ST-UI-Border, #263246) !important;
     border-radius: var(--ptmt-control-radius) !important;
     box-shadow: var(--ptmt-control-button-shadow) !important;
-    transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 6px;
+}
+
+body.ptmt-enable-animations .menu_button {
+    transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
 .menu_button:hover {
@@ -860,13 +874,16 @@ input[type="checkbox"]::before {
     top: 0;
     transform: none !important;
     transform-origin: center;
-    transition: background var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
     width: auto;
+}
+
+body.ptmt-enable-animations input[type="radio"]::before,
+body.ptmt-enable-animations input[type="checkbox"]::before {
+    transition: background var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
 input[type="radio"]::after,
 input[type="checkbox"]::after {
-    transition: left 100ms ease-out, background-color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
     background-color: var(--ST-Main-Text) !important;
     border-radius: var(--ptmt-control-radius);
     box-shadow: var(--ptmt-control-knob-shadow);
@@ -876,6 +893,11 @@ input[type="checkbox"]::after {
     position: absolute;
     top: 0;
     width: var(--ptmt-toggle-knob-size);
+}
+
+body.ptmt-enable-animations input[type="radio"]::after,
+body.ptmt-enable-animations input[type="checkbox"]::after {
+    transition: left 100ms ease-out, background-color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
 input[type="radio"]:hover,
@@ -948,6 +970,9 @@ input[type="checkbox"]:checked:hover {
     display: flex;
     align-items: center;
     justify-content: left;
+}
+
+body.ptmt-enable-animations .drawer-toggle:hover {
     transition: all 0.2s ease !important;
 }
 
@@ -1112,6 +1137,9 @@ input[type="checkbox"]:checked:hover {
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--ptmt-control-radius);
+}
+
+body.ptmt-enable-animations #user-settings-block .checkbox_label {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition);
 }
 
@@ -1140,6 +1168,9 @@ input[type="checkbox"]:checked:hover {
     border-radius: var(--ptmt-control-radius) !important;
     box-shadow: var(--ptmt-control-button-shadow) !important;
     filter: none !important;
+}
+
+body.ptmt-enable-animations #user-settings-block .menu_button {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
@@ -1175,6 +1206,13 @@ input[type="checkbox"]:checked:hover {
     border-radius: var(--ptmt-control-radius) !important;
     box-shadow: var(--ptmt-control-track-shadow) !important;
     outline: none;
+}
+
+body.ptmt-enable-animations #user-settings-block .text_pole,
+body.ptmt-enable-animations #user-settings-block textarea,
+body.ptmt-enable-animations #user-settings-block select,
+body.ptmt-enable-animations #user-settings-block input[type="number"],
+body.ptmt-enable-animations #user-settings-block input[type="text"] {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
@@ -1407,6 +1445,15 @@ input[type="password"] {
     border-radius: var(--ptmt-control-radius) !important;
     box-shadow: var(--ptmt-control-track-shadow) !important;
     outline: none;
+}
+
+body.ptmt-enable-animations .text_pole,
+body.ptmt-enable-animations textarea,
+body.ptmt-enable-animations select,
+body.ptmt-enable-animations input[type="text"],
+body.ptmt-enable-animations input[type="search"],
+body.ptmt-enable-animations input[type="number"],
+body.ptmt-enable-animations input[type="password"] {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
@@ -1442,6 +1489,12 @@ input[type="password"]:focus {
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--ptmt-control-radius);
+}
+
+body.ptmt-enable-animations .checkbox_label,
+body.ptmt-enable-animations .list-group-item,
+body.ptmt-enable-animations .tag,
+body.ptmt-enable-animations .tags .tag {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition);
 }
 
@@ -1530,6 +1583,11 @@ input[type="password"]:focus {
     border: 1px solid transparent !important;
     border-radius: var(--ptmt-control-radius) !important;
     box-shadow: none !important;
+}
+
+body.ptmt-enable-animations #leftSendForm .interactable,
+body.ptmt-enable-animations #rightSendForm .interactable,
+body.ptmt-enable-animations .stih--button {
     transition: background var(--ptmt-control-transition), color var(--ptmt-control-transition);
 }
 
@@ -1671,6 +1729,14 @@ input[type="password"]:focus {
     border-radius: var(--ptmt-control-radius) !important;
     box-shadow: var(--ptmt-control-track-shadow) !important;
     outline: none;
+}
+
+body.ptmt-enable-animations #AdvancedFormatting .text_pole,
+body.ptmt-enable-animations #AdvancedFormatting textarea,
+body.ptmt-enable-animations #AdvancedFormatting select,
+body.ptmt-enable-animations #AdvancedFormatting input[type="text"],
+body.ptmt-enable-animations #AdvancedFormatting input[type="search"],
+body.ptmt-enable-animations #AdvancedFormatting input[type="number"] {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
@@ -1711,6 +1777,9 @@ input[type="password"]:focus {
     border-radius: var(--ptmt-control-radius) !important;
     box-shadow: var(--ptmt-control-button-shadow) !important;
     filter: none !important;
+}
+
+body.ptmt-enable-animations #AdvancedFormatting .menu_button {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
@@ -1732,6 +1801,9 @@ input[type="password"]:focus {
     background: transparent;
     border: 1px solid transparent;
     border-radius: var(--ptmt-control-radius);
+}
+
+body.ptmt-enable-animations #AdvancedFormatting .checkbox_label {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition);
 }
 
@@ -1958,6 +2030,9 @@ input[type="range"] {
     outline: none;
     background: transparent !important;
     cursor: ew-resize;
+}
+
+body.ptmt-enable-animations input[type="range"] {
     transition: filter var(--ptmt-control-transition);
 }
 
@@ -1981,6 +2056,9 @@ input[type="range"]::-webkit-slider-thumb {
     border: 0;
     box-shadow: var(--ptmt-control-knob-shadow) !important;
     cursor: pointer;
+}
+
+body.ptmt-enable-animations input[type="range"]::-webkit-slider-thumb {
     transition: filter var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
@@ -2031,6 +2109,9 @@ input[type="range"]::-moz-range-thumb {
     border: 0;
     box-shadow: var(--ptmt-control-knob-shadow) !important;
     cursor: pointer;
+}
+
+body.ptmt-enable-animations input[type="range"]::-moz-range-thumb {
     transition: filter var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
