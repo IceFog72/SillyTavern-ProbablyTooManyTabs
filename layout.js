@@ -2,8 +2,8 @@ import { el, getRefs, calculateElementMinWidth, readPaneViewSettings } from './u
 import { createPane, findPreferredDescendentOrientation } from './pane.js';
 import { attachColumnResizer } from './resizer.js';
 import { settings } from './settings.js';
-import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
-import { parseFlexBasis, getBasis, normalizeFlexBasis } from './layout-math.js';
+import { SELECTORS, LAYOUT } from './constants.js';
+import { parseFlexBasis, normalizeFlexBasis } from './layout-math.js';
 
 /** @typedef {import('./types.js').PTMTRefs} PTMTRefs */
 /** @typedef {import('./types.js').ColumnLayout} ColumnLayout */

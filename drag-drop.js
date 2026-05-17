@@ -5,7 +5,7 @@
 
 import { getPaneLayerCount, splitPaneWithPane, MAX_PANE_LAYERS } from './pane.js';
 import { openTab, getActivePane, moveTabIntoPaneAtIndex } from './tabs.js';
-import { getPanelById, throttle, getRefs } from './utils.js';
+import { getPanelById, throttle, getRefs, trackListener } from './utils.js';
 
 /** @typedef {import('./types.js').DragContext} DragContext */
 /** @typedef {import('./types.js').RelativePanePosition} RelativePanePosition */
@@ -409,34 +409,44 @@ export const hideSplitOverlay = hideCompass;  // backwards compat for tabs.js
 export function enableInteractions() {
   const refs = getRefs();
 
-  document.addEventListener('dragstart', ev => {
+  const handleDocumentDragStart = ev => {
     const tabEl = ev.target?.closest?.('.ptmt-tab');
     if (tabEl) currentDraggingPid = tabEl.dataset.for;
-  });
+  };
+  document.addEventListener('dragstart', handleDocumentDragStart);
+  trackListener(document, 'dragstart', handleDocumentDragStart);
 
-  document.addEventListener('dragover', ev => {
+  const handleDocumentDragOver = ev => {
     ev.preventDefault();
     try { ev.dataTransfer.dropEffect = 'move'; } catch { }
-  });
+  };
+  document.addEventListener('dragover', handleDocumentDragOver);
+  trackListener(document, 'dragover', handleDocumentDragOver);
 
   // Throttle only the heavy path (pane-switch detection → getBoundingClientRect).
   // Zone highlight on same pane escapes the throttle via the early-return in processDragEvent.
   const throttledProcessDrag = throttle(ev => processDragEvent(ev, { performDrop: false }), 16);
   refs.mainBody.addEventListener('dragover', throttledProcessDrag);
+  trackListener(refs.mainBody, 'dragover', throttledProcessDrag);
 
-  refs.mainBody.addEventListener('drop', ev => {
+  const handleMainBodyDrop = ev => {
     processDragEvent(ev, { performDrop: true });
     clearDragSession();
-  });
+  };
+  refs.mainBody.addEventListener('drop', handleMainBodyDrop);
+  trackListener(refs.mainBody, 'drop', handleMainBodyDrop);
 
-  refs.mainBody.addEventListener('dragleave', (e) => {
+  const handleMainBodyDragLeave = (e) => {
     setTimeout(() => {
       const r = refs.mainBody.getBoundingClientRect();
       const inside = e.clientX >= r.left && e.clientX <= r.right
                   && e.clientY >= r.top  && e.clientY <= r.bottom;
       if (!inside) { hideDropIndicator(); hideCompass(); clearDragSession(); }
     }, 50);
-  });
+  };
+  refs.mainBody.addEventListener('dragleave', handleMainBodyDragLeave);
+  trackListener(refs.mainBody, 'dragleave', handleMainBodyDragLeave);
 
   document.addEventListener('dragend', clearDragSession);
+  trackListener(document, 'dragend', clearDragSession);
 }

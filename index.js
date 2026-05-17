@@ -9,7 +9,7 @@ import { isDataURL } from '../../../utils.js';
 import { getUserAvatar } from '../../../personas.js';
 import { settings, SettingsManager } from './settings.js';
 
-import { el, debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener, trackObserver, registerBodyObserver } from './utils.js';
+import { debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener, registerBodyObserver } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot } from './snapshot.js';
 import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
 import { applyPaneOrientation, applySplitOrientation, openViewSettingsDialog, updateSplitCollapsedState } from './pane.js';
@@ -19,9 +19,9 @@ import {
     moveTabIntoPaneAtIndex, destroyTabById,
     setActivePanelInPane, setTabCollapsed, getActivePane,
 } from './tabs.js';
-import { attachResizer, setSplitOrientation, updateResizerDisabledStates, validateAndCorrectAllMinSizes, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
+import { attachResizer, setSplitOrientation, updateResizerDisabledStates, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
-import { removeMouseDownDrawerHandler, openAllDrawersJq, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver, moveBg1ToSheld, moveBg1BackToPtmtMain } from './misc-helpers.js';
+import { removeMouseDownDrawerHandler, openAllDrawersJq, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver, moveBg1ToSheld } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 import { positionAnchor } from './positionAnchor.js';
 import { initStatusBar, initWorldInfoStatusBar } from './context-status-bar.js';
@@ -97,8 +97,6 @@ function initRangeStyleSync() {
 }
 
 // ─── Tab Strip Mode (Normal / Auto-Hide / Shy) ──────────────────────────────
-
-const TAB_STRIP_MODES = ['normal', 'auto-hide', 'shy'];
 
 function getGlobalTabStripMode() {
     // New setting takes priority; fall back to legacy boolean
@@ -408,7 +406,7 @@ function bindSwipeHandlers() {
         console.log(`[PTMT] Keyboard swipe ${e.key === 'ArrowRight' ? 'right' : 'left'} on active pane`);
         await swipe({ target: swipeBtn || activePane }, direction, { source: SWIPE_SOURCE.KEYBOARD });
     };
-    $(document).on('keydown', keydownHandler);
+    document.addEventListener('keydown', keydownHandler);
     trackListener(document, 'keydown', keydownHandler);
 
     // Touch swipe — routes to active pane

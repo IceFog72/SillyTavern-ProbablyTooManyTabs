@@ -1,7 +1,7 @@
 // resizer.js
-import { $$, getElementDepth, throttle, debounce, getRefs, el, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings, trackObserver } from './utils.js';
-import { normalizeFlexBasis, getBasis, setFlexBasisPercent, pxToPercent, applyIntelligentExpansion, recalculateSplitSizes, recalculateAllSplitsRecursively, recalculateMultipleSubtreesOptimized } from './layout-math.js';
-import { applyPaneOrientation, setPaneCollapsedView, applySplitOrientation, removePaneIfEmpty } from './pane.js';
+import { $$, throttle, debounce, getRefs, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings, trackObserver } from './utils.js';
+import { normalizeFlexBasis, setFlexBasisPercent, pxToPercent, applyIntelligentExpansion, recalculateAllSplitsRecursively, recalculateMultipleSubtreesOptimized } from './layout-math.js';
+import { setPaneCollapsedView } from './pane.js';
 import { recalculateColumnSizes } from './layout.js';
 import { SELECTORS, EVENTS, LAYOUT } from './constants.js';
 import { settings } from './settings.js';

@@ -767,6 +767,24 @@ textarea:disabled {
     pointer-events: none !important;
 }
 
+/* ETLE uses prism-code-editor's textarea as a transparent editing surface.
+   PTMT's global textarea skin must not make it visible or disable pointer input. */
+#etle--panel .prism-code-editor textarea,
+#etle--panel .prism-code-editor textarea:hover,
+#etle--panel .prism-code-editor textarea:focus,
+#etle--panel .prism-code-editor textarea:disabled {
+    color: transparent !important;
+    -webkit-text-fill-color: transparent !important;
+    background: transparent !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+    opacity: 1 !important;
+    filter: none !important;
+    pointer-events: auto !important;
+}
+
 /* Menu buttons */
 .menu_button>* {
     text-shadow: none !important;

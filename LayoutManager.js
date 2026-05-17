@@ -1,4 +1,3 @@
-import { settings as globalSettings } from './settings.js';
 import { el, debounce, createIconElement } from './utils.js';
 import { SELECTORS, EVENTS } from './constants.js';
 import { createSettingsPanel } from './layout-editor/SettingsPanel.js';
