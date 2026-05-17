@@ -2,6 +2,14 @@
 
 ---
 
+## v0.12.3 — 2026-05-17
+
+*Extension Tabs*
+
+- ✦ New · **Every Text Line Editor Tab** — added `etle--panel` support so SillyTavern-EveryTextLineEditor can be captured as a PTMT tab through pending-tab hydration.
+
+---
+
 ## v0.12.2 — 2026-05-13
 
 *Message Rail & UI Opacity*

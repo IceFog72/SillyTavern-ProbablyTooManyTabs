@@ -126,7 +126,8 @@ export class SettingsManager {
             { id: 'sheld', title: 'Main', icon: 'fa-house' },
             { id: 'charlib-embedded-container', title: 'CharLib', icon: 'fa-book-open' },
             { id: 'trackerInterface', title: 'Tracker', icon: 'fa-chart-simple' },
-            { id: 'vv--root', title: 'Variables', icon: 'fa-code' }
+            { id: 'vv--root', title: 'Variables', icon: 'fa-code' },
+            { id: 'etle--panel', title: 'Text Line Editor', icon: 'fa-pen-to-square' }
         ],
 
         presets: [],
@@ -134,7 +135,7 @@ export class SettingsManager {
         savedLayoutMobile: null,
 
         defaultLayout: {
-            version: 20,
+            version: 21,
             showIconsOnly: false,
             showLeft: true,
             showRight: true,
@@ -169,7 +170,8 @@ export class SettingsManager {
                         { searchId: "qr--popout", searchClass: "", paneId: "ptmt-default-left-pane" },
                         { searchId: "ctsi-drawerPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
                         { searchId: "trackerInterface", searchClass: "", paneId: "ptmt-default-left-pane" },
-                        { searchId: "vv--root", searchClass: "", paneId: "ptmt-default-left-pane" }
+                        { searchId: "vv--root", searchClass: "", paneId: "ptmt-default-left-pane" },
+                        { searchId: "etle--panel", searchClass: "", paneId: "ptmt-default-left-pane" }
                     ]
                 },
                 center: {
@@ -253,7 +255,7 @@ export class SettingsManager {
         uiTheme: 'sharp',
 
         mobileLayout: {
-            version: 20,
+            version: 21,
             showIconsOnly: true,
             showLeft: false,
             showRight: false,
@@ -311,7 +313,8 @@ export class SettingsManager {
                         { searchId: "moonlit_echoes_popout", searchClass: "", paneId: "ptmt-default-center-pane" },
                         { searchId: "zoomed_avatar", searchClass: "", paneId: "ptmt-default-center-pane" },
                         { searchId: "trackerInterface", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "vv--root", searchClass: "", paneId: "ptmt-default-center-pane" }
+                        { searchId: "vv--root", searchClass: "", paneId: "ptmt-default-center-pane" },
+                        { searchId: "etle--panel", searchClass: "", paneId: "ptmt-default-center-pane" }
                     ]
                 }
             }

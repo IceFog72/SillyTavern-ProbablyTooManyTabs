@@ -25,7 +25,7 @@ import { createInfoPanel, PTMT_INFO_PANEL_ID, getPTMTInfoCurrentVersion } from '
 /** @typedef {import('./types.js').HiddenTab} HiddenTab */
 
 const SNAPSHOT_VERSION = 15;      // Minimum supported version
-const SNAPSHOT_CURRENT_VERSION = 20; // Version written by generateLayoutSnapshot
+const SNAPSHOT_CURRENT_VERSION = 21; // Version written by generateLayoutSnapshot
 
 // ─── Snapshot Migration Registry ─────────────────────────────────────────────
 // Each key is a source version; the value migrates that version to (key + 1).
@@ -163,6 +163,35 @@ const SNAPSHOT_MIGRATIONS = {
         addGhostTabIfMissing('vv--root', 'ptmt-default-left-pane');
 
         snap.version = 20;
+        return snap;
+    },
+    20: (snap) => {
+        // v20→v21: Add Every Text Line Editor as a pending tab for existing users.
+        const ETLE_PANEL_ID = 'etle--panel';
+        const hasInAny = ['left', 'center', 'right'].some(
+            col => (snap.columns?.[col]?.ghostTabs || []).some(t => t.searchId === ETLE_PANEL_ID)
+        );
+
+        if (!hasInAny) {
+            const targetColumn = snap.mode === 'mobile' ? 'center' : 'left';
+            const targetPane = snap.mode === 'mobile' ? 'ptmt-default-center-pane' : 'ptmt-default-left-pane';
+            if (!snap.columns) {
+                snap.columns = {};
+            }
+            if (!snap.columns[targetColumn]) {
+                snap.columns[targetColumn] = { ghostTabs: [] };
+            }
+            if (!snap.columns[targetColumn].ghostTabs) {
+                snap.columns[targetColumn].ghostTabs = [];
+            }
+            snap.columns[targetColumn].ghostTabs.push({
+                searchId: ETLE_PANEL_ID,
+                searchClass: '',
+                paneId: targetPane
+            });
+        }
+
+        snap.version = 21;
         return snap;
     },
 };
