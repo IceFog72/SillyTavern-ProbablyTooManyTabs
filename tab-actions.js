@@ -64,7 +64,6 @@ function hideCharLibEmbedded() {
 
 // expressions_plus_carousel_body overrides start
 function hideExpressionsPlusCarouselFrame() {
-  debugger
   const container = document.getElementById("expressions_plus_carousel_panel");
   // Attempting to hide it doesn't work, as Expressions+ just shows it again every time expressions are updated
   container?.remove()
