@@ -37,7 +37,11 @@ An extension that transforms the SillyTavern interface into a flexible tabbed wo
 - SillyTavern (staging branch)
 - Modern browser (Chrome, Firefox, Edge)
 
----
+
+## Status
+
+ Due to lack of support, development of PTMT and other extensions is currently frozen. Existing installations remain functional, but no new features or updates are being added at this time.
+
 
 ## Quick Start
 

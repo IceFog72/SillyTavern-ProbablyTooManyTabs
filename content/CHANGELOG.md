@@ -1,6 +1,8 @@
 # Changelog
 
 
+ **ANNOUNCEMENT:** Due to lack of support, development of PTMT and other extensions is currently frozen. Existing installations remain functional, but no new features or updates are being added at this time.
+
 ## v0.12.12 — 2026-06-19
 
 *RPG Companion Integration*
