@@ -1,6 +1,7 @@
 // index.js
 
-import { eventSource, event_types } from '../../../../script.js';
+import { eventSource, event_types, swipe, isSwipingAllowed } from '../../../../script.js';
+import { SWIPE_DIRECTION, SWIPE_SOURCE } from '../../../../scripts/constants.js';
 import { SELECTORS, EVENTS, MESSAGES } from './constants.js';
 import { settings, SettingsManager } from './settings.js';
 import { debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener, registerBodyObserver } from './utils.js';
@@ -10,7 +11,7 @@ import { applyPaneOrientation, applySplitOrientation, openViewSettingsDialog, up
 import {
     createTabFromContent, moveNodeIntoTab, listTabs,
     openTab, closeTabById, setDefaultPanelById, isTabHidden,
-    destroyTabById, setActivePanelInPane, setTabCollapsed,
+    destroyTabById, setActivePanelInPane, setTabCollapsed, getActivePane,
 } from './tabs.js';
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
@@ -374,6 +375,38 @@ function initLayoutResetShortcut(appApi) {
     trackListener(document, 'keydown', handler, true);
 }
 
+function initActivePaneKeyboardSwipe() {
+    const handler = async (event) => {
+        if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+        if (event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
+        if (isEditableShortcutTarget(event.target)) return;
+        if (typeof isSwipingAllowed === 'function' && !isSwipingAllowed()) return;
+
+        const activePane = getActivePane();
+        if (!activePane) return;
+
+        const isRight = event.key === 'ArrowRight';
+        const selector = isRight ? SELECTORS.ST_SWIPE_RIGHT : SELECTORS.ST_SWIPE_LEFT;
+        const swipeButton = activePane.querySelector(selector);
+
+        // Only take ownership when the active pane actually contains ST's swipe UI.
+        // This avoids stealing arrow keys from unrelated tabs while preventing ST's
+        // global keyboard handler from swiping a different/hidden chat instance.
+        if (!swipeButton || swipeButton.getClientRects().length === 0) return;
+
+        event.preventDefault();
+        event.stopImmediatePropagation();
+
+        const direction = isRight ? SWIPE_DIRECTION.RIGHT : SWIPE_DIRECTION.LEFT;
+        await swipe({ target: swipeButton }, direction, { source: SWIPE_SOURCE.KEYBOARD });
+    };
+
+    // Capture phase is intentional: SillyTavern also has a global arrow-key
+    // handler. PTMT must route the key to the active pane before that runs.
+    document.addEventListener('keydown', handler, true);
+    trackListener(document, 'keydown', handler, true);
+}
+
 // SillyTavern owns zoomed-avatar creation/configuration. PTMT's pending-tab
 // manager already observes direct body additions and will hydrate `.zoomed_avatar`
 // into the configured Avatar tab after the native handler finishes.
@@ -460,6 +493,7 @@ function cleanupRuntimeSubsystems() {
         loadInitialLayout(api);
         postInit(state, applyOverrides);
         initLayoutResetShortcut(api);
+        initActivePaneKeyboardSwipe();
         initDemotionObserver(api);
         return api;
     }
