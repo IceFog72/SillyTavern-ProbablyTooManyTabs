@@ -50,31 +50,23 @@ export class SettingsManager {
         messageRailMaxDots: 64,
         messageRailSide: 'right',
         messageRailScrollBehavior: 'smooth',
-        // Bitmask: 1=quoted text, 2=bubbles, 3=both
         dialogueColorizerColorizeTarget: 3,
         dialogueColorizerPersonaColorizeTarget: 3,
-        // Opacity for bubble backgrounds (0.0 to 1.0)
         dialogueColorizerBubbleOpacityBot: 0.1,
         dialogueColorizerBubbleOpacityUser: 0.1,
-        // Bubble color mode: avatar_light, avatar_dark, static_color, gradient (auto inner-palette pair)
         dialogueColorizerBubbleMode: 'gradient',
         dialogueColorizerPersonaBubbleMode: 'gradient',
-        // Custom gradient stops for bubble gradient mode (empty = auto second-darkest + second-lightest)
         dialogueColorizerBubbleGradientStops: [],
         dialogueColorizerBubbleGradientAngle: 225,
         dialogueColorizerPersonaBubbleGradientStops: [],
         dialogueColorizerPersonaBubbleGradientAngle: 125,
         dialogueColorizerSettingsVersion: 2,
 
-        // Per-character custom colorizer settings
-        charCustomColorizerEnabled: [], // Array of char names with custom colorizer enabled
-        charCustomColorizerSettings: {}, // Object keyed by char name with custom settings
+        charCustomColorizerEnabled: [],
+        charCustomColorizerSettings: {},
+        personaCustomColorizerEnabled: [],
+        personaCustomColorizerSettings: {},
 
-        // Per-persona custom colorizer settings
-        personaCustomColorizerEnabled: [], // Array of persona filenames with custom colorizer enabled
-        personaCustomColorizerSettings: {}, // Object keyed by persona filename with custom settings
-
-        // Avatar dimensions
         avatarBaseHeight: '14vh',
         avatarBaseWidth: '8vw',
         avatarBaseBorderRadius: '0.5rem',
@@ -85,10 +77,6 @@ export class SettingsManager {
         charListAvatarHeight: 'auto',
         charListAvatarScale: '1',
         bodyBgColor: 'rgb(29, 29, 29)',
-
-        // Tracks the last version the user acknowledged — drives the auto-open info panel logic.
-        // null  → first install  → open on Guide tab
-        // older → update         → open on Changelog tab
         lastSeenVersion: null,
 
         panelMappings: [
@@ -145,9 +133,9 @@ export class SettingsManager {
             showRight: true,
             hiddenTabs: [],
             columnSizes: {
-                left: "1 1 20%",
-                center: "1 1 60%",
-                right: "1 1 20%",
+                left: '1 1 20%',
+                center: '1 1 60%',
+                right: '1 1 20%',
                 leftCollapsed: false,
                 rightCollapsed: false,
                 leftLastFlex: null,
@@ -159,23 +147,23 @@ export class SettingsManager {
                         type: 'pane',
                         paneId: 'ptmt-default-left-pane',
                         tabs: [
-                            { sourceId: "left-nav-panel" },
-                            { sourceId: "notebookPanel" },
-                            { sourceId: "rm_api_block" },
-                            { sourceId: "cfgConfig" },
-                            { sourceId: "logprobsViewer" },
-                            { sourceId: "extensionSideBar" },
-                            { sourceId: "injectManagerSideBar" },
-                            { sourceId: "cardGalleryViewer" }
+                            { sourceId: 'left-nav-panel' },
+                            { sourceId: 'notebookPanel' },
+                            { sourceId: 'rm_api_block' },
+                            { sourceId: 'cfgConfig' },
+                            { sourceId: 'logprobsViewer' },
+                            { sourceId: 'extensionSideBar' },
+                            { sourceId: 'injectManagerSideBar' },
+                            { sourceId: 'cardGalleryViewer' }
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "summaryExtensionPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
-                        { searchId: "groupMemberListPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
-                        { searchId: "qr--popout", searchClass: "", paneId: "ptmt-default-left-pane" },
-                        { searchId: "ctsi-drawerPopout", searchClass: "", paneId: "ptmt-default-left-pane" },
-                        { searchId: "trackerInterface", searchClass: "", paneId: "ptmt-default-left-pane" },
-                        { searchId: "vv--root", searchClass: "", paneId: "ptmt-default-left-pane" }
+                        { searchId: 'summaryExtensionPopout', searchClass: '', paneId: 'ptmt-default-left-pane' },
+                        { searchId: 'groupMemberListPopout', searchClass: '', paneId: 'ptmt-default-left-pane' },
+                        { searchId: 'qr--popout', searchClass: '', paneId: 'ptmt-default-left-pane' },
+                        { searchId: 'ctsi-drawerPopout', searchClass: '', paneId: 'ptmt-default-left-pane' },
+                        { searchId: 'trackerInterface', searchClass: '', paneId: 'ptmt-default-left-pane' },
+                        { searchId: 'vv--root', searchClass: '', paneId: 'ptmt-default-left-pane' }
                     ]
                 },
                 center: {
@@ -189,13 +177,13 @@ export class SettingsManager {
                                 flex: '1 1 60%',
                                 isCollapsed: false,
                                 tabs: [
-                                    { sourceId: "sheld" },
-                                    { sourceId: "rm_extensions_block" },
-                                    { sourceId: "Backgrounds" },
-                                    { sourceId: "etle--panel" },
-                                    { sourceId: "AdvancedFormatting" },
-                                    { sourceId: "table_drawer_content" },
-                                    { sourceId: "user-settings-block" }
+                                    { sourceId: 'sheld' },
+                                    { sourceId: 'rm_extensions_block' },
+                                    { sourceId: 'Backgrounds' },
+                                    { sourceId: 'etle--panel' },
+                                    { sourceId: 'AdvancedFormatting' },
+                                    { sourceId: 'table_drawer_content' },
+                                    { sourceId: 'user-settings-block' }
                                 ]
                             },
                             {
@@ -203,21 +191,21 @@ export class SettingsManager {
                                 paneId: 'ptmt-default-center-bottom-pane',
                                 flex: '1 1 40%',
                                 isCollapsed: true,
-                                viewSettings: { contentFlow: "reversed" },
+                                viewSettings: { contentFlow: 'reversed' },
                                 tabs: [
-                                    { sourceId: "WorldInfo" },
-                                    { sourceId: "stqrd--drawer-v2" },
-                                    { sourceId: "expression-wrapper" },
-                                    { sourceId: "expression-plus-wrapper" },
-                                    { sourceId: "expressions_plus_carousel_body" },
-                                    { sourceId: "charlib-embedded-container" }
+                                    { sourceId: 'WorldInfo' },
+                                    { sourceId: 'stqrd--drawer-v2' },
+                                    { sourceId: 'expression-wrapper' },
+                                    { sourceId: 'expression-plus-wrapper' },
+                                    { sourceId: 'expressions_plus_carousel_body' },
+                                    { sourceId: 'charlib-embedded-container' }
                                 ]
                             }
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "gallery", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "", searchClass: "galleryImageDraggable", paneId: "ptmt-default-center-pane" }
+                        { searchId: 'gallery', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: '', searchClass: 'galleryImageDraggable', paneId: 'ptmt-default-center-pane' }
                     ]
                 },
                 right: {
@@ -229,10 +217,10 @@ export class SettingsManager {
                                 type: 'pane',
                                 paneId: 'ptmt-default-right-top-pane',
                                 flex: '1 1 50%',
-                                viewSettings: { contentFlow: "reversed" },
+                                viewSettings: { contentFlow: 'reversed' },
                                 tabs: [
-                                    { sourceId: "right-nav-panel" },
-                                    { sourceId: "PersonaManagement" },
+                                    { sourceId: 'right-nav-panel' },
+                                    { sourceId: 'PersonaManagement' },
                                 ]
                             },
                             {
@@ -240,20 +228,20 @@ export class SettingsManager {
                                 paneId: 'ptmt-default-right-bottom-pane',
                                 flex: '1 1 50%',
                                 isCollapsed: true,
-                                viewSettings: { contentFlow: "reversed" },
+                                viewSettings: { contentFlow: 'reversed' },
                                 tabs: [
-                                    { sourceId: "character_popup" },
-                                    { sourceId: "floatingPrompt" },
-                                    { sourceId: "dupeFinderPanel" }
+                                    { sourceId: 'character_popup' },
+                                    { sourceId: 'floatingPrompt' },
+                                    { sourceId: 'dupeFinderPanel' }
                                 ]
                             }
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "objectiveExtensionPopout", searchClass: "", paneId: "ptmt-default-right-top-pane" },
-                        { searchId: "rpg-companion-panel", searchClass: "", paneId: "ptmt-default-right-top-pane" },
-                        { searchId: "moonlit_echoes_popout", searchClass: "", paneId: "ptmt-default-right-top-pane" },
-                        { searchId: "", searchClass: "zoomed_avatar", paneId: "ptmt-default-right-top-pane" }
+                        { searchId: 'objectiveExtensionPopout', searchClass: '', paneId: 'ptmt-default-right-top-pane' },
+                        { searchId: 'rpg-companion-panel', searchClass: '', paneId: 'ptmt-default-right-top-pane' },
+                        { searchId: 'moonlit_echoes_popout', searchClass: '', paneId: 'ptmt-default-right-top-pane' },
+                        { searchId: '', searchClass: 'zoomed_avatar', paneId: 'ptmt-default-right-top-pane' }
                     ]
                 }
             }
@@ -268,9 +256,9 @@ export class SettingsManager {
             showRight: false,
             hiddenTabs: [],
             columnSizes: {
-                left: "1 1 20%",
-                center: "1 1 100%",
-                right: "1 1 20%",
+                left: '1 1 20%',
+                center: '1 1 100%',
+                right: '1 1 20%',
                 leftCollapsed: false,
                 rightCollapsed: false,
                 leftLastFlex: null,
@@ -284,55 +272,52 @@ export class SettingsManager {
                         type: 'pane',
                         paneId: 'ptmt-default-center-pane',
                         tabs: [
-                            { sourceId: "sheld" },
-                            { sourceId: "left-nav-panel" },
-                            { sourceId: "notebookPanel" },
-                            { sourceId: "rm_api_block" },
-                            { sourceId: "cfgConfig" },
-                            { sourceId: "logprobsViewer" },
-                            { sourceId: "extensionSideBar" },
-                            { sourceId: "rm_extensions_block" },
-                            { sourceId: "Backgrounds" },
-                            { sourceId: "AdvancedFormatting" },
-                            { sourceId: "table_drawer_content" },
-                            { sourceId: "user-settings-block" },
-                            { sourceId: "WorldInfo" },
-                            { sourceId: "stqrd--drawer-v2" },
-                            { sourceId: "expression-wrapper" },
-                            { sourceId: "expression-plus-wrapper" },
-                            { sourceId: "right-nav-panel" },
-                            { sourceId: "PersonaManagement" },
-                            { sourceId: "character_popup" },
-                            { sourceId: "floatingPrompt" },
-                            { sourceId: "dupeFinderPanel" },
-                            { sourceId: "injectManagerSideBar" },
-                            { sourceId: "charlib-embedded-container" },
-                            { sourceId: "etle--panel" },
-                            { sourceId: "cardGalleryViewer" }
+                            { sourceId: 'sheld' },
+                            { sourceId: 'left-nav-panel' },
+                            { sourceId: 'notebookPanel' },
+                            { sourceId: 'rm_api_block' },
+                            { sourceId: 'cfgConfig' },
+                            { sourceId: 'logprobsViewer' },
+                            { sourceId: 'extensionSideBar' },
+                            { sourceId: 'rm_extensions_block' },
+                            { sourceId: 'Backgrounds' },
+                            { sourceId: 'AdvancedFormatting' },
+                            { sourceId: 'table_drawer_content' },
+                            { sourceId: 'user-settings-block' },
+                            { sourceId: 'WorldInfo' },
+                            { sourceId: 'stqrd--drawer-v2' },
+                            { sourceId: 'expression-wrapper' },
+                            { sourceId: 'expression-plus-wrapper' },
+                            { sourceId: 'right-nav-panel' },
+                            { sourceId: 'PersonaManagement' },
+                            { sourceId: 'character_popup' },
+                            { sourceId: 'floatingPrompt' },
+                            { sourceId: 'dupeFinderPanel' },
+                            { sourceId: 'injectManagerSideBar' },
+                            { sourceId: 'charlib-embedded-container' },
+                            { sourceId: 'etle--panel' },
+                            { sourceId: 'cardGalleryViewer' }
                         ]
                     },
                     ghostTabs: [
-                        { searchId: "summaryExtensionPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "groupMemberListPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "qr--popout", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "ctsi-drawerPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "gallery", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "", searchClass: "galleryImageDraggable", paneId: "ptmt-default-center-pane" },
-                        { searchId: "objectiveExtensionPopout", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "moonlit_echoes_popout", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "", searchClass: "zoomed_avatar", paneId: "ptmt-default-center-pane" },
-                        { searchId: "trackerInterface", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "vv--root", searchClass: "", paneId: "ptmt-default-center-pane" },
-                        { searchId: "rpg-companion-panel", searchClass: "", paneId: "ptmt-default-center-pane" }
+                        { searchId: 'summaryExtensionPopout', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'groupMemberListPopout', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'qr--popout', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'ctsi-drawerPopout', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'gallery', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: '', searchClass: 'galleryImageDraggable', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'objectiveExtensionPopout', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'moonlit_echoes_popout', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: '', searchClass: 'zoomed_avatar', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'trackerInterface', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'vv--root', searchClass: '', paneId: 'ptmt-default-center-pane' },
+                        { searchId: 'rpg-companion-panel', searchClass: '', paneId: 'ptmt-default-center-pane' }
                     ]
                 }
             }
         }
     };
 
-    // ─── UI THEME SYSTEM (Extensible) ────────────────────────────────────────
-    // Add new themes by extending this object with new theme configs.
-    // Themes are applied by setting CSS variables on :root.
     static themes = {
         sharp: {
             name: 'Sharp',
@@ -358,32 +343,6 @@ export class SettingsManager {
                 '--ptmt-panel-padding': '0px',
             }
         },
-        /*
-        rounded_soft: {
-            name: 'Soft',
-            description: '',
-            variables: {
-                '--ptmt-radius': '6px',
-                '--ptmt-tab-radius': '0px 0px 6px 6px',
-                '--ptmt-pane-radius': '6px',
-                '--ptmt-dialog-radius': '12px',
-                '--ptmt-button-radius': '6px',
-                '--ptmt-tab-size': '40px',
-                '--ptmt-collapsed-width': '44px',
-                '--ptmt-icons-only-tab-size': '46px',
-                '--ptmt-spacing-xs': '3px',
-                '--ptmt-spacing-sm': '5px',
-                '--ptmt-spacing-md': '8px',
-                '--ptmt-spacing-lg': '10px',
-                '--ptmt-spacing-xl': '14px',
-                '--ptmt-border-width': '1px',
-                '--ptmt-tab-margin': '2px',
-                '--ptmt-tab-margin-offset': '6px',
-                '--ptmt-grid-gap': '3px',
-                '--ptmt-panel-padding': '0px',
-            }
-        },
-        */
         rounded_smooth: {
             name: 'Smooth',
             description: '',
@@ -417,15 +376,9 @@ export class SettingsManager {
     static applyTheme(themeName) {
         const theme = this.getThemeConfig(themeName);
         const body = document.body;
-
-        // Remove all theme classes
         body.classList.remove('ptmt-Theme-Sharp', 'ptmt-Theme-RoundedSoft', 'ptmt-Theme-RoundedSmooth');
-
-        // Convert theme name to PascalCase for class
         const className = `ptmt-Theme-${themeName.split('_').map(part => part.charAt(0).toUpperCase() + part.slice(1)).join('')}`;
         body.classList.add(className);
-
-        console.log(`[PTMT] Applied theme: ${theme.name}`);
     }
 
     static getAvailableThemes() {
@@ -437,7 +390,9 @@ export class SettingsManager {
     }
 
     static isMobile() {
-        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || window.innerWidth < 800;
+        const uaMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        const narrowTouch = window.matchMedia?.('(max-width: 799px) and (pointer: coarse)')?.matches;
+        return uaMobile || !!narrowTouch;
     }
 
     static getMobileLayout(sourceLayout) {
@@ -446,54 +401,39 @@ export class SettingsManager {
         layout.showLeft = false;
         layout.showRight = false;
         layout.columnSizes = {
-            left: "1 1 20%",
-            center: "1 1 100%",
-            right: "1 1 20%",
+            left: '1 1 20%',
+            center: '1 1 100%',
+            right: '1 1 20%',
             leftCollapsed: false,
             rightCollapsed: false,
             leftLastFlex: null,
             rightLastFlex: null
         };
 
-        // Move all tabs to center-top pane
         const allTabs = [];
         const processContent = (node) => {
             if (!node) return;
-            if (node.type === 'pane' && node.tabs) {
-                allTabs.push(...node.tabs);
-            } else if (node.type === 'split' && node.children) {
-                node.children.forEach(processContent);
-            }
+            if (node.type === 'pane' && node.tabs) allTabs.push(...node.tabs);
+            else if (node.type === 'split' && node.children) node.children.forEach(processContent);
         };
-
         processContent(layout.columns.left?.content);
         processContent(layout.columns.center?.content);
         processContent(layout.columns.right?.content);
 
-        // Deduplicate tabs by sourceId
         const uniqueTabs = [];
         const seen = new Set();
         allTabs.forEach(t => {
             if (t.sourceId && !seen.has(t.sourceId)) {
                 uniqueTabs.push(t);
                 seen.add(t.sourceId);
-            } else if (t.customContent) {
-                uniqueTabs.push(t);
-            }
+            } else if (t.customContent) uniqueTabs.push(t);
         });
 
-        layout.columns.center.content = {
-            type: 'pane',
-            paneId: 'ptmt-default-center-pane',
-            tabs: uniqueTabs
-        };
+        layout.columns.center.content = { type: 'pane', paneId: 'ptmt-default-center-pane', tabs: uniqueTabs };
         layout.columns.left.content = { type: 'pane', paneId: 'ptmt-default-left-pane', tabs: [] };
         layout.columns.right.content = { type: 'pane', paneId: 'ptmt-default-right-pane', tabs: [] };
-
-        // Clear ghost tabs from side columns for mobile
         layout.columns.left.ghostTabs = [];
         layout.columns.right.ghostTabs = [];
-
         return layout;
     }
 
@@ -503,9 +443,9 @@ export class SettingsManager {
         layout.showLeft = true;
         layout.showRight = true;
         layout.columnSizes = {
-            left: "1 1 22%",
-            center: "1 1 56%",
-            right: "1 1 22%",
+            left: '1 1 22%',
+            center: '1 1 56%',
+            right: '1 1 22%',
             leftCollapsed: false,
             rightCollapsed: false,
             leftLastFlex: null,
@@ -518,73 +458,44 @@ export class SettingsManager {
         this._settingsMigrated = false;
         this.initializeSettings();
 
-        // Migration: Move old savedLayout to savedLayoutDesktop
         if (extension_settings.PTMT?.savedLayout && !this.get('savedLayoutDesktop')) {
-            console.log("[PTMT] Migrating legacy layout to savedLayoutDesktop");
             extension_settings.PTMT.savedLayoutDesktop = extension_settings.PTMT.savedLayout;
             delete extension_settings.PTMT.savedLayout;
             this.save();
         }
-
-        // Migration: tabStripAutoHide (boolean) → tabStripMode (string)
         if (extension_settings.PTMT?.tabStripAutoHide && this.get('tabStripMode') === 'normal') {
-            console.log("[PTMT] Migrating tabStripAutoHide → tabStripMode: 'auto-hide'");
             extension_settings.PTMT.tabStripMode = 'auto-hide';
             this._settingsMigrated = true;
         }
+        if (this._settingsMigrated) this.save();
 
-        if (this._settingsMigrated) {
-            this.save();
-        }
-
-        if (SettingsManager.isMobile() && !this.get('isMobile')) {
-            // Only auto-enable if no layout is saved yet, or if it's explicitly mobile
-            if (!this.get('savedLayoutMobile')) {
-                this.update({ isMobile: true });
-            }
+        if (SettingsManager.isMobile() && !this.get('isMobile') && !this.get('savedLayoutMobile')) {
+            this.update({ isMobile: true });
         }
     }
 
     initializeSettings() {
-        if (!extension_settings.PTMT) {
-            extension_settings.PTMT = {};
-        }
+        if (!extension_settings.PTMT) extension_settings.PTMT = {};
         const loadedSettings = extension_settings.PTMT;
         this._settingsMigrated = this.migrateDialogueColorizerSettings(loadedSettings) || this._settingsMigrated;
 
-        // Merge panel mappings by ID instead of overwriting
         const defaultMappings = SettingsManager.defaultSettings.panelMappings || [];
         const loadedMappings = loadedSettings.panelMappings || [];
         const mergedMappings = [...loadedMappings];
-
         defaultMappings.forEach(defM => {
-            if (!mergedMappings.some(m => m.id === defM.id)) {
-                mergedMappings.push(defM);
-            }
+            if (!mergedMappings.some(m => m.id === defM.id)) mergedMappings.push(defM);
         });
 
-        // Migration: Update old panel mapping titles and icons for existing users
-        // v18→v19: 'Navigation' → 'API Sliders' (fa-compass), 'Inspector' → 'Characters' (fa-magnifying-glass)
         mergedMappings.forEach(mapping => {
             if (mapping.id === 'left-nav-panel') {
-                if (mapping.title === 'Navigation') {
-                    mapping.title = 'API Sliders';
-                }
-                if (!mapping.icon || mapping.icon === 'fa-sliders') {
-                    mapping.icon = 'fa-compass';
-                }
+                if (mapping.title === 'Navigation') mapping.title = 'API Sliders';
+                if (!mapping.icon || mapping.icon === 'fa-sliders') mapping.icon = 'fa-compass';
             }
             if (mapping.id === 'right-nav-panel') {
-                if (mapping.title === 'Inspector') {
-                    mapping.title = 'Characters';
-                }
-                if (!mapping.icon || mapping.icon === 'fa-search') {
-                    mapping.icon = 'fa-magnifying-glass';
-                }
+                if (mapping.title === 'Inspector') mapping.title = 'Characters';
+                if (!mapping.icon || mapping.icon === 'fa-search') mapping.icon = 'fa-magnifying-glass';
             }
-            if (mapping.id === 'galleryImageDraggable' && mapping.title === 'Avatar') {
-                mapping.title = 'Gallery Img';
-            }
+            if (mapping.id === 'galleryImageDraggable' && mapping.title === 'Avatar') mapping.title = 'Gallery Img';
         });
 
         extension_settings.PTMT = {
@@ -603,9 +514,7 @@ export class SettingsManager {
     }
 
     getActiveDefaultLayout() {
-        if (this.get('isMobile')) {
-            return SettingsManager.defaultSettings.mobileLayout || this.get('mobileLayout');
-        }
+        if (this.get('isMobile')) return SettingsManager.defaultSettings.mobileLayout || this.get('mobileLayout');
         return this.get('defaultLayout');
     }
 
@@ -614,16 +523,11 @@ export class SettingsManager {
     }
 
     get(key) {
-        if (Object.prototype.hasOwnProperty.call(extension_settings.PTMT, key)) {
-            return extension_settings.PTMT[key];
-        }
+        const store = extension_settings.PTMT;
+        if (store && Object.prototype.hasOwnProperty.call(store, key)) return store[key];
         return SettingsManager.defaultSettings[key];
     }
 
-    /**
-     * Looks up a panel mapping by source ID.
-     * Replaces the repeated `(settings.get('panelMappings') || []).find(m => m.id === sourceId) || {}` pattern.
-     */
     getMapping(sourceId) {
         if (!sourceId) return {};
         const lookupId = sourceId.startsWith('id:') ? sourceId.substring(3) : sourceId.startsWith('class:') ? sourceId.substring(6) : sourceId;
@@ -631,9 +535,10 @@ export class SettingsManager {
     }
 
     async update(newSettings, force = false) {
+        if (!extension_settings.PTMT) this.initializeSettings();
         const changedKeys = [];
         for (const key in newSettings) {
-            if (SettingsManager.defaultSettings.hasOwnProperty(key)) {
+            if (Object.prototype.hasOwnProperty.call(SettingsManager.defaultSettings, key)) {
                 extension_settings.PTMT[key] = newSettings[key];
                 changedKeys.push(key);
             } else {
@@ -650,40 +555,26 @@ export class SettingsManager {
     }
 
     async save(force = false) {
-        if (force) {
-            await saveSettings();
-        } else {
-            saveSettingsDebounced();
-        }
+        if (force) await saveSettings();
+        else saveSettingsDebounced();
     }
 
     async reset(full = false) {
+        if (!extension_settings.PTMT) this.initializeSettings();
         if (full) {
-            console.log('[PTMT Settings] 🧨 Performing full factory reset.');
-            const defaultSettingsCopy = structuredClone(SettingsManager.defaultSettings);
-            extension_settings.PTMT = defaultSettingsCopy;
+            extension_settings.PTMT = structuredClone(SettingsManager.defaultSettings);
         } else {
-            // Layout-only reset: Clear saved snapshots to force fallback to current factory defaults
             extension_settings.PTMT.savedLayoutDesktop = null;
             extension_settings.PTMT.savedLayoutMobile = null;
-            // Also clear overridden defaults if they exist
             if (extension_settings.PTMT.defaultLayout) delete extension_settings.PTMT.defaultLayout;
             if (extension_settings.PTMT.mobileLayout) delete extension_settings.PTMT.mobileLayout;
-            // Clear mappings too to ensure icons/titles refresh
             if (extension_settings.PTMT.panelMappings) delete extension_settings.PTMT.panelMappings;
         }
         await this.save(true);
     }
 
-    /**
-     * Cleans up all extension settings from SillyTavern's storage.
-     * Called during the 'delete' lifecycle hook.
-     */
     async cleanup() {
-        console.log('[PTMT Settings] 🧹 Cleaning up extension settings.');
-        extension_settings.PTMT = {};
-        // Re-initialize with defaults so get() doesn't crash after cleanup
-        this.initializeSettings();
+        delete extension_settings.PTMT;
         await this.save(true);
     }
 }

@@ -3,22 +3,15 @@ import { debounce } from './utils.js';
 import { settings } from './settings.js';
 import { itemizedPrompts, itemizedParams, findItemizedPromptSet } from '../../../../scripts/itemized-prompts.js';
 
-/**
- * Context Status Bar Extension
- */
-
 let statusBarElement = null;
-
 let lastUpdateData = null;
 
 const updateStatusBar = debounce(async function () {
     if (!statusBarElement) return;
-
     if (!settings.get('showContextStatusBar')) {
         statusBarElement.style.display = 'none';
         return;
     }
-
     if (!Array.isArray(itemizedPrompts) || itemizedPrompts.length === 0) {
         statusBarElement.style.display = 'none';
         return;
@@ -30,10 +23,7 @@ const updateStatusBar = debounce(async function () {
         return;
     }
 
-    // Attempt to find the exact matching set for the current last message
     let thisPromptSet = findItemizedPromptSet(itemizedPrompts, lastMesId);
-
-    // Fallback: If no exact match (e.g. while typing), find the LATEST available set
     if (thisPromptSet === undefined) {
         let maxId = -1;
         for (let i = 0; i < itemizedPrompts.length; i++) {
@@ -43,7 +33,6 @@ const updateStatusBar = debounce(async function () {
             }
         }
     }
-
     if (thisPromptSet === undefined) {
         statusBarElement.style.display = 'none';
         return;
@@ -52,8 +41,6 @@ const updateStatusBar = debounce(async function () {
     try {
         const foundMesId = itemizedPrompts[thisPromptSet].mesId;
         const params = await itemizedParams(itemizedPrompts, thisPromptSet, foundMesId);
-
-        // Optimization: only re-render if token data has changed
         const currentData = JSON.stringify({
             api: params.this_main_api,
             max: params.thisPrompt_max_context,
@@ -63,14 +50,10 @@ const updateStatusBar = debounce(async function () {
             chat: params.ActualChatHistoryTokens,
             anchors: params.allAnchorsTokens
         });
-
-        if (currentData === lastUpdateData && statusBarElement.style.display === 'flex') {
-            return;
-        }
+        if (currentData === lastUpdateData && statusBarElement.style.display === 'flex') return;
         lastUpdateData = currentData;
 
         const maxContext = params.thisPrompt_max_context || 8192;
-
         statusBarElement.style.display = 'flex';
         let scaleBar = statusBarElement.querySelector('#context-scale-bar');
         if (!scaleBar) {
@@ -81,19 +64,15 @@ const updateStatusBar = debounce(async function () {
         scaleBar.innerHTML = '';
 
         let usedTokens = 0;
-
         const createSegment = (tokens, colorClass, label) => {
             const numTokens = Number(tokens) || 0;
             if (numTokens <= 0) return;
             const percentage = (numTokens / maxContext) * 100;
             usedTokens += numTokens;
-
             const segment = document.createElement('div');
             segment.className = `csb-segment ${colorClass}`;
             segment.style.width = `${percentage}%`;
-
             segment.title = `${label}: ${numTokens} tokens (${percentage.toFixed(1)}%)`;
-
             scaleBar.appendChild(segment);
         };
 
@@ -109,7 +88,6 @@ const updateStatusBar = debounce(async function () {
             createSegment(params.allAnchorsTokens, 'csb-anchors', 'Anchors');
         }
 
-        // Add remaining space segment
         const remaining = maxContext - usedTokens;
         if (remaining > 0) {
             const remPercentage = (remaining / maxContext) * 100;
@@ -119,25 +97,20 @@ const updateStatusBar = debounce(async function () {
             remSegment.title = `Remaining: ${remaining} tokens (${remPercentage.toFixed(1)}%)`;
             scaleBar.appendChild(remSegment);
         }
-
     } catch (e) {
         console.error('[CSB] Error updating status bar:', e);
     }
 }, 100);
 
 let isStatusBarInitialized = false;
-
 const handleSettingsChanged = (event) => {
     const { changed } = event.detail || {};
-    if (changed && changed.includes('showContextStatusBar')) {
-        updateStatusBar();
-    }
+    if (changed?.includes('showContextStatusBar')) updateStatusBar();
 };
 
 export function initStatusBar() {
     if (isStatusBarInitialized) return;
     isStatusBarInitialized = true;
-
     const formSheld = document.getElementById('form_sheld');
     if (!formSheld) {
         isStatusBarInitialized = false;
@@ -155,16 +128,9 @@ export function initStatusBar() {
     eventSource.on(event_types.MESSAGE_SENT, updateStatusBar);
     eventSource.on(event_types.CHAT_CHANGED, updateStatusBar);
     eventSource.on(event_types.GENERATION_STOPPED, updateStatusBar);
-
     window.addEventListener('ptmt:settingsChanged', handleSettingsChanged);
-
-    // Initial update
     updateStatusBar();
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// World Info Status Bar
-// ─────────────────────────────────────────────────────────────────────────────
 
 let worldInfoStatusBarElement = null;
 let currentWorldInfoEntries = [];
@@ -175,39 +141,57 @@ const getWIStrategy = (entry) => {
     return { emoji: '🟢', label: 'normal' };
 };
 
+function removeWorldInfoTooltip() {
+    document.querySelector('.ptmt-wi-tooltip')?.remove();
+}
+
+function handleEntriesMouseOver(e) {
+    if (!(e.target instanceof Element)) return;
+    const target = e.target.closest('.ptmt-wi-entry-item');
+    if (!target) return;
+    removeWorldInfoTooltip();
+    const tooltip = document.createElement('div');
+    tooltip.className = 'ptmt-wi-tooltip';
+    tooltip.textContent = target.dataset.tooltip || '';
+    document.body.appendChild(tooltip);
+    const rect = target.getBoundingClientRect();
+    tooltip.style.left = `${rect.left + rect.width / 2}px`;
+    tooltip.style.top = `${rect.top - 10}px`;
+}
+
+function handleEntriesMouseOut(e) {
+    if (!(e.target instanceof Element)) return;
+    const target = e.target.closest('.ptmt-wi-entry-item');
+    if (!target) return;
+    if (e.relatedTarget instanceof Node && target.contains(e.relatedTarget)) return;
+    removeWorldInfoTooltip();
+}
+
 const renderWorldInfoStatusBar = debounce(function () {
     if (!worldInfoStatusBarElement) return;
-
     if (!settings.get('showWorldInfoStatusBar')) {
         worldInfoStatusBarElement.style.display = 'none';
+        removeWorldInfoTooltip();
         return;
     }
-
-    // Handle empty state
     if (currentWorldInfoEntries.length === 0) {
         worldInfoStatusBarElement.style.display = 'none';
         worldInfoStatusBarElement.innerHTML = '';
+        removeWorldInfoTooltip();
         return;
     }
 
     worldInfoStatusBarElement.style.display = 'flex';
     worldInfoStatusBarElement.innerHTML = '';
-
-    // Group by world book
     const groupedByWorld = {};
     for (const entry of currentWorldInfoEntries) {
         const world = entry.world || 'Unknown';
-        if (!groupedByWorld[world]) {
-            groupedByWorld[world] = [];
-        }
-        groupedByWorld[world].push(entry);
+        (groupedByWorld[world] ||= []).push(entry);
     }
 
-    // Render each world group
     for (const [worldName, entries] of Object.entries(groupedByWorld)) {
         const worldGroup = document.createElement('div');
         worldGroup.className = 'ptmt-wi-world-group';
-
         const worldTitle = document.createElement('div');
         worldTitle.className = 'ptmt-wi-world-title';
         worldTitle.textContent = `📚 ${worldName}`;
@@ -220,7 +204,6 @@ const renderWorldInfoStatusBar = debounce(function () {
             const entryEl = document.createElement('div');
             entryEl.className = 'ptmt-wi-entry-item';
 
-            // Strategy indicator (emoji)
             const stratEl = document.createElement('span');
             stratEl.className = 'ptmt-wi-strategy';
             const strategy = getWIStrategy(entry);
@@ -228,20 +211,17 @@ const renderWorldInfoStatusBar = debounce(function () {
             stratEl.title = `Strategy: ${strategy.label}`;
             entryEl.appendChild(stratEl);
 
-            // Entry key/label - key is an array
             const keyEl = document.createElement('span');
             keyEl.className = 'ptmt-wi-key';
             const keyString = Array.isArray(entry.key) ? entry.key.join(', ') : (entry.key || entry.uid || '?');
             keyEl.textContent = keyString;
             entryEl.appendChild(keyEl);
 
-            // Store tooltip data - match WorldInfoInfo format
             const displayName = entry.comment?.length ? entry.comment : keyString;
             const tooltipText = `[${entry.world}] ${displayName}\n---\n${entry.content || ''}`.trim();
             entryEl.dataset.tooltip = tooltipText;
             entryEl.title = tooltipText;
 
-            // Optional: Sticky indicator
             if (entry.sticky) {
                 const stickyEl = document.createElement('span');
                 stickyEl.className = 'ptmt-wi-sticky';
@@ -249,63 +229,34 @@ const renderWorldInfoStatusBar = debounce(function () {
                 stickyEl.title = `Sticky for ${entry.sticky} more rounds`;
                 entryEl.appendChild(stickyEl);
             }
-
-            // Add custom tooltip on hover (mouseover bubbles, mouseenter doesn't)
-            entriesList.addEventListener('mouseover', (e) => {
-                const target = e.target.closest('.ptmt-wi-entry');
-                if (!target) return;
-
-                const existing = document.querySelector('.ptmt-wi-tooltip');
-                if (existing) existing.remove();
-
-                const tooltip = document.createElement('div');
-                tooltip.className = 'ptmt-wi-tooltip';
-                tooltip.textContent = target.dataset.tooltip;
-                document.body.appendChild(tooltip);
-
-                const rect = target.getBoundingClientRect();
-                tooltip.style.left = (rect.left + rect.width / 2) + 'px';
-                tooltip.style.top = (rect.top - 10) + 'px';
-            });
-
-            entriesList.addEventListener('mouseout', (e) => {
-                const target = e.target.closest('.ptmt-wi-entry');
-                if (!target) return;
-                const tooltip = document.querySelector('.ptmt-wi-tooltip');
-                if (tooltip) tooltip.remove();
-            });
-
             entriesList.appendChild(entryEl);
         }
 
+        // One delegated handler pair per group, not one pair per entry.
+        entriesList.addEventListener('mouseover', handleEntriesMouseOver);
+        entriesList.addEventListener('mouseout', handleEntriesMouseOut);
         worldGroup.appendChild(entriesList);
         worldInfoStatusBarElement.appendChild(worldGroup);
     }
 }, 100);
 
 let isWorldInfoStatusBarInitialized = false;
-
 const handleWorldInfoActivated = (entryList) => {
     currentWorldInfoEntries = entryList || [];
     renderWorldInfoStatusBar();
 };
-
 const handleWorldInfoChatChanged = () => {
     currentWorldInfoEntries = [];
     renderWorldInfoStatusBar();
 };
-
 const handleWorldInfoSettingsChanged = (event) => {
     const { changed } = event.detail || {};
-    if (changed && changed.includes('showWorldInfoStatusBar')) {
-        renderWorldInfoStatusBar();
-    }
+    if (changed?.includes('showWorldInfoStatusBar')) renderWorldInfoStatusBar();
 };
 
 export function initWorldInfoStatusBar() {
     if (isWorldInfoStatusBarInitialized) return;
     isWorldInfoStatusBarInitialized = true;
-
     const formSheld = document.getElementById('form_sheld');
     if (!formSheld) {
         isWorldInfoStatusBarInitialized = false;
@@ -319,51 +270,33 @@ export function initWorldInfoStatusBar() {
         formSheld.before(worldInfoStatusBarElement);
     }
 
-    // Listen for World Info activation events
     eventSource.on(event_types.WORLD_INFO_ACTIVATED, handleWorldInfoActivated);
-
-    // Clear on chat change
     eventSource.on(event_types.CHAT_CHANGED, handleWorldInfoChatChanged);
-
-    // Listen for settings changes
     window.addEventListener('ptmt:settingsChanged', handleWorldInfoSettingsChanged);
-
-    // Initial render
     renderWorldInfoStatusBar();
 }
 
 export function cleanupStatusBars() {
-    // Deregister eventSource listeners
     try {
         eventSource.off(event_types.MESSAGE_RECEIVED, updateStatusBar);
         eventSource.off(event_types.MESSAGE_SENT, updateStatusBar);
         eventSource.off(event_types.CHAT_CHANGED, updateStatusBar);
         eventSource.off(event_types.GENERATION_STOPPED, updateStatusBar);
-        
         eventSource.off(event_types.WORLD_INFO_ACTIVATED, handleWorldInfoActivated);
         eventSource.off(event_types.CHAT_CHANGED, handleWorldInfoChatChanged);
     } catch (e) {
         console.warn('[CSB] Failed to remove eventSource listeners:', e);
     }
 
-    // Deregister window listeners
-    try {
-        window.removeEventListener('ptmt:settingsChanged', handleSettingsChanged);
-        window.removeEventListener('ptmt:settingsChanged', handleWorldInfoSettingsChanged);
-    } catch (e) {
-        console.warn('[CSB] Failed to remove window event listeners:', e);
-    }
-
-    // Remove DOM elements
-    if (statusBarElement) {
-        statusBarElement.remove();
-        statusBarElement = null;
-    }
-    if (worldInfoStatusBarElement) {
-        worldInfoStatusBarElement.remove();
-        worldInfoStatusBarElement = null;
-    }
-
+    window.removeEventListener('ptmt:settingsChanged', handleSettingsChanged);
+    window.removeEventListener('ptmt:settingsChanged', handleWorldInfoSettingsChanged);
+    removeWorldInfoTooltip();
+    statusBarElement?.remove();
+    worldInfoStatusBarElement?.remove();
+    statusBarElement = null;
+    worldInfoStatusBarElement = null;
+    currentWorldInfoEntries = [];
+    lastUpdateData = null;
     isStatusBarInitialized = false;
     isWorldInfoStatusBarInitialized = false;
 }

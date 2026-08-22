@@ -1,125 +1,124 @@
 import { settings } from './settings.js';
 import { SELECTORS } from './constants.js';
-import { trackObserver } from './utils.js';
 import { eventSource, event_types } from '../../../../script.js';
 
 let observer = null;
+let retryTimer = null;
+let initialized = false;
+const delayedTimers = new Set();
 
-/**
- * Initializes the Avatar-Expression Sync feature.
- * Monitors the #expression-image element for source changes and updates the last message's avatar.
- */
-export function initAvatarExpressionSync() {
-    console.log('[PTMT] Initializing Avatar-Expression Sync...');
+function clearDelayedTimers() {
+    for (const timer of delayedTimers) clearTimeout(timer);
+    delayedTimers.clear();
+}
 
-    if (observer) {
-        observer.disconnect();
+function scheduleAvatarUpdate(delay = 100) {
+    const timer = setTimeout(() => {
+        delayedTimers.delete(timer);
+        updateLastMessageAvatar();
+    }, delay);
+    delayedTimers.add(timer);
+}
+
+function handleSettingsChanged(e) {
+    if (e.detail?.changed?.includes('enableAvatarExpressionSync') && settings.get('enableAvatarExpressionSync')) {
+        updateLastMessageAvatar();
     }
+}
 
-    // Since #expression-image might not be in the DOM immediately or could be removed/added
-    // we use a more robust approach to check periodically or use a parent observer.
-    // However, usually it's there after extensions load.
+function handleCharacterMessageRendered() {
+    if (settings.get('enableAvatarExpressionSync')) scheduleAvatarUpdate();
+}
+
+function handleMessageUpdated() {
+    if (settings.get('enableAvatarExpressionSync')) scheduleAvatarUpdate();
+}
+
+export function cleanupAvatarExpressionSync() {
+    if (retryTimer) {
+        clearTimeout(retryTimer);
+        retryTimer = null;
+    }
+    clearDelayedTimers();
+    observer?.disconnect();
+    observer = null;
+    if (initialized) {
+        window.removeEventListener('ptmt:settingsChanged', handleSettingsChanged);
+        try { eventSource.off(event_types.CHARACTER_MESSAGE_RENDERED, handleCharacterMessageRendered); } catch {}
+        try { eventSource.off(event_types.MESSAGE_UPDATED, handleMessageUpdated); } catch {}
+    }
+    initialized = false;
+}
+
+/** Initializes Avatar/Expression synchronization with fully reversible listeners/timers. */
+export function initAvatarExpressionSync() {
+    cleanupAvatarExpressionSync();
+    initialized = true;
 
     let retryCount = 0;
-    const MAX_RETRIES = 15; // 30 seconds total at 2s intervals
+    const MAX_RETRIES = 15;
 
     const startObserving = () => {
+        retryTimer = null;
+        if (!initialized) return;
         const expressionHolder = document.querySelector('#expression-holder, #expression-plus-holder');
         if (!expressionHolder) {
             if (retryCount++ >= MAX_RETRIES) {
-                console.warn('[PTMT] Avatar-Expression Sync: #expression-holder not found after max retries. Giving up.');
+                console.warn('[PTMT] Avatar-Expression Sync: expression holder not found after max retries.');
                 return;
             }
-            setTimeout(startObserving, 2000);
+            retryTimer = setTimeout(startObserving, 2000);
             return;
         }
 
-        observer = trackObserver(new MutationObserver((mutations) => {
+        observer = new MutationObserver((mutations) => {
             let shouldUpdate = false;
             for (const mutation of mutations) {
-                // If the image element was replaced (SillyTavern's fade transition)
                 if (mutation.type === 'childList') {
-                  const addedNode = Array.from(mutation.addedNodes).find(node => node.matches("#expression-image, .expression"));
-                    // If an image element was removed, and its Expressions+ animation, we should consider this mutation as well, since now there's only one image displayed, the one we want
-                  const removedNode = Array.from(mutation.removedNodes).find(node => node.matches("#expression-plus-image, .expression-plus.expression-plus-animating"));
-                    if (addedNode || removedNode) shouldUpdate = true;
+                    const added = Array.from(mutation.addedNodes).some(node =>
+                        node instanceof Element && node.matches('#expression-image, .expression'));
+                    const removed = Array.from(mutation.removedNodes).some(node =>
+                        node instanceof Element && node.matches('#expression-plus-image, .expression-plus.expression-plus-animating'));
+                    if (added || removed) shouldUpdate = true;
                 }
-
-                // If attributes on the image changed
                 if (mutation.type === 'attributes' && (mutation.attributeName === 'src' || mutation.attributeName === 'data-expression')) {
-                    if (mutation.target.id === 'expression-image' || mutation.target.matches(".expression, .expression-plus")) {
+                    const target = mutation.target;
+                    if (target instanceof Element && (target.id === 'expression-image' || target.matches('.expression, .expression-plus'))) {
                         shouldUpdate = true;
                     }
                 }
             }
-
-            if (shouldUpdate) {
-                updateLastMessageAvatar();
-            }
-        }));
+            if (shouldUpdate) updateLastMessageAvatar();
+        });
 
         observer.observe(expressionHolder, {
             childList: true,
             attributes: true,
             subtree: true,
-            attributeFilter: ['src', 'data-expression']
+            attributeFilter: ['src', 'data-expression'],
         });
-        console.log('[PTMT] Observer attached to #expression-holder (subtree mode)');
     };
 
     startObserving();
-
-    // Handle settings changes
-    window.addEventListener('ptmt:settingsChanged', (e) => {
-        if (e.detail.changed.includes('enableAvatarExpressionSync')) {
-            if (settings.get('enableAvatarExpressionSync')) {
-                updateLastMessageAvatar();
-            }
-        }
-    });
-
-    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, () => {
-        if (settings.get('enableAvatarExpressionSync')) {
-            setTimeout(updateLastMessageAvatar, 100);
-        }
-    });
-
-    eventSource.on(event_types.MESSAGE_UPDATED, () => {
-        if (settings.get('enableAvatarExpressionSync')) {
-            setTimeout(updateLastMessageAvatar, 100);
-        }
-    });
+    window.addEventListener('ptmt:settingsChanged', handleSettingsChanged);
+    eventSource.on(event_types.CHARACTER_MESSAGE_RENDERED, handleCharacterMessageRendered);
+    eventSource.on(event_types.MESSAGE_UPDATED, handleMessageUpdated);
 }
 
-/**
- * Updates the avatar of the last message in the chat with the current expression image.
- */
 function updateLastMessageAvatar() {
     if (!settings.get('enableAvatarExpressionSync')) return;
-
     const expressionImg = document.querySelector(SELECTORS.ST_EXPRESSION_IMAGE);
     if (!expressionImg || !expressionImg.src) return;
-
     const messages = Array.from(document.querySelectorAll(`${SELECTORS.ST_MESSAGE}[is_user="false"]`));
-    if (messages.length === 0) return;
-
-    // Target the last non-user message
+    if (!messages.length) return;
     const lastMes = messages[messages.length - 1];
-    if (!lastMes) return;
-
     const charFolder = expressionImg.getAttribute('data-sprite-folder-name');
     const mesAuthorUid = lastMes.getAttribute('xdc-author-uid');
     const chName = lastMes.getAttribute('ch_name');
-
-    // Verification: Ensure the message belongs to the character currently expressing
     const matchesFolder = charFolder && mesAuthorUid && mesAuthorUid.toLowerCase().includes(charFolder.toLowerCase());
     const matchesName = charFolder && chName && chName.toLowerCase() === charFolder.toLowerCase();
-
     if (matchesFolder || matchesName) {
         const avatarImg = lastMes.querySelector(`${SELECTORS.ST_AVATAR} img`);
-        if (avatarImg && avatarImg.src !== expressionImg.src) {
-            console.log(`[PTMT] Syncing avatar for ${charFolder || chName} with expression: ${expressionImg.src}`);
-            avatarImg.src = expressionImg.src;
-        }
+        if (avatarImg && avatarImg.src !== expressionImg.src) avatarImg.src = expressionImg.src;
     }
 }

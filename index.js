@@ -1,14 +1,8 @@
-// index.js 
+// index.js
 
-import { eventSource, event_types, characters, animation_duration, swipe, isSwipingAllowed } from '../../../../script.js';
-import { SWIPE_DIRECTION, SWIPE_SOURCE } from '../../../../scripts/constants.js';
+import { eventSource, event_types } from '../../../../script.js';
 import { SELECTORS, EVENTS, MESSAGES } from './constants.js';
-import { power_user } from '../../../power-user.js';
-
-import { isDataURL } from '../../../utils.js';
-import { getUserAvatar } from '../../../personas.js';
 import { settings, SettingsManager } from './settings.js';
-
 import { debounce, getPanelById, getTabById, getRefs, readPaneViewSettings, writePaneViewSettings, cleanupAllObservers, trackListener, registerBodyObserver } from './utils.js';
 import { generateLayoutSnapshot, applyLayoutSnapshot, migrateSavedLayouts } from './snapshot.js';
 import { createLayoutIfMissing, applyColumnVisibility, recalculateColumnSizes } from './layout.js';
@@ -16,27 +10,25 @@ import { applyPaneOrientation, applySplitOrientation, openViewSettingsDialog, up
 import {
     createTabFromContent, moveNodeIntoTab, listTabs,
     openTab, closeTabById, setDefaultPanelById, isTabHidden,
-    destroyTabById,
-    setActivePanelInPane, setTabCollapsed, getActivePane,
+    destroyTabById, setActivePanelInPane, setTabCollapsed,
 } from './tabs.js';
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
 import { moveTabTransaction } from './layout-transactions.js';
-import { removeMouseDownDrawerHandler, openAllDrawersJq, moveToMovingDivs, overrideDelegatedEventHandler, initDrawerObserver, moveBg1ToSheld } from './misc-helpers.js';
+import { openAllDrawersJq, moveToMovingDivs, initDrawerObserver, cleanupDrawerObserver, moveBg1ToSheld } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
-import { positionAnchor } from './positionAnchor.js';
+import { positionAnchor, cleanupPositionAnchor } from './positionAnchor.js';
 import { initStatusBar, initWorldInfoStatusBar, cleanupStatusBars } from './context-status-bar.js';
 import { themeEngine } from './theme-engine.js';
 import { initColorizer } from './dialogue-colorizer.js';
 import { initCharacterColorizerUI } from './character-colorizer-ui.js';
-import { initAvatarExpressionSync } from './avatar-expression-sync.js';
+import { initAvatarExpressionSync, cleanupAvatarExpressionSync } from './avatar-expression-sync.js';
 import { initInspectorScaleControl, cleanupInspectorScaleControl } from './ui-injection.js';
 import { initThemeColors } from './theme-colors.js';
-import { initMessageRail } from './message-rail.js';
-import { initStMobileStylesBlocker } from './st-mobile-styles.js';
+import { initMessageRail, cleanupMessageRail } from './message-rail.js';
+import { initStMobileStylesBlocker, cleanupStMobileStylesBlocker } from './st-mobile-styles.js';
 
 // ─── Subsystem Init ──────────────────────────────────────────────────────────
-
 function initSubsystems() {
     initStMobileStylesBlocker();
     positionAnchor();
@@ -54,7 +46,6 @@ function initSubsystems() {
 
 function updateRangeStyle(input) {
     if (!(input instanceof HTMLInputElement) || input.type !== 'range') return;
-
     const min = Number.isFinite(Number(input.min)) ? Number(input.min) : 0;
     const max = Number.isFinite(Number(input.max)) ? Number(input.max) : 100;
     const value = Number.isFinite(Number(input.value)) ? Number(input.value) : min;
@@ -68,13 +59,11 @@ function updateRangesIn(root = document) {
         updateRangeStyle(root);
         return;
     }
-
     root.querySelectorAll?.('input[type="range"]').forEach(updateRangeStyle);
 }
 
 function initRangeStyleSync() {
     updateRangesIn();
-
     const updateFromEvent = (event) => updateRangeStyle(event.target);
     document.addEventListener('input', updateFromEvent, true);
     document.addEventListener('change', updateFromEvent, true);
@@ -90,7 +79,6 @@ function initRangeStyleSync() {
                     updateRangesIn(mutation.target);
                     continue;
                 }
-
                 for (const node of mutation.addedNodes) {
                     if (node instanceof Element) updateRangesIn(node);
                 }
@@ -99,10 +87,8 @@ function initRangeStyleSync() {
     );
 }
 
-// ─── Tab Strip Mode (Normal / Auto-Hide / Shy) ──────────────────────────────
-
+// ─── Tab Strip Mode ──────────────────────────────────────────────────────────
 function getGlobalTabStripMode() {
-    // New setting takes priority; fall back to legacy boolean
     const explicit = settings.get('tabStripMode');
     if (explicit && explicit !== 'normal') return explicit;
     if (settings.get('tabStripAutoHide')) return 'auto-hide';
@@ -112,17 +98,10 @@ function getGlobalTabStripMode() {
 function getEffectiveTabStripMode(pane) {
     const isCollapsed = pane.classList.contains('view-collapsed');
     const vs = readPaneViewSettings(pane);
-
-    // Per-pane override
     const paneMode = vs.tabStripMode || 'normal';
     const globalMode = getGlobalTabStripMode();
-
-    // Effective mode: per-pane takes priority if set, otherwise global
-    const mode = (paneMode !== 'normal') ? paneMode : globalMode;
-
-    // In auto-hide, collapsed panes show tab strip normally (icons visible)
+    const mode = paneMode !== 'normal' ? paneMode : globalMode;
     if (mode === 'auto-hide' && isCollapsed) return 'normal';
-
     return mode;
 }
 
@@ -141,23 +120,14 @@ function ensureShyIndicator(pane, shouldExist) {
 
 function applyTabStripMode(pane) {
     const mode = getEffectiveTabStripMode(pane);
-    // Both auto-hide and shy use .ptmt-tabstrip-minimized + indicator.
-    // The difference is only in getEffectiveTabStripMode: auto-hide returns
-    // 'normal' for collapsed panes, shy returns 'shy' for all panes.
-    const shouldMinimize = (mode === 'auto-hide' || mode === 'shy');
+    const shouldMinimize = mode === 'auto-hide' || mode === 'shy';
     pane.classList.toggle('ptmt-tabstrip-minimized', shouldMinimize);
     ensureShyIndicator(pane, shouldMinimize);
 }
 
 function initTabStripMode() {
-    const updateAll = () => {
-        document.querySelectorAll(SELECTORS.PANE).forEach(applyTabStripMode);
-    };
-
-    // Initial state
+    const updateAll = () => document.querySelectorAll(SELECTORS.PANE).forEach(applyTabStripMode);
     updateAll();
-
-    // Watch for pane additions and class changes (collapse/expand)
     registerBodyObserver(
         'tab-strip-mode',
         { childList: true, attributes: true, attributeFilter: ['class'] },
@@ -165,44 +135,30 @@ function initTabStripMode() {
             for (const mutation of mutations) {
                 if (mutation.type === 'childList') {
                     for (const node of mutation.addedNodes) {
-                        if (node.classList?.contains(SELECTORS.PANE.substring(1))) {
-                            applyTabStripMode(node);
-                        }
+                        if (node instanceof Element && node.classList.contains(SELECTORS.PANE.substring(1))) applyTabStripMode(node);
                     }
                 } else if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
                     const target = mutation.target;
-                    if (!target.classList?.contains(SELECTORS.PANE.substring(1))) continue;
-                    applyTabStripMode(target);
+                    if (target instanceof Element && target.classList.contains(SELECTORS.PANE.substring(1))) applyTabStripMode(target);
                 }
             }
         }
     );
-
     return updateAll;
 }
 
 // ─── Save Handler ────────────────────────────────────────────────────────────
-
 function createSaveHandler(state) {
     return debounce(() => {
-        if (state.isPTMTResetting) {
-            console.log('[PTMT Layout] Save blocked due to active reset.');
-            return;
-        }
-        if (state.isHydrating) {
-            console.log('[PTMT Layout] Save skipped during hydration.');
-            return;
-        }
+        if (state.isPTMTResetting || state.isHydrating) return;
         const layout = generateLayoutSnapshot();
         const isMobile = settings.get('isMobile');
         const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
-        console.log(`[PTMT Layout] Auto-saving ${isMobile ? 'Mobile' : 'Desktop'} layout to ${key}.`);
         settings.update({ [key]: layout });
     }, 300);
 }
 
 // ─── Public API ──────────────────────────────────────────────────────────────
-
 function createApi(state) {
     const hideTabById = (pid, index = null) => {
         const panel = getPanelById(pid);
@@ -220,8 +176,9 @@ function createApi(state) {
             collapsed: tab?.classList.contains('collapsed') === true
         };
 
-        const content = panel.querySelector('.ptmt-panel-content > *:not(script)');
-        if (content) {
+        const contentRoot = panel.querySelector('.ptmt-panel-content');
+        const contents = contentRoot ? Array.from(contentRoot.children).filter(node => node.tagName !== 'SCRIPT') : [];
+        if (contents.length) {
             let stagingArea = document.querySelector(SELECTORS.STAGING_AREA);
             if (!stagingArea) {
                 stagingArea = document.createElement('div');
@@ -229,11 +186,10 @@ function createApi(state) {
                 stagingArea.style.display = 'none';
                 document.body.appendChild(stagingArea);
             }
-            stagingArea.appendChild(content);
+            stagingArea.append(...contents);
         }
 
         destroyTabById(pid);
-
         const layout = generateLayoutSnapshot();
         if (!layout) return false;
         if (!layout.hiddenTabs) layout.hiddenTabs = [];
@@ -247,8 +203,9 @@ function createApi(state) {
 
     const api = {
         createTabFromContent, moveNodeIntoTab, listTabs,
-        openTab, closeTabById, hideTabById: hideTabById, getPanelById, getTabById, setDefaultPanelById, isTabHidden, _refs: getRefs,
-        moveTabIntoPaneAtIndex: (panel, pane, index) => moveTabTransaction({ panel, pane, index }), openViewSettingsDialog, readPaneViewSettings, writePaneViewSettings,
+        openTab, closeTabById, hideTabById, getPanelById, getTabById, setDefaultPanelById, isTabHidden, _refs: getRefs,
+        moveTabIntoPaneAtIndex: (panel, pane, index) => moveTabTransaction({ panel, pane, index }),
+        openViewSettingsDialog, readPaneViewSettings, writePaneViewSettings,
         setActivePanelInPane, setTabCollapsed,
         applyPaneOrientation, attachResizer, setSplitOrientation, updateSplitCollapsedState, applySplitOrientation,
         generateLayoutSnapshot, destroyTabById, updatePendingTabColumn, checkPaneForIconMode,
@@ -263,11 +220,8 @@ function createApi(state) {
             const isMobile = settings.get('isMobile');
             const key = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
             const layout = settings.get(key);
-            if (layout) {
-                applyLayoutSnapshot(layout, api, settings);
-            } else {
-                window.toastr?.error(MESSAGES.LAYOUT_NOT_FOUND(isMobile ? 'mobile' : 'desktop'), 'Layout Not Found');
-            }
+            if (layout) applyLayoutSnapshot(layout, api, settings);
+            else window.toastr?.error(MESSAGES.LAYOUT_NOT_FOUND(isMobile ? 'mobile' : 'desktop'), 'Layout Not Found');
         },
         resetLayout: async () => {
             if (confirm(MESSAGES.RESET_CONFIRMATION)) {
@@ -292,10 +246,7 @@ function createApi(state) {
             const preset = settings.get('presets').find(p => p.id === id);
             if (preset) applyLayoutSnapshot(preset.layout, api, settings);
         },
-        deletePreset: (id) => {
-            const presets = settings.get('presets').filter(p => p.id !== id);
-            settings.update({ presets });
-        },
+        deletePreset: (id) => settings.update({ presets: settings.get('presets').filter(p => p.id !== id) }),
         switchToMobileLayout: (sourceLayout) => {
             const source = sourceLayout || generateLayoutSnapshot();
             settings.update({ showIconsOnly: true });
@@ -310,16 +261,12 @@ function createApi(state) {
             const currentSnapshot = generateLayoutSnapshot();
             const isMobile = settings.get('isMobile');
             const oldKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
-            // When leaving mobile mode, reset showIconsOnly so desktop tabs restore their labels.
             const extraUpdates = isMobile ? { showIconsOnly: false } : {};
             await settings.update({ [oldKey]: currentSnapshot, isMobile: !isMobile, ...extraUpdates }, true);
             window.location.reload();
         },
-        // ─── Theme Management ──────────────────────────────────────────────────────
         getAvailableThemes: () => Object.entries(SettingsManager.themes).map(([key, config]) => ({
-            id: key,
-            name: config.name,
-            description: config.description
+            id: key, name: config.name, description: config.description
         })),
         setUITheme: (themeName) => {
             if (!SettingsManager.themes[themeName]) {
@@ -334,33 +281,22 @@ function createApi(state) {
 }
 
 // ─── Event Bindings ──────────────────────────────────────────────────────────
-
 function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
     const debouncedLayoutReaction = debounce((event) => {
         const reason = event.detail?.reason || 'unknown';
         if (reason === 'snapshotApplied') return;
-
-        console.log(`[PTMT Layout] debouncedLayoutReaction executing. Reason: ${reason}`);
         document.querySelectorAll(SELECTORS.SPLIT).forEach(applySplitOrientation);
         document.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
         applyColumnVisibility();
-        if (reason !== 'manualResize' && reason !== 'tabSwitch' && reason !== 'paneCollapsed' && reason !== 'splitStructuralChange') {
-            recalculateColumnSizes();
-        }
+        if (!['manualResize', 'tabSwitch', 'paneCollapsed', 'splitStructuralChange'].includes(reason)) recalculateColumnSizes();
         updateResizerDisabledStates();
-        // Update auto-hide state when layout changes (catches per-pane setting changes)
-        if (state.updateTabStripMode) {
-            state.updateTabStripMode();
-        }
+        state.updateTabStripMode?.();
         saveCurrentLayoutDebounced();
     }, 50);
 
     const handleLayoutChanged = (event) => {
-        if (event.detail?.pane) {
-            applyPaneOrientation(event.detail.pane);
-        } else {
-            document.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
-        }
+        if (event.detail?.pane) applyPaneOrientation(event.detail.pane);
+        else document.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
         debouncedLayoutReaction(event);
     };
     window.addEventListener(EVENTS.LAYOUT_CHANGED, handleLayoutChanged, { passive: true });
@@ -393,11 +329,9 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
             for (const [cssVar, settingKey, fallback] of avatarVars) {
                 document.documentElement.style.setProperty(cssVar, settings.get(settingKey) || fallback);
             }
-        } else if (link) {
-            link.remove();
-            for (const [cssVar] of avatarVars) {
-                document.documentElement.style.removeProperty(cssVar);
-            }
+        } else {
+            link?.remove();
+            for (const [cssVar] of avatarVars) document.documentElement.style.removeProperty(cssVar);
         }
     };
 
@@ -408,26 +342,18 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
         document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
         document.body.classList.toggle('ptmt-enable-animations', !!settings.get('enableAnimations'));
         document.body.classList.toggle('ptmt-enable-shadows', !!settings.get('enableShadows'));
-        // document.body.classList.toggle('ptmt-enable-blur-effect', !!settings.get('enableBlurEffect'));
-        // Keep body bg color var and tab contrast class in sync with settings
         const bodyBgColor = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
         document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
         const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
         document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
-        // Apply UI theme
-        const uiTheme = settings.get('uiTheme') || 'sharp';
-        SettingsManager.applyTheme(uiTheme);
+        SettingsManager.applyTheme(settings.get('uiTheme') || 'sharp');
         applyOverrides();
-        // Handle auto-hide tab strip setting
-        if (state.updateTabStripMode) {
-            state.updateTabStripMode();
-        }
+        state.updateTabStripMode?.();
         document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
         window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
     };
     window.addEventListener(EVENTS.SETTINGS_CHANGED, handleSettingsChanged);
     trackListener(window, EVENTS.SETTINGS_CHANGED, handleSettingsChanged);
-
     return applyOverrides;
 }
 
@@ -440,142 +366,19 @@ function initLayoutResetShortcut(appApi) {
         if (!event.altKey || !event.shiftKey || event.ctrlKey || event.metaKey) return;
         if (event.key.toLowerCase() !== 'r') return;
         if (isEditableShortcutTarget(event.target)) return;
-
         event.preventDefault();
         event.stopImmediatePropagation();
         appApi.resetLayout();
     };
-
     document.addEventListener('keydown', handler, true);
     trackListener(document, 'keydown', handler, true);
 }
 
-function bindSwipeHandlers() {
-    // Keyboard-driven swipe — routes arrow keys to active pane
-    const keydownHandler = async (e) => {
-        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-        const focused = $(':focus');
-        if (focused.is('input') || focused.is('textarea') || focused.prop('contenteditable') == 'true') return;
-        if (typeof isSwipingAllowed === 'function' && !isSwipingAllowed()) return;
-
-        const activePane = getActivePane();
-        if (!activePane) return;
-
-        e.stopImmediatePropagation();
-        e.preventDefault();
-
-        const direction = e.key === 'ArrowRight' ? SWIPE_DIRECTION.RIGHT : SWIPE_DIRECTION.LEFT;
-        const swipeBtn = activePane.querySelector(e.key === 'ArrowRight' ? SELECTORS.ST_SWIPE_RIGHT : SELECTORS.ST_SWIPE_LEFT);
-        console.log(`[PTMT] Keyboard swipe ${e.key === 'ArrowRight' ? 'right' : 'left'} on active pane`);
-        await swipe({ target: swipeBtn || activePane }, direction, { source: SWIPE_SOURCE.KEYBOARD });
-    };
-    document.addEventListener('keydown', keydownHandler);
-    trackListener(document, 'keydown', keydownHandler);
-
-    // Touch swipe — routes to active pane
-    const createSwipeHandler = (eventName, swipeSelector, direction, label) => {
-        const handler = async (e) => {
-            if (power_user.gestures === false) return;
-            if (typeof Popup !== 'undefined' && Popup.util?.isPopupOpen()) return;
-            if (!$(e.target).closest(SELECTORS.ST_CHAT_CONTAINER).length) return;
-            if ($(SELECTORS.ST_TEXTAREA).length) return;
-
-            const activePane = getActivePane();
-            if (!activePane) return;
-
-            const targetMes = $(e.target).closest(SELECTORS.ST_MESSAGE)[0];
-            if (!targetMes || !activePane.contains(targetMes)) return;
-
-            const swipeBtn = activePane.querySelector(swipeSelector);
-            if (!swipeBtn || !$(swipeBtn).is(':visible')) return;
-
-            console.log(`[PTMT] Touch ${label} on active pane`);
-            await swipe({ target: swipeBtn }, direction, { source: 'touch' });
-        };
-        document.addEventListener(eventName, handler);
-        trackListener(document, eventName, handler);
-    };
-
-    createSwipeHandler('swiped-left', SELECTORS.ST_SWIPE_RIGHT, SWIPE_DIRECTION.RIGHT, 'swipe left (swipe right)');
-    createSwipeHandler('swiped-right', SELECTORS.ST_SWIPE_LEFT, SWIPE_DIRECTION.LEFT, 'swipe right (swipe left)');
-}
-
-function bindAvatarClickOverride() {
-    overrideDelegatedEventHandler(
-        'click',
-        `${SELECTORS.ST_MESSAGE} ${SELECTORS.ST_AVATAR}`,
-        (handlerString) => handlerString.includes(`$('${SELECTORS.ST_ZOOMED_AVATAR_TEMPLATE}').html()`),
-        function () {
-            const messageElement = $(this).closest(SELECTORS.ST_MESSAGE);
-            const thumbURL = $(this).children('img').attr('src');
-            const charsPath = '/characters/';
-            const targetAvatarImg = thumbURL.substring(thumbURL.lastIndexOf('=') + 1);
-            const charname = targetAvatarImg.replace('.png', '');
-            const isValidCharacter = characters.some(x => x.avatar === decodeURIComponent(targetAvatarImg));
-
-            if (!power_user.movingUI) {
-                $(SELECTORS.ST_ZOOMED_AVATAR).each(function () {
-                    const currentForChar = $(this).attr('forChar');
-                    if (currentForChar !== charname && typeof currentForChar !== 'undefined') {
-                        $(this).remove();
-                    }
-                });
-            }
-
-            const avatarSrc = (isDataURL(thumbURL) || /^\/?img\/(?:.+)/.test(thumbURL)) ? thumbURL : charsPath + targetAvatarImg;
-            if ($(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"]`).length) {
-                $(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"]`).fadeOut(animation_duration, () => {
-                    $(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"]`).remove();
-                });
-            } else {
-                const template = $(SELECTORS.ST_ZOOMED_AVATAR_TEMPLATE).html();
-                const newElement = $(template);
-                newElement.attr('forChar', charname);
-                newElement.attr('id', `zoomFor_${charname}`);
-                newElement.addClass('draggable');
-                newElement.find(SELECTORS.ST_DRAG_GRABBER).attr('id', `zoomFor_${charname}header`);
-
-                let movingDivsContainer = $(SELECTORS.ST_MOVING_DIVS);
-                if (movingDivsContainer.length === 0) {
-                    movingDivsContainer = $(`<div id="${SELECTORS.ST_MOVING_DIVS.split(',')[0].trim().substring(1)}"></div>`);
-                    $('body').append(movingDivsContainer);
-                }
-                movingDivsContainer.append(newElement);
-
-                newElement.fadeIn(animation_duration);
-                const zoomedAvatarImgElement = $(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"] img`);
-
-                if (messageElement.attr('is_user') == 'true' || (messageElement.attr('is_system') == 'true' && !isValidCharacter)) {
-                    const isValidPersona = decodeURIComponent(targetAvatarImg) in power_user.personas;
-                    if (isValidPersona) {
-                        const personaSrc = getUserAvatar(targetAvatarImg);
-                        zoomedAvatarImgElement.attr('src', personaSrc);
-                        zoomedAvatarImgElement.attr('data-izoomify-url', personaSrc);
-                    } else {
-                        zoomedAvatarImgElement.attr('src', thumbURL);
-                        zoomedAvatarImgElement.attr('data-izoomify-url', thumbURL);
-                    }
-                } else if (messageElement.attr('is_user') == 'false') {
-                    zoomedAvatarImgElement.attr('src', avatarSrc);
-                    zoomedAvatarImgElement.attr('data-izoomify-url', avatarSrc);
-                }
-
-                $(`${SELECTORS.ST_ZOOMED_AVATAR}[forChar="${charname}"]`).css('display', 'flex');
-                if (power_user.zoomed_avatar_magnification) {
-                    $(`${SELECTORS.ST_ZOOMED_AVATAR}_container`).izoomify();
-                }
-                newElement.on('click touchend', (e) => {
-                    if (e.target.closest(SELECTORS.ST_DRAG_CLOSE)) {
-                        newElement.fadeOut(animation_duration, () => newElement.remove());
-                    }
-                });
-            }
-        }
-    );
-}
+// SillyTavern owns zoomed-avatar creation/configuration. PTMT's pending-tab
+// manager already observes direct body additions and will hydrate `.zoomed_avatar`
+// into the configured Avatar tab after the native handler finishes.
 
 // ─── Layout Loading ──────────────────────────────────────────────────────────
-
 function loadInitialLayout(api) {
     migrateSavedLayouts(settings);
     const isMobile = settings.get('isMobile');
@@ -583,33 +386,20 @@ function loadInitialLayout(api) {
     const defaultLayout = settings.get('defaultLayout');
 
     if (savedLayout) {
-        console.log(`[PTMT Layout] Loading saved ${isMobile ? 'mobile' : 'desktop'} layout.`);
-        // applyLayoutSnapshot handles restoring showIconsOnly from the snapshot (v20+).
-        // The v19→v20 migration defaults desktop snapshots to showIconsOnly:false,
-        // healing any saves corrupted by the old toggleMobileMode bug.
         applyLayoutSnapshot(savedLayout, api, settings);
+    } else if (SettingsManager.isMobile() || isMobile) {
+        const mobileLayout = settings.get('mobileLayout') || SettingsManager.getMobileLayout(defaultLayout);
+        settings.update({ isMobile: true, showIconsOnly: true });
+        applyLayoutSnapshot(mobileLayout, api, settings);
     } else {
-        console.log('[PTMT Layout] No saved layout found, checking for mobile device.');
-        if (SettingsManager.isMobile() || isMobile) {
-            console.log('[PTMT Layout] Mobile mode active, applying optimized mobile layout.');
-            const mobileLayout = settings.get('mobileLayout') || SettingsManager.getMobileLayout(defaultLayout);
-            settings.update({ isMobile: true, showIconsOnly: true });
-            applyLayoutSnapshot(mobileLayout, api, settings);
-        } else {
-            console.log('[PTMT Layout] Applying default desktop layout.');
-            applyLayoutSnapshot(defaultLayout, api, settings);
-        }
+        applyLayoutSnapshot(defaultLayout, api, settings);
     }
 }
 
 // ─── Post-Init ───────────────────────────────────────────────────────────────
-
 function postInit(state, applyOverrides) {
     try { openAllDrawersJq(); } catch (e) {
         console.warn('[PTMT] Failed to open all drawers:', e);
-    }
-    try { removeMouseDownDrawerHandler(); } catch (e) {
-        console.warn('[PTMT] Failed to remove mouse down drawer handler:', e);
     }
 
     const isMobile = settings.get('isMobile');
@@ -621,41 +411,42 @@ function postInit(state, applyOverrides) {
     document.body.classList.toggle('ptmt-enable-shadows', !!settings.get('enableShadows'));
     document.body.classList.toggle('ptmt-enable-blur-effect', !!settings.get('enableBlurEffect'));
 
-    // Apply body background color CSS variable (fallback matches defaultSettings.bodyBgColor)
     const bodyBgColor = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
     document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
     const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
     document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
-
-    // Apply UI theme
-    const uiTheme = settings.get('uiTheme') || 'sharp';
-    SettingsManager.applyTheme(uiTheme);
-
-    // Apply bg1 position based on saved setting
-    if (settings.get('moveBg1ToSheld')) {
-        moveBg1ToSheld();
-    }
+    SettingsManager.applyTheme(settings.get('uiTheme') || 'sharp');
+    if (settings.get('moveBg1ToSheld')) moveBg1ToSheld();
 
     enableInteractions();
     recalculateColumnSizes();
     updateResizerDisabledStates();
-
     state.isHydrating = false;
-    console.log('[PTMT Layout] Hydration complete. Monitoring layout changes.');
     initDrawerObserver();
     applyOverrides();
     state.updateTabStripMode = initTabStripMode();
 }
 
-// ─── Entry Point ─────────────────────────────────────────────────────────────
+function cleanupRuntimeSubsystems() {
+    cleanupInspectorScaleControl();
+    cleanupAvatarExpressionSync();
+    cleanupMessageRail();
+    cleanupStMobileStylesBlocker();
+    cleanupPositionAnchor();
+    cleanupDrawerObserver();
+    cleanupStatusBars();
+    cleanupAllObservers();
+    document.querySelector(SELECTORS.OVERRIDES_LINK)?.remove();
+    document.body?.classList.remove(
+        'ptmt-mobile', 'ptmt-global-icons-only', 'ptmt-auto-contrast', 'ptmt-optimize-visibility',
+        'ptmt-enable-animations', 'ptmt-enable-shadows', 'ptmt-enable-blur-effect', 'ptmt-bg-under-chat'
+    );
+}
 
+// ─── Entry Point ─────────────────────────────────────────────────────────────
 (function () {
     function initApp() {
-        if (window.ptmtTabs) {
-            console.log('[PTMT] initApp called again — cleaning up previous instance.');
-            cleanupAllObservers();
-        }
-
+        if (window.ptmtTabs) cleanupRuntimeSubsystems();
         const state = { isPTMTResetting: false, isHydrating: true };
 
         initSubsystems();
@@ -669,48 +460,31 @@ function postInit(state, applyOverrides) {
         loadInitialLayout(api);
         postInit(state, applyOverrides);
         initLayoutResetShortcut(api);
-        bindSwipeHandlers();
-        bindAvatarClickOverride();
         initDemotionObserver(api);
-
         return api;
     }
 
-    document.body.insertAdjacentHTML('beforeend', `<div id="${SELECTORS.SETTINGS_WRAPPER.substring(1)}" style="display:none;"></div>`);
-    eventSource.on(event_types.APP_READY, () => { initApp(); });
+    if (!document.getElementById(SELECTORS.SETTINGS_WRAPPER.substring(1))) {
+        document.body.insertAdjacentHTML('beforeend', `<div id="${SELECTORS.SETTINGS_WRAPPER.substring(1)}" style="display:none;"></div>`);
+    }
+    eventSource.on(event_types.APP_READY, initApp);
 })();
 
 // ─── Lifecycle Hooks ─────────────────────────────────────────────────────────
-
-export async function onActivate() {
-    console.log('[PTMT] Extension activated');
-}
-
-export async function onInstall() {
-    console.log('[PTMT] Extension installed');
-}
+export async function onActivate() {}
+export async function onInstall() {}
 
 export async function onDelete() {
-    console.log('[PTMT] Extension deleted, cleaning up settings');
-    cleanupAllObservers();
+    cleanupRuntimeSubsystems();
     await settings.cleanup();
 }
 
 export async function onEnable() {
-    // onDisable() tears down all observers and listeners via cleanupAllObservers().
-    // Reloading is the safest way to fully restore the layout without re-implementing
-    // the entire init sequence in a re-entrant way.
-    console.log('[PTMT] Extension enabled — reloading page to restore layout.');
     window.location.reload();
 }
 
 export async function onDisable() {
-    console.log('[PTMT] Extension disabled');
-    cleanupInspectorScaleControl();
-    cleanupAllObservers();
-    cleanupStatusBars();
+    cleanupRuntimeSubsystems();
 }
 
-export async function onUpdate() {
-    console.log('[PTMT] Extension updated');
-}
+export async function onUpdate() {}

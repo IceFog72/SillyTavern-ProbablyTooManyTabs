@@ -4,31 +4,11 @@ import { isElement, registerBodyObserver } from './utils.js';
 import { SELECTORS } from './constants.js';
 
 /**
- * Removes SillyTavern's drawer mousedown handler.
- * NOTE: Uses jQuery._data() which is a private API. This is a best-effort
- * approach — if jQuery is unavailable or the API changes, it silently degrades.
+ * Deprecated compatibility shim. PTMT must not remove SillyTavern's shared html
+ * mousedown/touchstart handler because it also owns unrelated popup behavior.
  */
 export function removeMouseDownDrawerHandler() {
-  try {
-    // Guard: jQuery._data is a private API removed in jQuery 4.x
-    if (window.jQuery && typeof jQuery._data === 'function') {
-      const evs = jQuery._data(document.documentElement, 'events') || {};
-      ['touchstart', 'mousedown'].forEach(type => {
-        const handlersToRemove = (evs[type] || []).filter(h => {
-          const src = h?.handler?.toString() || '';
-          return src.includes('isExportPopupOpen') && src.includes('exportPopper.update');
-        });
-
-        handlersToRemove.forEach(h => {
-          jQuery('html').off(type, h.handler);
-        });
-      });
-      return true;
-    }
-    return false;
-  } catch {
-    return false;
-  }
+  return false;
 }
 
 let drawerUnregister = null;
@@ -38,7 +18,6 @@ let drawerUnregister = null;
  * Uses the unified body observer for efficiency.
  */
 export function initDrawerObserver() {
-  // Clean up previous registration
   if (drawerUnregister) {
     drawerUnregister();
     drawerUnregister = null;
@@ -59,8 +38,11 @@ export function initDrawerObserver() {
       }
     }
   );
+}
 
-  console.log('[PTMT] Drawer state observer initialized.');
+export function cleanupDrawerObserver() {
+  drawerUnregister?.();
+  drawerUnregister = null;
 }
 
 export function openAllDrawersJq(context = document) {
@@ -88,7 +70,6 @@ export function moveBg1ToSheld() {
   const sheld = document.getElementById('sheld');
   if (bg1 && sheld) {
     sheld.appendChild(bg1);
-    console.log('[PTMT] Moved bg1 to inside #sheld as last item');
     return true;
   }
   return false;
@@ -99,16 +80,12 @@ export function moveBg1BackToPtmtMain() {
   const ptmtMain = document.getElementById('ptmt-main');
   if (bg1 && ptmtMain) {
     ptmtMain.appendChild(bg1);
-    console.log('[PTMT] Moved bg1 back to under #ptmt-main');
     return true;
   }
   return false;
 }
 
-/**
- * Moves specified elements to the #movingDivs container.
- * @param {string[]} ids List of element IDs to move.
- */
+/** Moves specified elements to the #movingDivs container. */
 export function moveToMovingDivs(ids = ['expression-plus-wrapper']) {
   if (!document?.body) return [];
   let movingDivs = document.querySelector(SELECTORS.ST_MOVING_DIVS);
@@ -120,43 +97,23 @@ export function moveToMovingDivs(ids = ['expression-plus-wrapper']) {
 
   const found = ids.map(id => document.getElementById(id)).filter(Boolean);
   found.forEach(eln => {
-    if (eln.parentElement !== movingDivs) {
-      console.log(`[PTMT] Moving ${eln.id} to ${SELECTORS.ST_MOVING_DIVS}`);
-      movingDivs.appendChild(eln);
-    }
+    if (eln.parentElement !== movingDivs) movingDivs.appendChild(eln);
   });
   return found;
 }
 
+/**
+ * Legacy helper retained for API compatibility. New PTMT code does not use it.
+ */
 export function overrideDelegatedEventHandler(eventType, selector, findFunction, newHandler) {
-  if (!window.jQuery || !jQuery._data) {
-    console.warn('[PTMT] Cannot override event handler: jQuery or jQuery._data not available.');
-    return;
-  }
-
+  if (!window.jQuery || !jQuery._data) return;
   try {
     const delegatedEvents = jQuery._data(document, 'events');
-    if (!delegatedEvents || !delegatedEvents[eventType]) {
-      return;
-    }
-
-    const handlersForType = delegatedEvents[eventType];
-    let handlerToRemove = null;
-
-    for (const handler of handlersForType) {
-
-      if (handler.selector === selector && findFunction(handler.handler.toString())) {
-        handlerToRemove = handler.handler;
-        break;
-      }
-    }
-
+    if (!delegatedEvents || !delegatedEvents[eventType]) return;
+    const handlerToRemove = delegatedEvents[eventType]
+      .find(handler => handler.selector === selector && findFunction(handler.handler.toString()))?.handler;
     if (handlerToRemove) {
-      console.log(`[PTMT] Overriding delegated '${eventType}' event on selector '${selector}'.`);
-
       jQuery(document).off(eventType, selector, handlerToRemove);
-
-
       jQuery(document).on(eventType, selector, newHandler);
     }
   } catch (e) {

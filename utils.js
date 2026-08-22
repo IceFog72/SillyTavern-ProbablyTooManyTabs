@@ -63,23 +63,13 @@ export function rgbObjectToHsl({ r, g, b }) {
     return { h, s, l };
 }
 
-
 let _refs = null;
 
 export const isElement = (v) => v && (v.nodeType === 1 || v === document);
 
-/**
- * Convert hex8 (#RRGGBBAA) or hex6 (#RRGGBB) to rgba() format
- * Ensures alpha channel is properly applied in CSS
- * @param {string} hex - Hex color with optional alpha (#RRGGBBAA or #RRGGBB)
- * @returns {string} - rgba(r, g, b, a) format or empty string
- */
 export function hexToRgba(hex) {
     if (!hex || typeof hex !== 'string') return '';
-    
     hex = hex.replace('#', '');
-    
-    // Handle 8-char hex (with alpha)
     if (hex.length === 8) {
         const r = parseInt(hex.substring(0, 2), 16);
         const g = parseInt(hex.substring(2, 4), 16);
@@ -87,15 +77,12 @@ export function hexToRgba(hex) {
         const a = parseInt(hex.substring(6, 8), 16) / 255;
         return `rgba(${r}, ${g}, ${b}, ${a.toFixed(3)})`;
     }
-    
-    // Handle 6-char hex (no alpha)
     if (hex.length === 6) {
         const r = parseInt(hex.substring(0, 2), 16);
         const g = parseInt(hex.substring(2, 4), 16);
         const b = parseInt(hex.substring(4, 6), 16);
         return `rgba(${r}, ${g}, ${b}, 1)`;
     }
-    
     return '';
 }
 
@@ -113,7 +100,6 @@ export function sortColorsByLightness(hexColors) {
     return [...hexColors].sort((a, b) => hexToLuminance(a) - hexToLuminance(b));
 }
 
-// Moved here to prevent circular dependency cycles between layout.js and pane.js
 export function getRefs() {
     if (_refs) {
         const ok = _refs.main && document.querySelector(SELECTORS.MAIN) === _refs.main && _refs.centerBody && document.querySelector(SELECTORS.CENTER_BODY) === _refs.centerBody;
@@ -186,11 +172,11 @@ export const el = (tag, props = {}, ...children) => {
     if (props) {
         for (const [k, v] of Object.entries(props)) {
             if (k === 'style') {
-                if (typeof v === 'object' && v !== null) { Object.assign(n.style, v); }
-                else if (typeof v === 'string') { n.style.cssText += v.trim().endsWith(';') ? v : `${v.trim()};`; }
-            } else if (k === 'dataset' && typeof v === 'object') { Object.assign(n.dataset, v); }
-            else if (k in n && k !== 'dataset') { n[k] = v; }
-            else { n.setAttribute(k, v); }
+                if (typeof v === 'object' && v !== null) Object.assign(n.style, v);
+                else if (typeof v === 'string') n.style.cssText += v.trim().endsWith(';') ? v : `${v.trim()};`;
+            } else if (k === 'dataset' && typeof v === 'object') Object.assign(n.dataset, v);
+            else if (k in n && k !== 'dataset') n[k] = v;
+            else n.setAttribute(k, v);
         }
     }
     if (children) {
@@ -206,14 +192,11 @@ export function getElementDepth(element) {
     let depth = 0;
     let current = element.parentElement;
     while (current) {
-        if (current.classList?.contains('ptmt-split')) {
-            depth++;
-        }
+        if (current.classList?.contains('ptmt-split')) depth++;
         current = current.parentElement;
     }
     return depth;
 }
-
 
 export function createIconElement(icon, className = 'ptmt-tab-icon') {
     if (!icon) return null;
@@ -240,13 +223,11 @@ export function readPaneViewSettings(pane) {
     try {
         if (!pane) return { ...defaultViewSettings };
         if (pane._viewSettingsCache) return pane._viewSettingsCache;
-
         const raw = pane.dataset.viewSettings;
         if (!raw) {
             pane._viewSettingsCache = { ...defaultViewSettings };
             return pane._viewSettingsCache;
         }
-
         pane._viewSettingsCache = { ...defaultViewSettings, ...JSON.parse(raw) };
         return pane._viewSettingsCache;
     } catch {
@@ -264,8 +245,6 @@ export function writePaneViewSettings(pane, newPaneSettings) {
         console.warn('[PTMT] Failed to write pane view settings to dataset:', e);
     }
 }
-
-// --- Move calculateElementMinWidth here to break circular dependency ---
 
 const minWidthCache = new WeakMap();
 
@@ -286,7 +265,6 @@ export function calculateElementMinWidth(element) {
     } else if (element.classList.contains(SELECTORS.SPLIT.substring(1))) {
         const children = Array.from(element.children).filter(c => c.classList.contains(SELECTORS.PANE.substring(1)) || c.classList.contains(SELECTORS.SPLIT.substring(1)));
         const resizers = Array.from(element.children).filter(c => c.tagName === 'SPLITTER');
-
         if (element.classList.contains('horizontal')) {
             let maxMinWidth = 0;
             children.forEach(child => maxMinWidth = Math.max(maxMinWidth, calculateElementMinWidth(child)));
@@ -295,13 +273,11 @@ export function calculateElementMinWidth(element) {
             let totalMinWidth = 0;
             children.forEach(child => totalMinWidth += calculateElementMinWidth(child));
             resizers.forEach(resizer => {
-                const width = resizer.classList.contains('disabled') ? 0 : 6;
-                totalMinWidth += width;
+                totalMinWidth += resizer.classList.contains('disabled') ? 0 : 6;
             });
             minWidth = totalMinWidth;
         }
     }
-
     minWidthCache.set(element, minWidth);
     return minWidth;
 }
@@ -312,167 +288,122 @@ export function clearDropIndicators(element) {
 }
 
 // ─── Observer & Listener Lifecycle Tracking ──────────────────────────────────
-
 const trackedObservers = [];
 const trackedListeners = [];
 
-/**
- * Registers an observer (MutationObserver, ResizeObserver, etc.) for cleanup.
- * Returns the observer for chaining: `trackObserver(new MutationObserver(fn))`.
- */
 export function trackObserver(observer) {
     trackedObservers.push(observer);
     return observer;
 }
 
-/**
- * Registers a window/document event listener for cleanup.
- * { target, event, handler, options }
- */
 export function trackListener(target, event, handler, options) {
     trackedListeners.push({ target, event, handler, options });
 }
 
-/**
- * Disconnects all tracked observers and removes all tracked listeners.
- * Call from the extension's disable/destroy lifecycle hook.
- */
 export function cleanupAllObservers() {
     trackedObservers.forEach(obs => {
-        try { obs.disconnect(); } catch { /* already disconnected */ }
+        try { obs.disconnect(); } catch {}
     });
     trackedObservers.length = 0;
-
     trackedListeners.forEach(({ target, event, handler, options }) => {
-        try { target.removeEventListener(event, handler, options); } catch { /* already removed */ }
+        try { target.removeEventListener(event, handler, options); } catch {}
     });
     trackedListeners.length = 0;
-
-    // Also clean up the unified body observer
     cleanupBodyObserver();
 }
 
 // ─── Unified Body MutationObserver ────────────────────────────────────────────
-// Multiple features observe document.body with subtree:true. Instead of N
-// separate observers all firing on every DOM mutation, we use one observer
-// with a dispatcher that routes mutations to registered handlers.
-//
-// OPTIMIZATION: Mutations are batched and debounced per-handler to avoid
-// thrashing the UI thread on rapid DOM changes. Handlers are only invoked
-// when they have relevant mutations (early exit for uninterested handlers).
-
 let bodyObserver = null;
 let bodyObserverStarted = false;
-const bodyHandlers = new Map(); // id → { filter, callback, pendingMutations, debounceTimer }
+const bodyHandlers = new Map();
 
-/**
- * Registers a handler with the unified body MutationObserver.
- * @param {string} id - Unique ID for this handler (used for removal)
- * @param {object} filter - MutationObserverInit options (attributes/childList/subtree/etc)
- * @param {function} callback - Called with filtered mutations (batched & debounced)
- * @returns {function} Unregister function
- */
-export function registerBodyObserver(id, filter, callback) {
-    const handler = { filter, callback, pendingMutations: [], debounceTimer: null };
-    bodyHandlers.set(id, handler);
-
-    // Lazy-start the observer on first registration
-    if (bodyObserverStarted && bodyObserver) {
-        // Already observing — handler will be picked up on next mutation
-    } else if (document.body) {
-        startBodyObserver();
+function dispatchBodyMutations(mutations) {
+    if (bodyHandlers.size === 0) return;
+    for (const [id, handler] of bodyHandlers) {
+        const { filter, callback, pendingMutations } = handler;
+        try {
+            const relevant = mutations.filter(m => {
+                if (filter.childList && m.type === 'childList') return true;
+                if (filter.attributes && m.type === 'attributes') {
+                    if (filter.attributeFilter?.length && !filter.attributeFilter.includes(m.attributeName)) return false;
+                    return true;
+                }
+                return false;
+            });
+            if (!relevant.length) continue;
+            pendingMutations.push(...relevant);
+            if (handler.debounceTimer) clearTimeout(handler.debounceTimer);
+            handler.debounceTimer = setTimeout(() => {
+                try {
+                    if (pendingMutations.length) callback(pendingMutations.splice(0));
+                } catch (e) {
+                    console.warn(`[PTMT] Body observer handler '${id}' callback error:`, e);
+                }
+                handler.debounceTimer = null;
+            }, 16);
+        } catch (e) {
+            console.warn(`[PTMT] Body observer handler '${id}' filter error:`, e);
+        }
     }
+}
 
+function getBodyObserverOptions() {
+    let childList = false;
+    let attributes = false;
+    let observeAllAttributes = false;
+    const attributeNames = new Set();
+    for (const { filter } of bodyHandlers.values()) {
+        childList ||= !!filter.childList;
+        if (filter.attributes) {
+            attributes = true;
+            if (filter.attributeFilter?.length) filter.attributeFilter.forEach(name => attributeNames.add(name));
+            else observeAllAttributes = true;
+        }
+    }
+    const options = { subtree: true, childList, attributes };
+    if (attributes && !observeAllAttributes && attributeNames.size) options.attributeFilter = [...attributeNames];
+    if (!childList && !attributes) options.childList = true;
+    return options;
+}
+
+function refreshBodyObserver() {
+    if (!document.body) return;
+    if (!bodyHandlers.size) {
+        bodyObserver?.disconnect();
+        bodyObserverStarted = false;
+        return;
+    }
+    if (!bodyObserver) bodyObserver = new MutationObserver(dispatchBodyMutations);
+    else bodyObserver.disconnect();
+    bodyObserver.observe(document.body, getBodyObserverOptions());
+    bodyObserverStarted = true;
+}
+
+export function registerBodyObserver(id, filter, callback) {
+    const previous = bodyHandlers.get(id);
+    if (previous?.debounceTimer) clearTimeout(previous.debounceTimer);
+    bodyHandlers.set(id, { filter, callback, pendingMutations: [], debounceTimer: null });
+    refreshBodyObserver();
     return () => {
         const h = bodyHandlers.get(id);
         if (h?.debounceTimer) clearTimeout(h.debounceTimer);
         bodyHandlers.delete(id);
+        refreshBodyObserver();
     };
 }
 
-function startBodyObserver() {
-    if (bodyObserverStarted) return;
-
-    bodyObserver = new MutationObserver((mutations) => {
-        // Early exit: if no handlers, don't process
-        if (bodyHandlers.size === 0) return;
-
-        // Quick scan: do ANY handlers care about these mutations?
-        const hasChildList = mutations.some(m => m.type === 'childList');
-        const hasAttributes = mutations.some(m => m.type === 'attributes');
-        
-        if (!hasChildList && !hasAttributes) return;
-
-        // Route mutations to interested handlers
-        for (const [id, handler] of bodyHandlers) {
-            const { filter, callback, pendingMutations } = handler;
-
-            // Skip if handler doesn't care about these mutation types
-            if (!filter.childList && !filter.attributes) continue;
-
-            try {
-                // Accumulate relevant mutations for this handler
-                const relevant = mutations.filter(m => {
-                    if (filter.childList && m.type === 'childList') return true;
-                    if (filter.attributes && m.type === 'attributes') {
-                        if (filter.attributeFilter?.length > 0 && !filter.attributeFilter.includes(m.attributeName)) return false;
-                        return true;
-                    }
-                    return false;
-                });
-
-                if (relevant.length > 0) {
-                    pendingMutations.push(...relevant);
-
-                    // Debounce callback: batch mutations before firing
-                    if (handler.debounceTimer) clearTimeout(handler.debounceTimer);
-                    handler.debounceTimer = setTimeout(() => {
-                        try {
-                            if (pendingMutations.length > 0) {
-                                callback(pendingMutations.splice(0));
-                            }
-                        } catch (e) {
-                            console.warn(`[PTMT] Body observer handler '${id}' callback error:`, e);
-                        }
-                        handler.debounceTimer = null;
-                    }, 16); // ~60fps throttle
-                }
-            } catch (e) {
-                console.warn(`[PTMT] Body observer handler '${id}' filter error:`, e);
-            }
-        }
-    });
-
-    bodyObserver.observe(document.body, {
-        childList: true,
-        attributes: true,
-        attributeFilter: ['style', 'class'],
-        subtree: true,
-    });
-
-    bodyObserverStarted = true;
-}
-
 function cleanupBodyObserver() {
-    if (bodyObserver) {
-        bodyObserver.disconnect();
-        bodyObserver = null;
-    }
-    // Clean up any pending debounce timers
+    bodyObserver?.disconnect();
+    bodyObserver = null;
     for (const handler of bodyHandlers.values()) {
-        if (handler.debounceTimer) {
-            clearTimeout(handler.debounceTimer);
-            handler.debounceTimer = null;
-        }
+        if (handler.debounceTimer) clearTimeout(handler.debounceTimer);
     }
-    bodyObserverStarted = false;
     bodyHandlers.clear();
+    bodyObserverStarted = false;
 }
 
 // ─── Color extraction from images ─────────────────────────────────────────
-// Adapted from theme-creator.js — k-means clustering in CIELAB space
-
-const DEFAULT_RGB = [225, 138, 36]; // Orange
+const DEFAULT_RGB = [225, 138, 36];
 
 function rgbToHex([r, g, b]) {
     return '#' + [r, g, b].map(c => c.toString(16).padStart(2, '0')).join('');
@@ -526,7 +457,6 @@ function kmeans(colors, k, maxIterations = 20) {
     for (let iter = 0; iter < maxIterations; iter++) {
         const assignments = new Array(n).fill(0);
         const sums = Array.from({ length: k }, () => ({ l: 0, a: 0, b: 0, count: 0 }));
-
         for (let i = 0; i < n; i++) {
             const lab = labs[i];
             let minDist = Infinity;
@@ -539,9 +469,7 @@ function kmeans(colors, k, maxIterations = 20) {
             sums[assignments[i]].b += lab.b;
             sums[assignments[i]].count++;
         }
-
         finalCounts = sums.map(s => s.count);
-
         let changed = false;
         for (let j = 0; j < k; j++) {
             if (sums[j].count > 0) {
@@ -555,21 +483,13 @@ function kmeans(colors, k, maxIterations = 20) {
 
     const indexed = centroids.map((c, i) => ({ centroid: c, size: finalCounts[i] }));
     indexed.sort((a, b) => b.size - a.size);
-
     return indexed.map(item => labToRgb(item.centroid));
 }
 
-/**
- * Extract dominant colors from an image element using k-means in LAB space.
- * @param {HTMLImageElement} img - The image element to extract from
- * @param {number} [numColors=5] - Number of dominant colors to extract
- * @returns {string[]} Array of hex color strings (e.g. ["#e18a24", ...])
- */
 export function extractColorsFromImage(img, numColors = 5) {
     try {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d', { willReadFrequently: true });
-
         const w = img.naturalWidth || img.width;
         const h = img.naturalHeight || img.height;
         if (!w || !h) return [rgbToHex(DEFAULT_RGB)];
@@ -583,7 +503,6 @@ export function extractColorsFromImage(img, numColors = 5) {
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
         const data = imageData.data;
         const pixelCount = canvas.width * canvas.height;
-
         const colors = [];
         let greyR = 0, greyG = 0, greyB = 0, greyCount = 0;
 
@@ -593,23 +512,18 @@ export function extractColorsFromImage(img, numColors = 5) {
             const g = data[off + 1];
             const b = data[off + 2];
             const a = data[off + 3];
-
             if (a < 128) continue;
             if (r > 250 && g > 250 && b > 250) continue;
             if (r < 5 && g < 5 && b < 5) continue;
-
             const max = Math.max(r, g, b);
             const min = Math.min(r, g, b);
             const chroma = max - min;
-
             if (max === 0 || chroma * 10 < max) {
                 greyR += r; greyG += g; greyB += b; greyCount++;
                 continue;
             }
-
             const luma = r + g + b;
             if (luma < 76 || luma > 688) continue;
-
             colors.push({ r, g, b });
         }
 
@@ -622,10 +536,8 @@ export function extractColorsFromImage(img, numColors = 5) {
 
         const step = Math.max(1, Math.floor(colors.length / 10000));
         const sampled = step > 1 ? colors.filter((_, i) => i % step === 0) : colors;
-
         const k = Math.min(numColors, sampled.length);
         const centroids = kmeans(sampled, k);
-
         if (centroids.length > 0) return centroids.map(rgb => rgbToHex(rgb));
         return [rgbToHex(DEFAULT_RGB)];
     } catch (e) {
@@ -633,4 +545,3 @@ export function extractColorsFromImage(img, numColors = 5) {
         return [rgbToHex(DEFAULT_RGB)];
     }
 }
-
