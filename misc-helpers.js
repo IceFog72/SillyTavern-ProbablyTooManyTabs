@@ -4,35 +4,75 @@ import { isElement, registerBodyObserver } from './utils.js';
 import { SELECTORS } from './constants.js';
 
 /**
- * Deprecated compatibility shim. PTMT must not remove SillyTavern's shared html
- * mousedown/touchstart handler because it also owns unrelated popup behavior.
+ * Deprecated compatibility shim. PTMT must not remove SillyTavern's shared
+ * html mousedown/touchstart handler because it also owns unrelated popup logic.
  */
 export function removeMouseDownDrawerHandler() {
   return false;
 }
 
 let drawerUnregister = null;
+const drawersPinnedByPtmt = new Set();
+
+function getPtmtDrawers(root = document) {
+  const drawers = [];
+  if (root instanceof Element && root.matches('.ptmt-panel-content .drawer-content')) {
+    drawers.push(root);
+  }
+  if (root?.querySelectorAll) {
+    drawers.push(...root.querySelectorAll('.ptmt-panel-content .drawer-content'));
+  }
+  return drawers;
+}
 
 /**
- * Watches for drawers being closed and immediately re-opens them.
- * Uses the unified body observer for efficiency.
+ * Keep only drawers hosted inside PTMT panels open using SillyTavern's native
+ * pinnedOpen contract. ST's global mousedown auto-close handler explicitly
+ * ignores .pinnedOpen drawers, preventing openDrawer -> closedDrawer ->
+ * openDrawer flicker without touching ST's global event handlers.
+ */
+export function pinPtmtDrawers(root = document) {
+  const closedClass = SELECTORS.ST_DRAWER_CLOSED.substring(1);
+  const openClass = SELECTORS.ST_DRAWER_OPEN.substring(1);
+  let changed = 0;
+
+  for (const drawer of getPtmtDrawers(root)) {
+    if (!drawer.classList.contains('pinnedOpen')) {
+      drawer.classList.add('pinnedOpen');
+      drawersPinnedByPtmt.add(drawer);
+      changed++;
+    }
+    if (drawer.classList.contains(closedClass)) {
+      drawer.classList.remove(closedClass);
+      changed++;
+    }
+    if (!drawer.classList.contains(openClass)) {
+      drawer.classList.add(openClass);
+      changed++;
+    }
+  }
+
+  return changed;
+}
+
+/**
+ * Watches only for newly inserted/moved PTMT content. It intentionally does
+ * not observe class mutations, so it cannot fight SillyTavern after a click.
  */
 export function initDrawerObserver() {
-  if (drawerUnregister) {
-    drawerUnregister();
-    drawerUnregister = null;
-  }
+  cleanupDrawerObserver();
+  pinPtmtDrawers();
 
   drawerUnregister = registerBodyObserver(
     'drawer-observer',
-    { attributes: true, attributeFilter: ['class'] },
+    { childList: true },
     (mutations) => {
       for (const mutation of mutations) {
-        if (mutation.type === 'attributes' && mutation.attributeName === 'class') {
-          const target = mutation.target;
-          if (target.nodeType === 1 && target.classList.contains(SELECTORS.ST_DRAWER_CLOSED.substring(1))) {
-            target.classList.remove(SELECTORS.ST_DRAWER_CLOSED.substring(1));
-            target.classList.add(SELECTORS.ST_DRAWER_OPEN.substring(1));
+        if (mutation.type !== 'childList') continue;
+        for (const node of mutation.addedNodes) {
+          if (!(node instanceof Element)) continue;
+          if (node.closest?.('.ptmt-panel-content') || node.querySelector?.('.ptmt-panel-content')) {
+            pinPtmtDrawers(node.closest?.('.ptmt-panel-content') || node);
           }
         }
       }
@@ -43,23 +83,22 @@ export function initDrawerObserver() {
 export function cleanupDrawerObserver() {
   drawerUnregister?.();
   drawerUnregister = null;
+
+  // Remove only pins PTMT itself added; leave pre-existing ST/user pins alone.
+  for (const drawer of drawersPinnedByPtmt) {
+    if (drawer?.isConnected) drawer.classList.remove('pinnedOpen');
+  }
+  drawersPinnedByPtmt.clear();
 }
 
+/**
+ * Legacy public helper retained for compatibility. It now scopes its default
+ * behavior to PTMT-hosted drawers rather than opening every drawer globally.
+ */
 export function openAllDrawersJq(context = document) {
   try {
-    if (window.jQuery && jQuery) {
-      return jQuery(context).find(SELECTORS.ST_DRAWER_CLOSED).not(SELECTORS.ST_DRAWER_OPEN).removeClass(SELECTORS.ST_DRAWER_CLOSED.substring(1)).addClass(SELECTORS.ST_DRAWER_OPEN.substring(1)).length;
-    }
     const rootEl = isElement(context) ? context : document;
-    let changed = 0;
-    rootEl.querySelectorAll(SELECTORS.ST_DRAWER_CLOSED).forEach(e => {
-      if (!e.classList.contains(SELECTORS.ST_DRAWER_OPEN.substring(1))) {
-        e.classList.remove(SELECTORS.ST_DRAWER_CLOSED.substring(1));
-        e.classList.add(SELECTORS.ST_DRAWER_OPEN.substring(1));
-        changed++;
-      }
-    });
-    return changed;
+    return pinPtmtDrawers(rootEl);
   } catch {
     return 0;
   }

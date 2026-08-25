@@ -16,7 +16,7 @@ import {
 import { attachResizer, setSplitOrientation, updateResizerDisabledStates, checkPaneForIconMode, initGlobalResizeObserver } from './resizer.js';
 import { enableInteractions } from './drag-drop.js';
 import { moveTabTransaction } from './layout-transactions.js';
-import { openAllDrawersJq, moveToMovingDivs, initDrawerObserver, cleanupDrawerObserver, moveBg1ToSheld } from './misc-helpers.js';
+import { moveToMovingDivs, initDrawerObserver, cleanupDrawerObserver, moveBg1ToSheld } from './misc-helpers.js';
 import { initDemotionObserver, updatePendingTabColumn } from './pending-tabs.js';
 import { positionAnchor, cleanupPositionAnchor } from './positionAnchor.js';
 import { initStatusBar, initWorldInfoStatusBar, cleanupStatusBars } from './context-status-bar.js';
@@ -431,10 +431,6 @@ function loadInitialLayout(api) {
 
 // ─── Post-Init ───────────────────────────────────────────────────────────────
 function postInit(state, applyOverrides) {
-    try { openAllDrawersJq(); } catch (e) {
-        console.warn('[PTMT] Failed to open all drawers:', e);
-    }
-
     const isMobile = settings.get('isMobile');
     document.body.classList.toggle('ptmt-mobile', !!isMobile);
     document.body.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
