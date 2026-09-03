@@ -1,14 +1,14 @@
 {
-    "display_name": "ProbablyTooManyTabs (Fixed)",
+    "display_name": "ProbablyTooManyTabs",
     "loading_order": 101,
     "js": "index.js",
     "css": "style.css",
     "author": "icefog72",
     "version": "0.12.15",
     "homePage": "https://github.com/IceFog72/SillyTavern-ProbablyTooManyTabs",
-    "auto_update": false,
+    "auto_update": true,
     "minimum_client_version": "1.18.0",
-    "description": "PTMT UI Tab Manager \u2014 compatibility-fixed build for SillyTavern 1.18.x (avatar hydration loop fix)",
+    "description": "PTMT UI Tab Manager",
     "hooks": {
         "activate": "onActivate",
         "install": "onInstall",
