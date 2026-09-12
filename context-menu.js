@@ -3,70 +3,56 @@
 import { el } from './utils.js';
 
 let currentMenu = null;
+let outsideHandler = null;
 
-export function showContextMenu(e, items) {
-    e.preventDefault();
+function removeOutsideHandler() {
+    if (!outsideHandler) return;
+    document.removeEventListener('mousedown', outsideHandler);
+    outsideHandler = null;
+}
+
+export function showContextMenu(event, items) {
+    event.preventDefault();
     hideContextMenu();
 
     const menu = el('div', { className: 'ptmt-context-menu' });
-
-    items.forEach(item => {
+    for (const item of items) {
         if (item.separator) {
             menu.appendChild(el('div', { className: 'ptmt-context-menu-separator' }));
-            return;
+            continue;
         }
-
-        const iconElement = item.icon && item.icon.includes('fa-')
+        const icon = item.icon?.includes('fa-')
             ? el('i', { className: `ptmt-context-menu-icon ${item.icon}` })
             : el('span', { className: 'ptmt-context-menu-icon' }, item.icon || '');
-
-        const menuItem = el('div', { className: `ptmt-context-menu-item${item.disabled ? ' ptmt-context-menu-item-disabled' : ''}` },
-            iconElement,
-            el('span', {}, item.label)
-        );
-
+        const menuItem = el('div', {
+            className: `ptmt-context-menu-item${item.disabled ? ' ptmt-context-menu-item-disabled' : ''}`,
+        }, icon, el('span', {}, item.label));
         if (item.disabled) {
             if (item.disabledTitle) menuItem.title = item.disabledTitle;
         } else {
             menuItem.addEventListener('click', () => {
-                item.onClick();
-                hideContextMenu();
+                try { item.onClick?.(); } finally { hideContextMenu(); }
             });
         }
-
         menu.appendChild(menuItem);
-    });
+    }
 
     document.body.appendChild(menu);
     currentMenu = menu;
 
-    // Position menu
-    const { clientX: x, clientY: y } = e;
-    const { innerWidth: windowWidth, innerHeight: windowHeight } = window;
-    const { offsetWidth: menuWidth, offsetHeight: menuHeight } = menu;
+    const { clientX: x, clientY: y } = event;
+    const { offsetWidth: width, offsetHeight: height } = menu;
+    menu.style.left = `${x + width > window.innerWidth ? x - width : x}px`;
+    menu.style.top = `${y + height > window.innerHeight ? y - height : y}px`;
 
-    let posX = x;
-    let posY = y;
-
-    if (x + menuWidth > windowWidth) posX = x - menuWidth;
-    if (y + menuHeight > windowHeight) posY = y - menuHeight;
-
-    menu.style.left = `${posX}px`;
-    menu.style.top = `${posY}px`;
-
-    // Close menu on click outside
-    const closeOnOutsideClick = (event) => {
-        if (!menu.contains(event.target)) {
-            hideContextMenu();
-            document.removeEventListener('mousedown', closeOnOutsideClick);
-        }
+    outsideHandler = (pointerEvent) => {
+        if (!menu.contains(pointerEvent.target)) hideContextMenu();
     };
-    document.addEventListener('mousedown', closeOnOutsideClick);
+    document.addEventListener('mousedown', outsideHandler);
 }
 
 export function hideContextMenu() {
-    if (currentMenu) {
-        currentMenu.remove();
-        currentMenu = null;
-    }
+    removeOutsideHandler();
+    currentMenu?.remove();
+    currentMenu = null;
 }

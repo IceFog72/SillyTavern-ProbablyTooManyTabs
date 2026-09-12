@@ -1,8 +1,5 @@
 import {
-    buildCharacterColorizerKey,
-    buildCharacterColorizerKeyFromParts,
-    buildPersonaColorizerKey,
-    extractIdentifierFromUid,
+    extractAvatarFilenameFromUrl,
     normalizeHexColor,
 } from './colorizer-helpers.js';
 
@@ -45,6 +42,7 @@ const STORE_KEYS = {
 const SOURCE_VALUES = new Set(['avatar_vibrant', 'static_color']);
 const BUBBLE_MODE_VALUES = new Set(['avatar_light', 'avatar_dark', 'static_color', 'gradient']);
 const TARGET_VALUES = new Set([1, 2, 3]);
+const CHARACTER_KEY_PREFIX = 'avatar:';
 
 function getType(type) {
     return type === 'persona' ? 'persona' : 'character';
@@ -70,28 +68,97 @@ function normalizeBubbleMode(entry, fallback) {
     return fallback;
 }
 
-export function buildCharacterCustomColorizerKey(charName, avatarFilename) {
-    return buildCharacterColorizerKeyFromParts(charName, avatarFilename);
+function canonicalCharacterKey(avatarFilename) {
+    return `${CHARACTER_KEY_PREFIX}${avatarFilename || 'unknown.png'}`;
 }
 
-export function buildCustomColorizerKey(type, uid, domAvatarUrl) {
-    return getType(type) === 'persona'
-        ? buildPersonaColorizerKey(uid, domAvatarUrl)
-        : buildCharacterColorizerKey(uid, domAvatarUrl);
+function avatarFromCharacterKey(key) {
+    const value = String(key || '');
+    if (value.startsWith(CHARACTER_KEY_PREFIX)) return value.slice(CHARACTER_KEY_PREFIX.length) || 'unknown.png';
+    return '';
 }
 
-/**
- * Build a custom-colorizer key from an already-resolved avatar filename.
- * Prefer this over buildCustomColorizerKey when an info object is available:
- * info.avatarFileName is stable (canonical char avatar / captured once), whereas
- * a live DOM avatar URL can be empty while the <img> is still lazy-loading,
- * which would derive a mismatched 'unknown.png'/'user.png' key.
- */
-export function buildCustomColorizerKeyFromFilename(type, uid, avatarFileName) {
-    if (getType(type) === 'persona') {
-        return avatarFileName || extractIdentifierFromUid(uid) || 'user.png';
+function legacyCharacterCandidates(enabledList, settingsMap, avatarFilename) {
+    if (!avatarFilename) return [];
+    const suffix = `__${avatarFilename}`;
+    const all = new Set([...enabledList, ...Object.keys(settingsMap)]);
+    return [...all].filter(key => !String(key).startsWith(CHARACTER_KEY_PREFIX) && String(key).endsWith(suffix));
+}
+
+function resolveStoredEntry(settingsStore, type, key) {
+    const storeType = getType(type);
+    const keys = STORE_KEYS[storeType];
+    const enabledList = settingsStore.get(keys.enabled) ?? [];
+    const settingsMap = settingsStore.get(keys.settings) ?? {};
+
+    if (storeType === 'persona') {
+        return {
+            canonicalKey: key,
+            sourceKey: key,
+            enabledList,
+            settingsMap,
+            enabled: enabledList.includes(key),
+            raw: settingsMap[key] || null,
+        };
     }
-    return buildCharacterColorizerKeyFromParts(extractIdentifierFromUid(uid), avatarFileName);
+
+    const avatarFilename = avatarFromCharacterKey(key);
+    const canonicalKey = avatarFilename ? canonicalCharacterKey(avatarFilename) : key;
+    if (enabledList.includes(canonicalKey) || settingsMap[canonicalKey]) {
+        return {
+            canonicalKey,
+            sourceKey: canonicalKey,
+            enabledList,
+            settingsMap,
+            enabled: enabledList.includes(canonicalKey),
+            raw: settingsMap[canonicalKey] || null,
+        };
+    }
+
+    // v2 used normalizedName__avatarFilename. Avatar filenames are the stable
+    // SillyTavern card identity, so lazily resolve the old entry by its suffix.
+    const candidates = legacyCharacterCandidates(enabledList, settingsMap, avatarFilename);
+    const sourceKey = candidates.find(candidate => enabledList.includes(candidate)) || candidates[0] || canonicalKey;
+    return {
+        canonicalKey,
+        sourceKey,
+        enabledList,
+        settingsMap,
+        enabled: enabledList.includes(sourceKey),
+        raw: settingsMap[sourceKey] || null,
+    };
+}
+
+function currentCharacterAvatarFilename() {
+    if (typeof document === 'undefined') return '';
+    const preview = document.getElementById('avatar_load_preview');
+    const src = preview?.getAttribute('src') || '';
+    return src ? extractAvatarFilenameFromUrl(src, '') : '';
+}
+
+function characterUpdateMatchesOpenEditor(key) {
+    const expected = avatarFromCharacterKey(key);
+    if (!expected || expected === 'unknown.png') return true;
+    const current = currentCharacterAvatarFilename();
+    // A missing preview means the editor is no longer active. Reject delayed UI
+    // writes rather than applying them to a stale card identity.
+    if (!current) return false;
+    return current === expected;
+}
+
+export function buildCharacterCustomColorizerKey(_charName, avatarFilename) {
+    return canonicalCharacterKey(avatarFilename);
+}
+
+export function buildCustomColorizerKey(type, _uid, domAvatarUrl) {
+    const avatarFilename = extractAvatarFilenameFromUrl(domAvatarUrl, getType(type) === 'persona' ? 'user.png' : 'unknown.png');
+    return getType(type) === 'persona' ? avatarFilename : canonicalCharacterKey(avatarFilename);
+}
+
+export function buildCustomColorizerKeyFromFilename(type, _uid, avatarFileName) {
+    return getType(type) === 'persona'
+        ? (avatarFileName || 'user.png')
+        : canonicalCharacterKey(avatarFileName);
 }
 
 export function buildColorizerCustomEntry(type, patch = {}) {
@@ -111,37 +178,57 @@ export function buildColorizerCustomEntry(type, patch = {}) {
 }
 
 export function resolveCustomColorizerSettings(settingsStore, type, key) {
-    const storeType = getType(type);
-    const keys = STORE_KEYS[storeType];
-    const enabledList = settingsStore.get(keys.enabled) ?? [];
-    const settingsMap = settingsStore.get(keys.settings) ?? {};
-    const enabled = enabledList.includes(key);
-    const raw = settingsMap[key];
-    const value = buildColorizerCustomEntry(storeType, raw || {});
-    return { enabled, value, raw: raw || null, key };
+    const resolved = resolveStoredEntry(settingsStore, type, key);
+    const value = buildColorizerCustomEntry(type, resolved.raw || {});
+    return {
+        enabled: resolved.enabled,
+        value,
+        raw: resolved.raw,
+        key: resolved.canonicalKey,
+        sourceKey: resolved.sourceKey,
+    };
 }
 
 export async function updateCustomColorizerSettings(settingsStore, type, key, options = {}) {
     if (!key) return false;
 
     const storeType = getType(type);
+    if (storeType === 'character' && !characterUpdateMatchesOpenEditor(key)) {
+        console.warn(`[PTMT] Ignoring stale Character Colorizer write for "${key}"; the editor now points at another card.`);
+        return false;
+    }
+
     const keys = STORE_KEYS[storeType];
-    const enabledList = [...(settingsStore.get(keys.enabled) ?? [])];
-    const settingsMap = { ...(settingsStore.get(keys.settings) ?? {}) };
-    const currentlyEnabled = enabledList.includes(key);
+    const resolved = resolveStoredEntry(settingsStore, storeType, key);
+    const canonicalKey = resolved.canonicalKey;
+    const enabledList = [...resolved.enabledList];
+    const settingsMap = { ...resolved.settingsMap };
+
+    const removeEnabled = value => {
+        let index;
+        while ((index = enabledList.indexOf(value)) !== -1) enabledList.splice(index, 1);
+    };
 
     if (options.enabled === false) {
-        if (currentlyEnabled) enabledList.splice(enabledList.indexOf(key), 1);
-        delete settingsMap[key];
+        // Disable without destroying the user's colors. This makes the checkbox
+        // reversible and avoids surprising data loss.
+        removeEnabled(canonicalKey);
+        if (resolved.sourceKey !== canonicalKey) removeEnabled(resolved.sourceKey);
         await settingsStore.update({ [keys.enabled]: enabledList, [keys.settings]: settingsMap }, true);
         return true;
     }
 
-    const oldEntry = buildColorizerCustomEntry(storeType, settingsMap[key] || {});
+    const oldEntry = buildColorizerCustomEntry(storeType, resolved.raw || {});
     const nextEntry = buildColorizerCustomEntry(storeType, { ...oldEntry, ...(options.patch || {}) });
 
-    if (options.enabled === true && !currentlyEnabled) enabledList.push(key);
-    settingsMap[key] = nextEntry;
+    if (options.enabled === true && !enabledList.includes(canonicalKey)) enabledList.push(canonicalKey);
+    settingsMap[canonicalKey] = nextEntry;
+
+    // Successful writes are also lazy migrations from the old name+avatar key.
+    if (resolved.sourceKey !== canonicalKey) {
+        removeEnabled(resolved.sourceKey);
+        delete settingsMap[resolved.sourceKey];
+    }
 
     await settingsStore.update({ [keys.enabled]: enabledList, [keys.settings]: settingsMap }, true);
     return true;
@@ -151,20 +238,12 @@ export function migrateColorizerSettings(loadedSettings, currentVersion) {
     const loadedVersion = Number(loadedSettings.dialogueColorizerSettingsVersion || 0);
     if (loadedVersion >= currentVersion) return false;
 
-    const hasCustomColorizerSettings =
-        (Array.isArray(loadedSettings.charCustomColorizerEnabled) && loadedSettings.charCustomColorizerEnabled.length > 0) ||
-        (loadedSettings.charCustomColorizerSettings && Object.keys(loadedSettings.charCustomColorizerSettings).length > 0) ||
-        (Array.isArray(loadedSettings.personaCustomColorizerEnabled) && loadedSettings.personaCustomColorizerEnabled.length > 0) ||
-        (loadedSettings.personaCustomColorizerSettings && Object.keys(loadedSettings.personaCustomColorizerSettings).length > 0);
-
-    if (hasCustomColorizerSettings) {
-        console.log('[PTMT] Resetting legacy Dialogue Colorizer per-character/persona settings for v2 key format.');
-        loadedSettings.charCustomColorizerEnabled = [];
-        loadedSettings.charCustomColorizerSettings = {};
-        loadedSettings.personaCustomColorizerEnabled = [];
-        loadedSettings.personaCustomColorizerSettings = {};
-    }
-
+    // Do not wipe per-character/persona overrides on a schema bump. Current
+    // resolvers tolerate the legacy v2 keys and migrate them lazily on write.
+    loadedSettings.charCustomColorizerEnabled ??= [];
+    loadedSettings.charCustomColorizerSettings ??= {};
+    loadedSettings.personaCustomColorizerEnabled ??= [];
+    loadedSettings.personaCustomColorizerSettings ??= {};
     loadedSettings.dialogueColorizerSettingsVersion = currentVersion;
     return true;
 }

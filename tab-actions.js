@@ -1,33 +1,54 @@
 // tab-actions.js
 
-// Force RPG Companion to stay in its DESKTOP layout while hosted in a PTMT tab.
-// RPG decides mobile vs desktop solely from `window.innerWidth <= 1000`, read live
-// everywhere (no setting, no matchMedia). We can't edit RPG, so we clamp the only
-// signal it reads: report innerWidth as at least 1001 so its checks always say desktop.
-// No-op on windows already wider than the threshold; only narrow windows get clamped,
-// which is exactly where PTMT already forces desktop layout.
-// ponytail: global innerWidth clamp. If it disturbs other extensions/ST on narrow
-// viewports, scope RPG into its own iframe/shadow context instead.
+// RPG Companion decides mobile vs desktop from window.innerWidth. PTMT only
+// overrides that signal while the RPG panel is actually open/selected and
+// restores the original descriptor as soon as the panel collapses.
+let _rpgInnerWidthRestore = null;
+
 function forceRpgDesktop() {
-    if (window.__ptmtInnerWidthClamped) return;
-    const desc =
-        Object.getOwnPropertyDescriptor(window, 'innerWidth') ||
-        Object.getOwnPropertyDescriptor(Window.prototype, 'innerWidth');
-    const nativeGet = desc && desc.get;
+    if (_rpgInnerWidthRestore) return;
+
+    const ownDescriptor = Object.getOwnPropertyDescriptor(window, 'innerWidth');
+    const prototypeDescriptor = Object.getOwnPropertyDescriptor(Window.prototype, 'innerWidth');
+    const effectiveDescriptor = ownDescriptor || prototypeDescriptor;
+    const nativeGet = effectiveDescriptor?.get;
     const readReal = nativeGet
         ? () => nativeGet.call(window)
         : () => document.documentElement.clientWidth;
-    Object.defineProperty(window, 'innerWidth', {
-        configurable: true,
-        get() { return Math.max(readReal(), 1001); }, // RPG: <=1000 => mobile
-    });
-    window.__ptmtInnerWidthClamped = true;
-    window.dispatchEvent(new Event('resize')); // nudge RPG if it already went mobile
+
+    try {
+        Object.defineProperty(window, 'innerWidth', {
+            configurable: true,
+            get() { return Math.max(readReal(), 1001); },
+        });
+    } catch (error) {
+        console.warn('[PTMT] Unable to clamp innerWidth for RPG Companion:', error);
+        return;
+    }
+
+    _rpgInnerWidthRestore = () => {
+        try {
+            if (ownDescriptor) Object.defineProperty(window, 'innerWidth', ownDescriptor);
+            else delete window.innerWidth;
+        } catch (error) {
+            console.warn('[PTMT] Unable to restore innerWidth after RPG Companion:', error);
+        } finally {
+            _rpgInnerWidthRestore = null;
+        }
+        window.dispatchEvent(new Event('resize'));
+    };
+
+    window.dispatchEvent(new Event('resize'));
+}
+
+function restoreRpgDesktopOverride() {
+    _rpgInnerWidthRestore?.();
 }
 
 // charlib-embedded-container start
 let _charLibListenerAttached = false;
 let _charLibEmbeddedVisible = false;
+let _charLibMessageHandler = null;
 
 // AbortControllers to prevent listener leaks in onInit handlers
 let _characterPopupAC = null;
@@ -36,7 +57,7 @@ let _mainContentAC = null;
 function ensureCharLibCloseListener() {
     if (_charLibListenerAttached) return;
     _charLibListenerAttached = true;
-    window.addEventListener('message', (e) => {
+    _charLibMessageHandler = (e) => {
         if (e.origin !== window.location.origin) return;
         const msg = e.data;
         if (!msg || typeof msg !== 'object') return;
@@ -44,7 +65,8 @@ function ensureCharLibCloseListener() {
             _charLibEmbeddedVisible = false;
             window.dispatchEvent(new CustomEvent('ptmt:charlibClosed'));
         }
-    });
+    };
+    window.addEventListener('message', _charLibMessageHandler);
 }
 
 function showCharLibEmbedded() {
@@ -64,29 +86,22 @@ function hideCharLibEmbedded() {
 
 // expressions_plus_carousel_body overrides start
 function hideExpressionsPlusCarouselFrame() {
-  const container = document.getElementById("expressions_plus_carousel_panel");
-  // Attempting to hide it doesn't work, as Expressions+ just shows it again every time expressions are updated
-  container?.remove()
+    const container = document.getElementById('expressions_plus_carousel_panel');
+    container?.remove();
 }
 // expressions_plus_carousel_body overrides end
 
 const tabActions = {
-    'gallery': {
-        onInit: (_panel) => { },
-        onSelect: (_panel) => { },
-        onCollapse: (_panel) => { },
-        onOpen: (_panel) => { },
+    gallery: {
+        onInit: (_panel) => {}, onSelect: (_panel) => {}, onCollapse: (_panel) => {}, onOpen: (_panel) => {},
     },
-    'notebookPanel': {
-        onInit: (_panel) => { },
-        onSelect: (_panel) => { },
-        onCollapse: (_panel) => { },
-        onOpen: (_panel) => { },
+    notebookPanel: {
+        onInit: (_panel) => {}, onSelect: (_panel) => {}, onCollapse: (_panel) => {}, onOpen: (_panel) => {},
     },
-    'character_popup': {
+    character_popup: {
         onInit: (panel) => {
-            $('#character_popup').css({ 'display': 'flex' }).addClass('open');
-            if (_characterPopupAC) _characterPopupAC.abort();
+            $('#character_popup').css({ display: 'flex' }).addClass('open');
+            _characterPopupAC?.abort();
             _characterPopupAC = new AbortController();
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('#advanced_div')) return;
@@ -97,59 +112,31 @@ const tabActions = {
                 window.ptmtTabs?.openTab(panel.dataset.panelId);
             }, { capture: true, signal: _characterPopupAC.signal });
         },
-        onSelect: (_panel) => {
-            $('#character_popup').css({ 'display': 'flex', 'opacity': 1 }).addClass('open');
-        },
-        onCollapse: (_panel) => {
-            $('#character_popup').css('display', 'none').removeClass('open');
-        },
-        onOpen: (_panel) => {
-            $('#character_popup').css({ 'display': 'flex', 'opacity': 1 }).addClass('open');
-        },
+        onSelect: () => $('#character_popup').css({ display: 'flex', opacity: 1 }).addClass('open'),
+        onCollapse: () => $('#character_popup').css('display', 'none').removeClass('open'),
+        onOpen: () => $('#character_popup').css({ display: 'flex', opacity: 1 }).addClass('open'),
     },
-    'extensionSideBar': {
-        onInit: (_panel) => { },
-        onSelect: (_panel) => { },
-        onCollapse: (_panel) => { },
-        onOpen: (_panel) => {
+    extensionSideBar: {
+        onInit: (_panel) => {},
+        onSelect: (_panel) => {},
+        onCollapse: (_panel) => {},
+        onOpen: () => {
             const sidebar = document.getElementById('extensionSideBar');
-            if (!sidebar) return;
             const toggleButton = document.getElementById('extensionTopBarToggleSidebar');
-            if (!toggleButton) return;
+            if (!sidebar || !toggleButton) return;
             const isVisible = sidebar.classList.contains('draggable') && sidebar.classList.contains('visible');
-            if (!isVisible) {
-                console.log('[PTMT] extensionSideBar not visible, attempting to open it.');
-                toggleButton.click();
-            }
+            if (!isVisible) toggleButton.click();
         },
     },
     'stqrd--drawer-v2': {
-        onInit: (_panel) => {
-            const settings = document.getElementById('qr--settings');
-            if (settings && getComputedStyle(settings).display !== 'none') {
-                const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
-                if (popoutBtn) popoutBtn.click();
-            }
-        },
-        onSelect: (_panel) => {
-            const settings = document.getElementById('qr--settings');
-            if (settings && getComputedStyle(settings).display !== 'none') {
-                const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
-                if (popoutBtn) popoutBtn.click();
-            }
-        },
-        onCollapse: (_panel) => { },
-        onOpen: (_panel) => {
-            const settings = document.getElementById('qr--settings');
-            if (settings && getComputedStyle(settings).display !== 'none') {
-                const popoutBtn = document.querySelector('.stqrd--action.stqrd--popout');
-                if (popoutBtn) popoutBtn.click();
-            }
-        },
+        onInit: () => ensureQuickRepliesPopout(),
+        onSelect: () => ensureQuickRepliesPopout(),
+        onCollapse: (_panel) => {},
+        onOpen: () => ensureQuickRepliesPopout(),
     },
     'ptmt-main-content': {
         onInit: (panel) => {
-            if (_mainContentAC) _mainContentAC.abort();
+            _mainContentAC?.abort();
             _mainContentAC = new AbortController();
             document.addEventListener('click', (e) => {
                 if (!e.target.closest('.chat-action-btn') && !e.target.closest('#editTagsBtn')) return;
@@ -164,9 +151,7 @@ const tabActions = {
     'charlib-embedded-container': {
         onInit: (panel) => {
             ensureCharLibCloseListener();
-
-            // Abort previous listeners if re-initialized
-            if (panel._charlibAC) panel._charlibAC.abort();
+            panel._charlibAC?.abort();
             panel._charlibAC = new AbortController();
 
             window.addEventListener('ptmt:charlibClosed', () => {
@@ -174,9 +159,7 @@ const tabActions = {
                 if (pid) window.ptmtTabs?.closeTabById(pid);
             }, { signal: panel._charlibAC.signal });
 
-            // Disconnect previous observer if re-initialized
-            if (panel._charlibObserver) panel._charlibObserver.disconnect();
-
+            panel._charlibObserver?.disconnect();
             const observer = new MutationObserver(() => {
                 const settingsPanel = document.getElementById('charlib-settings-injected');
                 if (!settingsPanel) return;
@@ -186,8 +169,6 @@ const tabActions = {
                 const exclusiveCheckbox = document.getElementById('charlib-exclusive-panes');
                 const topbarCheckbox = document.getElementById('charlib-show-topbar');
                 if (!exclusiveCheckbox || !topbarCheckbox) return;
-
-                // Turn off and disable exclusive panes in PTMT mode
                 if (exclusiveCheckbox.checked) {
                     exclusiveCheckbox.checked = false;
                     exclusiveCheckbox.dispatchEvent(new Event('change', { bubbles: true }));
@@ -198,30 +179,35 @@ const tabActions = {
             panel._charlibObserver = observer;
             observer.observe(document.body, { childList: true, subtree: true });
         },
-        onSelect: (_panel) => { showCharLibEmbedded(); },
-        onCollapse: (_panel) => { hideCharLibEmbedded(); },
-        onOpen: (_panel) => { showCharLibEmbedded(); },
+        onSelect: () => showCharLibEmbedded(),
+        onCollapse: () => hideCharLibEmbedded(),
+        onOpen: () => showCharLibEmbedded(),
     },
     'rpg-companion-panel': {
-        // RPG Companion decides mobile vs desktop purely from window.innerWidth.
-        // Force it to stay desktop while hosted in a PTMT tab. Idempotent.
-        onInit: (_panel) => { forceRpgDesktop(); },
-        onSelect: (_panel) => { },
-        onCollapse: (_panel) => { },
-        onOpen: (_panel) => {
+        // Do not clamp onInit: panels are initialized even while hidden.
+        onInit: (_panel) => {},
+        onSelect: () => forceRpgDesktop(),
+        onCollapse: () => restoreRpgDesktopOverride(),
+        onOpen: () => {
+            forceRpgDesktop();
             document.querySelector('.rpg-mobile-overlay')?.remove();
-            // Reveal the panel: RPG opens it via its mobile FAB toggle handler.
             document.getElementById('rpg-mobile-toggle')?.click();
         },
     },
-    'expressions_plus_carousel_body': {
-        onInit: (panel) => { hideExpressionsPlusCarouselFrame(); },
-        onSelect: (_panel) => { },
-        onCollapse: (_panel) => { },
-        onOpen: (_panel) => { },
+    expressions_plus_carousel_body: {
+        onInit: () => hideExpressionsPlusCarouselFrame(),
+        onSelect: (_panel) => {},
+        onCollapse: (_panel) => {},
+        onOpen: (_panel) => {},
     },
-
 };
+
+function ensureQuickRepliesPopout() {
+    const settings = document.getElementById('qr--settings');
+    if (settings && getComputedStyle(settings).display !== 'none') {
+        document.querySelector('.stqrd--action.stqrd--popout')?.click();
+    }
+}
 
 /**
  * Runs a specified action for a tab.
@@ -231,13 +217,31 @@ const tabActions = {
  */
 export function runTabAction(sourceId, actionType, panel) {
     if (!sourceId || !panel) return;
-
     const actions = tabActions[sourceId];
     if (actions && typeof actions[actionType] === 'function') {
         try {
             actions[actionType](panel);
-        } catch (e) {
-            console.error(`[PTMT-Actions] Error running action '${actionType}' for tab '${sourceId}':`, e);
+        } catch (error) {
+            console.error(`[PTMT-Actions] Error running action '${actionType}' for tab '${sourceId}':`, error);
         }
     }
+}
+
+/** Best-effort teardown for global hooks owned by tab actions. */
+export function cleanupTabActions() {
+    restoreRpgDesktopOverride();
+    _characterPopupAC?.abort();
+    _mainContentAC?.abort();
+    _characterPopupAC = null;
+    _mainContentAC = null;
+    if (_charLibMessageHandler) window.removeEventListener('message', _charLibMessageHandler);
+    _charLibMessageHandler = null;
+    _charLibListenerAttached = false;
+    _charLibEmbeddedVisible = false;
+    document.querySelectorAll('.ptmt-panel').forEach(panel => {
+        panel._charlibAC?.abort?.();
+        panel._charlibObserver?.disconnect?.();
+        panel._charlibAC = null;
+        panel._charlibObserver = null;
+    });
 }

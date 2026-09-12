@@ -1,11 +1,10 @@
 // theme-engine.js
 
-import { registerBodyObserver, trackObserver } from './utils.js';
+import { trackObserver } from './utils.js';
 
 export class ThemeEngine {
     constructor() {
         this.cache = new Map();
-        this.unregisterBody = null;
         this.canvas = document.createElement('canvas');
         this.canvas.width = 10; // Tiny for performance
         this.canvas.height = 10;
@@ -27,15 +26,25 @@ export class ThemeEngine {
     }
 
     startObserver() {
-        // Use unified body observer for attribute changes (style/class)
-        this.unregisterBody = registerBodyObserver(
-            'theme-engine',
-            { attributes: true, attributeFilter: ['style', 'class'] },
-            () => this.refresh()
-        );
+        // Only observe BODY's own class/style changes.
+        //
+        // IMPORTANT:
+        // Do not use PTMT's unified document.body subtree MutationObserver here.
+        // Extensions such as SillyTavern-Timelines use Cytoscape/Popper/Tippy and
+        // continuously update inline styles while panning, zooming, animating,
+        // and positioning tooltips. Watching style/class mutations for the whole
+        // body subtree causes all of those rendering updates to wake ThemeEngine.
+        //
+        // ThemeEngine only needs BODY's own theme-related class/style changes.
+        const bodyObserver = trackObserver(new MutationObserver(() => this.refresh()));
+        bodyObserver.observe(document.body, {
+            attributes: true,
+            attributeFilter: ['style', 'class'],
+            subtree: false,
+        });
 
         // Some backgrounds are injected into specific target divs.
-        // These use separate observers because they watch non-body elements.
+        // Observe only those elements directly.
         this.targetIds.forEach(id => {
             const el = document.getElementById(id);
             if (el) {
@@ -44,9 +53,13 @@ export class ThemeEngine {
             }
         });
 
-        // Observe :root style changes so we recompute when ST changes --SmartThemeChatTintColor
+        // Observe :root style changes so we recompute when ST changes
+        // --SmartThemeChatTintColor.
         this._tintObserver = trackObserver(new MutationObserver(() => this.updateEffectiveBgL()));
-        this._tintObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+        this._tintObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ['style'],
+        });
     }
 
     refresh() {

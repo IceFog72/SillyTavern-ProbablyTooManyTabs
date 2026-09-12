@@ -1,17 +1,17 @@
 /**
  * Dialogue Colorizer logic for PTMT.
  * Adapted from SillyTavern-Dialogue-Colorizer-Plus by zerofata.
- * Optimized for PTMT with stable UIDs and robust extraction.
+ *
+ * Character identity is avatar/card based rather than display-name based. Legacy
+ * v2 per-character settings are resolved and lazily migrated by colorizer-settings.js.
  */
 
 import { eventSource, event_types, user_avatar } from '../../../../script.js';
 import { getContext } from '../../../extensions.js';
-import { power_user } from '../../../power-user.js';
 import { settings } from './settings.js';
 import { debounce, trackObserver, extractColorsFromImage, sortColorsByLightness } from './utils.js';
 import {
     DEFAULT_COLORIZER_RGB,
-    buildColorizerCacheKey,
     extractAvatarFilenameFromUrl,
     hexToRgbaWithAlpha,
     normalizeHexColor,
@@ -25,7 +25,7 @@ import {
 
 const DEFAULT_HEX = rgbToHex(DEFAULT_COLORIZER_RGB);
 
-/** Bitmask flags for colorize target */
+/** Bitmask flags for colorize target. */
 const COLORIZE_TARGET = {
     QUOTED_TEXT: 1 << 0,
     BUBBLES: 1 << 1,
@@ -36,9 +36,9 @@ let charsStyleSheet;
 /** @type {HTMLStyleElement} */
 let personasStyleSheet;
 
-// Persistent color cache: keyed by type plus avatar-specific identity.
+// Persistent color cache: keyed by the same avatar-specific runtime identity used
+// to distinguish messages in the DOM.
 const colorCache = new Map();
-// Deduplication Map: keyed the same way as colorCache.
 const extractionPromises = new Map();
 
 // ─── Stylesheet management ────────────────────────────────────────────────────
@@ -51,18 +51,33 @@ function initializeStyleSheets() {
 function getOrCreateStyleSheet(id) {
     const existing = document.getElementById(id);
     if (existing) return existing;
+
     const style = document.createElement('style');
     style.id = id;
     document.body.appendChild(style);
     return style;
 }
 
-// ─── Avatar identification ────────────────────────────────────────────────────
+// ─── Avatar / author identification ──────────────────────────────────────────
 
 /**
- * Stable UID generation.
- * Characters: char:NAME (normalized)
- * Personas: user:FILENAME
+ * Convert an arbitrary UID into a collision-free CSS/DOM-safe ASCII value.
+ * Hex encoding UTF-8 bytes avoids the collisions produced by replacing every
+ * non-word character with an underscore.
+ */
+function toDomUid(uid) {
+    const bytes = new TextEncoder().encode(String(uid || 'unknown'));
+    let encoded = 'xdc_';
+    for (const byte of bytes) encoded += byte.toString(16).padStart(2, '0');
+    return encoded;
+}
+
+/**
+ * Runtime author identity. SillyTavern display names are not unique, so
+ * character identity is anchored to the card avatar filename. Group messages
+ * use `original_avatar`; solo chats use the active character id. The rendered
+ * DOM image is only a fallback because expression-sync extensions may replace
+ * it with a sprite.
  */
 function getAvatarFileInfo(message) {
     const avatarImg = message.querySelector('.avatar img');
@@ -70,34 +85,108 @@ function getAvatarFileInfo(message) {
 
     const isUser = message.getAttribute('is_user') === 'true';
     const isSystem = message.getAttribute('is_system') === 'true' || src.includes('img/five.png');
-    const chName = message.getAttribute('ch_name');
+    const chName = message.getAttribute('ch_name') || '';
 
-    if (isSystem) return { type: 'system', uid: 'system', avatarFileName: 'img/five.png', domAvatarUrl: src, domImgElement: avatarImg };
+    if (isSystem) {
+        return {
+            type: 'system',
+            uid: 'system',
+            avatarFileName: 'img/five.png',
+            domAvatarUrl: src,
+            domImgElement: avatarImg,
+        };
+    }
 
     if (isUser) {
-        const cleanFileName = extractAvatarFilenameFromUrl(src, 'user.png');
-        return { type: 'persona', uid: `user:${cleanFileName}`, avatarFileName: cleanFileName, domAvatarUrl: src, domImgElement: avatarImg };
+        const cleanFileName = extractAvatarFilenameFromUrl(src, user_avatar || 'user.png');
+        return {
+            type: 'persona',
+            uid: `user:${cleanFileName}`,
+            avatarFileName: cleanFileName,
+            domAvatarUrl: src,
+            domImgElement: avatarImg,
+        };
     }
 
-    if (chName) {
-        const safeName = (chName || '').trim().replace(/\W/g, '_').toLowerCase();
-        const ctx = getContext();
-        const found = ctx.characters?.find(c => c.name === chName);
-        const cleanFileName = found?.avatar || extractAvatarFilenameFromUrl(src, 'char.png');
-        return { type: 'character', uid: `char:${safeName}`, avatarFileName: cleanFileName, domAvatarUrl: src, domImgElement: avatarImg };
+    if (!chName) return null;
+
+    const ctx = getContext();
+    const messageId = Number(message.getAttribute('mesid'));
+    const chatEntry = Number.isInteger(messageId) && messageId >= 0 ? ctx.chat?.[messageId] : null;
+    const renderedFileName = extractAvatarFilenameFromUrl(src, '');
+
+    let cleanFileName = '';
+
+    // Group messages record the source card explicitly. This survives duplicate
+    // display names and later DOM avatar changes from expression sync.
+    if (typeof chatEntry?.original_avatar === 'string' && chatEntry.original_avatar && chatEntry.original_avatar !== 'none') {
+        cleanFileName = chatEntry.original_avatar;
     }
 
-    return null;
+    // Solo chat: SillyTavern exposes the selected character by index/id.
+    if (!cleanFileName && !ctx.groupId && ctx.characterId !== undefined && ctx.characterId !== null) {
+        const currentCharacter = ctx.characters?.[ctx.characterId];
+        if (currentCharacter?.avatar && currentCharacter.avatar !== 'none') cleanFileName = currentCharacter.avatar;
+    }
+
+    // Older group logs may lack original_avatar. Match the forced/rendered avatar
+    // against card avatar filenames, never against the non-unique display name.
+    if (!cleanFileName) {
+        const forcedFileName = extractAvatarFilenameFromUrl(chatEntry?.force_avatar || '', '');
+        const candidate = forcedFileName || renderedFileName;
+        const matched = candidate ? ctx.characters?.find(character => character.avatar === candidate) : null;
+        cleanFileName = matched?.avatar || candidate || 'char.png';
+    }
+
+    const uid = `char:${cleanFileName}`;
+    let colorUrl = src;
+    let colorImgElement = avatarImg;
+
+    // If the DOM currently shows a sprite/expression rather than the card avatar,
+    // extract colors from the canonical card thumbnail instead.
+    if (renderedFileName !== cleanFileName && typeof ctx.getThumbnailUrl === 'function') {
+        try {
+            colorUrl = ctx.getThumbnailUrl('avatar', cleanFileName) || src;
+            colorImgElement = null;
+        } catch {
+            colorUrl = src;
+            colorImgElement = avatarImg;
+        }
+    }
+
+    return {
+        type: 'character',
+        uid,
+        characterName: chName,
+        avatarFileName: cleanFileName,
+        domAvatarUrl: colorUrl,
+        domImgElement: colorImgElement,
+    };
+}
+
+/** Build the existing persistent custom-settings key without coupling it to runtime UID. */
+function getCustomSettingsKey(type, info) {
+    return buildCustomColorizerKeyFromFilename(
+        type,
+        info?.uid,
+        info?.avatarFileName,
+    );
+}
+
+function getRuntimeCacheKey(info) {
+    if (!info) return 'unknown';
+    return `${info.type}:${info.uid}`;
 }
 
 // ─── Settings helpers ─────────────────────────────────────────────────────────
 
 /**
- * Get control settings (target, modes, opacity) for a character/persona
- * Checks for custom per-character settings first, falls back to global
+ * Get control settings (target, modes, opacity) for a character/persona.
+ * Checks for custom per-character settings first, falls back to global.
  */
 function getColorizerControlSettings(type, info) {
     const isPersona = type === 'persona';
+
     if (!info || info.type === 'system') {
         return {
             target: settings.get('dialogueColorizerColorizeTarget') ?? 3,
@@ -106,8 +195,9 @@ function getColorizerControlSettings(type, info) {
         };
     }
 
-    const characterKey = buildCustomColorizerKeyFromFilename(type, info.uid, info.avatarFileName);
+    const characterKey = getCustomSettingsKey(type, info);
     const resolved = resolveCustomColorizerSettings(settings, type, characterKey);
+
     if (resolved.enabled && resolved.raw) {
         const custom = resolved.value;
         console.log(`[PTMT] ✓ Using CUSTOM colorizer for ${type} "${characterKey}" — opacity=${custom.bubbleOpacity} | full:`, custom);
@@ -117,25 +207,27 @@ function getColorizerControlSettings(type, info) {
             opacity: custom.bubbleOpacity,
         };
     }
-    
-    // Fall back to global settings
+
     console.log(`[PTMT] ⚠ Fallback to GLOBAL for ${type} "${characterKey}" — NOT in customSettingsMap`);
     return {
-        target: isPersona ? (settings.get('dialogueColorizerPersonaColorizeTarget') ?? 3) : (settings.get('dialogueColorizerColorizeTarget') ?? 3),
-        bubbleMode: isPersona ? (settings.get('dialogueColorizerPersonaBubbleMode') ?? 'gradient') : (settings.get('dialogueColorizerBubbleMode') ?? 'gradient'),
-        opacity: isPersona ? (settings.get('dialogueColorizerBubbleOpacityUser') ?? 0.1) : (settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1),
+        target: isPersona
+            ? (settings.get('dialogueColorizerPersonaColorizeTarget') ?? 3)
+            : (settings.get('dialogueColorizerColorizeTarget') ?? 3),
+        bubbleMode: isPersona
+            ? (settings.get('dialogueColorizerPersonaBubbleMode') ?? 'gradient')
+            : (settings.get('dialogueColorizerBubbleMode') ?? 'gradient'),
+        opacity: isPersona
+            ? (settings.get('dialogueColorizerBubbleOpacityUser') ?? 0.1)
+            : (settings.get('dialogueColorizerBubbleOpacityBot') ?? 0.1),
     };
 }
 
 /**
- * Get colorizer settings for a specific character/persona/system.
- * Checks for custom per-char/persona settings first, falls back to global.
+ * Get colorizer source/static settings for a character/persona/system.
  */
 function getSettingsForType(type, info) {
     if (!info || info.type === 'system') {
-        // System messages always use global settings
-        const isPersona = false;
-        const prefix = isPersona ? 'dialogueColorizerPersona' : 'dialogueColorizer';
+        const prefix = 'dialogueColorizer';
         return {
             dialogSource: settings.get(`${prefix}Source`),
             dialogStatic: settings.get(`${prefix}StaticColor`),
@@ -146,9 +238,9 @@ function getSettingsForType(type, info) {
     }
 
     const isPersona = type === 'persona';
-    
-    const characterKey = buildCustomColorizerKeyFromFilename(type, info.uid, info.avatarFileName);
+    const characterKey = getCustomSettingsKey(type, info);
     const resolved = resolveCustomColorizerSettings(settings, type, characterKey);
+
     if (resolved.enabled && resolved.raw) {
         const custom = resolved.value;
         const result = {
@@ -158,11 +250,10 @@ function getSettingsForType(type, info) {
             bubbleStatic1: custom.bubbleStatic1,
             bubbleStatic2: custom.bubbleStatic2,
         };
-        console.log(`[PTMT] getSettingsForType() using CUSTOM for ${characterKey}:`, result, `| full:`, custom);
+        console.log(`[PTMT] getSettingsForType() using CUSTOM for ${characterKey}:`, result, '| full:', custom);
         return result;
     }
-    
-    // Fall back to global settings
+
     const prefix = isPersona ? 'dialogueColorizerPersona' : 'dialogueColorizer';
     return {
         dialogSource: settings.get(`${prefix}Source`),
@@ -173,40 +264,65 @@ function getSettingsForType(type, info) {
     };
 }
 
+function getCustomColorizerSettings(info) {
+    if (!info || info.type === 'system') return null;
+
+    const characterKey = getCustomSettingsKey(info.type, info);
+    const resolved = resolveCustomColorizerSettings(settings, info.type, characterKey);
+    return resolved.enabled && resolved.raw ? resolved.value : null;
+}
+
 // ─── Color resolution ─────────────────────────────────────────────────────────
 
 async function getCharacterColor(info) {
-    const cacheKey = buildColorizerCacheKey(info);
+    const cacheKey = getRuntimeCacheKey(info);
+
     if (colorCache.has(cacheKey)) return colorCache.get(cacheKey);
     if (extractionPromises.has(cacheKey)) return extractionPromises.get(cacheKey);
+
+    const revision = cacheRevision;
+    const cacheColors = (colors) => {
+        if (revision === cacheRevision) colorCache.set(cacheKey, colors);
+        return colors;
+    };
 
     const promise = (async () => {
         const s = getSettingsForType(info.type, info);
         const controls = getColorizerControlSettings(info.type, info);
         const custom = getCustomColorizerSettings(info);
-        const storedStops = custom?.bubbleGradientStops ?? [];
-        const needsBubbleExtraction = controls.bubbleMode === 'avatar_light' ||
+        const isPersona = info.type === 'persona';
+        const globalStopsKey = isPersona
+            ? 'dialogueColorizerPersonaBubbleGradientStops'
+            : 'dialogueColorizerBubbleGradientStops';
+        const storedStops = custom
+            ? (custom.bubbleGradientStops ?? [])
+            : (settings.get(globalStopsKey) ?? []);
+
+        const needsBubbleExtraction =
+            controls.bubbleMode === 'avatar_light' ||
             controls.bubbleMode === 'avatar_dark' ||
             (controls.bubbleMode === 'gradient' && storedStops.length === 0);
-        const needsExtraction = info.type !== 'system' && (s.dialogSource === 'avatar_vibrant' || needsBubbleExtraction);
+
+        const needsExtraction =
+            info.type !== 'system' &&
+            (s.dialogSource === 'avatar_vibrant' || needsBubbleExtraction);
 
         if (!needsExtraction) {
             const colors = [DEFAULT_HEX];
-            colorCache.set(cacheKey, colors);
-            return colors;
+            return cacheColors(colors);
         }
 
-        // Skip extraction if it's the silhouette or missing
         if (!info.domAvatarUrl || info.domAvatarUrl.includes('img/five.png') || info.domAvatarUrl.length < 10) {
             return [DEFAULT_HEX];
         }
 
-        // Use the actual DOM <img> element directly — its decoded bitmap is stable.
+        // Prefer the exact DOM bitmap used for this message. This is especially
+        // important when two characters share a display name.
         const domImg = info.domImgElement;
         if (domImg && domImg.complete && domImg.naturalWidth > 0) {
             try {
                 const hexes = extractColorsFromImage(domImg);
-                colorCache.set(cacheKey, hexes);
+                cacheColors(hexes);
                 console.log(`[PTMT] Extracted colors for ${info.uid}: ${hexes.join(', ')}`);
                 return hexes;
             } catch (e) {
@@ -215,7 +331,7 @@ async function getCharacterColor(info) {
             }
         }
 
-        // Fallback: if DOM element is not available/loaded, load fresh
+        // Fallback if the DOM image has not decoded yet.
         return new Promise((resolve) => {
             const img = new Image();
             img.crossOrigin = 'anonymous';
@@ -230,13 +346,15 @@ async function getCharacterColor(info) {
                 clearTimeout(timeout);
                 try {
                     const hexes = extractColorsFromImage(img);
-                    colorCache.set(cacheKey, hexes);
+                    cacheColors(hexes);
                     console.log(`[PTMT] Extracted colors for ${info.uid} (fallback): ${hexes.join(', ')}`);
                     resolve(hexes);
                 } catch (e) {
+                    console.warn(`[PTMT] Fallback extraction failed for ${info.uid}`, e);
                     resolve([DEFAULT_HEX]);
                 }
             };
+
             img.onerror = () => {
                 clearTimeout(timeout);
                 resolve([DEFAULT_HEX]);
@@ -245,71 +363,67 @@ async function getCharacterColor(info) {
     })();
 
     extractionPromises.set(cacheKey, promise);
-    const result = await promise;
-    extractionPromises.delete(cacheKey);
-    return result;
+
+    try {
+        return await promise;
+    } finally {
+        extractionPromises.delete(cacheKey);
+    }
 }
 
 // ─── CSS generation ───────────────────────────────────────────────────────────
 
-function getCustomColorizerSettings(info) {
-    if (!info || info.type === 'system') return null;
-    const characterKey = buildCustomColorizerKeyFromFilename(info.type, info.uid, info.avatarFileName);
-    const resolved = resolveCustomColorizerSettings(settings, info.type, characterKey);
-    if (resolved.enabled && resolved.raw) {
-        return resolved.value;
-    }
-    return null;
-}
-
 function resolveBubbleGradientStops(s, extractedColors, info) {
     let colors;
-    let angle = 225;
-
     const custom = getCustomColorizerSettings(info);
     const isPersona = info?.type === 'persona';
-    const globalAngleKey = isPersona ? 'dialogueColorizerPersonaBubbleGradientAngle' : 'dialogueColorizerBubbleGradientAngle';
-    const storedStops = custom?.bubbleGradientStops ?? [];
-    angle = custom?.bubbleGradientAngle ?? settings.get(globalAngleKey) ?? 225;
+    const globalAngleKey = isPersona
+        ? 'dialogueColorizerPersonaBubbleGradientAngle'
+        : 'dialogueColorizerBubbleGradientAngle';
+    const globalStopsKey = isPersona
+        ? 'dialogueColorizerPersonaBubbleGradientStops'
+        : 'dialogueColorizerBubbleGradientStops';
+
+    const storedStops = custom
+        ? (custom.bubbleGradientStops ?? [])
+        : (settings.get(globalStopsKey) ?? []);
+    const angle = custom?.bubbleGradientAngle ?? settings.get(globalAngleKey) ?? (isPersona ? 125 : 225);
+
     if (storedStops.length > 0) {
         return { stops: storedStops, angle };
     }
 
-    // No custom stops — auto-generate from extracted colors
     colors = sortColorsByLightness(extractedColors.slice(0, 5));
     if (colors.length >= 4) {
         colors = [colors[1], colors[colors.length - 2]];
     } else if (colors.length >= 2) {
         colors = [colors[0], colors[colors.length - 1]];
     } else {
-        colors = [colors[0], colors[0]];
+        colors = [colors[0] || DEFAULT_HEX, colors[0] || DEFAULT_HEX];
     }
 
-    const stops = [
-        { color: colors[0], position: 0 },
-        { color: colors[1], position: 1 },
-    ];
-
-    return { stops, angle };
+    return {
+        stops: [
+            { color: colors[0], position: 0 },
+            { color: colors[1], position: 1 },
+        ],
+        angle,
+    };
 }
 
-/**
- * Pick the most saturated light color from extracted palette for dialogue text.
- * Filters for colors with reasonable lightness (not too dark, not near-white/pastel)
- * and picks the one with highest saturation.
- */
+/** Pick a saturated, readable color from an extracted avatar palette. */
 function pickBestDialogColor(extractedColors) {
     let best = null;
     let bestScore = -1;
+
     for (const hex of extractedColors) {
         const r = parseInt(hex.slice(1, 3), 16);
         const g = parseInt(hex.slice(3, 5), 16);
         const b = parseInt(hex.slice(5, 7), 16);
-        const [h, s, l] = rgbToHsl([r, g, b]);
-        // Prefer colors that are light enough (l > 0.35) but not washed out (l < 0.85)
-        // Score by saturation, with a bonus for the ideal lightness range
+        const [, s, l] = rgbToHsl([r, g, b]);
+
         if (l > 0.35 && l < 0.85) {
-            const lightnessBonus = 1 - Math.abs(l - 0.55) * 2; // peak at l=0.55
+            const lightnessBonus = 1 - Math.abs(l - 0.55) * 2;
             const score = s * lightnessBonus;
             if (score > bestScore) {
                 bestScore = score;
@@ -317,6 +431,7 @@ function pickBestDialogColor(extractedColors) {
             }
         }
     }
+
     return best || extractedColors[0] || DEFAULT_HEX;
 }
 
@@ -357,16 +472,14 @@ function getGradientContrastColor(sortedStops) {
     }));
 }
 
-function buildCssRules(safeUid, extractedColors, info) {
+function buildCssRules(domUid, extractedColors, info) {
     const s = getSettingsForType(info.type, info);
     const controls = getColorizerControlSettings(info.type, info);
     const target = controls.target;
     const opacity = controls.opacity;
+    const bubbleMode = controls.bubbleMode;
     let css = '';
 
-    const bubbleMode = controls.bubbleMode;
-
-    // 1. Resolve Dialogue Color — pick most saturated light color from palette
     let dialogColor;
     if (s.dialogSource === 'static_color') {
         dialogColor = normalizeHexColor(s.dialogStatic);
@@ -374,9 +487,9 @@ function buildCssRules(safeUid, extractedColors, info) {
         dialogColor = pickBestDialogColor(extractedColors);
     }
 
-    // 2. Resolve Bubble Colors
     const sortedColors = sortColorsByLightness(extractedColors.slice(0, 5));
     let bPrim;
+
     if (bubbleMode === 'static_color') {
         bPrim = normalizeHexColor(s.bubbleStatic1);
     } else if (bubbleMode === 'avatar_light') {
@@ -384,71 +497,79 @@ function buildCssRules(safeUid, extractedColors, info) {
     } else if (bubbleMode === 'avatar_dark') {
         bPrim = sortedColors[0] || DEFAULT_HEX;
     } else {
-        // gradient — use first stop or default
         const { stops } = resolveBubbleGradientStops(s, extractedColors, info);
         bPrim = normalizeHexColor(stops[0]?.color, DEFAULT_HEX);
     }
 
-    if (target & 1) { // QUOTED_TEXT
+    if (target & COLORIZE_TARGET.QUOTED_TEXT) {
         const standardRule = `color: ${dialogColor} !important;`;
         const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) var(--ptmt-dialogue-contrast-mix, 38%)) !important;`;
 
-        css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${standardRule} }\n`;
-        css += `#chat .mes[xdc-author-uid="${safeUid}"] .mes_reasoning q { ${standardRule} }\n`;
-        css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${safeUid}"] .mes_text q { ${adaptiveRule} }\n`;
-        css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${safeUid}"] .mes_reasoning q { ${adaptiveRule} }\n`;
-
-        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${standardRule} }\n`;
-        css += `.ptmt-auto-contrast .bubblechat #chat .mes[xdc-author-uid="${safeUid}"] .bubble_content q { ${adaptiveRule} }\n`;
+        css += `#chat .mes[xdc-author-uid="${domUid}"] .mes_text q { ${standardRule} }\n`;
+        css += `#chat .mes[xdc-author-uid="${domUid}"] .mes_reasoning q { ${standardRule} }\n`;
+        css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${domUid}"] .mes_text q { ${adaptiveRule} }\n`;
+        css += `.ptmt-auto-contrast #chat .mes[xdc-author-uid="${domUid}"] .mes_reasoning q { ${adaptiveRule} }\n`;
+        css += `.bubblechat #chat .mes[xdc-author-uid="${domUid}"] .bubble_content q { ${standardRule} }\n`;
+        css += `.ptmt-auto-contrast .bubblechat #chat .mes[xdc-author-uid="${domUid}"] .bubble_content q { ${adaptiveRule} }\n`;
     }
-    if (target & 2) { // BUBBLES
+
+    if (target & COLORIZE_TARGET.BUBBLES) {
         const rgbaBorder = hexToRgbaWithAlpha(bPrim, Math.min(1.0, opacity * 2.5 + 0.1));
         let contrastColor = bPrim;
-
         let background;
+
         if (bubbleMode === 'gradient') {
             const { stops, angle } = resolveBubbleGradientStops(s, extractedColors, info);
             const sorted = [...stops]
-                .map(st => ({
-                    color: normalizeHexColor(st.color, DEFAULT_HEX),
-                    position: Math.max(0, Math.min(1, Number(st.position) || 0)),
+                .map((stop) => ({
+                    color: normalizeHexColor(stop.color, DEFAULT_HEX),
+                    position: Math.max(0, Math.min(1, Number(stop.position) || 0)),
                 }))
                 .sort((a, b) => a.position - b.position);
+
             if (sorted.length <= 1) {
                 background = hexToRgbaWithAlpha(sorted[0]?.color || bPrim, opacity);
             } else {
-                const parts = sorted.map(st => `${hexToRgbaWithAlpha(st.color, opacity)} ${Math.round(st.position * 100)}%`);
+                const parts = sorted.map((stop) =>
+                    `${hexToRgbaWithAlpha(stop.color, opacity)} ${Math.round(stop.position * 100)}%`);
                 background = `linear-gradient(${angle}deg, ${parts.join(', ')})`;
             }
+
             contrastColor = getGradientContrastColor(sorted);
-        } else if (bubbleMode === 'static_color') {
-            background = hexToRgbaWithAlpha(bPrim, opacity);
         } else {
-            // avatar_light or avatar_dark — single color
             background = hexToRgbaWithAlpha(bPrim, opacity);
         }
 
-        css += `#chat .mes[xdc-author-uid="${safeUid}"] { --ptmt-mes-colorizer-color: ${hexToRgbaWithAlpha(contrastColor, opacity)}; }\n`;
-        css += `.bubblechat #chat .mes[xdc-author-uid="${safeUid}"] { background: ${background}; border-color: ${rgbaBorder}; --SmartThemeBotMesBlurTintColor: transparent; --SmartThemeUserMesBlurTintColor: transparent; }\n`;
+        css += `#chat .mes[xdc-author-uid="${domUid}"] { --ptmt-mes-colorizer-color: ${hexToRgbaWithAlpha(contrastColor, opacity)}; }\n`;
+        css += `.bubblechat #chat .mes[xdc-author-uid="${domUid}"] { background: ${background}; border-color: ${rgbaBorder}; --SmartThemeBotMesBlurTintColor: transparent; --SmartThemeUserMesBlurTintColor: transparent; }\n`;
     }
+
     return css;
 }
 
 // ─── Message tagging ──────────────────────────────────────────────────────────
 
-function tagMessage(mes) {
-    const info = getAvatarFileInfo(mes);
+function tagMessage(message) {
+    const info = getAvatarFileInfo(message);
     if (!info) return null;
-    const safeUid = info.uid.replace(/\W/g, '_');
-    if (mes.getAttribute('xdc-author-uid') !== safeUid) {
-        mes.setAttribute('xdc-author-uid', safeUid);
+
+    const domUid = toDomUid(info.uid);
+    if (message.getAttribute('xdc-author-uid') !== domUid) {
+        message.setAttribute('xdc-author-uid', domUid);
     }
+
     return info;
 }
 
 // ─── Stylesheet update functions ──────────────────────────────────────────────
 
+let styleGeneration = 0;
+let colorizerActive = false;
+let cacheRevision = 0;
+
 async function updateStyles() {
+    if (!colorizerActive) return;
+    const generation = ++styleGeneration;
     if (!settings.get('enableDialogueColorizer')) {
         initializeStyleSheets();
         charsStyleSheet.innerHTML = '';
@@ -458,25 +579,28 @@ async function updateStyles() {
 
     initializeStyleSheets();
 
-    // 1. Tag all messages currently in the DOM and collect unique UIDs
+    // Runtime UID contains avatar filename, so same-name cards remain separate.
     const messages = document.querySelectorAll('.mes');
-    const uidsInDom = new Map(); // uid -> info
+    const uidsInDom = new Map();
 
-    messages.forEach(mes => {
-        const info = tagMessage(mes);
+    messages.forEach((message) => {
+        const info = tagMessage(message);
         if (info && !uidsInDom.has(info.uid)) {
             uidsInDom.set(info.uid, info);
         }
     });
 
-    // 2. Also ensure we have the current persona from the UI if not in chat.
-    //    Use ST's live `user_avatar` binding for the filename (pagination/view
-    //    independent); the selected grid <img>, if present, supplies pixels.
+    // Also ensure the current persona is represented even if no user message is
+    // currently mounted in the chat DOM.
     const cleanFileName = user_avatar || extractAvatarFilenameFromUrl(
-        document.querySelector('#user_avatar_block .avatar-container.selected img')?.getAttribute('src') || '', '');
+        document.querySelector('#user_avatar_block .avatar-container.selected img')?.getAttribute('src') || '',
+        '',
+    );
+
     if (cleanFileName) {
         const userAvatarImg = document.querySelector('#user_avatar_block .avatar-container.selected img');
         const uid = `user:${cleanFileName}`;
+
         if (!uidsInDom.has(uid)) {
             uidsInDom.set(uid, {
                 type: 'persona',
@@ -488,19 +612,22 @@ async function updateStyles() {
         }
     }
 
-    // 3. Resolve colors and build rules
     const charRules = [];
     const personaRules = [];
 
-    const results = await Promise.all(Array.from(uidsInDom.values()).map(async info => {
-        const colors = await getCharacterColor(info);
-        const rule = buildCssRules(info.uid.replace(/\W/g, '_'), colors, info);
-        return { info, rule };
-    }));
+    const results = await Promise.all(
+        Array.from(uidsInDom.values()).map(async (info) => {
+            const colors = await getCharacterColor(info);
+            const rule = buildCssRules(toDomUid(info.uid), colors, info);
+            return { info, rule };
+        }),
+    );
 
-    for (const res of results) {
-        if (res.info.type === 'persona') personaRules.push(res.rule);
-        else charRules.push(res.rule);
+    if (!colorizerActive || generation !== styleGeneration) return;
+
+    for (const result of results) {
+        if (result.info.type === 'persona') personaRules.push(result.rule);
+        else charRules.push(result.rule);
     }
 
     charsStyleSheet.innerHTML = charRules.join('\n');
@@ -509,17 +636,60 @@ async function updateStyles() {
 
 // ─── Initialization ───────────────────────────────────────────────────────────
 
-let chatObserver;
+let chatObserver = null;
+let personaObserver = null;
+let chatChangedHandler = null;
+let settingsChangedHandler = null;
+let refreshHandler = null;
+
+function invalidateAllColorCache() {
+    cacheRevision++;
+    colorCache.clear();
+    extractionPromises.clear();
+}
+
+export function cleanupColorizer({ clearStyles = false } = {}) {
+    colorizerActive = false;
+    styleGeneration++;
+    cacheRevision++;
+
+    chatObserver?.disconnect();
+    personaObserver?.disconnect();
+    chatObserver = null;
+    personaObserver = null;
+
+    if (chatChangedHandler) {
+        try { eventSource.off(event_types.CHAT_CHANGED, chatChangedHandler); } catch {}
+        chatChangedHandler = null;
+    }
+    if (settingsChangedHandler) {
+        window.removeEventListener('ptmt:settingsChanged', settingsChangedHandler);
+        settingsChangedHandler = null;
+    }
+    if (refreshHandler) {
+        window.removeEventListener('ptmt:colorizer:refresh', refreshHandler);
+        refreshHandler = null;
+    }
+
+    extractionPromises.clear();
+    if (clearStyles) {
+        initializeStyleSheets();
+        charsStyleSheet.innerHTML = '';
+        personasStyleSheet.innerHTML = '';
+    }
+}
 
 export function initColorizer() {
+    cleanupColorizer();
+    colorizerActive = true;
     initializeStyleSheets();
     const debouncedUpdate = debounce(updateStyles, 150);
 
     updateStyles();
 
-    if (chatObserver) chatObserver.disconnect();
     chatObserver = trackObserver(new MutationObserver((mutations) => {
         let shouldUpdate = false;
+
         for (const mutation of mutations) {
             if (mutation.type === 'childList') {
                 for (const node of mutation.addedNodes) {
@@ -530,29 +700,51 @@ export function initColorizer() {
                 }
             } else if (mutation.type === 'attributes' && mutation.attributeName === 'src') {
                 if (mutation.target.tagName === 'IMG' && mutation.target.closest('.avatar')) {
+                    const message = mutation.target.closest('.mes');
+                    const info = message ? getAvatarFileInfo(message) : null;
+                    // Only invalidate when the changed DOM image is actually our
+                    // extraction source. Expression sprites use the canonical card
+                    // thumbnail instead and should not churn the cache.
+                    if (info?.domImgElement === mutation.target) {
+                        cacheRevision++;
+                        colorCache.delete(getRuntimeCacheKey(info));
+                        extractionPromises.delete(getRuntimeCacheKey(info));
+                    }
                     shouldUpdate = true;
                 }
             }
         }
+
         if (shouldUpdate) debouncedUpdate();
     }));
 
     const chat = document.getElementById('chat');
-    if (chat) chatObserver.observe(chat, { childList: true, attributes: true, attributeFilter: ['src'], subtree: true });
+    if (chat) {
+        chatObserver.observe(chat, {
+            childList: true,
+            attributes: true,
+            attributeFilter: ['src'],
+            subtree: true,
+        });
+    }
 
-    eventSource.on(event_types.CHAT_CHANGED, async () => {
+    chatChangedHandler = async () => {
         await new Promise(resolve => setTimeout(resolve, 500));
-        updateStyles();
-    });
+        if (colorizerActive) updateStyles();
+    };
+    eventSource.on(event_types.CHAT_CHANGED, chatChangedHandler);
 
     const userAvatarBlock = document.getElementById('user_avatar_block');
     if (userAvatarBlock) {
-        const personaObserver = trackObserver(new MutationObserver(debouncedUpdate));
-        personaObserver.observe(userAvatarBlock, { subtree: true, attributeFilter: ['class'] });
+        personaObserver = trackObserver(new MutationObserver(() => {
+            invalidateAllColorCache();
+            debouncedUpdate();
+        }));
+        personaObserver.observe(userAvatarBlock, { subtree: true, attributes: true, attributeFilter: ['class', 'src'] });
     }
 
-    window.addEventListener('ptmt:settingsChanged', (e) => {
-        const keys = e.detail?.changed || [];
+    settingsChangedHandler = (event) => {
+        const keys = event.detail?.changed || [];
         const colorizerKeys = [
             'enableDialogueColorizer',
             'dialogueColorizerSource', 'dialogueColorizerStaticColor',
@@ -567,36 +759,22 @@ export function initColorizer() {
             'charCustomColorizerEnabled', 'charCustomColorizerSettings',
             'personaCustomColorizerEnabled', 'personaCustomColorizerSettings',
         ];
-        if (keys.some(k => colorizerKeys.includes(k))) {
-            const noExtractionKeys = [
-                'dialogueColorizerBubbleOpacityBot',
-                'dialogueColorizerBubbleOpacityUser',
-                'dialogueColorizerColorizeTarget',
-                'dialogueColorizerPersonaColorizeTarget',
-                'dialogueColorizerBubbleGradientAngle',
-                'dialogueColorizerPersonaBubbleGradientAngle',
-            ];
-            if (!keys.some(k => !noExtractionKeys.includes(k))) {
-                // All changed keys are visual-only, don't clear cache
-            } else {
-                colorCache.clear();
-            }
-            updateStyles();
-        }
-    });
+        if (!keys.some(key => colorizerKeys.includes(key))) return;
 
-    // Listen for custom colorizer refresh event from character UI
-    window.addEventListener('ptmt:colorizer:refresh', (e) => {
-        const fullRefresh = e.detail?.fullRefresh !== false;  // Default to full refresh
-        if (fullRefresh) {
-            // Full refresh: clear caches, re-extract colors
-            colorCache.clear();
-            extractionPromises.clear();
-            console.log(`[PTMT] Full colorizer refresh (clearing caches)`);
-        } else {
-            // Partial refresh: keep caches, just regenerate CSS with new settings
-            console.log(`[PTMT] Partial colorizer refresh (keeping color cache)`);
-        }
+        const noExtractionKeys = [
+            'dialogueColorizerBubbleOpacityBot', 'dialogueColorizerBubbleOpacityUser',
+            'dialogueColorizerColorizeTarget', 'dialogueColorizerPersonaColorizeTarget',
+            'dialogueColorizerBubbleGradientAngle', 'dialogueColorizerPersonaBubbleGradientAngle',
+        ];
+        if (keys.some(key => !noExtractionKeys.includes(key))) invalidateAllColorCache();
         updateStyles();
-    });
+    };
+    window.addEventListener('ptmt:settingsChanged', settingsChangedHandler);
+
+    refreshHandler = (event) => {
+        const fullRefresh = event.detail?.fullRefresh !== false;
+        if (fullRefresh) invalidateAllColorCache();
+        updateStyles();
+    };
+    window.addEventListener('ptmt:colorizer:refresh', refreshHandler);
 }

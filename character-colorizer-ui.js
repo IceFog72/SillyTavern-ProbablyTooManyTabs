@@ -1,14 +1,13 @@
 /**
- * Character/Persona Personal Colorizer UI
- * 
- * Injects colorizer controls for individual characters and personas,
- * using the inline-drawer SillyTavern structure and toolcool-color-picker.
+ * Character/Persona personal Dialogue Colorizer UI.
+ *
+ * Card identity is avatar-based (not display-name-based), matching SillyTavern's
+ * stable character identity and allowing duplicate names / renames safely.
  */
 
 import { eventSource, event_types, user_avatar } from '../../../../script.js';
-import { getContext } from '../../../extensions.js';
 import { settings } from './settings.js';
-import { el, trackObserver, debounce, extractColorsFromImage, sortColorsByLightness } from './utils.js';
+import { el, extractColorsFromImage, sortColorsByLightness } from './utils.js';
 import { GradientEditor } from './gradient-editor.js';
 import { extractAvatarFilenameFromUrl } from './colorizer-helpers.js';
 import {
@@ -17,849 +16,479 @@ import {
     updateCustomColorizerSettings,
 } from './colorizer-settings.js';
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+const CHARACTER_DEFAULT = '#da6745ff';
+const PERSONA_DEFAULT = '#537fddff';
+const CHARACTER_ANGLE = 225;
+const PERSONA_ANGLE = 125;
+const SAVE_DELAY = 180;
 
-/**
- * Active persona avatar filename. Sourced from ST's live `user_avatar` binding —
- * reliable regardless of persona-list pagination or grid/list view. Falls back to
- * the selected grid tile, then 'user.png'.
- */
+let charUI = null;
+let personaUI = null;
+let currentCharacterKey = null;
+let currentCharacterAvatar = null;
+let currentPersonaKey = null;
+let characterSaveTimer = null;
+let personaSaveTimer = null;
+let initialized = false;
+
+const sourceOptions = [
+    { value: 'avatar_vibrant', label: 'Avatar Vibrant' },
+    { value: 'static_color', label: 'Static Color' },
+];
+const bubbleOptions = [
+    { value: 'avatar_light', label: 'Avatar Light' },
+    { value: 'avatar_dark', label: 'Avatar Dark' },
+    { value: 'static_color', label: 'Static' },
+    { value: 'gradient', label: 'Gradient' },
+];
+const targetOptions = [
+    { value: '1', label: 'Quoted Text Only' },
+    { value: '2', label: 'Chat Bubbles Only' },
+    { value: '3', label: 'Both' },
+];
+
+function ensureColorPickerLoaded() {
+    if (typeof customElements === 'undefined' || customElements.get('toolcool-color-picker')) return;
+    if (document.querySelector('script[data-ptmt-toolcool-loader="true"]')) return;
+    const script = document.createElement('script');
+    script.src = '/lib/toolcool-color-picker.js';
+    script.dataset.ptmtToolcoolLoader = 'true';
+    document.head.appendChild(script);
+}
+
 function getActivePersonaFilename() {
     if (user_avatar) return user_avatar;
     const img = document.querySelector('#user_avatar_block .avatar-container.selected img');
     return extractAvatarFilenameFromUrl(img?.getAttribute('src') || '', 'user.png');
 }
 
-function autoPopulateGradientFromAvatar(gradientEditor, imgElement, angle = 225) {
-    if (!gradientEditor || !imgElement || !imgElement.complete || !imgElement.naturalWidth) return false;
-    const hexes = sortColorsByLightness(extractColorsFromImage(imgElement));
-    if (!hexes || hexes.length === 0) return false;
-    let autoColors;
-    if (hexes.length >= 4) {
-        autoColors = [hexes[1], hexes[hexes.length - 2]];
-    } else if (hexes.length >= 2) {
-        autoColors = [hexes[0], hexes[hexes.length - 1]];
-    } else {
-        autoColors = [hexes[0], hexes[0]];
+function getCharacterPreview() {
+    return document.getElementById('avatar_load_preview');
+}
+
+function getPersonaPreview() {
+    return document.querySelector('#user_avatar_block .avatar-container.selected img');
+}
+
+function extractPalette(img, count = 5) {
+    if (!img?.complete || !img.naturalWidth) return [];
+    try {
+        return sortColorsByLightness(extractColorsFromImage(img, count));
+    } catch (error) {
+        console.warn('[PTMT] Colorizer palette extraction failed:', error);
+        return [];
     }
-    gradientEditor.colors = hexes;
-    gradientEditor.stops = [
-        { color: autoColors[0], position: 0 },
-        { color: autoColors[1], position: 1 },
+}
+
+function autoPopulateGradient(editor, img, angle) {
+    const colors = extractPalette(img);
+    editor.colors = colors;
+    editor.angle = angle;
+    if (!colors.length) {
+        editor.stops = [];
+        return false;
+    }
+    let selected;
+    if (colors.length >= 4) selected = [colors[1], colors.at(-2)];
+    else if (colors.length >= 2) selected = [colors[0], colors.at(-1)];
+    else selected = [colors[0], colors[0]];
+    editor.stops = [
+        { color: selected[0], position: 0 },
+        { color: selected[1], position: 1 },
     ];
-    gradientEditor.angle = angle;
     return true;
 }
 
-// ─── Debounced save helpers ─────────────────────────────────────────────────
-
-const scheduleUpdateCharacter = debounce(() => updateCharacterSettings(), 200);
-const scheduleUpdatePersona = debounce(() => updatePersonaSettings(), 200);
-
-// ─── Ensure color picker library is loaded ────────────────────────────────────
-
-function ensureColorPickerLoaded() {
-    if (typeof customElements !== 'undefined' && !customElements.get('toolcool-color-picker')) {
-        const script = document.createElement('script');
-        script.src = '/lib/toolcool-color-picker.js';
-        document.head.appendChild(script);
-    }
+function createPicker(id, initial, label) {
+    const picker = el('toolcool-color-picker', {
+        id,
+        'popup-position': 'left',
+        'button-width': '40px',
+        'button-height': '32px',
+        title: label,
+        'aria-label': label,
+    });
+    picker.setAttribute('color', initial);
+    return picker;
 }
 
-// ─── UI Builders ──────────────────────────────────────────────────────────────
+function createSelect(id, options, value) {
+    const select = el('select', { id });
+    for (const option of options) {
+        select.appendChild(el('option', { value: option.value, selected: option.value === String(value) }, option.label));
+    }
+    return select;
+}
 
-/**
- * Build colorizer UI using inline-drawer structure
- * Mimics the structure of #spoiler_free_desc from SillyTavern
- */
-function createPersonalColorizerUI(isPersona = false) {
+function createColorizerUI({ persona = false } = {}) {
     ensureColorPickerLoaded();
+    const prefix = persona ? 'ptmt-pchar-col' : 'ptmt-char-col';
+    const defaultColor = persona ? PERSONA_DEFAULT : CHARACTER_DEFAULT;
+    const defaultAngle = persona ? PERSONA_ANGLE : CHARACTER_ANGLE;
+    const row = (...children) => el('div', { className: 'ptmt-setting-row' }, ...children);
+    const label = (text, id) => el('label', { htmlFor: id }, text);
 
-    const defaultStaticColor = isPersona ? '#537fddff' : '#da6745ff';
-    const defaultGradientAngle = isPersona ? 125 : 225;
-
-    const sourceOptions = [
-        { value: 'avatar_vibrant', label: 'Avatar Vibrant' },
-        { value: 'static_color', label: 'Static Color' },
-    ];
-
-    const prefix = isPersona ? 'ptmt-pchar-col' : 'ptmt-char-col';
-    const title = isPersona ? 'Persona Dialogue Colorizer' : 'Character Dialogue Colorizer';
-
-    // Color picker: uses toolcool-color-picker like layout settings
-    const colorPicker = (id, initialColor, labelText = '') => {
-        const pickerElement = el('toolcool-color-picker', {
-            id,
-            'popup-position': 'left',
-            'button-width': '40px',
-            'button-height': '32px',
-            title: labelText,
-            'aria-label': labelText,
-        });
-        pickerElement.setAttribute('color', initialColor);
-        return pickerElement;
-    };
-
-    // Dropdown
-    const dropdown = (id, options, selectedValue) => {
-        const select = el('select', { id });
-        options.forEach(opt => {
-            const option = el('option', { value: opt.value, selected: selectedValue === opt.value }, opt.label);
-            select.appendChild(option);
-        });
-        return select;
-    };
-
-    // Checkbox
-    const checkbox = (id) => el('input', { type: 'checkbox', id });
-
-    // Label
-    const lbl = (text, forId) => el('label', { htmlFor: forId }, text);
-
-    // Setting row - matches SettingsPanel.js format (array of children)
-    const row = (children, extra = {}) => el('div', { className: 'ptmt-setting-row', ...extra }, ...children);
-
-    // Main inline-drawer structure (matching #spoiler_free_desc pattern)
-    const container = el('div', { id: `${prefix}-drawer`, className: 'inline-drawer flex-container flexFlowColumn flexNoGap' });
-
-    // Header with title and toggle button
-    const headerDiv = el('div', { className: 'inline-drawer-toggle inline-drawer-header padding0 gap5px standoutHeader' });
-    const titleDiv = el('div', { className: 'title_restorable flexGap5 wide100p' });
-    const titleSpan = el('span', { className: 'flex1' }, title);
-    const toggleIcon = el('div', { className: 'inline-drawer-icon fa-solid interactable down fa-circle-chevron-down', tabindex: '0', role: 'button' });
-
-    titleDiv.appendChild(titleSpan);
-    headerDiv.appendChild(titleDiv);
-    headerDiv.appendChild(el('div', { className: 'flex-container widthFitContent' }, toggleIcon));
-
-    // Content area
-    const contentWrapper = el('div', { className: 'inline-drawer-content', style: 'display: none;' });
-    const contentArea = el('div', { className: 'ptmt-char-colorizer-content' });
-    contentWrapper.appendChild(contentArea);
-
-    // Add to container
-    container.appendChild(headerDiv);
-    container.appendChild(contentWrapper);
-
-    // Enable checkbox row
-    const enableCheckbox = checkbox(`${prefix}-enable`);
-    contentArea.appendChild(row([
-        enableCheckbox,
-        lbl('Enable Personal Dialogue Colorizer', `${prefix}-enable`)
-    ]));
-
-    // Settings section (shown/hidden by enable checkbox)
-    const settingsSection = el('div', { style: 'display: none;' });
-
-    // Colorize Target dropdown
-    const targetSelect = dropdown(`${prefix}-target`, [
-        { value: '1', label: 'Quoted Text Only' },
-        { value: '2', label: 'Chat Bubbles Only' },
-        { value: '3', label: 'Both' },
-    ], '3');
-    settingsSection.appendChild(row([
-        lbl('Colorize Target', `${prefix}-target`),
-        targetSelect
-    ]));
-
-    // Dialog color source
-    const dialogSrcSelect = dropdown(`${prefix}-dialog-src`, sourceOptions, 'avatar_vibrant');
-    settingsSection.appendChild(row([
-        lbl('Dialogue Color Source', `${prefix}-dialog-src`),
-        dialogSrcSelect
-    ]));
-
-    // Dialogue static color (hidden by default)
-    const dialogStaticColor = colorPicker(`${prefix}-dialog-static`, defaultStaticColor, 'Dialogue Static Color');
-    const dialogStaticRow = row([
-        dialogStaticColor,
-        lbl('Dialogue Static Color', `${prefix}-dialog-static`)
-    ]);
-    dialogStaticRow.style.display = 'none';
-    settingsSection.appendChild(dialogStaticRow);
-
-    // Bubble Color Mode — replaces old Bubble Color Source + Bubble Color Mode
-    const sourceOptionsBubble = [
-        { value: 'avatar_light', label: 'Avatar Light' },
-        { value: 'avatar_dark', label: 'Avatar Dark' },
-        { value: 'static_color', label: 'Static' },
-        { value: 'gradient', label: 'Gradient' },
-    ];
-    const bubbleModeSelect = dropdown(`${prefix}-bubble-mode`, sourceOptionsBubble, 'gradient');
-    const bubbleColorSwatch = el('span', {
-        className: 'ptmt-bubble-swatch',
-        style: 'display: none; width: 20px; height: 20px; border-radius: 3px; border: 1px solid #888; margin-left: 6px; vertical-align: middle; background: #888;',
+    const container = el('div', {
+        id: `${prefix}-drawer`,
+        className: 'inline-drawer flex-container flexFlowColumn flexNoGap',
     });
-    const bubbleModeRow = row([
-        lbl('Bubble Color Mode', `${prefix}-bubble-mode`),
-        bubbleModeSelect,
-        bubbleColorSwatch,
-    ]);
-    settingsSection.appendChild(bubbleModeRow);
+    const header = el('div', { className: 'inline-drawer-toggle inline-drawer-header padding0 gap5px standoutHeader' });
+    const title = el('div', { className: 'title_restorable flexGap5 wide100p' },
+        el('span', { className: 'flex1' }, persona ? 'Persona Dialogue Colorizer' : 'Character Dialogue Colorizer'));
+    const icon = el('div', { className: 'inline-drawer-icon fa-solid interactable down fa-circle-chevron-down', tabindex: '0', role: 'button' });
+    header.append(title, el('div', { className: 'flex-container widthFitContent' }, icon));
 
-    // Bubble static colors (shown when mode is static_color)
-    const bubbleStatic1 = colorPicker(`${prefix}-bubble-static-1`, defaultStaticColor, 'Bubble Static Color 1');
-    const bubbleStatic2 = colorPicker(`${prefix}-bubble-static-2`, defaultStaticColor, 'Bubble Static Color 2');
-    const bubbleStaticRow = row([
-        el('div', { className: 'ptmt-color-picker-pair' },
-            bubbleStatic1
-            //  bubbleStatic2
-        ),
-        lbl('Bubble Static Colors', `${prefix}-bubble-static-1`)
-    ]);
-    bubbleStaticRow.style.display = 'none';
-    settingsSection.appendChild(bubbleStaticRow);
+    const wrapper = el('div', { className: 'inline-drawer-content', style: 'display:none;' });
+    const content = el('div', { className: 'ptmt-char-colorizer-content' });
+    wrapper.appendChild(content);
+    container.append(header, wrapper);
 
-    // Gradient editor (shown when mode is gradient)
-    const gradientRow = el('div', { className: 'ptmt-setting-row', style: 'display: none; flex-direction: column; padding-left: 0;' });
+    const enable = el('input', { id: `${prefix}-enable`, type: 'checkbox' });
+    content.appendChild(row(enable, label('Enable Personal Dialogue Colorizer', enable.id)));
+
+    const section = el('div', { style: 'display:none;' });
+    const target = createSelect(`${prefix}-target`, targetOptions, '3');
+    section.appendChild(row(label('Colorize Target', target.id), target));
+
+    const dialogSource = createSelect(`${prefix}-dialog-src`, sourceOptions, 'avatar_vibrant');
+    section.appendChild(row(label('Dialogue Color Source', dialogSource.id), dialogSource));
+
+    const dialogStatic = createPicker(`${prefix}-dialog-static`, defaultColor, 'Dialogue Static Color');
+    const dialogStaticRow = row(dialogStatic, label('Dialogue Static Color', dialogStatic.id));
+    section.appendChild(dialogStaticRow);
+
+    const bubbleMode = createSelect(`${prefix}-bubble-mode`, bubbleOptions, 'gradient');
+    const bubbleSwatch = el('span', {
+        className: 'ptmt-bubble-swatch',
+        style: 'display:none;width:20px;height:20px;border-radius:3px;border:1px solid #888;margin-left:6px;vertical-align:middle;background:#888;',
+    });
+    section.appendChild(row(label('Bubble Color Mode', bubbleMode.id), bubbleMode, bubbleSwatch));
+
+    const bubbleStatic = createPicker(`${prefix}-bubble-static-1`, defaultColor, 'Bubble Static Color');
+    const bubbleStaticRow = row(bubbleStatic, label('Bubble Static Color', bubbleStatic.id));
+    section.appendChild(bubbleStaticRow);
+
+    const gradientRow = el('div', { className: 'ptmt-setting-row', style: 'display:none;flex-direction:column;padding-left:0;' });
     const gradientEditor = new GradientEditor({
         stops: [],
-        angle: defaultGradientAngle,
+        angle: defaultAngle,
         showAngle: true,
         showReset: true,
-        onChange: () => {
-            if (isPersona) {
-                scheduleUpdatePersona();
-            } else {
-                scheduleUpdateCharacter();
-            }
-        },
+        onChange: () => scheduleSave(persona),
         onReset: () => {
-            const img = isPersona
-                ? document.querySelector('#user_avatar_block .avatar-container.selected img')
-                : document.getElementById('avatar_load_preview');
-            if (img && autoPopulateGradientFromAvatar(gradientEditor, img, defaultGradientAngle)) {
-            } else {
-                gradientEditor.stops = [];
-                gradientEditor.angle = defaultGradientAngle;
-            }
-            if (isPersona) scheduleUpdatePersona();
-            else scheduleUpdateCharacter();
+            autoPopulateGradient(gradientEditor, persona ? getPersonaPreview() : getCharacterPreview(), defaultAngle);
+            scheduleSave(persona);
         },
     });
     gradientEditor.mount(gradientRow);
-    settingsSection.appendChild(gradientRow);
+    section.appendChild(gradientRow);
 
-    const syncBubbleModeVis = () => {
-        const mode = bubbleModeSelect.value;
-        bubbleStaticRow.style.display = mode === 'static_color' ? 'flex' : 'none';
-        gradientRow.style.display = mode === 'gradient' ? 'flex' : 'none';
-        bubbleColorSwatch.style.display = (mode === 'avatar_light' || mode === 'avatar_dark') ? 'inline-block' : 'none';
-        refreshBubbleColorSwatch({ bubbleColorSwatch, bubbleModeSelect }, isPersona);
+    const opacityValue = el('span', { className: 'ptmt-opacity-value' }, '10%');
+    const opacity = el('input', {
+        id: `${prefix}-opacity`, type: 'range', min: '0', max: '1', step: '0.01', value: '0.1', className: 'ptmt-opacity-slider',
+    });
+    opacity.addEventListener('input', () => {
+        opacityValue.textContent = `${Math.round(Number(opacity.value) * 100)}%`;
+    });
+    section.appendChild(row(label(persona ? 'User Bubble Opacity' : 'Char Bubble Opacity', opacity.id), opacity, opacityValue));
+    content.appendChild(section);
+
+    const ui = {
+        persona, container, wrapper, section, enable, target, dialogSource, dialogStatic,
+        dialogStaticRow, bubbleMode, bubbleSwatch, bubbleStatic, bubbleStaticRow,
+        gradientEditor, gradientRow, opacity, opacityValue,
+        loading: false,
+        values: { dialogStatic: defaultColor, bubbleStatic: defaultColor },
     };
-    bubbleModeSelect.addEventListener('change', syncBubbleModeVis);
-    syncBubbleModeVis();
 
-    // Opacity slider for character or user
-    const opacityLabel = isPersona ? 'User Bubble Opacity' : 'Char Bubble Opacity';
-    const defaultOpacity = isPersona ? 0.1 : 0.1;
-    const opacityVal = el('span', { className: 'ptmt-opacity-value' }, `${Math.round(defaultOpacity * 100)}%`);
-    const opacitySlider = el('input', {
-        type: 'range', min: '0', max: '1', step: '0.01',
-        value: defaultOpacity.toString(),
-        className: 'ptmt-opacity-slider'
-    });
-    opacitySlider.addEventListener('input', () => {
-        const val = parseFloat(opacitySlider.value);
-        opacityVal.textContent = `${Math.round(val * 100)}%`;
-    });
-    settingsSection.appendChild(row([
-        lbl(opacityLabel, `${prefix}-opacity`),
-        opacitySlider,
-        opacityVal
-    ]));
-
-    contentArea.appendChild(settingsSection);
-
-    // Toggle settings visibility based on enable checkbox
-    enableCheckbox.addEventListener('change', () => {
-        settingsSection.style.display = enableCheckbox.checked ? 'block' : 'none';
-    });
-
-    // Toggle static color visibility based on source selection
-    const syncDialogVisibility = () => {
-        dialogStaticRow.style.display = dialogSrcSelect.value === 'static_color' ? 'flex' : 'none';
+    const syncVisibility = () => {
+        section.style.display = enable.checked ? 'block' : 'none';
+        dialogStaticRow.style.display = dialogSource.value === 'static_color' ? 'flex' : 'none';
+        bubbleStaticRow.style.display = bubbleMode.value === 'static_color' ? 'flex' : 'none';
+        gradientRow.style.display = bubbleMode.value === 'gradient' ? 'flex' : 'none';
+        bubbleSwatch.style.display = ['avatar_light', 'avatar_dark'].includes(bubbleMode.value) ? 'inline-block' : 'none';
+        if (bubbleSwatch.style.display !== 'none') refreshSwatch(ui);
     };
-    dialogSrcSelect.addEventListener('change', syncDialogVisibility);
+    ui.syncVisibility = syncVisibility;
 
-    return {
-        container,
-        enableCheckbox,
-        dialogSrcSelect,
-        dialogStaticColor,
-        bubbleColorSwatch,
-        bubbleStatic1,
-        bubbleStatic2,
-        dialogStaticRow,
-        bubbleStaticRow,
-        settingsSection,
-        targetSelect,
-        bubbleModeSelect,
-        opacitySlider,
-        gradientEditor,
-        gradientRow,
-        syncDialogVisibility,
-        syncBubbleModeVis,
-    };
+    enable.addEventListener('change', () => { syncVisibility(); saveNow(persona); });
+    target.addEventListener('change', () => saveNow(persona));
+    dialogSource.addEventListener('change', () => { syncVisibility(); saveNow(persona); });
+    bubbleMode.addEventListener('change', () => {
+        if (bubbleMode.value === 'gradient' && gradientEditor.stops.length === 0) {
+            autoPopulateGradient(gradientEditor, persona ? getPersonaPreview() : getCharacterPreview(), defaultAngle);
+        }
+        syncVisibility();
+        saveNow(persona);
+    });
+    opacity.addEventListener('input', () => scheduleSave(persona));
+
+    dialogStatic.addEventListener('change', event => {
+        ui.values.dialogStatic = event.detail?.hex8 || event.detail?.hex || ui.values.dialogStatic;
+        saveNow(persona);
+    });
+    bubbleStatic.addEventListener('change', event => {
+        ui.values.bubbleStatic = event.detail?.hex8 || event.detail?.hex || ui.values.bubbleStatic;
+        saveNow(persona);
+    });
+
+    syncVisibility();
+    return ui;
 }
 
-// ─── Character Editor Integration ────────────────────────────────────────────
-
-let charColorizerUI = null;
-let currentCharacterId = null;
-let currentAvatarFilename = null;
-
-// Guard flags to prevent recursive updates
-let isUpdatingCharSettings = false;
-let isUpdatingPersonaSettings = false;
-
-// ─── Update personal colorizer UI based on global enable setting ────────────────
-
-function updatePersonalColorizerEnableState() {
-    const globalEnabled = settings.get('enableDialogueColorizer');
-
-    if (charColorizerUI?.container) {
-        charColorizerUI.container.style.opacity = globalEnabled ? '1' : '0.5';
-        charColorizerUI.container.style.pointerEvents = globalEnabled ? 'auto' : 'none';
-        charColorizerUI.enableCheckbox.disabled = !globalEnabled;
-    }
-
-    if (personaColorizerUI?.container) {
-        personaColorizerUI.container.style.opacity = globalEnabled ? '1' : '0.5';
-        personaColorizerUI.container.style.pointerEvents = globalEnabled ? 'auto' : 'none';
-        personaColorizerUI.enableCheckbox.disabled = !globalEnabled;
-    }
-}
-
-// Store latest color picker values (since getAttribute doesn't update in real-time)
-let latestDialogStaticColor = '#da6745ff';
-let latestBubbleStatic1 = '#da6745ff';
-let latestBubbleStatic2 = '#da6745ff';
-let latestPersonaDialogColor = '#537fddff';
-let latestPersonaBubble1 = '#537fddff';
-let latestPersonaBubble2 = '#537fddff';
-
-/**
- * Initialize character editor UI
- * Finds/creates colorizer section above #spoiler_free_desc
- */
-function initCharacterColorizer() {
-    // Find the target element
-    const spoilerFreeDiv = document.getElementById('spoiler_free_desc');
-    if (!spoilerFreeDiv) {
-        console.warn('[PTMT] Character editor #spoiler_free_desc not found, skipping char colorizer UI');
-        return;
-    }
-
-    // Create and insert the colorizer UI above spoiler_free_desc
-    const ui = createPersonalColorizerUI(false);
-    charColorizerUI = ui;
-
-    // Insert before spoiler_free_desc
-    spoilerFreeDiv.parentElement.insertBefore(ui.container, spoilerFreeDiv);
-
-    // Listen for settings changes
-    ui.enableCheckbox.addEventListener('change', updateCharacterSettings);
-    ui.dialogSrcSelect.addEventListener('change', updateCharacterSettings);
-
-    // Color picker changes - capture the color value from event details
-    ui.dialogStaticColor.addEventListener('change', (e) => {
-        latestDialogStaticColor = e.detail.hex8 || e.detail.hex || latestDialogStaticColor;
-        console.log(`[PTMT] Dialogue color picker changed: ${latestDialogStaticColor}`);
-        updateCharacterSettings();
-    });
-    ui.bubbleStatic1.addEventListener('change', (e) => {
-        latestBubbleStatic1 = e.detail.hex8 || e.detail.hex || latestBubbleStatic1;
-        console.log(`[PTMT] Bubble static 1 color picker changed: ${latestBubbleStatic1}`);
-        updateCharacterSettings();
-    });
-    ui.bubbleStatic2.addEventListener('change', (e) => {
-        latestBubbleStatic2 = e.detail.hex8 || e.detail.hex || latestBubbleStatic2;
-        console.log(`[PTMT] Bubble static 2 color picker changed: ${latestBubbleStatic2}`);
-        updateCharacterSettings();
-    });
-
-    // New control listeners
-    ui.targetSelect.addEventListener('change', updateCharacterSettings);
-    ui.bubbleModeSelect.addEventListener('change', updateCharacterSettings);
-    ui.opacitySlider.addEventListener('input', scheduleUpdateCharacter);
-
-    // Update UI when character is selected
-    eventSource.on(event_types.CHARACTER_EDITOR_OPENED, () => {
-        loadCharacterSettings();
-    });
-
-    // Update UI when global dialogue colorizer enable state changes
-    window.addEventListener('ptmt:settingsChanged', (e) => {
-        const changed = e.detail?.changed || [];
-        if (changed.includes('enableDialogueColorizer')) {
-            updatePersonalColorizerEnableState();
-        }
-    });
-
-    // Set initial state
-    updatePersonalColorizerEnableState();
-}
-
-/**
- * Load current character's colorizer settings into the UI
- */
-function loadCharacterSettings() {
-    if (!charColorizerUI) return;
-
-    isUpdatingCharSettings = true;
-    try {
-        const charNameElem = document.querySelector('#rm_button_selected_ch h2');
-        const nameInput = document.getElementById('character_name_pole');
-        const avatarPreview = document.getElementById('avatar_load_preview');
-        const charName = nameInput?.value?.trim() || charNameElem?.textContent?.trim();
-        const avatarSrc = avatarPreview?.getAttribute('src');
-
-        if (!charName || !avatarSrc) {
-            charColorizerUI.enableCheckbox.checked = false;
-            charColorizerUI.settingsSection.style.display = 'none';
-            return;
-        }
-
-        // Extract avatar filename from src
-        const cleanFileName = extractAvatarFilenameFromUrl(avatarSrc, 'unknown.png');
-
-        // Build unique key: name + avatar to avoid collisions when multiple cards have same name
-        currentCharacterId = buildCharacterCustomColorizerKey(charName, cleanFileName);
-        currentAvatarFilename = cleanFileName;
-        const resolved = resolveCustomColorizerSettings(settings, 'character', currentCharacterId);
-        const isEnabled = resolved.enabled;
-        const customSettings = resolved.value;
-
-        console.log(`[PTMT] Character Editor: "${charName}" (${cleanFileName}) → Key: "${currentCharacterId}" | Enabled: ${isEnabled}`);
-        console.log(`[PTMT]   ↳ bubbleOpacity: ${customSettings.bubbleOpacity} (${typeof customSettings.bubbleOpacity})`);
-
-        // Load UI values
-        charColorizerUI.enableCheckbox.checked = isEnabled;
-        charColorizerUI.settingsSection.style.display = isEnabled ? 'block' : 'none';
-
-        // Update dropdowns
-        charColorizerUI.dialogSrcSelect.value = customSettings.dialogSource ?? 'avatar_vibrant';
-        charColorizerUI.syncDialogVisibility?.();
-
-        // Update range controls & opacity slider BEFORE color pickers
-        // (color picker setAttribute triggers change events that call updateCharacterSettings)
-        charColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
-        const bubbleMode = customSettings.bubbleMode;
-        charColorizerUI.bubbleModeSelect.value = bubbleMode;
-
-        const opacityValue = customSettings.bubbleOpacity ?? 0.1;
-        charColorizerUI.opacitySlider.value = opacityValue.toString();
-        const opacityDisplay = charColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
-        if (opacityDisplay) {
-            opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
-        }
-
-        // Load gradient editor BEFORE color pickers
-        if (charColorizerUI.gradientEditor) {
-            const gradientStops = customSettings.bubbleGradientStops ?? [];
-            const gradientAngle = customSettings.bubbleGradientAngle ?? 225;
-
-            // Always populate palette from avatar colors (all available)
-            const avatarPreview = document.getElementById('avatar_load_preview');
-            if (avatarPreview && avatarPreview.complete && avatarPreview.naturalWidth) {
-                const hexes = sortColorsByLightness(extractColorsFromImage(avatarPreview));
-                if (hexes.length > 0) {
-                    charColorizerUI.gradientEditor.colors = hexes;
-                }
-            }
-            // Set stops from saved data (determines active colors and positions)
-            if (gradientStops.length > 0) {
-                charColorizerUI.gradientEditor.stops = gradientStops;
-                charColorizerUI.gradientEditor.angle = gradientAngle;
-            } else if (bubbleMode === 'gradient') {
-                if (avatarPreview) {
-                    autoPopulateGradientFromAvatar(charColorizerUI.gradientEditor, avatarPreview, 225);
-                }
-            }
-
-            charColorizerUI.syncBubbleModeVis?.();
-        }
-
-        // Sync bubble mode visibility
-        const bubbleModeVis = bubbleMode === 'static_color' ? 'flex' : 'none';
-        charColorizerUI.bubbleStaticRow.style.display = bubbleModeVis;
-        charColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
-        refreshBubbleColorSwatch(charColorizerUI, false);
-
-        // Update color pickers LAST; setAttribute can trigger change events.
-        const dialogStaticColor = customSettings.dialogStatic ?? '#da6745ff';
-        const bubbleStatic1 = customSettings.bubbleStatic1 ?? '#da6745ff';
-        const bubbleStatic2 = customSettings.bubbleStatic2 ?? '#da6745ff';
-
-        charColorizerUI.dialogStaticColor.setAttribute('color', dialogStaticColor);
-        charColorizerUI.bubbleStatic1.setAttribute('color', bubbleStatic1);
-        charColorizerUI.bubbleStatic2.setAttribute('color', bubbleStatic2);
-
-        latestDialogStaticColor = dialogStaticColor;
-        latestBubbleStatic1 = bubbleStatic1;
-        latestBubbleStatic2 = bubbleStatic2;
-
-        // Ensure UI reflects global enable state
-        updatePersonalColorizerEnableState();
-    } finally {
-        isUpdatingCharSettings = false;
-    }
-}
-
-/**
- * Save character colorizer settings when UI changes
- * Only saves when the enable checkbox is turned ON
- */
-async function updateCharacterSettings() {
-    if (isUpdatingCharSettings) return;
-
-    if (!charColorizerUI || !currentCharacterId || !currentAvatarFilename) return;
-
-    isUpdatingCharSettings = true;
-    try {
-        const isEnabled = charColorizerUI.enableCheckbox.checked;
-        if (!isEnabled) {
-            const wasEnabled = resolveCustomColorizerSettings(settings, 'character', currentCharacterId).enabled;
-            if (wasEnabled) {
-                await updateCustomColorizerSettings(settings, 'character', currentCharacterId, { enabled: false });
-                window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh'));
-            }
-            return;
-        }
-
-        const resolved = resolveCustomColorizerSettings(settings, 'character', currentCharacterId);
-        const wasEnabled = resolved.enabled;
-        const oldSettings = resolved.value;
-        const gradientStops = charColorizerUI.gradientEditor ? charColorizerUI.gradientEditor.stops : [];
-        const gradientAngle = charColorizerUI.gradientEditor ? charColorizerUI.gradientEditor.angle : 225;
-        const patch = {
-            dialogSource: charColorizerUI.dialogSrcSelect.value,
-            dialogStatic: latestDialogStaticColor,
-            bubbleMode: charColorizerUI.bubbleModeSelect.value,
-            bubbleStatic1: latestBubbleStatic1,
-            bubbleStatic2: latestBubbleStatic2,
-            colorizeTarget: parseInt(charColorizerUI.targetSelect.value, 10),
-            bubbleOpacity: parseFloat(charColorizerUI.opacitySlider.value),
-            bubbleGradientStops: gradientStops,
-            bubbleGradientAngle: gradientAngle,
-        };
-
-        const gradientStopsChanged = JSON.stringify(oldSettings.bubbleGradientStops ?? []) !== JSON.stringify(gradientStops) ||
-            (oldSettings.bubbleGradientAngle ?? 225) !== gradientAngle;
-        const colorSourceChanged =
-            oldSettings.dialogSource !== patch.dialogSource ||
-            oldSettings.bubbleMode !== patch.bubbleMode ||
-            oldSettings.dialogStatic !== patch.dialogStatic ||
-            oldSettings.bubbleStatic1 !== patch.bubbleStatic1 ||
-            oldSettings.bubbleStatic2 !== patch.bubbleStatic2;
-        const targetChanged = oldSettings.colorizeTarget !== patch.colorizeTarget;
-        const opacityChanged = oldSettings.bubbleOpacity !== patch.bubbleOpacity;
-
-        if (!wasEnabled || colorSourceChanged || targetChanged || opacityChanged || gradientStopsChanged) {
-            await updateCustomColorizerSettings(settings, 'character', currentCharacterId, { enabled: true, patch });
-            window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: colorSourceChanged || gradientStopsChanged } }));
-        }
-    } finally {
-        isUpdatingCharSettings = false;
-    }
-}
-
-// ─── Persona Management Integration ───────────────────────────────────────────
-
-let personaColorizerUI = null;
-
-/**
- * Initialize persona UI
- * Finds/inserts near persona management
- */
-function initPersonaColorizer() {
-    // Look for persona management block
-    const personaMgmtBlock = document.getElementById('persona-management-block');
-    if (!personaMgmtBlock) {
-        console.warn('[PTMT] Persona management block not found, skipping persona colorizer UI');
-        return;
-    }
-
-    // Look for the current persona container within the block
-    const currentPersonaDiv = personaMgmtBlock.querySelector('.persona_management_current_persona');
-    if (!currentPersonaDiv) {
-        console.warn('[PTMT] .persona_management_current_persona not found, skipping persona colorizer UI');
-        return;
-    }
-
-    // Create UI
-    const ui = createPersonalColorizerUI(true);
-    personaColorizerUI = ui;
-
-    // Insert at top of current persona div
-    const firstChild = currentPersonaDiv.firstElementChild;
-    if (firstChild) {
-        currentPersonaDiv.insertBefore(ui.container, firstChild);
-    } else {
-        currentPersonaDiv.appendChild(ui.container);
-    }
-
-    // Listen for settings changes
-    ui.enableCheckbox.addEventListener('change', updatePersonaSettings);
-    ui.dialogSrcSelect.addEventListener('change', updatePersonaSettings);
-
-    // Color picker changes - capture the color value from event details
-    ui.dialogStaticColor.addEventListener('change', (e) => {
-        latestPersonaDialogColor = e.detail.hex8 || e.detail.hex || latestPersonaDialogColor;
-        console.log(`[PTMT] Persona dialogue color picker changed: ${latestPersonaDialogColor}`);
-        updatePersonaSettings();
-    });
-    ui.bubbleStatic1.addEventListener('change', (e) => {
-        latestPersonaBubble1 = e.detail.hex8 || e.detail.hex || latestPersonaBubble1;
-        console.log(`[PTMT] Persona bubble static 1 color picker changed: ${latestPersonaBubble1}`);
-        updatePersonaSettings();
-    });
-    ui.bubbleStatic2.addEventListener('change', (e) => {
-        latestPersonaBubble2 = e.detail.hex8 || e.detail.hex || latestPersonaBubble2;
-        console.log(`[PTMT] Persona bubble static 2 color picker changed: ${latestPersonaBubble2}`);
-        updatePersonaSettings();
-    });
-
-    // New control listeners
-    ui.targetSelect.addEventListener('change', updatePersonaSettings);
-    ui.bubbleModeSelect.addEventListener('change', updatePersonaSettings);
-    ui.opacitySlider.addEventListener('input', scheduleUpdatePersona);
-
-    // Update UI when persona changes
-    eventSource.on(event_types.PERSONA_CHANGED, () => {
-        loadPersonaSettings();
-    });
-
-    // Restore saved state on startup. PERSONA_CHANGED often fires before this
-    // listener is attached, so load directly now and again once the app is ready
-    // (by which point user_avatar is populated).
-    eventSource.on(event_types.APP_READY, () => loadPersonaSettings());
-    loadPersonaSettings();
-
-    // Update UI when global dialogue colorizer enable state changes
-    window.addEventListener('ptmt:settingsChanged', (e) => {
-        const changed = e.detail?.changed || [];
-        if (changed.includes('enableDialogueColorizer')) {
-            updatePersonalColorizerEnableState();
-        }
-    });
-
-    // Set initial state
-    updatePersonalColorizerEnableState();
-}
-
-/**
- * Load current persona's colorizer settings into the UI
- */
-function loadPersonaSettings() {
-    if (!personaColorizerUI) return;
-
-    isUpdatingPersonaSettings = true;
-    try {
-        // Get current persona from ST's live binding (pagination/view independent)
-        const cleanFileName = getActivePersonaFilename();
-        if (!cleanFileName) return;
-
-        const resolved = resolveCustomColorizerSettings(settings, 'persona', cleanFileName);
-        const isEnabled = resolved.enabled;
-        const customSettings = resolved.value;
-        const customSettingsMap = settings.get('personaCustomColorizerSettings') ?? {};
-
-        console.log(`[PTMT] Persona Editor: "${cleanFileName}" | Enabled: ${isEnabled} | Saved Files: [${Object.keys(customSettingsMap).join(', ')}]`);
-        console.log(`[PTMT]   ↳ bubbleOpacity: ${customSettings.bubbleOpacity} (${typeof customSettings.bubbleOpacity})`);
-
-        // Load UI values
-        personaColorizerUI.enableCheckbox.checked = isEnabled;
-        personaColorizerUI.settingsSection.style.display = isEnabled ? 'block' : 'none';
-
-        // Update dropdowns
-        personaColorizerUI.dialogSrcSelect.value = customSettings.dialogSource ?? 'avatar_vibrant';
-        personaColorizerUI.syncDialogVisibility?.();
-
-        // Update range controls & opacity slider BEFORE color pickers
-        personaColorizerUI.targetSelect.value = String(customSettings.colorizeTarget ?? 3);
-        const bubbleMode = customSettings.bubbleMode;
-        personaColorizerUI.bubbleModeSelect.value = bubbleMode;
-
-        const opacityValue = customSettings.bubbleOpacity ?? 0.1;
-        personaColorizerUI.opacitySlider.value = opacityValue.toString();
-        const opacityDisplay = personaColorizerUI.opacitySlider.parentElement?.querySelector('.ptmt-opacity-value');
-        if (opacityDisplay) {
-            opacityDisplay.textContent = `${Math.round(opacityValue * 100)}%`;
-        }
-
-        // Load gradient editor BEFORE color pickers
-        if (personaColorizerUI.gradientEditor) {
-            const gradientStops = customSettings.bubbleGradientStops ?? [];
-            const gradientAngle = customSettings.bubbleGradientAngle ?? 125;
-
-            // Always populate palette from avatar colors
-            const userAvatarImg = document.querySelector('#user_avatar_block .avatar-container.selected img');
-            if (userAvatarImg && userAvatarImg.complete && userAvatarImg.naturalWidth) {
-                const hexes = sortColorsByLightness(extractColorsFromImage(userAvatarImg));
-                if (hexes.length > 0) {
-                    personaColorizerUI.gradientEditor.colors = hexes;
-                }
-            }
-            if (gradientStops.length > 0) {
-                personaColorizerUI.gradientEditor.stops = gradientStops;
-                personaColorizerUI.gradientEditor.angle = gradientAngle;
-            } else if (bubbleMode === 'gradient') {
-                if (userAvatarImg) {
-                    autoPopulateGradientFromAvatar(personaColorizerUI.gradientEditor, userAvatarImg, 125);
-                }
-            }
-
-            personaColorizerUI.syncBubbleModeVis?.();
-        }
-
-        // Sync bubble mode visibility
-        personaColorizerUI.bubbleStaticRow.style.display = bubbleMode === 'static_color' ? 'flex' : 'none';
-        personaColorizerUI.bubbleColorSwatch.style.display = (bubbleMode === 'avatar_light' || bubbleMode === 'avatar_dark') ? 'inline-block' : 'none';
-        refreshBubbleColorSwatch(personaColorizerUI, true);
-
-        // Update color pickers LAST; setAttribute triggers change events.
-        const dialogStaticColor = customSettings.dialogStatic ?? '#537fddff';
-        const bubbleStatic1 = customSettings.bubbleStatic1 ?? '#537fddff';
-        const bubbleStatic2 = customSettings.bubbleStatic2 ?? '#537fddff';
-
-        personaColorizerUI.dialogStaticColor.setAttribute('color', dialogStaticColor);
-        personaColorizerUI.bubbleStatic1.setAttribute('color', bubbleStatic1);
-        personaColorizerUI.bubbleStatic2.setAttribute('color', bubbleStatic2);
-
-        // Store in module-level variables so change events can use them.
-        latestPersonaDialogColor = dialogStaticColor;
-        latestPersonaBubble1 = bubbleStatic1;
-        latestPersonaBubble2 = bubbleStatic2;
-
-        // Ensure UI reflects global enable state
-        updatePersonalColorizerEnableState();
-    } finally {
-        isUpdatingPersonaSettings = false;
-    }
-}
-
-/**
- * Update the bubble color swatch for avatar_light/avatar_dark modes
- * by extracting colors from the avatar image and picking darkest/lightest.
- */
-function updateBubbleColorSwatch(ui, mode, imgElement) {
-    if (!ui?.bubbleColorSwatch || !imgElement) return;
-    const colors = sortColorsByLightness(extractColorsFromImage(imgElement, 5));
-    const picked = mode === 'avatar_light' ? colors[colors.length - 1] : colors[0];
-    if (picked) {
-        ui.bubbleColorSwatch.style.background = picked;
-    }
-}
-
-function getColorizerAvatarImage(isPersona) {
-    return isPersona
-        ? document.querySelector('#user_avatar_block .avatar-container.selected img')
-        : document.getElementById('avatar_load_preview');
-}
-
-function refreshBubbleColorSwatch(ui, isPersona) {
-    const mode = ui?.bubbleModeSelect?.value;
-    if (mode !== 'avatar_light' && mode !== 'avatar_dark') return;
-
-    const img = getColorizerAvatarImage(isPersona);
+function refreshSwatch(ui) {
+    const mode = ui.bubbleMode.value;
+    if (!['avatar_light', 'avatar_dark'].includes(mode)) return;
+    const img = ui.persona ? getPersonaPreview() : getCharacterPreview();
     if (!img) return;
+    const apply = () => {
+        const colors = extractPalette(img);
+        const color = mode === 'avatar_light' ? colors.at(-1) : colors[0];
+        if (color) ui.bubbleSwatch.style.background = color;
+    };
+    if (img.complete && img.naturalWidth) apply();
+    else img.addEventListener('load', apply, { once: true });
+}
 
-    if (img.complete && img.naturalWidth) {
-        updateBubbleColorSwatch(ui, mode, img);
+function snapshotUI(ui) {
+    return {
+        enabled: ui.enable.checked,
+        patch: {
+            dialogSource: ui.dialogSource.value,
+            dialogStatic: ui.values.dialogStatic,
+            bubbleMode: ui.bubbleMode.value,
+            bubbleStatic1: ui.values.bubbleStatic,
+            bubbleStatic2: ui.values.bubbleStatic,
+            colorizeTarget: Number.parseInt(ui.target.value, 10),
+            bubbleOpacity: Number.parseFloat(ui.opacity.value),
+            bubbleGradientStops: ui.gradientEditor.stops,
+            bubbleGradientAngle: ui.gradientEditor.angle,
+        },
+    };
+}
+
+function cancelScheduled(persona) {
+    const timer = persona ? personaSaveTimer : characterSaveTimer;
+    if (timer) clearTimeout(timer);
+    if (persona) personaSaveTimer = null;
+    else characterSaveTimer = null;
+}
+
+function scheduleSave(persona) {
+    const ui = persona ? personaUI : charUI;
+    if (!ui || ui.loading) return;
+    cancelScheduled(persona);
+    const key = persona ? currentPersonaKey : currentCharacterKey;
+    const snapshot = snapshotUI(ui);
+    const timer = setTimeout(() => {
+        if (persona) personaSaveTimer = null;
+        else characterSaveTimer = null;
+        saveSnapshot(persona, key, snapshot);
+    }, SAVE_DELAY);
+    if (persona) personaSaveTimer = timer;
+    else characterSaveTimer = timer;
+}
+
+function saveNow(persona) {
+    const ui = persona ? personaUI : charUI;
+    if (!ui || ui.loading) return;
+    cancelScheduled(persona);
+    const key = persona ? currentPersonaKey : currentCharacterKey;
+    return saveSnapshot(persona, key, snapshotUI(ui));
+}
+
+async function saveSnapshot(persona, key, snapshot) {
+    if (!key || !snapshot) return false;
+    const type = persona ? 'persona' : 'character';
+    const currentKey = persona ? currentPersonaKey : currentCharacterKey;
+    if (key !== currentKey) return false;
+
+    const before = resolveCustomColorizerSettings(settings, type, key);
+    if (!snapshot.enabled) {
+        if (!before.enabled) return true;
+        const changed = await updateCustomColorizerSettings(settings, type, key, { enabled: false });
+        if (changed) window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: false } }));
+        return changed;
+    }
+
+    const old = before.value;
+    const patch = snapshot.patch;
+    const extractionChanged = old.dialogSource !== patch.dialogSource || old.bubbleMode !== patch.bubbleMode;
+    const changed = !before.enabled || JSON.stringify(old) !== JSON.stringify({ ...old, ...patch });
+    if (!changed) return true;
+
+    const saved = await updateCustomColorizerSettings(settings, type, key, { enabled: true, patch });
+    if (saved) {
+        const gradientChanged = JSON.stringify(old.bubbleGradientStops ?? []) !== JSON.stringify(patch.bubbleGradientStops ?? []);
+        window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', {
+            detail: { fullRefresh: extractionChanged || gradientChanged },
+        }));
+    }
+    return saved;
+}
+
+function applyResolvedToUI(ui, resolved, img, defaultColor, defaultAngle) {
+    const value = resolved.value;
+    ui.loading = true;
+    try {
+        ui.enable.checked = resolved.enabled;
+        ui.target.value = String(value.colorizeTarget ?? 3);
+        ui.dialogSource.value = value.dialogSource ?? 'avatar_vibrant';
+        ui.bubbleMode.value = value.bubbleMode ?? 'gradient';
+        ui.opacity.value = String(value.bubbleOpacity ?? 0.1);
+        ui.opacityValue.textContent = `${Math.round(Number(ui.opacity.value) * 100)}%`;
+
+        ui.values.dialogStatic = value.dialogStatic ?? defaultColor;
+        ui.values.bubbleStatic = value.bubbleStatic1 ?? defaultColor;
+        ui.dialogStatic.setAttribute('color', ui.values.dialogStatic);
+        ui.bubbleStatic.setAttribute('color', ui.values.bubbleStatic);
+
+        // Always clear previous-card state first. This prevents gradients/palette
+        // leaking when switching between cards or personas.
+        ui.gradientEditor.colors = [];
+        ui.gradientEditor.stops = [];
+        ui.gradientEditor.angle = defaultAngle;
+        const colors = extractPalette(img);
+        if (colors.length) ui.gradientEditor.colors = colors;
+        const savedStops = value.bubbleGradientStops ?? [];
+        if (savedStops.length) {
+            ui.gradientEditor.stops = savedStops;
+            ui.gradientEditor.angle = value.bubbleGradientAngle ?? defaultAngle;
+        } else if (ui.bubbleMode.value === 'gradient') {
+            autoPopulateGradient(ui.gradientEditor, img, value.bubbleGradientAngle ?? defaultAngle);
+        }
+        ui.syncVisibility();
+        updateEnableState();
+    } finally {
+        ui.loading = false;
+    }
+}
+
+function loadCharacterSettings() {
+    if (!charUI) return;
+    cancelScheduled(false);
+    currentCharacterKey = null;
+    currentCharacterAvatar = null;
+
+    const preview = getCharacterPreview();
+    const avatarSrc = preview?.getAttribute('src') || '';
+    const name = document.getElementById('character_name_pole')?.value?.trim()
+        || document.querySelector('#rm_button_selected_ch h2')?.textContent?.trim()
+        || '';
+    if (!avatarSrc) {
+        charUI.loading = true;
+        charUI.enable.checked = false;
+        charUI.section.style.display = 'none';
+        charUI.loading = false;
         return;
     }
 
-    img.addEventListener('load', () => {
-        const currentMode = ui?.bubbleModeSelect?.value;
-        if (currentMode === 'avatar_light' || currentMode === 'avatar_dark') {
-            updateBubbleColorSwatch(ui, currentMode, img);
-        }
-    }, { once: true });
+    const avatar = extractAvatarFilenameFromUrl(avatarSrc, 'unknown.png');
+    const key = buildCharacterCustomColorizerKey(name, avatar);
+    currentCharacterAvatar = avatar;
+    currentCharacterKey = key;
+    applyResolvedToUI(charUI, resolveCustomColorizerSettings(settings, 'character', key), preview, CHARACTER_DEFAULT, CHARACTER_ANGLE);
 }
 
-/**
- * Save persona colorizer settings when UI changes
- * Save persona colorizer settings when UI changes
- * Only saves when the enable checkbox is turned ON
- */
-async function updatePersonaSettings() {
-    if (isUpdatingPersonaSettings) return;
-    if (!personaColorizerUI) return;
+function loadPersonaSettings() {
+    if (!personaUI) return;
+    cancelScheduled(true);
+    currentPersonaKey = null;
+    const key = getActivePersonaFilename();
+    if (!key) return;
+    currentPersonaKey = key;
+    applyResolvedToUI(personaUI, resolveCustomColorizerSettings(settings, 'persona', key), getPersonaPreview(), PERSONA_DEFAULT, PERSONA_ANGLE);
+}
 
-    isUpdatingPersonaSettings = true;
-    try {
-        const cleanFileName = getActivePersonaFilename();
-        if (!cleanFileName) return;
-        const isEnabled = personaColorizerUI.enableCheckbox.checked;
-
-        if (!isEnabled) {
-            const wasEnabled = resolveCustomColorizerSettings(settings, 'persona', cleanFileName).enabled;
-            if (wasEnabled) {
-                await updateCustomColorizerSettings(settings, 'persona', cleanFileName, { enabled: false });
-                window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh'));
-            }
-            return;
-        }
-
-        const resolved = resolveCustomColorizerSettings(settings, 'persona', cleanFileName);
-        const wasEnabled = resolved.enabled;
-        const oldSettings = resolved.value;
-        const gradientStops = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.stops : [];
-        const gradientAngle = personaColorizerUI.gradientEditor ? personaColorizerUI.gradientEditor.angle : 125;
-        const patch = {
-            dialogSource: personaColorizerUI.dialogSrcSelect.value,
-            dialogStatic: latestPersonaDialogColor,
-            bubbleMode: personaColorizerUI.bubbleModeSelect.value,
-            bubbleStatic1: latestPersonaBubble1,
-            bubbleStatic2: latestPersonaBubble2,
-            colorizeTarget: parseInt(personaColorizerUI.targetSelect.value, 10),
-            bubbleOpacity: parseFloat(personaColorizerUI.opacitySlider.value),
-            bubbleGradientStops: gradientStops,
-            bubbleGradientAngle: gradientAngle,
-        };
-
-        const gradientStopsChanged = JSON.stringify(oldSettings.bubbleGradientStops ?? []) !== JSON.stringify(gradientStops) ||
-            (oldSettings.bubbleGradientAngle ?? 125) !== gradientAngle;
-        const colorSourceChanged =
-            oldSettings.dialogSource !== patch.dialogSource ||
-            oldSettings.bubbleMode !== patch.bubbleMode ||
-            oldSettings.dialogStatic !== patch.dialogStatic ||
-            oldSettings.bubbleStatic1 !== patch.bubbleStatic1 ||
-            oldSettings.bubbleStatic2 !== patch.bubbleStatic2;
-        const targetChanged = oldSettings.colorizeTarget !== patch.colorizeTarget;
-        const opacityChanged = oldSettings.bubbleOpacity !== patch.bubbleOpacity;
-
-        if (!wasEnabled || colorSourceChanged || targetChanged || opacityChanged || gradientStopsChanged) {
-            await updateCustomColorizerSettings(settings, 'persona', cleanFileName, { enabled: true, patch });
-            window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: colorSourceChanged || gradientStopsChanged } }));
-        }
-    } finally {
-        isUpdatingPersonaSettings = false;
+function updateEnableState() {
+    const enabled = !!settings.get('enableDialogueColorizer');
+    for (const ui of [charUI, personaUI]) {
+        if (!ui?.container) continue;
+        ui.container.style.opacity = enabled ? '1' : '0.5';
+        ui.container.style.pointerEvents = enabled ? 'auto' : 'none';
+        ui.enable.disabled = !enabled;
     }
 }
 
-// ─── Initialization ───────────────────────────────────────────────────────────
+function injectCharacterUI() {
+    if (charUI?.container?.isConnected) return true;
+    const target = document.getElementById('spoiler_free_desc');
+    if (!target?.parentElement) return false;
+    document.getElementById('ptmt-char-col-drawer')?.remove();
+    charUI = createColorizerUI({ persona: false });
+    target.parentElement.insertBefore(charUI.container, target);
+    loadCharacterSettings();
+    return true;
+}
+
+function injectPersonaUI() {
+    if (personaUI?.container?.isConnected) return true;
+    const current = document.querySelector('#persona-management-block .persona_management_current_persona');
+    if (!current) return false;
+    document.getElementById('ptmt-pchar-col-drawer')?.remove();
+    personaUI = createColorizerUI({ persona: true });
+    current.prepend(personaUI.container);
+    loadPersonaSettings();
+    return true;
+}
+
+function ensureUIs() {
+    injectCharacterUI();
+    injectPersonaUI();
+    updateEnableState();
+}
+
+function handleCharacterEditorOpened() {
+    if (!injectCharacterUI()) return;
+    loadCharacterSettings();
+}
+function handleCharacterEdited() {
+    // CHARACTER_EDITED is emitted after SillyTavern has refreshed the card.
+    queueMicrotask(loadCharacterSettings);
+}
+function handlePersonaChanged() {
+    if (!injectPersonaUI()) return;
+    loadPersonaSettings();
+}
+function handleAppReady() {
+    ensureUIs();
+}
+function handleSettingsChanged(event) {
+    if (event.detail?.changed?.includes('enableDialogueColorizer')) updateEnableState();
+}
+
+export function cleanupCharacterColorizerUI() {
+    cancelScheduled(false);
+    cancelScheduled(true);
+    if (initialized) {
+        try { eventSource.off(event_types.CHARACTER_EDITOR_OPENED, handleCharacterEditorOpened); } catch {}
+        try { eventSource.off(event_types.CHARACTER_EDITED, handleCharacterEdited); } catch {}
+        try { eventSource.off(event_types.PERSONA_CHANGED, handlePersonaChanged); } catch {}
+        try { eventSource.off(event_types.APP_READY, handleAppReady); } catch {}
+        window.removeEventListener('ptmt:settingsChanged', handleSettingsChanged);
+    }
+    initialized = false;
+    charUI?.container?.remove();
+    personaUI?.container?.remove();
+    charUI = null;
+    personaUI = null;
+    currentCharacterKey = null;
+    currentCharacterAvatar = null;
+    currentPersonaKey = null;
+}
 
 export function initCharacterColorizerUI() {
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', () => {
-            initCharacterColorizer();
-            initPersonaColorizer();
-        });
-    } else {
-        initCharacterColorizer();
-        initPersonaColorizer();
-    }
+    cleanupCharacterColorizerUI();
+    initialized = true;
+    eventSource.on(event_types.CHARACTER_EDITOR_OPENED, handleCharacterEditorOpened);
+    eventSource.on(event_types.CHARACTER_EDITED, handleCharacterEdited);
+    eventSource.on(event_types.PERSONA_CHANGED, handlePersonaChanged);
+    eventSource.on(event_types.APP_READY, handleAppReady);
+    window.addEventListener('ptmt:settingsChanged', handleSettingsChanged);
 
-    // Also listen for APP_READY event from ST
-    eventSource.once(event_types.APP_READY, () => {
-        if (!charColorizerUI) initCharacterColorizer();
-        if (!personaColorizerUI) initPersonaColorizer();
-        // Load initial values after app is ready
-        loadCharacterSettings();
-        loadPersonaSettings();
-    });
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', ensureUIs, { once: true });
+    } else {
+        ensureUIs();
+    }
 }
