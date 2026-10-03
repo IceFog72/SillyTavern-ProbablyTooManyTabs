@@ -12,13 +12,13 @@ export function createSettingsPanel(manager) {
     const settingCheckboxes = new Map();
 
     const topSection = el('div', { className: 'ptmt-settings-top-section' });
-    const globalSettings = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Global Layout'));
+    const globalSettings = el('fieldset', { className: 'ptmt-settings-fieldset ptmt-layout-settings' }, el('legend', {}, 'Global Layout'));
     const globalGrid = el('div', { className: 'ptmt-settings-grid' });
     globalSettings.appendChild(globalGrid);
 
     const createSettingCheckbox = (labelText, settingKey) => {
         const id = `ptmt-global-${settingKey}`;
-        const wrapper = el('div', { className: 'ptmt-setting-row' });
+        const wrapper = el('div', { className: 'ptmt-setting-row ptmt-setting-toggle' });
         const checkbox = el('input', { type: 'checkbox', id, checked: settings.get(settingKey) });
         const label = el('label', { for: id }, labelText);
 
@@ -256,7 +256,7 @@ export function createSettingsPanel(manager) {
     // Tab Strip Mode dropdown (replaces old Auto-Hide checkbox)
     const tabStripModeRow = (() => {
         const id = 'ptmt-global-tabStripMode';
-        const wrapper = el('div', { className: 'ptmt-setting-row' });
+        const wrapper = el('div', { className: 'ptmt-setting-row ptmt-setting-field' });
         const select = el('select', { id, className: 'text_edit' });
         const modes = { 'normal': 'Normal', 'auto-hide': 'Auto-Hide', 'shy': 'Shy' };
         Object.entries(modes).forEach(([value, label]) => {
@@ -270,7 +270,7 @@ export function createSettingsPanel(manager) {
         select.addEventListener('change', (e) => {
             settings.update({ tabStripMode: e.target.value });
         });
-        const label = el('label', { for: id }, 'Tab Strip Mode (Global)');
+        const label = el('label', { for: id }, 'Tab strip mode');
         wrapper.append(label, select);
         return wrapper;
     })();
@@ -287,7 +287,7 @@ export function createSettingsPanel(manager) {
     );
 
     // ─── Global Style Fieldset ──────────────────────────────────────────
-    const overridesFieldset = el('fieldset', { className: 'ptmt-settings-fieldset' }, el('legend', {}, 'Global Style'));
+    const overridesFieldset = el('fieldset', { className: 'ptmt-settings-fieldset ptmt-style-settings' }, el('legend', {}, 'Global Style'));
     const overridesGrid = el('div', { className: 'ptmt-settings-grid' });
     overridesFieldset.appendChild(overridesGrid);
 
@@ -317,8 +317,8 @@ export function createSettingsPanel(manager) {
     };
     overridesCheckboxInputForFieldset.addEventListener('change', (e) => syncFieldsetVisibility(e.target.checked));
 
-    const animCheckbox = createSettingCheckbox('Animations*', 'enableAnimations');
-    const shadowCheckbox = createSettingCheckbox('Shadows*', 'enableShadows');
+    const animCheckbox = createSettingCheckbox('Animations', 'enableAnimations');
+    const shadowCheckbox = createSettingCheckbox('Shadows', 'enableShadows');
 
 
     // ─── UI Theme Selector ───────────────────────────────────────────────────────
@@ -345,7 +345,7 @@ export function createSettingsPanel(manager) {
         SettingsManager.applyTheme(themeName);
     });
 
-    const themeSelectorRow = el('div', { className: 'ptmt-setting-row ptmt-grid-span-1' },
+    const themeSelectorRow = el('div', { className: 'ptmt-setting-row ptmt-setting-field' },
         el('label', { for: 'ptmt-ui-theme-selector' }, 'UI Theme'),
         themeSelector
     );
@@ -358,8 +358,9 @@ export function createSettingsPanel(manager) {
             tabStripModeRow,
             animCheckbox,
             shadowCheckbox,
-            createSettingCheckbox('Show Icons Only (Global)', 'showIconsOnly'),
+            createSettingCheckbox('Show icons only', 'showIconsOnly'),
             moveBg1Checkbox,
+            createSettingCheckbox('Use Wallpaper for Browser Tint', 'enableBrowserBackgroundTint'),
             bgColorContainer,
             overridesCheckboxForFieldset,
             avatarRowForFieldset,
@@ -379,7 +380,6 @@ export function createSettingsPanel(manager) {
     }, isMobile ? 'Switch to Desktop Layout' : 'Switch to Mobile Layout');
 
     mobileToggleBtn.addEventListener('click', () => appApi.toggleMobileMode());
-    globalGrid.append(mobileToggleBtn);
 
     const resetBtn = el('button', {
         class: "menu_button menu_button_icon interactable ptmt-reset-button ptmt-grid-span-1",
@@ -395,10 +395,12 @@ export function createSettingsPanel(manager) {
         'Shortcut: Alt+Shift+R — Reset layout to default.'
     );
 
-    globalGrid.append(resetBtn, resetShortcutInfo);
+    globalSettings.append(
+        el('div', { className: 'ptmt-settings-actions' }, mobileToggleBtn, resetBtn),
+        resetShortcutInfo,
+    );
 
     const colorizerSettings = createDialogueColorizerSettings(settings);
-    colorizerSettings.className = 'ptmt-settings-fieldset';
     topSection.append(globalSettings, overridesFieldset, colorizerSettings);
     panel.append(topSection);
 
@@ -467,7 +469,7 @@ export function createSettingsPanel(manager) {
 
 export function createDialogueColorizerSettings(settings) {
     const row = (children, extra = {}) =>
-        el('div', { className: 'ptmt-setting-row', ...extra }, ...children);
+        el('div', { className: `ptmt-setting-row${children.some(child => child.tagName === 'SELECT') ? ' ptmt-setting-field' : ''}`, ...extra }, ...children);
 
     const lbl = (text, forId) => el('label', forId ? { for: forId } : {}, text);
 
@@ -542,9 +544,10 @@ export function createDialogueColorizerSettings(settings) {
 
     const enableInput = checkbox('ptmt-col-enable', 'enableDialogueColorizer');
     const wipeBtn = el('button', {
-        className: 'menu_button',
+        className: 'menu_button ptmt-colorizer-reset',
         type: 'button',
-        textContent: 'Wipe All',
+        title: 'Reset global and personal colorizer settings',
+        textContent: 'Reset colorizer',
     });
     wipeBtn.addEventListener('click', async () => {
         if (!confirm('This will reset ALL Dialogue Colorizer settings, including per-character and per-persona overrides. Continue?')) return;
@@ -584,7 +587,7 @@ export function createDialogueColorizerSettings(settings) {
             valueLabel.textContent = `${Math.round(val * 100)}%`;
             settings.update({ [key]: val });
         });
-        return row([lbl(labelText, id), slider, valueLabel]);
+        return row([lbl(labelText, id), slider, valueLabel], { className: 'ptmt-setting-row ptmt-setting-range' });
     };
 
     const gradientControl = ({ prefix, stopsKey, angleKey, modeSelect }) => {
@@ -604,6 +607,9 @@ export function createDialogueColorizerSettings(settings) {
             },
         });
         gradientEditor.mount(gradientRow);
+        const angleId = `ptmt-col-${prefix}-gradient-angle`;
+        gradientRow.querySelector('.ptmt-ge-angle-slider').id = angleId;
+        gradientRow.querySelector('.ptmt-ge-controls').prepend(lbl('Gradient angle', angleId));
 
         const sync = () => {
             gradientRow.style.display = modeSelect.value === 'gradient' ? 'flex' : 'none';

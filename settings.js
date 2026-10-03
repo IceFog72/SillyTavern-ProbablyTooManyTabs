@@ -30,6 +30,7 @@ export class SettingsManager {
         enableBlurEffect: true,
         enableOverride1: false,
         enableAutoContrast: true,
+        enableBrowserBackgroundTint: true,
         enableDialogueColorizer: true,
         autoOpenFirstCenterTab: true,
         enableAvatarExpressionSync: false,

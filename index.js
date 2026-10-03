@@ -37,7 +37,7 @@ function initSubsystems() {
     positionAnchor();
     initStatusBar();
     initWorldInfoStatusBar();
-    themeEngine.init();
+    themeEngine.init(!!settings.get('enableBrowserBackgroundTint'));
     initColorizer();
     initCharacterColorizerUI();
     initAvatarExpressionSync();
@@ -353,6 +353,9 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
         for (const [key, className] of bodyClasses) {
             if (changed.has(key)) document.body.classList.toggle(className, !!settings.get(key));
         }
+        if (has('enableBrowserBackgroundTint')) {
+            themeEngine.setBrowserTintEnabled(!!settings.get('enableBrowserBackgroundTint'));
+        }
         if (has('enableOverride1', 'enableAutoContrast')) {
             document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
         }
@@ -480,6 +483,7 @@ function postInit(state, applyOverrides) {
 }
 
 function cleanupRuntimeSubsystems() {
+    themeEngine.cleanup();
     cleanupInspectorScaleControl();
     cleanupAvatarExpressionSync();
     cleanupMessageRail();

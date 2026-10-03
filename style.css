@@ -451,8 +451,6 @@ body.ptmt-Theme-RoundedSmooth .drawer-content {
 }
 
 #send_textarea {
-  border: none !important;
-  border-radius: 0 !important;
   min-width: 150px;
 }
 
@@ -2499,26 +2497,176 @@ body.ptmt-is-resizing #rm_print_characters_block {
 
 /* Layout Settings UI Classes */
 
-.ptmt-settings-top-section {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 15px;
-  align-items: stretch;
-  margin-bottom: 10px;
+.ptmt-settings-panel {
+  container: ptmt-settings / inline-size;
+  min-width: 0;
 }
 
-.ptmt-settings-fieldset {
-  flex: 1 1 300px;
+.ptmt-settings-top-section {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  align-items: start;
+  margin-bottom: 0;
+}
+
+.ptmt-settings-top-section > .ptmt-settings-fieldset {
+  min-width: 0;
   margin: 0;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px;
+  border-radius: var(--ptmt-control-radius, 4px) !important;
+  box-shadow: none;
 }
 
-/* Force full-width stacking on smaller screens */
-@media (max-width: 700px) {
-  .ptmt-settings-fieldset {
-    flex: 1 1 100%;
+.ptmt-settings-top-section .ptmt-settings-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px 12px;
+}
+
+.ptmt-settings-top-section .ptmt-setting-row {
+  min-width: 0;
+  min-height: 32px;
+  gap: 8px;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.ptmt-settings-top-section .ptmt-setting-row > label {
+  min-width: 0;
+  flex: 1;
+}
+
+.ptmt-settings-top-section .ptmt-setting-toggle {
+  padding: 3px 4px;
+  border-radius: var(--ptmt-control-radius, 4px);
+}
+
+.ptmt-settings-top-section .ptmt-setting-toggle:has(input:focus-visible) {
+  background: var(--ST-UI-Background-2);
+}
+
+.ptmt-settings-top-section .ptmt-setting-toggle > label {
+  cursor: pointer;
+}
+
+.ptmt-style-settings .ptmt-setting-field,
+.ptmt-style-settings .ptmt-full-width-container {
+  grid-column: 1 / -1;
+}
+
+.ptmt-settings-top-section select {
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
+  flex: 1;
+}
+
+.ptmt-settings-top-section .ptmt-setting-sub-item {
+  margin-left: 0;
+}
+
+.ptmt-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-top: 10px;
+  border-top: 1px solid var(--ST-UI-Border);
+}
+
+.ptmt-settings-actions :is(.ptmt-mobile-button, .ptmt-reset-button) {
+  min-width: 0;
+  margin: 0 !important;
+  padding: 4px 10px !important;
+  border-radius: var(--ptmt-control-radius, 4px) !important;
+}
+
+.ptmt-settings-top-section .ptmt-setting-notice {
+  padding: 0;
+  margin: 0;
+  font-size: 0.8em;
+}
+
+.ptmt-settings-top-section > .ptmt-colorizer-settings {
+  grid-column: 1 / -1;
+}
+
+.ptmt-colorizer-settings .ptmt-colorizer-subsection {
+  min-width: 0;
+  margin: 0;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-radius: var(--ptmt-control-radius, 4px) !important;
+  box-shadow: none;
+}
+
+.ptmt-colorizer-settings .ptmt-setting-field > label {
+  flex: 0 1 44%;
+}
+
+.ptmt-colorizer-settings .ptmt-colorizer-enable-row {
+  flex-wrap: wrap;
+}
+
+.ptmt-colorizer-enable-row > .menu_button {
+  margin-left: auto;
+}
+
+.ptmt-colorizer-settings :is(.ptmt-setting-range, .ptmt-ge-controls) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.ptmt-colorizer-settings :is(.ptmt-opacity-value, .ptmt-ge-angle-value) {
+  grid-column: 2;
+  grid-row: 1;
+  order: 0;
+  min-width: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.ptmt-colorizer-settings :is(.ptmt-opacity-slider, .ptmt-ge-angle-slider) {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  order: 0;
+  width: 100%;
+  min-width: 0;
+  margin: 0;
+}
+
+/* Adapt to the settings pane width, including nested and resized layouts. */
+@container ptmt-settings (min-width: 1200px) {
+  .ptmt-settings-top-section {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 0.9fr) minmax(0, 1.4fr);
+  }
+
+  .ptmt-settings-top-section > .ptmt-colorizer-settings {
+    grid-column: auto;
+  }
+}
+
+@container ptmt-settings (max-width: 760px) {
+  .ptmt-settings-top-section {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@container ptmt-settings (max-width: 460px) {
+  .ptmt-settings-top-section .ptmt-settings-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .ptmt-style-settings .ptmt-setting-field,
+  .ptmt-settings-top-section > .ptmt-colorizer-settings {
+    grid-column: auto;
   }
 }
 

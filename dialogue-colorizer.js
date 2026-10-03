@@ -450,14 +450,19 @@ function mixHexColors(colors) {
     const total = colors.reduce((sum, item) => sum + item.weight, 0) || 1;
     const mixed = colors.reduce((acc, item) => {
         const [r, g, b] = hexToRgb(item.color);
+        const alpha = item.color.length === 9 ? parseInt(item.color.slice(7, 9), 16) / 255 : 1;
         const weight = item.weight / total;
-        acc[0] += r * weight;
-        acc[1] += g * weight;
-        acc[2] += b * weight;
+        acc[0] += r * alpha * weight;
+        acc[1] += g * alpha * weight;
+        acc[2] += b * alpha * weight;
+        acc[3] += alpha * weight;
         return acc;
-    }, [0, 0, 0]);
+    }, [0, 0, 0, 0]);
 
-    return rgbToHex(mixed);
+    const alpha = mixed[3];
+    const rgb = alpha > 0 ? mixed.slice(0, 3).map(channel => channel / alpha) : [0, 0, 0];
+    const hex = rgbToHex(rgb);
+    return alpha < 1 ? hex + Math.round(alpha * 255).toString(16).padStart(2, '0') : hex;
 }
 
 function getGradientContrastColor(sortedStops) {
@@ -503,7 +508,8 @@ function buildCssRules(domUid, extractedColors, info) {
 
     if (target & COLORIZE_TARGET.QUOTED_TEXT) {
         const standardRule = `color: ${dialogColor} !important;`;
-        const adaptiveRule = `color: color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) var(--ptmt-dialogue-contrast-mix, 38%)) !important;`;
+        const dialogAlpha = dialogColor.length === 9 ? parseInt(dialogColor.slice(7, 9), 16) / 255 : 1;
+        const adaptiveRule = `color: rgb(from color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) var(--ptmt-dialogue-contrast-mix, 38%)) r g b / ${dialogAlpha}) !important;`;
 
         css += `#chat .mes[xdc-author-uid="${domUid}"] .mes_text q { ${standardRule} }\n`;
         css += `#chat .mes[xdc-author-uid="${domUid}"] .mes_reasoning q { ${standardRule} }\n`;

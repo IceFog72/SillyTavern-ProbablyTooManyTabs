@@ -22,7 +22,7 @@ function normalizeAngle(value) {
 }
 
 function isHexColor(value) {
-    return typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value.trim());
+    return typeof value === 'string' && /^#[0-9a-f]{6}([0-9a-f]{2})?$/i.test(value.trim());
 }
 
 function normalizeColor(value) {
@@ -258,7 +258,8 @@ export class GradientEditor {
         });
         this._customPicker.setAttribute('color', this._customColor);
         this._customPicker.addEventListener('change', event => {
-            if (isHexColor(event.detail?.hex)) this._customColor = normalizeColor(event.detail.hex);
+            const color = event.detail?.hex8 || event.detail?.hex;
+            if (isHexColor(color)) this._customColor = normalizeColor(color);
         });
         this._paletteEl.appendChild(this._customPicker);
 

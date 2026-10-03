@@ -151,6 +151,7 @@
  * @property {boolean} hideContentWhileResizing
  * @property {boolean} showContextStatusBar
  * @property {boolean} enableOverride1
+ * @property {boolean} enableBrowserBackgroundTint
  * @property {boolean} enableAutoContrast
  * @property {boolean} enableDialogueColorizer
  * @property {boolean} autoOpenFirstCenterTab

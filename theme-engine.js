@@ -17,11 +17,35 @@ export class ThemeEngine {
         this.targetIds = ['bg1', 'bg_custom'];
         this._currentBgL = 0.5; // Last known wallpaper luminance
         this._tintObserver = null;
+        this._browserColor = null;
+        this._browserTintEnabled = true;
+        this._metaThemeColor = null;
+        this._originalMetaColor = null;
+        this._appliedMetaColor = null;
     }
 
-    init() {
+    init(browserTintEnabled = true) {
         console.log('[PTMT] ThemeEngine initializing...');
+        this._browserTintEnabled = browserTintEnabled;
+        this.lastUrl = null;
+        this._browserColor = null;
+        this._metaThemeColor = document.querySelector('meta[name="theme-color"]');
+        this._originalMetaColor = this._metaThemeColor?.getAttribute('content') ?? null;
+        this._appliedMetaColor = this._originalMetaColor;
+        if (this._metaThemeColor) {
+            const metaObserver = trackObserver(new MutationObserver(() => {
+                const value = this._metaThemeColor?.getAttribute('content');
+                if (value !== this._appliedMetaColor) {
+                    // ST may apply its saved theme after PTMT starts. Keep the
+                    // selected tint, retaining ST's latest tint for cleanup.
+                    this._originalMetaColor = value;
+                    this.syncBrowserColor();
+                }
+            }));
+            metaObserver.observe(this._metaThemeColor, { attributes: true, attributeFilter: ['content'] });
+        }
         this.startObserver();
+        this.syncBrowserColor();
         this.refresh();
     }
 
@@ -55,7 +79,10 @@ export class ThemeEngine {
 
         // Observe :root style changes so we recompute when ST changes
         // --SmartThemeChatTintColor.
-        this._tintObserver = trackObserver(new MutationObserver(() => this.updateEffectiveBgL()));
+        this._tintObserver = trackObserver(new MutationObserver(() => {
+            this.updateEffectiveBgL();
+            this.syncBrowserColor();
+        }));
         this._tintObserver.observe(document.documentElement, {
             attributes: true,
             attributeFilter: ['style'],
@@ -89,6 +116,7 @@ export class ThemeEngine {
             this.analyzeImage(bgUrl);
         } else {
             this.lastUrl = null;
+            this.setBrowserColor(null);
             // Check if background is transparent
             if (bgColor === 'rgba(0,0,0,0)' || bgColor === 'rgba(0, 0, 0, 0)') {
                 console.log('[PTMT] Background is transparent, using neutral luminance');
@@ -101,11 +129,14 @@ export class ThemeEngine {
 
     async analyzeImage(url) {
         if (this.cache.has(url)) {
-            this.applyLuminance(this.cache.get(url));
+            const analysis = this.cache.get(url);
+            this.setBrowserColor(analysis.color);
+            this.applyLuminance(analysis.luminance);
             return;
         }
 
         if (!this.ctx) {
+            this.setBrowserColor(null);
             this.applyLuminance(0.5);
             return;
         }
@@ -115,26 +146,72 @@ export class ThemeEngine {
             img.crossOrigin = "Anonymous";
             img.src = url;
             await img.decode();
+            if (url !== this.lastUrl) return;
 
             this.ctx.drawImage(img, 0, 0, 10, 10);
             const data = this.ctx.getImageData(0, 0, 10, 10).data;
 
             let totalLum = 0;
+            const rgb = [0, 0, 0];
+            let alphaWeight = 0;
             for (let i = 0; i < data.length; i += 4) {
                 // Perceptual luminance formula
                 const r = data[i] / 255;
                 const g = data[i + 1] / 255;
                 const b = data[i + 2] / 255;
                 totalLum += (0.2126 * r + 0.7152 * g + 0.0722 * b);
+                const alpha = data[i + 3] / 255;
+                rgb[0] += data[i] * alpha;
+                rgb[1] += data[i + 1] * alpha;
+                rgb[2] += data[i + 2] * alpha;
+                alphaWeight += alpha;
             }
 
             const avgLum = totalLum / (data.length / 4);
-            this.cache.set(url, avgLum);
+            // Browser chrome needs an opaque color. Transparent pixels do not
+            // contribute black to the wallpaper's average RGB.
+            const color = alphaWeight > 0
+                ? '#' + rgb.map(channel => Math.round(channel / alphaWeight).toString(16).padStart(2, '0')).join('')
+                : null;
+            this.cache.set(url, { luminance: avgLum, color });
+            this.setBrowserColor(color);
             this.applyLuminance(avgLum);
         } catch (e) {
+            if (url !== this.lastUrl) return;
+            this.setBrowserColor(null);
             console.warn('[PTMT] Failed to analyze background image:', e);
             this.applyLuminance(0.5); // Fallback to neutral
         }
+    }
+
+    setBrowserColor(color) {
+        this._browserColor = color;
+        this.syncBrowserColor();
+    }
+
+    setBrowserTintEnabled(enabled) {
+        this._browserTintEnabled = enabled;
+        this.syncBrowserColor();
+    }
+
+    syncBrowserColor() {
+        const bodyColor = getComputedStyle(document.documentElement)
+            .getPropertyValue('--ptmt-body-bg-color').trim();
+        const value = (this._browserTintEnabled ? this._browserColor : bodyColor)
+            || bodyColor || this._originalMetaColor;
+        if (this._metaThemeColor && value !== null && this._metaThemeColor.getAttribute('content') !== value) {
+            this._appliedMetaColor = value;
+            this._metaThemeColor.setAttribute('content', value);
+        }
+    }
+
+    cleanup() {
+        this.lastUrl = null; // Ignore image decodes still pending on disable.
+        this._browserColor = null;
+        if (this._metaThemeColor && this._originalMetaColor !== null) {
+            this._metaThemeColor.setAttribute('content', this._originalMetaColor);
+        }
+        this._metaThemeColor = null;
     }
 
     analyzeColor(colorStr) {

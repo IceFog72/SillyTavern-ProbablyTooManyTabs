@@ -68,6 +68,7 @@ This section controls the visual aesthetic of the extension without affecting yo
 - **Show Icons Only** — Hides all tab text labels, showing only icons for a minimalist look.
 - **Enable Animations** — Toggles the surgical animation system. When on, UI transitions are fluid. When off, PTMT's layout changes are instant, but internal tab content (like chat bubbles or third-party widgets) will still retain their native fluidity.
 - **Enable Shadows** — Toggles visual depth (box-shadows) on panes and menus.
+- **Use Wallpaper for Browser Tint** — Uses the active wallpaper’s average color for browser `theme-color`. Enabled by default. Turning it off uses `--ptmt-body-bg-color`. Visible window tint depends on browser support.
 - **Enable Blur Effect** — Toggles the backdrop-filter blur on glassmorphic elements.
 
 ### Background & Theme
@@ -108,7 +109,7 @@ Tints quoted dialogue text and/or chat bubble backgrounds using each character's
 ### Global Settings
 
 - **Enable Dialogue Colorizer** — master switch for all colorizer effects.
-- **Wipe All** — resets all Dialogue Colorizer settings to defaults, including per-character and per-persona overrides.
+- **Reset colorizer** — resets all Dialogue Colorizer settings to defaults, including per-character and per-persona overrides.
 
 When the master switch is off, the Characters and Personas (User) sub-sections are hidden.
 

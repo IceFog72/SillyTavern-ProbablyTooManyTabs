@@ -1,17 +1,22 @@
 # Changelog
 
 
- **ANNOUNCEMENT:** Due to lack of support, development of PTMT and other extensions is currently frozen. Existing installations remain functional, but no new features or updates are being added at this time.
+ **ANNOUNCEMENT:** Development of PTMT and other extensions is currently paused due to limited support. Existing installations will continue to work, but new features, updates, and further development depend on community support. If you use and enjoy these projects, please consider supporting or donating—every contribution helps make continued development possible.
 
 ## v0.13 — 2026-10-03
 
 *Startup, Message Rail & Layout Performance*
 
+- ✦ Polish · **Browser Background Tint** — samples the wallpaper at startup and sets the `theme-color` metadata to its opaque average RGB. Background changes update the metadata, late ST theme application keeps the wallpaper value, and disabling PTMT restores ST’s latest tint. Layout Settings → Global Style includes a Use Wallpaper for Browser Tint toggle, enabled by default. Turning it off uses `--ptmt-body-bg-color` immediately. Visible browser/window tint depends on browser support.
 - ✦ New · **Startup Loading Screen** — covers the unfinished interface until PTMT has built and painted the layout. The screen clears on startup errors, extension disable/delete, or after 30 seconds if startup stalls.
 - ✦ Polish · **Message Rail on the Left** — moved the rail to the left edge of the chat and its enable checkbox to the first Global Layout settings position.
 - ✔ Fix · **Message Rail Hover Position** — expanding the rail centers the current chat message instead of starting at the first message. Rebuilding the rail also restores the active marker.
 - ✦ Polish · **Toolcool Gradient Picker** — replaced the native system color picker with `toolcool-color-picker` in the shared gradient editor used by Character Dialogue Colorizer, persona overrides, and global settings. Choose a custom color, then press **+** to add a gradient stop.
 - ✦ Removal · **Optimize Performance with Long Chat** — removed the setting and its message content-visibility CSS.
+- ✔ Fix · **Colorizer Alpha** — custom gradient stops retain picker opacity when added, edited, and restored. Adaptive dialogue text and the gradient contrast estimate preserve alpha. Bubble opacity multiplies the chosen color opacity.
+- ✦ Polish · **Layout Settings** — replaced stretched panels with a compact grid that follows the settings pane width. Character and Persona colorizer controls use matching columns, labeled gradient angles, and aligned opacity values. Layout actions have their own footer, and the colorizer sizing class is preserved.
+- ✔ Fix · **Chat Composer** — excluded the message textarea from generic field styling and restored ST’s native sizing, focus ring, and command-progress border. Composer buttons also retain their native minimum height so stacked Input History arrows do not enlarge the send row.
+- ✦ Polish · **ST Controls** — consistent 28px control spacing, visible keyboard focus, circular radio choices, and keyboard access to message actions. Selected settings buttons retain their highlight, delete buttons retain their destructive color, and control transitions respect reduced motion.
 - ✦ Polish · **Adaptive Text and Shadows** — uses native contrast selection where supported, with a lightness fallback. Body-local and bubble backgrounds recompute their own text colors. Shadow colors use controlled opacity, text shadows have valid geometry, and No Text Shadows remains effective.
 - ✔ Fix · **State Across Reloads** — restores collapsed panes before calculating sizes and preserves the Info tab state. A tab-local, account-scoped reload checkpoint retains the latest layout, theme colors, and background while server saves are pending. Snapshots now copy panel metadata into serializable objects.
 - ✔ Fix · **Layout Restore Cleanup** — disposes obsolete pane wrappers, observers, and resizer handlers while preserving reusable panel content. Repeated restores reuse custom panels and recover tabs whose original placeholder has been replaced.

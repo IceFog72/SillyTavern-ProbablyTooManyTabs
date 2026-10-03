@@ -11,6 +11,7 @@
 
 :root {
     --ptmt-control-radius: 4px;
+    --ptmt-control-height: 28px;
     --ptmt-control-track-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.35);
     --ptmt-control-knob-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
     --ptmt-control-button-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
@@ -595,8 +596,8 @@ body.big-avatars .mes .swipe_right:hover {
     background-color: var(--ST-UI-Background);
     padding: 2px;
     border-radius: 0.5rem;
-    visibility: hidden;
     opacity: 0;
+    pointer-events: none;
 }
 
 body.ptmt-enable-animations .mes_buttons,
@@ -610,9 +611,11 @@ body.ptmt-enable-animations .mes_reasoning_actions {
 }
 
 .mes:hover .mes_buttons,
-.mes:hover .mes_reasoning_actions {
-    visibility: visible;
+.mes:hover .mes_reasoning_actions,
+.mes:focus-within .mes_buttons,
+.mes:focus-within .mes_reasoning_actions {
     opacity: 1;
+    pointer-events: auto;
 }
 
 .mes_button,
@@ -760,7 +763,7 @@ body.charListGrid {
 
 input,
 select,
-textarea {
+textarea:where(:not(#send_textarea)) {
     color: var(--ST-Main-Text, #d7dde7) !important;
     background-color: var(--ST-TextBox-Background, rgba(0, 0, 0, 0.3)) !important;
     border: 1px solid var(--ST-UI-Border, #263246) !important;
@@ -774,7 +777,7 @@ textarea {
 
 input:disabled,
 select:disabled,
-textarea:disabled {
+textarea:where(:not(#send_textarea)):disabled {
     opacity: 0.5 !important;
     cursor: not-allowed !important;
     filter: saturate(0.6) brightness(0.9) !important;
@@ -800,12 +803,18 @@ textarea:disabled {
 }
 
 /* Menu buttons */
+/* Composer extensions can stack two buttons in one native-height row. */
+.menu_button:where(:not(#send_form *)) {
+    min-height: var(--ptmt-control-height);
+}
+
 .menu_button>* {
     text-shadow: none !important;
     box-shadow: none !important;
 }
 
 .menu_button {
+    gap: 6px;
     filter: unset !important;
     text-shadow: unset !important;
     font-size: calc(var(--mainFontSize) * 0.9);
@@ -829,7 +838,7 @@ body.ptmt-enable-animations .menu_button {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
-.menu_button:hover {
+.menu_button:not(.disabled):not([disabled]):not([aria-disabled="true"]):not(:is(.active, .selected, [aria-selected="true"])):hover {
     transform: none !important;
     box-shadow: var(--ptmt-control-button-shadow) !important;
     background: var(--ST-UI-Background-2) !important;
@@ -894,7 +903,7 @@ input[type="checkbox"] {
     filter: none;
     transform: none;
     padding: unset !important;
-    cursor: default;
+    cursor: pointer;
 }
 
 input[type="radio"]::before,
@@ -980,9 +989,35 @@ input[type="checkbox"]:checked::after {
     left: var(--ptmt-toggle-knob-size);
 }
 
-input[type="radio"]:focus:not(.focus-visible),
-input[type="checkbox"]:focus:not(.focus-visible) {
-    outline: 0;
+/* Keyboard focus stays visible even on the custom switch surface. */
+input[type="radio"]:focus-visible,
+input[type="checkbox"]:focus-visible,
+.menu_button:focus-visible,
+.inline-drawer-toggle:focus-visible {
+    outline: 2px solid var(--ST-Quote-Text, #ff4d57) !important;
+    outline-offset: 3px;
+}
+
+/* Radio choices retain their circular shape instead of looking like switches. */
+input[type="radio"] {
+    --ptmt-toggle-width: var(--ptmt-toggle-knob-size);
+}
+
+input[type="radio"]::before,
+input[type="radio"]::after {
+    border-radius: 50%;
+}
+
+input[type="radio"]::after {
+    inset: 3px;
+    width: calc(var(--ptmt-toggle-knob-size) - 6px);
+    height: calc(var(--ptmt-toggle-knob-size) - 6px);
+    opacity: 0;
+}
+
+input[type="radio"]:checked::after {
+    left: 3px;
+    opacity: 1;
 }
 
 input[type="radio"]:checked:hover,
@@ -1091,13 +1126,14 @@ body.ptmt-enable-animations .drawer-toggle:hover {
 
 #user-settings-block h3,
 #user-settings-block h4 {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
     display: flex;
     align-items: center;
     gap: 8px;
     padding: 0 9px !important;
     margin: 0 0 4px 0 !important;
     font-size: 13px;
+    line-height: 1.35;
     font-weight: 700;
     letter-spacing: 0;
     background: var(--ST-UI-Background-2) !important;
@@ -1169,7 +1205,7 @@ body.ptmt-enable-animations .drawer-toggle:hover {
 }
 
 #user-settings-block .checkbox_label {
-    min-height: 22px;
+    min-height: var(--ptmt-control-height);
     padding: 0 5px;
     gap: 5px;
     background: transparent;
@@ -1195,7 +1231,7 @@ body.ptmt-enable-animations #user-settings-block .checkbox_label {
 }
 
 #user-settings-block .menu_button {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
     padding: 0 7px !important;
     display: inline-flex;
     align-items: center;
@@ -1212,7 +1248,7 @@ body.ptmt-enable-animations #user-settings-block .menu_button {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
-#user-settings-block .menu_button:not(.disabled):not([disabled]):hover {
+#user-settings-block .menu_button:not(.disabled):not([disabled]):not(:is(.active, .selected, [aria-selected="true"])):hover {
     color: var(--ST-Main-Text, #d7dde7) !important;
     background: var(--ST-UI-Background-2) !important;
     border-color: var(--ST-Quote-Text, #ff4d57) !important;
@@ -1236,8 +1272,8 @@ body.ptmt-enable-animations #user-settings-block .menu_button {
 #user-settings-block select,
 #user-settings-block input[type="number"],
 #user-settings-block input[type="text"] {
-    min-height: 24px;
-    padding: 2px 7px;
+    min-height: var(--ptmt-control-height);
+    padding: 3px 8px;
     color: var(--ST-Main-Text, #d7dde7) !important;
     background: var(--ST-TextBox-Background, rgba(0, 0, 0, 0.3)) !important;
     border: 1px solid transparent !important;
@@ -1366,8 +1402,8 @@ body.ptmt-enable-animations #user-settings-block input[type="text"] {
     width: auto !important;
     min-width: 78px;
     max-width: 96px;
-    height: 24px !important;
-    min-height: 24px !important;
+    height: var(--ptmt-control-height) !important;
+    min-height: var(--ptmt-control-height) !important;
     padding: 0 20px 0 7px !important;
     font-size: 12px !important;
 }
@@ -1439,7 +1475,7 @@ h4,
 .inline-drawer-toggle.inline-drawer-header,
 .dragTitle,
 .panelControlBar {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
     margin: 0 0 4px 0 !important;
     padding: 0 8px !important;
     display: flex;
@@ -1450,6 +1486,7 @@ h4,
     border-radius: var(--ptmt-control-radius) !important;
     box-shadow: none !important;
     font-size: 13px;
+    line-height: 1.35;
     font-weight: 700;
     letter-spacing: 0;
 }
@@ -1470,13 +1507,14 @@ h4,
 }
 
 .text_pole,
-textarea,
+textarea:where(:not(#send_textarea)),
 select,
 input[type="text"],
 input[type="search"],
 input[type="number"],
 input[type="password"] {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
+    padding: 3px 8px;
     color: var(--ST-Main-Text, #d7dde7) !important;
     background: var(--ST-TextBox-Background, rgba(0, 0, 0, 0.3)) !important;
     border: 1px solid transparent !important;
@@ -1486,7 +1524,7 @@ input[type="password"] {
 }
 
 body.ptmt-enable-animations .text_pole,
-body.ptmt-enable-animations textarea,
+body.ptmt-enable-animations textarea:where(:not(#send_textarea)),
 body.ptmt-enable-animations select,
 body.ptmt-enable-animations input[type="text"],
 body.ptmt-enable-animations input[type="search"],
@@ -1496,7 +1534,7 @@ body.ptmt-enable-animations input[type="password"] {
 }
 
 .text_pole:hover,
-textarea:hover,
+textarea:where(:not(#send_textarea)):hover,
 select:hover,
 input[type="text"]:hover,
 input[type="search"]:hover,
@@ -1506,7 +1544,7 @@ input[type="password"]:hover {
 }
 
 .text_pole:focus,
-textarea:focus,
+textarea:where(:not(#send_textarea)):focus,
 select:focus,
 input[type="text"]:focus,
 input[type="search"]:focus,
@@ -1520,7 +1558,7 @@ input[type="password"]:focus {
 .list-group-item,
 .tag,
 .tags .tag {
-    min-height: 22px;
+    min-height: var(--ptmt-control-height);
     padding: 0 6px;
     gap: 5px;
     color: var(--ST-Main-Text, #d7dde7) !important;
@@ -1571,7 +1609,7 @@ body.ptmt-enable-animations .tags .tag {
 
 #extensions_settings .extension_container,
 #extensions_settings2 .extension_container {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
 }
 
 #extensions_settings .extension_container:empty,
@@ -1596,22 +1634,8 @@ body.ptmt-enable-animations .tags .tag {
     box-shadow: none !important;
 }
 
-#send_textarea {
-    min-height: 34px;
-    color: var(--ST-Main-Text, #d7dde7) !important;
-    background: transparent !important;
-    border: 1px solid transparent !important;
-    border-radius: var(--ptmt-control-radius) !important;
-    box-shadow: var(--ptmt-control-track-shadow) !important;
-    outline: none;
-    transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition);
-    clip-path: unset !important;
-}
-
-#send_textarea:focus {
-    border-color: var(--ST-Quote-Text, #ff4d57) !important;
-}
-
+/* ST owns composer sizing, its outer focus ring, and command-progress border.
+   Keep the settings-field skin off this editing surface. */
 /* Send-bar icon buttons (toolbar icons — keep minimal, not full buttons) */
 #leftSendForm .interactable,
 #rightSendForm .interactable,
@@ -1719,7 +1743,7 @@ body.ptmt-enable-animations .stih--button {
 #AdvancedFormatting .standoutHeader,
 #AdvancedFormatting .range-block-title,
 #AdvancedFormatting details>summary {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -1727,6 +1751,7 @@ body.ptmt-enable-animations .stih--button {
     padding: 0 9px !important;
     margin: 0 0 4px 0 !important;
     font-size: 13px;
+    line-height: 1.35;
     font-weight: 700;
     letter-spacing: 0;
     background: var(--ST-UI-Background-2) !important;
@@ -1755,8 +1780,8 @@ body.ptmt-enable-animations .stih--button {
 #AdvancedFormatting input[type="text"],
 #AdvancedFormatting input[type="search"],
 #AdvancedFormatting input[type="number"] {
-    min-height: 24px;
-    padding: 2px 7px;
+    min-height: var(--ptmt-control-height);
+    padding: 3px 8px;
     color: var(--ST-Main-Text, #d7dde7) !important;
     background: var(--ST-TextBox-Background, rgba(0, 0, 0, 0.3)) !important;
     border: 1px solid transparent !important;
@@ -1799,7 +1824,7 @@ body.ptmt-enable-animations #AdvancedFormatting input[type="number"] {
 }
 
 #AdvancedFormatting .menu_button {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
     padding: 0 7px !important;
     display: inline-flex;
     align-items: center;
@@ -1820,7 +1845,7 @@ body.ptmt-enable-animations #AdvancedFormatting .menu_button {
     transition: background var(--ptmt-control-transition), border-color var(--ptmt-control-transition), color var(--ptmt-control-transition), box-shadow var(--ptmt-control-transition);
 }
 
-#AdvancedFormatting .menu_button:not(.disabled):not([disabled]):hover {
+#AdvancedFormatting .menu_button:not(.disabled):not([disabled]):not(:is(.active, .selected, [aria-selected="true"])):hover {
     color: var(--ST-Main-Text, #d7dde7) !important;
     background: var(--ST-UI-Background-2) !important;
     border-color: transparent !important;
@@ -1832,7 +1857,7 @@ body.ptmt-enable-animations #AdvancedFormatting .menu_button {
 }
 
 #AdvancedFormatting .checkbox_label {
-    min-height: 22px;
+    min-height: var(--ptmt-control-height);
     padding: 0 5px;
     gap: 5px;
     background: transparent;
@@ -1875,7 +1900,7 @@ body.ptmt-enable-animations #AdvancedFormatting .checkbox_label {
 }
 
 .inline-drawer-header {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
     margin: 0 0 3px 0 !important;
     padding: 0 8px !important;
     display: flex;
@@ -1908,7 +1933,7 @@ body.ptmt-enable-animations #AdvancedFormatting .checkbox_label {
 .inline-drawer-toggle.inline-drawer-header,
 .standoutHeader,
 .userSettingsInnerExpandable {
-    min-height: 24px;
+    min-height: var(--ptmt-control-height);
     margin: 0 0 3px 0 !important;
     padding: 0 8px !important;
     display: flex;
@@ -1959,18 +1984,20 @@ body.ptmt-enable-animations #AdvancedFormatting .checkbox_label {
 }
 
 .menu_button {
-    background: var(--ST-TextBox-Background, rgba(0, 0, 0, 0.3)) !important;
     transform: none !important;
     box-shadow: var(--ptmt-control-button-shadow) !important;
 }
 
-.menu_button:not(.disabled):not([disabled]):hover {
+.menu_button:not(.disabled):not([disabled]):not(:is(.active, .selected, [aria-selected="true"])):hover {
     border-color: var(--ST-Quote-Text, #ff4d57) !important;
     background: var(--ST-UI-Background-2) !important;
     transform: none !important;
     box-shadow: var(--ptmt-control-button-shadow) !important;
 }
 
+#user-settings-block .menu_button.active,
+#user-settings-block .menu_button.selected,
+#user-settings-block .menu_button[aria-selected="true"],
 .menu_button.active,
 .menu_button.selected,
 .menu_button[aria-selected="true"],
@@ -2013,7 +2040,7 @@ input[type="number"],
 .neo-range-input {
     appearance: textfield !important;
     -moz-appearance: textfield !important;
-    min-height: 24px !important;
+    min-height: var(--ptmt-control-height) !important;
     padding: 0 8px !important;
     color: var(--ST-Main-Text, #d7dde7) !important;
     background-color: var(--ST-TextBox-Background, rgba(0, 0, 0, 0.3)) !important;
@@ -2207,4 +2234,16 @@ body .ui-widget-content {
 
 .rpg-mobile-overlay {
     display: none !important;
+}
+/* Keep controls legible and still when the system requests less motion. */
+@media (prefers-reduced-motion: reduce) {
+    body.ptmt-enable-animations :is(.menu_button, .checkbox_label, input, select, textarea),
+    body.ptmt-enable-animations input::before,
+    body.ptmt-enable-animations input::after {
+        transition: none !important;
+    }
+}
+
+#nonQRFormItems {
+    background-color: var(--SmartThemeBlurTintColor) !important;
 }
