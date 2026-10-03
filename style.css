@@ -78,17 +78,6 @@
   --ptmt-ui-tint: var(--ST-UI-Background);
   --ptmt-ui-composite: oklch(from var(--ptmt-ui-tint) calc(l * alpha + var(--ptmt-bg-l) * (1 - alpha)) c h);
 
-  /* Isolated Global Adaptive Text Variables */
-  --ptmt-adaptive-bw: oklch(from var(--ptmt-ui-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
-  --ptmt-contrast-bw: var(--ptmt-adaptive-bw);
-
-  --ptmt-adaptive-text: color-mix(in oklch, var(--ST-Main-Text), var(--ptmt-adaptive-bw) 70%);
-  --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 70%);
-  --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 70%);
-  --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Button-Background), var(--ptmt-adaptive-bw) 70%);
-  --ptmt-adaptive-shadow: color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-bw) 70%);
-  --ptmt-adaptive-shadow-reverse: color-mix(in oklch, var(--ST-Text-Shadow), oklch(from var(--ptmt-ui-composite) clamp(0, (l - 0.45) * 100, 1) 0 0 / 1) 70%);
-
   --tool-cool-color-picker-field-label-color: var(--SmartThemeQuoteColor);
   --tool-cool-color-picker-popup-bg: var(--ST-UI-Background);
   /* Create a theme-aware danger color by mixing the theme body color with red */
@@ -116,6 +105,29 @@
   --tts-bottom-offset: 39px;
   --ptmt-panel-bg: var(--ST-UI-Background);
   --ptmt-panel-border: var(--ST-UI-Border);
+}
+
+:root,
+body.ptmt-bg-under-chat {
+  /* Isolated Global Adaptive Text Variables */
+  --ptmt-adaptive-bw: oklch(from var(--ptmt-ui-composite) round(up, clamp(0, 0.564 - l, 1), 1) 0 0 / 1);
+  --ptmt-contrast-bw: var(--ptmt-adaptive-bw);
+
+  --ptmt-adaptive-text: var(--ptmt-adaptive-bw);
+  --ptmt-adaptive-em: color-mix(in oklch, var(--ST-Italics-Text), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-underline: color-mix(in oklch, var(--ST-Underlined-Text), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-quote: color-mix(in oklch, var(--ST-Button-Background), var(--ptmt-adaptive-bw) 70%);
+  --ptmt-adaptive-shadow: rgb(from color-mix(in oklch, var(--ST-Text-Shadow), var(--ptmt-adaptive-text) 70%) r g b / 0.35);
+  --ptmt-adaptive-shadow-reverse: oklch(from var(--ptmt-adaptive-text) calc(1 - l) 0 0 / 0.55);
+
+}
+
+/* Prefer the browser's contrast choice. The lightness fallback remains for older browsers. */
+@supports (color: contrast-color(white)) {
+  :root,
+  body.ptmt-bg-under-chat {
+    --ptmt-adaptive-bw: contrast-color(var(--ptmt-ui-composite));
+  }
 }
 
 .text_pole {

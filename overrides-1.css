@@ -20,8 +20,11 @@
 }
 
 * {
-    /*text-shadow: 0.5px 0.5px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor) !important;*/
-    text-shadow: var(--ptmt-adaptive-shadow-reverse) !important;
+    /* A shadow needs offsets and blur, not just a color. Recompute locally so
+       message-specific colors inherit correctly and Shadow Width = 0 stays flat. */
+    --ptmt-text-shadow: 0 clamp(0px, calc(var(--shadowWidth, 0) * 1px), 1px)
+        clamp(0px, calc(var(--shadowWidth, 0) * 1px), 2px) var(--ptmt-adaptive-shadow-reverse);
+    text-shadow: var(--ptmt-text-shadow) !important;
 }
 
 /* ========================================= */
@@ -39,7 +42,7 @@ body.ptmt-auto-contrast {
     --ptmt-adaptive-underline: var(--ST-Underlined-Text);
     --ptmt-adaptive-quote: var(--ST-Quote-Text);
     color: var(--ptmt-adaptive-text) !important;
-    text-shadow: var(--ptmt-adaptive-shadow-reverse) !important;
+    text-shadow: var(--ptmt-text-shadow) !important;
 }
 
 .ptmt-auto-contrast .options-content a,
@@ -51,7 +54,7 @@ body.ptmt-auto-contrast {
 .ptmt-auto-contrast .info-block,
 .ptmt-auto-contrast label:not(:has(.toggleOn)) {
     color: var(--ptmt-adaptive-text) !important;
-    text-shadow: var(--ptmt-adaptive-shadow-reverse) !important;
+    text-shadow: var(--ptmt-text-shadow) !important;
 }
 
 .ptmt-auto-contrast .toggle-description,
@@ -59,7 +62,7 @@ body.ptmt-auto-contrast {
 .ptmt-auto-contrast .inline-drawer-content small,
 .ptmt-auto-contrast .text_muted {
     color: var(--ptmt-adaptive-em) !important;
-    text-shadow: var(--ptmt-adaptive-shadow-reverse) !important;
+    text-shadow: var(--ptmt-text-shadow) !important;
 }
 
 .ptmt-auto-contrast a,
@@ -69,6 +72,8 @@ body.ptmt-auto-contrast {
 }
 
 body.noShadows * {
+    --ptmt-text-shadow: none !important;
+    --ptmt-adaptive-shadow-reverse: transparent !important;
     text-shadow: none !important;
 }
 
@@ -108,15 +113,16 @@ body.big-avatars .mes {
     /* Colorizer sets --ptmt-mes-colorizer-color as rgba(r,g,b,opacity) when BUBBLES mode active.
        Alpha = bubble opacity → drives blend against effective bg (tint over wallpaper). Falls back to ST message bg. */
     --ptmt-mes-composite: oklch(from var(--ptmt-mes-colorizer-color, var(--ST-Bot-Message-Background)) calc(l * alpha + var(--ptmt-effective-bg-l, var(--ptmt-bg-l)) * (1 - alpha)) c h);
-    --ptmt-mes-bw: oklch(from var(--ptmt-mes-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
-    --ptmt-mes-shadow-bw: oklch(from var(--ptmt-mes-composite) clamp(0, (l - 0.45) * 100, 1) 0 0 / 1);
+    --ptmt-mes-bw: oklch(from var(--ptmt-mes-composite) round(up, clamp(0, 0.564 - l, 1), 1) 0 0 / 1);
+    --ptmt-mes-shadow-bw: oklch(from var(--ptmt-mes-bw) calc(1 - l) 0 0 / 1);
     --ptmt-contrast-bw: var(--ptmt-mes-bw);
     --ptmt-adaptive-text: var(--ptmt-mes-bw);
     --ptmt-mes-text: var(--ptmt-mes-bw);
     --ptmt-mes-em: var(--ptmt-mes-bw);
     --ptmt-mes-underline: var(--ST-Underlined-Text);
     --ptmt-mes-quote: var(--ST-Quote-Text);
-    --ptmt-mes-shadow: var(--ptmt-mes-shadow-bw);
+    --ptmt-mes-shadow: rgb(from var(--ptmt-mes-shadow-bw) r g b / 0.55);
+    --ptmt-adaptive-shadow-reverse: var(--ptmt-mes-shadow);
     --ptmt-code-bg: oklch(from var(--ptmt-mes-composite) clamp(0, (l - 0.45) * 100, 0.15) 0 0 / 0.7);
     --ptmt-code-text: oklch(from var(--ptmt-code-bg) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
 }
@@ -125,8 +131,8 @@ body.big-avatars .mes {
 .mes[is_user="true"] {
     /* Same: colorizer color (with opacity in alpha) or ST user message bg, blended against effective bg */
     --ptmt-mes-composite: oklch(from var(--ptmt-mes-colorizer-color, var(--ST-User-Message-Background)) calc(l * alpha + var(--ptmt-effective-bg-l, var(--ptmt-bg-l)) * (1 - alpha)) c h);
-    --ptmt-mes-bw: oklch(from var(--ptmt-mes-composite) clamp(0, (l - 0.45) * -100, 1) 0 0 / 1);
-    --ptmt-mes-shadow-bw: oklch(from var(--ptmt-mes-composite) clamp(0, (l - 0.45) * 100, 1) 0 0 / 1);
+    --ptmt-mes-bw: oklch(from var(--ptmt-mes-composite) round(up, clamp(0, 0.564 - l, 1), 1) 0 0 / 1);
+    --ptmt-mes-shadow-bw: oklch(from var(--ptmt-mes-bw) calc(1 - l) 0 0 / 1);
     --ptmt-contrast-bw: var(--ptmt-mes-bw);
     /* Explicitly recompute text vars for user bubble so browsers can't cache the bot values */
     --ptmt-adaptive-text: var(--ptmt-mes-bw);
@@ -134,20 +140,30 @@ body.big-avatars .mes {
     --ptmt-mes-em: var(--ptmt-mes-bw);
     --ptmt-mes-underline: var(--ST-Underlined-Text);
     --ptmt-mes-quote: var(--ST-Quote-Text);
-    --ptmt-mes-shadow: var(--ptmt-mes-shadow-bw);
+    --ptmt-mes-shadow: rgb(from var(--ptmt-mes-shadow-bw) r g b / 0.55);
+    --ptmt-adaptive-shadow-reverse: var(--ptmt-mes-shadow);
     --ptmt-code-bg: oklch(from var(--ptmt-mes-composite) clamp(0, (l - 0.45) * 100, 0.15) 0 0 / 0.7);
     --ptmt-code-text: oklch(from var(--ptmt-code-bg) clamp(0.9, (l - 0.45) * -100, 1) 0 0 / 1);
+}
+
+/* Use each bubble's composite rather than the global UI background. */
+@supports (color: contrast-color(white)) {
+    .mes,
+    .mes[is_user="true"] {
+        --ptmt-mes-bw: contrast-color(var(--ptmt-mes-composite));
+        --ptmt-mes-shadow-bw: contrast-color(var(--ptmt-mes-bw));
+    }
 }
 
 /* Auto-contrast applies the computed colors */
 .ptmt-auto-contrast .mes {
     color: var(--ptmt-mes-text) !important;
-    text-shadow: var(--ptmt-mes-shadow) !important;
+    text-shadow: var(--ptmt-text-shadow) !important;
 }
 
 .ptmt-auto-contrast .mes em {
     color: var(--ptmt-mes-em) !important;
-    text-shadow: var(--ptmt-mes-shadow) !important;
+    text-shadow: var(--ptmt-text-shadow) !important;
 }
 
 .ptmt-auto-contrast .mes u,
@@ -172,13 +188,13 @@ body.big-avatars .mes {
 
 .ptmt-auto-contrast .mes_text {
     color: var(--ptmt-mes-text) !important;
-    text-shadow: var(--ptmt-mes-shadow) !important;
+    text-shadow: var(--ptmt-text-shadow) !important;
 }
 
 .ptmt-auto-contrast .mr_mes_reasoning,
 .ptmt-auto-contrast .mes_reasoning {
     color: var(--ptmt-mes-em) !important;
-    text-shadow: var(--ptmt-mes-shadow) !important;
+    text-shadow: var(--ptmt-text-shadow) !important;
 }
 
 .ptmt-auto-contrast .mes_text q,
