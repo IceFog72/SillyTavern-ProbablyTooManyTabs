@@ -28,6 +28,8 @@ import { initInspectorScaleControl, cleanupInspectorScaleControl } from './ui-in
 import { initThemeColors } from './theme-colors.js';
 import { initMessageRail, cleanupMessageRail } from './message-rail.js';
 import { initStMobileStylesBlocker, cleanupStMobileStylesBlocker } from './st-mobile-styles.js';
+import { showStartupScreen, finishStartupScreen, cleanupStartupScreen } from './startup-screen.js';
+import { captureReloadCheckpoint, restoreReloadCheckpoint } from './reload-checkpoint.js';
 
 // ─── Subsystem Init ──────────────────────────────────────────────────────────
 function initSubsystems() {
@@ -127,7 +129,7 @@ function applyTabStripMode(pane) {
 }
 
 function initTabStripMode() {
-    const updateAll = () => document.querySelectorAll(SELECTORS.PANE).forEach(applyTabStripMode);
+    const updateAll = () => getRefs().mainBody?.querySelectorAll(SELECTORS.PANE).forEach(applyTabStripMode);
     updateAll();
     registerBodyObserver(
         'tab-strip-mode',
@@ -264,6 +266,7 @@ function createApi(state) {
             const oldKey = isMobile ? 'savedLayoutMobile' : 'savedLayoutDesktop';
             const extraUpdates = isMobile ? { showIconsOnly: false } : {};
             await settings.update({ [oldKey]: currentSnapshot, isMobile: !isMobile, ...extraUpdates }, true);
+            state.isHydrating = true;
             window.location.reload();
         },
         getAvailableThemes: () => Object.entries(SettingsManager.themes).map(([key, config]) => ({
@@ -286,8 +289,8 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
     const debouncedLayoutReaction = debounce((event) => {
         const reason = event.detail?.reason || 'unknown';
         if (reason === 'snapshotApplied') return;
-        document.querySelectorAll(SELECTORS.SPLIT).forEach(applySplitOrientation);
-        document.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
+        getRefs().mainBody?.querySelectorAll(SELECTORS.SPLIT).forEach(applySplitOrientation);
+        getRefs().mainBody?.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
         applyColumnVisibility();
         if (!['manualResize', 'tabSwitch', 'paneCollapsed', 'splitStructuralChange'].includes(reason)) recalculateColumnSizes();
         updateResizerDisabledStates();
@@ -296,8 +299,9 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
     }, 50);
 
     const handleLayoutChanged = (event) => {
+        if (event.detail?.reason === 'snapshotApplied') return;
         if (event.detail?.pane) applyPaneOrientation(event.detail.pane);
-        else document.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
+        else getRefs().mainBody?.querySelectorAll(SELECTORS.PANE).forEach(applyPaneOrientation);
         debouncedLayoutReaction(event);
     };
     window.addEventListener(EVENTS.LAYOUT_CHANGED, handleLayoutChanged, { passive: true });
@@ -336,22 +340,42 @@ function bindLayoutReactions(state, api, saveCurrentLayoutDebounced) {
         }
     };
 
-    const handleSettingsChanged = () => {
-        document.body.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
-        document.body.classList.toggle('ptmt-mobile', !!settings.get('isMobile'));
-        document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
-        document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
-        document.body.classList.toggle('ptmt-enable-animations', !!settings.get('enableAnimations'));
-        document.body.classList.toggle('ptmt-enable-shadows', !!settings.get('enableShadows'));
-        const bodyBgColor = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
-        document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
-        const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
-        document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
-        SettingsManager.applyTheme(settings.get('uiTheme') || 'sharp');
-        applyOverrides();
-        state.updateTabStripMode?.();
-        document.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
-        window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
+    const handleSettingsChanged = (event) => {
+        const changed = new Set(event.detail?.changed || []);
+        const has = (...keys) => keys.some(key => changed.has(key));
+        const bodyClasses = [
+            ['showIconsOnly', 'ptmt-global-icons-only'],
+            ['isMobile', 'ptmt-mobile'],
+            ['enableAnimations', 'ptmt-enable-animations'],
+            ['enableShadows', 'ptmt-enable-shadows'],
+            ['enableBlurEffect', 'ptmt-enable-blur-effect'],
+        ];
+        for (const [key, className] of bodyClasses) {
+            if (changed.has(key)) document.body.classList.toggle(className, !!settings.get(key));
+        }
+        if (has('enableOverride1', 'enableAutoContrast')) {
+            document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
+        }
+        if (has('bodyBgColor', 'moveBg1ToSheld')) {
+            const bodyBgColor = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
+            document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColor);
+            const bodyBgAlpha = themeEngine.setBodyBgColor(bodyBgColor);
+            document.body.classList.toggle('ptmt-bg-under-chat', !!settings.get('moveBg1ToSheld') && bodyBgAlpha > 0.05);
+        }
+        if (changed.has('uiTheme')) SettingsManager.applyTheme(settings.get('uiTheme') || 'sharp');
+        if (changed.has('enableOverride1')) applyOverrides();
+        else if (settings.get('enableOverride1')) {
+            for (const [cssVar, settingKey, fallback] of avatarVars) {
+                if (changed.has(settingKey)) document.documentElement.style.setProperty(cssVar, settings.get(settingKey) || fallback);
+            }
+        }
+        if (has('showIconsOnly', 'isMobile')) {
+            getRefs().mainBody?.querySelectorAll(SELECTORS.PANE).forEach(checkPaneForIconMode);
+        }
+        if (has('tabStripMode', 'tabStripAutoHide')) state.updateTabStripMode?.();
+        if (has('showLeftPane', 'showRightPane', 'showIconsOnly', 'isMobile', 'uiTheme', 'enableOverride1', 'tabStripMode', 'tabStripAutoHide', 'panelMappings')) {
+            window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED, { detail: { reason: 'layoutSettingsChanged' } }));
+        }
     };
     window.addEventListener(EVENTS.SETTINGS_CHANGED, handleSettingsChanged);
     trackListener(window, EVENTS.SETTINGS_CHANGED, handleSettingsChanged);
@@ -435,7 +459,6 @@ function postInit(state, applyOverrides) {
     document.body.classList.toggle('ptmt-mobile', !!isMobile);
     document.body.classList.toggle('ptmt-global-icons-only', !!settings.get('showIconsOnly'));
     document.body.classList.toggle('ptmt-auto-contrast', !!settings.get('enableOverride1') && !!settings.get('enableAutoContrast'));
-    document.body.classList.toggle('ptmt-optimize-visibility', !!settings.get('enableOverride1') && !!settings.get('optimizeMessageVisibility'));
     document.body.classList.toggle('ptmt-enable-animations', !!settings.get('enableAnimations'));
     document.body.classList.toggle('ptmt-enable-shadows', !!settings.get('enableShadows'));
     document.body.classList.toggle('ptmt-enable-blur-effect', !!settings.get('enableBlurEffect'));
@@ -467,7 +490,7 @@ function cleanupRuntimeSubsystems() {
     cleanupAllObservers();
     document.querySelector(SELECTORS.OVERRIDES_LINK)?.remove();
     document.body?.classList.remove(
-        'ptmt-mobile', 'ptmt-global-icons-only', 'ptmt-auto-contrast', 'ptmt-optimize-visibility',
+        'ptmt-mobile', 'ptmt-global-icons-only', 'ptmt-auto-contrast',
         'ptmt-enable-animations', 'ptmt-enable-shadows', 'ptmt-enable-blur-effect', 'ptmt-bg-under-chat'
     );
 }
@@ -475,28 +498,37 @@ function cleanupRuntimeSubsystems() {
 // ─── Entry Point ─────────────────────────────────────────────────────────────
 (function () {
     function initApp() {
-        if (window.ptmtTabs) cleanupRuntimeSubsystems();
-        const state = { isPTMTResetting: false, isHydrating: true };
+        try {
+            if (window.ptmtTabs) cleanupRuntimeSubsystems();
+            const state = { isPTMTResetting: false, isHydrating: true };
 
-        initSubsystems();
-        initThemeColors();
-        const saveCurrentLayoutDebounced = createSaveHandler(state);
-        const api = createApi(state);
-        window.ptmtTabs = api;
-        const applyOverrides = bindLayoutReactions(state, api, saveCurrentLayoutDebounced);
-        initGlobalResizeObserver();
-        moveToMovingDivs(['expression-plus-wrapper', 'charlib-embedded-container']);
-        loadInitialLayout(api);
-        postInit(state, applyOverrides);
-        initLayoutResetShortcut(api);
-        initActivePaneKeyboardSwipe();
-        initDemotionObserver(api);
-        return api;
+            restoreReloadCheckpoint();
+            initSubsystems();
+            initThemeColors();
+            const saveCurrentLayoutDebounced = createSaveHandler(state);
+            const api = createApi(state);
+            window.ptmtTabs = api;
+            const checkpoint = () => captureReloadCheckpoint(api, state);
+            window.addEventListener('pagehide', checkpoint);
+            trackListener(window, 'pagehide', checkpoint);
+            const applyOverrides = bindLayoutReactions(state, api, saveCurrentLayoutDebounced);
+            initGlobalResizeObserver();
+            moveToMovingDivs(['expression-plus-wrapper', 'charlib-embedded-container']);
+            loadInitialLayout(api);
+            postInit(state, applyOverrides);
+            initLayoutResetShortcut(api);
+            initActivePaneKeyboardSwipe();
+            initDemotionObserver(api);
+            return api;
+        } finally {
+            finishStartupScreen();
+        }
     }
 
     if (!document.getElementById(SELECTORS.SETTINGS_WRAPPER.substring(1))) {
         document.body.insertAdjacentHTML('beforeend', `<div id="${SELECTORS.SETTINGS_WRAPPER.substring(1)}" style="display:none;"></div>`);
     }
+    showStartupScreen();
     eventSource.on(event_types.APP_READY, initApp);
 })();
 
@@ -505,6 +537,7 @@ export async function onActivate() {}
 export async function onInstall() {}
 
 export async function onDelete() {
+    cleanupStartupScreen();
     cleanupRuntimeSubsystems();
     await settings.cleanup();
 }
@@ -514,6 +547,7 @@ export async function onEnable() {
 }
 
 export async function onDisable() {
+    cleanupStartupScreen();
     cleanupRuntimeSubsystems();
 }
 

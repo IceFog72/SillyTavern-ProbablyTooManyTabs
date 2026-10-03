@@ -2,9 +2,9 @@
 
 import { getRefs, writePaneViewSettings, readPaneViewSettings } from './utils.js';
 import { getPanelById, getSplitOrientation, el, getPanelBySourceId } from './utils.js';
-import { createPane, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed, applyIconsOnly } from './pane.js';
+import { createPane, cleanupPaneObservers, applyPaneOrientation, setPaneCollapsedView, checkAndCollapsePaneIfAllTabsCollapsed, applyIconsOnly } from './pane.js';
 import { setActivePanelInPane, createPanelElement, registerPanelDom, createTabElement, createTabFromContent } from './tabs.js';
-import { attachResizer, updateResizerDisabledStates, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
+import { attachResizer, detachResizer, updateResizerDisabledStates, checkPaneForIconMode, validateAndCorrectAllMinSizes } from './resizer.js';
 import { LayoutManager } from './LayoutManager.js';
 import { recalculateColumnSizes } from './layout.js';
 import { settings, SettingsManager } from './settings.js';
@@ -637,7 +637,7 @@ export function generateLayoutSnapshot() {
                     order: index,
                     isDefault: panel?.dataset?.defaultPanel === 'true',
                     customContent: isCustom ? panel?.querySelector('.ptmt-panel-content')?.innerHTML : null,
-                    customData: panel?.dataset || {}
+                    customData: { ...panel?.dataset }
                 };
             });
 
@@ -809,12 +809,12 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
     }
     snapshot = validated; // Use migrated/validated snapshot from here on
 
-    const settingsWrapperId = 'ptmt-settings-wrapper-content';
-    let settingsWrapper = document.getElementById(settingsWrapperId);
-    if (!settingsWrapper) {
-        settingsWrapper = el('div', { id: settingsWrapperId });
-        const stagingArea = document.querySelector(SELECTORS.STAGING_AREA) || document.body;
-        stagingArea.appendChild(settingsWrapper);
+    // Create internal sources before rebuilding tabs so saved tab state applies.
+    for (const id of ['ptmt-settings-wrapper-content', PTMT_INFO_PANEL_ID]) {
+        if (!document.getElementById(id)) {
+            const stagingArea = document.querySelector(SELECTORS.STAGING_AREA) || document.body;
+            stagingArea.appendChild(el('div', { id }));
+        }
     }
 
 
@@ -824,20 +824,28 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         return;
     }
 
-    const stagingArea = document.querySelector(SELECTORS.STAGING_AREA) || document.body;
+    let stagingArea = document.querySelector(SELECTORS.STAGING_AREA);
+    if (!stagingArea) {
+        stagingArea = el('div', { id: SELECTORS.STAGING_AREA.substring(1), style: { display: 'none' } });
+        document.body.appendChild(stagingArea);
+    }
     [refs.leftBody, refs.centerBody, refs.rightBody].forEach(col => {
-        if (col) {
-            const elementsToPreserve = Array.from(col.querySelectorAll('[data-preserve="true"]'));
-            const preserveSet = new Set(elementsToPreserve);
-            // Move all other children to staging area before clearing
-            const childrenToMove = Array.from(col.childNodes).filter(node => !preserveSet.has(node));
-            childrenToMove.forEach(node => stagingArea.appendChild(node));
-            // Remove remaining non-preserved children (handles text nodes, etc.)
-            while (col.firstChild) {
-                col.removeChild(col.firstChild);
+        if (!col) return;
+        const preserved = Array.from(col.querySelectorAll('[data-preserve="true"]'));
+        // Extract preserved nodes first so structural cleanup cannot discard them.
+        preserved.forEach(node => stagingArea.appendChild(node));
+        for (const node of Array.from(col.childNodes)) {
+            if (node instanceof Element && node.matches(`${SELECTORS.PANE}, ${SELECTORS.SPLIT}`)) {
+                node.querySelectorAll(SELECTORS.PANEL).forEach(panel => stagingArea.appendChild(panel));
+                const panes = node.matches(SELECTORS.PANE) ? [node] : node.querySelectorAll(SELECTORS.PANE);
+                panes.forEach(cleanupPaneObservers);
+                node.querySelectorAll(`${SELECTORS.RESIZER_V}, ${SELECTORS.RESIZER_H}`).forEach(detachResizer);
+                node.remove();
+            } else {
+                stagingArea.appendChild(node);
             }
-            elementsToPreserve.forEach(el => col.appendChild(el));
         }
+        preserved.forEach(node => col.appendChild(node));
     });
 
 
@@ -868,11 +876,10 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
         refs.centerBody.style.flex = snapshot.columnSizes.center;
         refs.rightBody.style.flex = snapshot.columnSizes.right;
 
-        if (snapshot.columnSizes.leftCollapsed) {
-            refs.leftBody.dataset.isColumnCollapsed = 'true';
-        }
-        if (snapshot.columnSizes.rightCollapsed) {
-            refs.rightBody.dataset.isColumnCollapsed = 'true';
+        for (const name of ['left', 'right']) {
+            const column = refs[`${name}Body`];
+            if (snapshot.columnSizes[`${name}Collapsed`]) column.dataset.isColumnCollapsed = 'true';
+            else delete column.dataset.isColumnCollapsed;
         }
     }
 
@@ -898,6 +905,8 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
             if (node.paneId) pane.dataset.paneId = node.paneId;
 
             if (node.isCollapsed) {
+                // Size calculations must see the complete saved collapsed state.
+                pane.classList.add(SELECTORS.VIEW_COLLAPSED.substring(1));
                 if (node.actualWidth) pane.dataset.lastWidth = node.actualWidth;
                 if (node.actualHeight) pane.dataset.lastHeight = node.actualHeight;
                 if (node.lastFlex) pane.dataset.lastFlex = node.lastFlex;
@@ -945,6 +954,7 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
 
 
             if (node.isCollapsed) {
+                split.classList.add(SELECTORS.CONTAINER_COLLAPSED.substring(1));
                 if (node.actualWidth) split.dataset.lastWidth = node.actualWidth;
                 if (node.actualHeight) split.dataset.lastHeight = node.actualHeight;
                 if (node.lastFlex) split.dataset.lastFlex = node.lastFlex;
@@ -1026,9 +1036,14 @@ export function applyLayoutSnapshot(snapshot, api, settings) {
                         pid = panel.dataset.panelId;
                         placedPanelIds.add(t.sourceId);
                     }
-                } else if (t.customContent) {
-                    panel = createPanelElement(t.title || 'Custom');
-                    panel.querySelector('.ptmt-panel-content').innerHTML = t.customContent;
+                } else if (typeof t.customContent === 'string') {
+                    const existingPanel = t.panelId ? getPanelById(t.panelId) : null;
+                    panel = existingPanel && !existingPanel.dataset.sourceId
+                        ? existingPanel
+                        : createPanelElement(t.title || 'Custom');
+                    if (!existingPanel && t.panelId) panel.dataset.panelId = t.panelId;
+                    const content = panel.querySelector('.ptmt-panel-content');
+                    if (content.innerHTML !== t.customContent) content.innerHTML = t.customContent;
                     Object.entries(t.customData || {}).forEach(([key, value]) => {
                         if (key !== 'panelId') panel.dataset[key] = value;
                     });

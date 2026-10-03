@@ -276,14 +276,14 @@ export function createSettingsPanel(manager) {
     })();
 
     globalGrid.append(
+        createSettingCheckbox('Enable Message Rail', 'messageRailEnabled'),
         createSettingCheckbox('Show Left Column', 'showLeftPane'),
         createSettingCheckbox('Show Right Column', 'showRightPane'),
         createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
         createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
         createSettingCheckbox('Show World Info Status Bar', 'showWorldInfoStatusBar'),
         createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
-        createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing'),
-        createSettingCheckbox('Enable Message Rail', 'messageRailEnabled')
+        createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing')
     );
 
     // ─── Global Style Fieldset ──────────────────────────────────────────
@@ -308,33 +308,12 @@ export function createSettingsPanel(manager) {
     autoContrastCheckboxForFieldset.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
     autoContrastCheckboxForFieldset.style.display = settings.get('enableOverride1') ? 'flex' : 'none';
 
-    const optimizeVisibilityCheckboxForFieldset = createSettingCheckbox('Optimize Performance with Long Chat', 'optimizeMessageVisibility');
-    optimizeVisibilityCheckboxForFieldset.classList.add('ptmt-setting-sub-item');
-    optimizeVisibilityCheckboxForFieldset.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
-    optimizeVisibilityCheckboxForFieldset.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
-    optimizeVisibilityCheckboxForFieldset.style.display = settings.get('enableOverride1') ? 'flex' : 'none';
-
-    const optimizeNoticeForFieldset = el('div', { className: 'ptmt-setting-notice ptmt-setting-notice-item', style: { display: settings.get('enableOverride1') ? 'flex' : 'none' } },
-        el('i', { className: 'fa-solid fa-circle-info ptmt-small-icon' }),
-        'Minor scroll jumps possible until messages are viewed once.'
-    );
-
-    const optimizeContainerForFieldset = el('div', { className: 'ptmt-full-width-container', style: { display: settings.get('enableOverride1') ? 'flex' : 'none' } },
-        optimizeVisibilityCheckboxForFieldset,
-        optimizeNoticeForFieldset
-    );
-
     const overridesCheckboxInputForFieldset = overridesCheckboxForFieldset.querySelector('input');
     const syncFieldsetVisibility = (enabled) => {
         avatarRowForFieldset.style.display = enabled ? 'flex' : 'none';
         autoContrastCheckboxForFieldset.style.display = enabled ? 'flex' : 'none';
-        optimizeVisibilityCheckboxForFieldset.style.display = enabled ? 'flex' : 'none';
-        optimizeNoticeForFieldset.style.display = enabled ? 'flex' : 'none';
-        optimizeContainerForFieldset.style.display = enabled ? 'flex' : 'none';
         autoContrastCheckboxForFieldset.style.opacity = enabled ? '1' : '0.5';
         autoContrastCheckboxForFieldset.style.pointerEvents = enabled ? 'auto' : 'none';
-        optimizeVisibilityCheckboxForFieldset.style.opacity = enabled ? '1' : '0.5';
-        optimizeVisibilityCheckboxForFieldset.style.pointerEvents = enabled ? 'auto' : 'none';
     };
     overridesCheckboxInputForFieldset.addEventListener('change', (e) => syncFieldsetVisibility(e.target.checked));
 
@@ -385,7 +364,6 @@ export function createSettingsPanel(manager) {
             overridesCheckboxForFieldset,
             avatarRowForFieldset,
             autoContrastCheckboxForFieldset,
-            optimizeContainerForFieldset
         );
     };
     refreshStyleGrid();
@@ -464,7 +442,12 @@ export function createSettingsPanel(manager) {
     if (manager._layoutChangeHandler) {
         window.removeEventListener(EVENTS.LAYOUT_CHANGED, manager._layoutChangeHandler);
     }
-    manager._layoutChangeHandler = () => manager.renderUnifiedEditor();
+    manager._layoutChangeHandler = () => manager.scheduleEditorRender();
+    manager.editorVisibilityObserver?.disconnect();
+    manager.editorVisibilityObserver = new ResizeObserver(() => {
+        if (manager.editorDirty && panel.getClientRects().length) manager.scheduleEditorRender();
+    });
+    manager.editorVisibilityObserver.observe(panel);
     window.addEventListener(EVENTS.LAYOUT_CHANGED, manager._layoutChangeHandler);
 
     if (manager._settingsCheckboxSyncHandler) {

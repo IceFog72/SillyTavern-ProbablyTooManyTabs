@@ -395,6 +395,10 @@ body.no-blur.ptmt-bg-under-chat #chat {
   opacity: 1 !important;
 }
 
+.topRightInset{
+  position: absolute !important;
+}
+
 body.ptmt-Theme-Sharp .drawer-content {
   border-radius: 0 !important;
 }
@@ -615,7 +619,6 @@ code {
 #expression-image {
   bottom: auto !important;
   position: inherit !important;
-  width: auto !important;
   max-width: none !important;
   max-height: 100vh !important;
 }
@@ -623,6 +626,23 @@ code {
 .galleryImageDraggable,
 .zoomed_avatar {
   position: inherit !important;
+}
+
+.galleryImageDraggable {
+  width: auto !important;
+}
+
+.galleryImageDraggable img {
+  max-width: none !important;
+  max-height: 100vh !important;
+  height: unset !important;
+  object-fit: contain !important;
+}
+
+.galleryImageDraggable .dragTitle,
+.galleryImageDraggable .panelControlBar,
+.galleryImageDraggable .dragClose {
+  display: none !important;
 }
 
 .stqrd--editorPanel:is(body > *) {
@@ -4492,7 +4512,7 @@ body.ptmt-enable-animations #gpt-message-rail .gmr-dot::before {
 }
 
 /* Expanding Panel on Hover */
-#gpt-message-rail:hover .gmr-dots {
+#gpt-message-rail:is(:hover, :focus-within) .gmr-dots {
   width: 320px;
   background-color: rgb(from var(--SmartThemeBlurTintColor) r g b / clamp(0, calc(alpha + 0.3), 1));
   border-color: var(--SmartThemeBorderColor, #444);
@@ -4502,18 +4522,18 @@ body.ptmt-enable-animations #gpt-message-rail .gmr-dot::before {
   overflow-y: auto;
 }
 
-#gpt-message-rail:hover .gmr-dot {
+#gpt-message-rail:is(:hover, :focus-within) .gmr-dot {
   width: 100%;
   height: 28px;
   min-height: 28px;
   padding: 0 8px;
 }
 
-#gpt-message-rail:hover .gmr-dot::before {
+#gpt-message-rail:is(:hover, :focus-within) .gmr-dot::before {
   opacity: 1;
 }
 
-#gpt-message-rail:hover .gmr-dot:hover {
+#gpt-message-rail:is(:hover, :focus-within) .gmr-dot:hover {
   background: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 10%, transparent);
 }
 
@@ -4528,4 +4548,21 @@ body.ptmt-enable-animations #gpt-message-rail .gmr-dot::before {
 
 #groupMemberListPopout {
   height: 100%
+}
+/* Cover the native-layout flash between app startup and PTMT hydration. */
+#ptmt-startup-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 2147483647;
+  display: grid;
+  place-items: center;
+  background: #17171c;
+  color: var(--SmartThemeBodyColor, #ddd);
+  font: 500 1rem system-ui, sans-serif;
+  cursor: progress;
+}
+
+.sd_settings {
+  gap: 5px !important;
+  display: grid;
 }

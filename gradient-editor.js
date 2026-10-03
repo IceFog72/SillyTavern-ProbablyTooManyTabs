@@ -3,7 +3,6 @@ import { el } from './utils.js';
 let editorIdCounter = 0;
 let stopIdCounter = 0;
 
-const COLOR_INPUT_ID = 'ptmt-ge-color-input';
 const DEFAULT_COLOR = '#ffffff';
 
 function clamp(value, min, max) {
@@ -82,6 +81,8 @@ export class GradientEditor {
 
         this._root = null;
         this._paletteEl = null;
+        this._customColor = this._palette.at(-1) || DEFAULT_COLOR;
+        this._customPicker = null;
         this._trackEl = null;
         this._thumbLayerEl = null;
         this._angleInput = null;
@@ -176,6 +177,8 @@ export class GradientEditor {
         this._root?.remove();
         this._root = null;
         this._paletteEl = null;
+        this._customColor = this._palette.at(-1) || DEFAULT_COLOR;
+        this._customPicker = null;
         this._trackEl = null;
         this._thumbLayerEl = null;
         this._angleInput = null;
@@ -245,10 +248,24 @@ export class GradientEditor {
             this._paletteEl.appendChild(swatch);
         }
 
+        this._customPicker = el('toolcool-color-picker', {
+            className: 'ptmt-ge-custom-picker',
+            'popup-position': 'left',
+            'button-width': '28px',
+            'button-height': '28px',
+            title: 'Choose a custom gradient color',
+            'aria-label': 'Custom gradient color',
+        });
+        this._customPicker.setAttribute('color', this._customColor);
+        this._customPicker.addEventListener('change', event => {
+            if (isHexColor(event.detail?.hex)) this._customColor = normalizeColor(event.detail.hex);
+        });
+        this._paletteEl.appendChild(this._customPicker);
+
         const addColorButton = el('button', {
             type: 'button',
             className: 'ptmt-ge-add-btn',
-            title: 'Add custom color',
+            title: 'Add selected custom color',
             textContent: '+',
         });
         addColorButton.addEventListener('click', () => this._pickCustomColor());
@@ -330,27 +347,11 @@ export class GradientEditor {
     }
 
     _pickCustomColor() {
-        let input = document.getElementById(COLOR_INPUT_ID);
-        if (!input) {
-            input = document.createElement('input');
-            input.id = COLOR_INPUT_ID;
-            input.type = 'color';
-            input.style.position = 'fixed';
-            input.style.opacity = '0';
-            input.style.pointerEvents = 'none';
-            document.body.appendChild(input);
-        }
-
-        input.value = this._stops.at(-1)?.color || this._palette.at(-1) || DEFAULT_COLOR;
-        input.onchange = () => {
-            const color = normalizeColor(input.value);
-            this._addPaletteColor(color);
-            this._addStop(color, this._findOpenPosition());
-            input.onchange = null;
-            this._render();
-            this._emitChange();
-        };
-        input.click();
+        const color = normalizeColor(this._customColor);
+        this._addPaletteColor(color);
+        this._addStop(color, this._findOpenPosition());
+        this._render();
+        this._emitChange();
     }
 
     _handleTrackPointerDown(event) {

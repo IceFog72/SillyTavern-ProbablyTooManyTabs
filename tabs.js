@@ -332,9 +332,8 @@ export function createTabFromContent(content, options = {}, target = null) {
     stagingArea = el('div', { id: 'ptmt-staging-area', style: { display: 'none' } });
     document.body.appendChild(stagingArea);
   }
-  if (node && node.parentElement !== stagingArea) stagingArea.appendChild(node);
 
-  const effectiveSourceId = sourceId || (node ? node.id : null);
+  const effectiveSourceId = sourceId || (typeof content === 'string' ? content : node?.id);
   if (!effectiveSourceId) return null;
 
   let targetPane;
@@ -347,14 +346,16 @@ export function createTabFromContent(content, options = {}, target = null) {
   const mapping = settings.getMapping(effectiveSourceId);
   const panelTitle = title || mapping.title || node?.getAttribute('data-panel-title') || node?.id || 'Panel';
   let panel = effectiveSourceId ? getPanelBySourceId(effectiveSourceId) : null;
+  if (!node && !panel && !sourceId) return null;
   let pid;
   if (panel) pid = panel.dataset.panelId;
   else {
     panel = createPanelElement(panelTitle);
     panel.dataset.sourceId = effectiveSourceId;
     pid = registerPanelDom(panel, panelTitle);
-    if (node) panel.querySelector('.ptmt-panel-content').appendChild(node);
   }
+  const contentRoot = panel.querySelector('.ptmt-panel-content');
+  if (node && !contentRoot.contains(node)) contentRoot.appendChild(node);
 
   targetPane._panelContainer.appendChild(panel);
   const existingTab = targetPane._tabStrip.querySelector(`.ptmt-tab[data-for="${CSS.escape(pid)}"]`);

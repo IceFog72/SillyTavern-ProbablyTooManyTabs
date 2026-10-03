@@ -3,6 +3,22 @@
 
  **ANNOUNCEMENT:** Due to lack of support, development of PTMT and other extensions is currently frozen. Existing installations remain functional, but no new features or updates are being added at this time.
 
+## v0.13 — 2026-10-03
+
+*Startup, Message Rail & Layout Performance*
+
+- ✦ New · **Startup Loading Screen** — covers the unfinished interface until PTMT has built and painted the layout. The screen clears on startup errors, extension disable/delete, or after 30 seconds if startup stalls.
+- ✦ Polish · **Message Rail on the Left** — moved the rail to the left edge of the chat and its enable checkbox to the first Global Layout settings position.
+- ✔ Fix · **Message Rail Hover Position** — expanding the rail centers the current chat message instead of starting at the first message. Rebuilding the rail also restores the active marker.
+- ✦ Polish · **Toolcool Gradient Picker** — replaced the native system color picker with `toolcool-color-picker` in the shared gradient editor used by Character Dialogue Colorizer, persona overrides, and global settings. Choose a custom color, then press **+** to add a gradient stop.
+- ✦ Removal · **Optimize Performance with Long Chat** — removed the setting and its message content-visibility CSS.
+- ✔ Fix · **State Across Reloads** — restores collapsed panes before calculating sizes and preserves the Info tab state. A tab-local, account-scoped reload checkpoint retains the latest layout, theme colors, and background while server saves are pending. Snapshots now copy panel metadata into serializable objects.
+- ✔ Fix · **Layout Restore Cleanup** — disposes obsolete pane wrappers, observers, and resizer handlers while preserving reusable panel content. Repeated restores reuse custom panels and recover tabs whose original placeholder has been replaced.
+- ✦ Performance · **Layout Editor Updates** — defers rendering while the editor is hidden and coalesces visible updates into one animation frame.
+- ✦ Performance · **Settings and Avatar Updates** — unchanged scalar settings skip saves and events, setting changes update only affected UI, and bursts of avatar events share one delayed scan.
+
+---
+
 ## v0.12.12 — 2026-06-19
 
 *RPG Companion Integration*

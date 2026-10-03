@@ -99,9 +99,15 @@ function createResizer(resizer, orientation, config) {
     resizer.addEventListener('pointerdown', onPointerDown);
     return {
         detach() {
+            if (pointerId !== null) onPointerUp({ pointerId });
             resizer.removeEventListener('pointerdown', onPointerDown);
         }
     };
+}
+
+export function detachResizer(resizer) {
+    resizerControllers.get(resizer)?.detach();
+    resizerControllers.delete(resizer);
 }
 
 export function attachResizer(resizer, orientation = 'vertical') {

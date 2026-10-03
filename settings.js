@@ -29,7 +29,6 @@ export class SettingsManager {
         enableShadows: true,
         enableBlurEffect: true,
         enableOverride1: false,
-        optimizeMessageVisibility: false,
         enableAutoContrast: true,
         enableDialogueColorizer: true,
         autoOpenFirstCenterTab: true,
@@ -48,7 +47,6 @@ export class SettingsManager {
         messageRailFilter: 'all',
         messageRailExcludeSystem: true,
         messageRailMaxDots: 64,
-        messageRailSide: 'right',
         messageRailScrollBehavior: 'smooth',
         dialogueColorizerColorizeTarget: 3,
         dialogueColorizerPersonaColorizeTarget: 3,
@@ -539,7 +537,9 @@ export class SettingsManager {
         const changedKeys = [];
         for (const key in newSettings) {
             if (Object.prototype.hasOwnProperty.call(SettingsManager.defaultSettings, key)) {
-                extension_settings.PTMT[key] = newSettings[key];
+                const value = newSettings[key];
+                if ((value === null || typeof value !== 'object') && Object.is(this.get(key), value)) continue;
+                extension_settings.PTMT[key] = value;
                 changedKeys.push(key);
             } else {
                 console.warn(`[PTMT] update() ignored unknown setting key: "${key}"`);

@@ -188,7 +188,6 @@ function handleLiveToLiveDrop(manager, targetContainer, newIndex) {
         manager.appApi.moveTabIntoPaneAtIndex(sourcePanel, targetPane, newIndex);
         manager.appApi.setActivePanelInPane(targetPane, info.pid);
         manager.appApi.checkPaneForIconMode(targetPane);
-        window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED));
     }
 }
 

@@ -19,8 +19,9 @@
     --tool-cool-color-picker-btn-border-radius-inner: 4px;
 }
 
-body * {
-    text-shadow: 0.5px 0.5px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor);
+* {
+    /*text-shadow: 0.5px 0.5px calc(var(--shadowWidth) * 1px) var(--SmartThemeShadowColor) !important;*/
+    text-shadow: var(--ptmt-adaptive-shadow-reverse) !important;
 }
 
 /* ========================================= */
@@ -38,7 +39,7 @@ body.ptmt-auto-contrast {
     --ptmt-adaptive-underline: var(--ST-Underlined-Text);
     --ptmt-adaptive-quote: var(--ST-Quote-Text);
     color: var(--ptmt-adaptive-text) !important;
-    text-shadow: var(--ptmt-adaptive-shadow) !important;
+    text-shadow: var(--ptmt-adaptive-shadow-reverse) !important;
 }
 
 .ptmt-auto-contrast .options-content a,
@@ -50,7 +51,7 @@ body.ptmt-auto-contrast {
 .ptmt-auto-contrast .info-block,
 .ptmt-auto-contrast label:not(:has(.toggleOn)) {
     color: var(--ptmt-adaptive-text) !important;
-    text-shadow: var(--ptmt-adaptive-shadow) !important;
+    text-shadow: var(--ptmt-adaptive-shadow-reverse) !important;
 }
 
 .ptmt-auto-contrast .toggle-description,
@@ -58,7 +59,7 @@ body.ptmt-auto-contrast {
 .ptmt-auto-contrast .inline-drawer-content small,
 .ptmt-auto-contrast .text_muted {
     color: var(--ptmt-adaptive-em) !important;
-    text-shadow: var(--ptmt-adaptive-shadow) !important;
+    text-shadow: var(--ptmt-adaptive-shadow-reverse) !important;
 }
 
 .ptmt-auto-contrast a,
@@ -461,14 +462,6 @@ body.bubblechat .mes[is_user="true"] {
     margin-left: 8px !important;
 }
 
-/* Performance: content-visibility for long chats */
-/* Per-message granularity — browser remembers each message's actual size
-   after first render, so subsequent scrolls don't jump */
-body.ptmt-optimize-visibility .mes {
-    content-visibility: auto;
-    contain-intrinsic-size: auto 300px;
-}
-
 /* ========================================= */
 /* 7. SWIPE ARROWS (big-avatars)             */
 /* ========================================= */
@@ -846,11 +839,11 @@ body.ptmt-enable-animations .menu_button {
 small:hover {
     opacity: 1;
 }
-
+/*
 .fillLeft .scrollableInner {
     padding: 0em 1em 0em 0em;
 }
-
+*/
 /* Toast */
 .toast-progress,
 #toast-container>div:hover,
@@ -1412,11 +1405,11 @@ body.ptmt-enable-animations #user-settings-block input[type="text"] {
 #cfgConfig,
 #floatingPrompt,
 #logprobsViewer {
-    background: oklch(from var(--ST-UI-Background, #0f1723) l c h / 1) !important;
+    /*background: oklch(from var(--ST-UI-Background, #0f1723) l c h / 1) !important;*/
     border: 0;
     border-radius: var(--ptmt-control-radius);
     box-shadow: none !important;
-    text-shadow: none !important;
+    /*text-shadow: none !important;*/
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
 }

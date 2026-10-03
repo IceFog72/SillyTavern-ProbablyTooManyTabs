@@ -14,6 +14,7 @@ let initialized = false;
 const nativeCleanups = [];
 const sourceBindings = [];
 let momentumRaf = null;
+let centerRaf = null;
 
 function listen(target, type, handler, options) {
     if (!target) return;
@@ -171,15 +172,21 @@ function createUi() {
         }
     }, true);
 
+    listen(root, 'mouseenter', scheduleCenterActiveDot);
+    listen(root, 'focusin', scheduleCenterActiveDot);
+    listen(root, 'mouseleave', scheduleCenterActiveDot);
+    listen(dotsContainer, 'transitionend', event => {
+        if (event.target === dotsContainer && !isDown) scheduleCenterActiveDot();
+    });
+
     root.append(dotsContainer);
     chat.prepend(root);
 }
 
 function applyPosition() {
     if (!root) return;
-    const side = settings.get('messageRailSide');
-    root.classList.toggle('gmr-left', side === 'left');
-    root.classList.toggle('gmr-right', side !== 'left');
+    root.classList.add('gmr-left');
+    root.classList.remove('gmr-right');
 }
 
 function shouldUseCompressedDots(total) {
@@ -224,6 +231,7 @@ function rebuildDots() {
 
     root.hidden = false;
     dotsContainer.replaceChildren();
+    activeIndex = -1;
 
     const compressed = shouldUseCompressedDots(items.length);
     const maxDots = settings.get('messageRailMaxDots') || 64;
@@ -250,6 +258,7 @@ function rebuildDots() {
         dotsContainer.append(button);
     }
     updateActiveDot();
+    scheduleCenterActiveDot();
 }
 
 function scheduleRebuild() {
@@ -328,6 +337,22 @@ function updateActiveDot() {
         const isActive = dotIndex === activeDotIndex;
         button.classList.toggle('gmr-active', isActive);
         button.setAttribute('aria-current', isActive ? 'true' : 'false');
+    });
+}
+
+function scheduleCenterActiveDot() {
+    if (centerRaf) cancelAnimationFrame(centerRaf);
+    centerRaf = requestAnimationFrame(() => {
+        centerRaf = null;
+        if (!root || root.hidden || !dotsContainer) return;
+        updateActiveDot();
+        const active = dotsContainer.querySelector('.gmr-active');
+        if (!active) return;
+        const dotRect = active.getBoundingClientRect();
+        const containerRect = dotsContainer.getBoundingClientRect();
+        const target = dotsContainer.scrollTop + dotRect.top - containerRect.top
+            + dotRect.height / 2 - dotsContainer.clientHeight / 2;
+        dotsContainer.scrollTop = Math.max(0, Math.min(target, dotsContainer.scrollHeight - dotsContainer.clientHeight));
     });
 }
 
@@ -424,6 +449,8 @@ export function cleanupMessageRail() {
     scrollRaf = null;
     if (momentumRaf) cancelAnimationFrame(momentumRaf);
     momentumRaf = null;
+    if (centerRaf) cancelAnimationFrame(centerRaf);
+    centerRaf = null;
 
     for (const [type, handler] of sourceBindings.splice(0)) {
         try { eventSource.off(type, handler); } catch {}

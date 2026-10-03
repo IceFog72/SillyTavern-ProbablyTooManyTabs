@@ -98,7 +98,6 @@ When enabled, additional controls appear:
   - All fields accept valid CSS units: `px`, `%`, `vh`, `vw`, `em`, `rem`, `vmin`, `vmax`.
   - A **Reset All** button restores all avatar values to defaults.
 - **Auto Contrast Text Colors** — automatically adjusts UI and chat text colour for contrast. Chat messages use their own adaptive calculation based on chat/message bubble backgrounds rather than the global UI background, so Dialogue Colorizer bubble colours and gradients stay readable.
-- **Optimize Performance with Long Chat** — uses an IntersectionObserver to only render messages currently in view. Reduces frame budget in very long chats. *Minor scroll jumps may occur until each message has been seen once.*
 
 ---
 

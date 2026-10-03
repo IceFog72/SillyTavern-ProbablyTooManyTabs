@@ -12,6 +12,9 @@ export class LayoutManager {
         this.rootElement = null;
         this.draggedTabInfo = null;
         this.touchDragGhost = null;
+        this.editorDirty = false;
+        this.editorFrame = null;
+        this.editorVisibilityObserver = null;
         this.indicator = el('div', { className: SELECTORS.DROP_INDICATOR_CLASS.substring(1) });
         this.debouncedSettingsUpdate = debounce((updatedMappings) => {
             settings.update({ panelMappings: updatedMappings });
@@ -25,7 +28,19 @@ export class LayoutManager {
     }
 
     createSettingsPanel() { return createSettingsPanel(this); }
-    renderUnifiedEditor() { return renderUnifiedEditor(this); }
+    renderUnifiedEditor() {
+        this.editorDirty = false;
+        return renderUnifiedEditor(this);
+    }
+
+    scheduleEditorRender() {
+        this.editorDirty = true;
+        if (this.editorFrame !== null) return;
+        this.editorFrame = requestAnimationFrame(() => {
+            this.editorFrame = null;
+            if (this.rootElement?.getClientRects().length) this.renderUnifiedEditor();
+        });
+    }
     handleDragStart(e, pid) { return handleDragStart(this, e, pid); }
     handleDragOver(e) { return handleDragOver(this, e); }
     handleDragLeave(e) { return handleDragLeave(this, e); }
@@ -103,6 +118,10 @@ export class LayoutManager {
     }
 
     cleanup() {
+        if (this.editorFrame !== null) cancelAnimationFrame(this.editorFrame);
+        this.editorFrame = null;
+        this.editorVisibilityObserver?.disconnect();
+        this.editorVisibilityObserver = null;
         if (this._layoutChangeHandler) {
             window.removeEventListener(EVENTS.LAYOUT_CHANGED, this._layoutChangeHandler);
             this._layoutChangeHandler = null;

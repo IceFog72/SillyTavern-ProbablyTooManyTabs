@@ -5,19 +5,14 @@ import { eventSource, event_types } from '../../../../script.js';
 let observer = null;
 let retryTimer = null;
 let initialized = false;
-const delayedTimers = new Set();
-
-function clearDelayedTimers() {
-    for (const timer of delayedTimers) clearTimeout(timer);
-    delayedTimers.clear();
-}
+let avatarUpdateTimer = null;
 
 function scheduleAvatarUpdate(delay = 100) {
-    const timer = setTimeout(() => {
-        delayedTimers.delete(timer);
+    clearTimeout(avatarUpdateTimer);
+    avatarUpdateTimer = setTimeout(() => {
+        avatarUpdateTimer = null;
         updateLastMessageAvatar();
     }, delay);
-    delayedTimers.add(timer);
 }
 
 function handleSettingsChanged(e) {
@@ -39,7 +34,8 @@ export function cleanupAvatarExpressionSync() {
         clearTimeout(retryTimer);
         retryTimer = null;
     }
-    clearDelayedTimers();
+    clearTimeout(avatarUpdateTimer);
+    avatarUpdateTimer = null;
     observer?.disconnect();
     observer = null;
     if (initialized) {
@@ -109,7 +105,7 @@ function updateLastMessageAvatar() {
     if (!settings.get('enableAvatarExpressionSync')) return;
     const expressionImg = document.querySelector(SELECTORS.ST_EXPRESSION_IMAGE);
     if (!expressionImg || !expressionImg.src) return;
-    const messages = Array.from(document.querySelectorAll(`${SELECTORS.ST_MESSAGE}[is_user="false"]`));
+    const messages = document.querySelectorAll(`${SELECTORS.ST_MESSAGE}[is_user="false"]`);
     if (!messages.length) return;
     const lastMes = messages[messages.length - 1];
     const charFolder = expressionImg.getAttribute('data-sprite-folder-name');

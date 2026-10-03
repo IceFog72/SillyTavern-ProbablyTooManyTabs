@@ -658,3 +658,31 @@ export function initThemeColors() {
     injectCharacterPaletteControls();
     cleanupLegacyCustomCssRule();
 }
+
+// Reload recovery uses the same color ownership and picker synchronization as editing.
+export function captureThemeAppearance() {
+    return {
+        theme: power_user.theme,
+        colors: Object.fromEntries([...ST_THEME_COLORS, ...PTMT_THEME_COLORS].map(({ powerUserKey }) =>
+            [powerUserKey, power_user[powerUserKey] || null])),
+    };
+}
+
+export function restoreThemeAppearance(appearance) {
+    power_user.theme = appearance.theme;
+    const selector = document.querySelector('#themes');
+    if (selector) selector.value = appearance.theme;
+    for (const { powerUserKey } of ST_THEME_COLORS) {
+        const value = appearance.colors[powerUserKey];
+        if (typeof value === 'string' && value) applyStColor(powerUserKey, value);
+    }
+    for (const { powerUserKey, property } of PTMT_THEME_COLORS) {
+        const value = appearance.colors[powerUserKey];
+        if (typeof value === 'string' && value) applyPtmtColor(powerUserKey, value);
+        else {
+            delete power_user[powerUserKey];
+            document.documentElement.style.removeProperty(property);
+            document.body.style.removeProperty(property);
+        }
+    }
+}
