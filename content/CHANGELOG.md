@@ -3,6 +3,15 @@
 
  **ANNOUNCEMENT:** Development of PTMT and other extensions is currently paused due to limited support. Existing installations will continue to work, but new features, updates, and further development depend on community support. If you use and enjoy these projects, please consider supporting or donating—every contribution helps make continued development possible.
 
+## v0.13.1 — 2026-10-09
+
+*Colorizer polish & cleanup*
+
+- ✦ Polish · **Personal Colorizer UI** — regrouped character and persona controls into clearer dialogue and bubble sections, tightened the row layout, and added a reset action that restores the active persona or character defaults.
+- ✔ Fix · **Target Visibility & State Sync** — colorizer settings now hide and show the correct controls when the target mode changes, and the active target keeps the UI synchronized with saved values.
+- ✦ Polish · **Gradient Editor Cleanup** — updated gradient editor lifecycle handling so injected editor instances are safely destroyed on refresh and repeated UI rebuilds no longer leave stale state behind.
+- ✔ Fix · **Color Picker & Contrast Tuning** — refreshed the shared picker styling and adjusted the dialogue contrast mix for cleaner custom-color editing and more consistent text contrast.
+
 ## v0.13 — 2026-10-03
 
 *Startup, Message Rail & Layout Performance*

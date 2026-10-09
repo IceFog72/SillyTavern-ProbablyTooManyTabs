@@ -509,7 +509,7 @@ function buildCssRules(domUid, extractedColors, info) {
     if (target & COLORIZE_TARGET.QUOTED_TEXT) {
         const standardRule = `color: ${dialogColor} !important;`;
         const dialogAlpha = dialogColor.length === 9 ? parseInt(dialogColor.slice(7, 9), 16) / 255 : 1;
-        const adaptiveRule = `color: rgb(from color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) var(--ptmt-dialogue-contrast-mix, 38%)) r g b / ${dialogAlpha}) !important;`;
+        const adaptiveRule = `color: rgb(from color-mix(in oklch, ${dialogColor}, var(--ptmt-contrast-bw) var(--ptmt-dialogue-contrast-mix, 45%)) r g b / ${dialogAlpha}) !important;`;
 
         css += `#chat .mes[xdc-author-uid="${domUid}"] .mes_text q { ${standardRule} }\n`;
         css += `#chat .mes[xdc-author-uid="${domUid}"] .mes_reasoning q { ${standardRule} }\n`;

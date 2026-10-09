@@ -37,7 +37,8 @@ body.ptmt-auto-contrast {
     --ptmt-auto-muted-mix: 100%;
     --ptmt-auto-accent-mix: 0%;
     --ptmt-auto-shadow-mix: 0%;
-    --ptmt-dialogue-contrast-mix: 6%;
+    /* Lift dialogue away from the background while retaining its source color. */
+    --ptmt-dialogue-contrast-mix: 40%;
     --ptmt-adaptive-text: var(--ptmt-adaptive-bw);
     --ptmt-adaptive-em: var(--ptmt-adaptive-bw);
     --ptmt-adaptive-underline: var(--ST-Underlined-Text);

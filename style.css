@@ -4379,8 +4379,203 @@ body.ptmt-enable-animations .ptmt-split-preview {
 .ptmt-char-colorizer-content {
   display: flex;
   flex-direction: column;
+  gap: 14px;
+  padding: 12px 0;
+  font-family: inherit;
+  color: var(--ptmt-adaptive-text, var(--ST-Main-Text));
+}
+
+.ptmt-colorizer-enable,
+.ptmt-colorizer-mode,
+.ptmt-colorizer-opacity {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.ptmt-colorizer-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
+  border-top: 1px solid var(--ST-UI-Border, #555);
+}
+
+.ptmt-colorizer-reset {
+  padding: 6px 10px;
+  border: 1px solid var(--ST-UI-Border, #555);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 0.85em;
+  cursor: pointer;
+}
+
+.ptmt-colorizer-enable label {
+  cursor: pointer;
+  font-weight: 600;
+}
+.ptmt-personal-colorizer-settings {
+  flex-direction: column;
+  gap: 16px;
+  min-width: 0;
+}
+.ptmt-colorizer-group {
+  min-width: 0;
+  padding-top: 12px;
+  border-top: 1px solid var(--ST-UI-Border, #555);
+}
+.ptmt-colorizer-group[hidden] {
+  display: none;
+}
+.ptmt-colorizer-heading {
+  margin: 0 0 4px;
+  font-size: 1em;
+  font-weight: 600;
+}
+.ptmt-colorizer-row {
+  display: grid;
+  grid-template-columns: minmax(90px, 0.7fr) minmax(0, 1fr);
+  align-items: center;
   gap: 12px;
-  padding: 8px 0;
+  padding: 6px 0;
+}
+.ptmt-char-colorizer-content .ptmt-colorizer-row select {
+  width: 100% !important;
+  min-width: 0;
+  margin: 0;
+}
+.ptmt-colorizer-mode select {
+  flex: 1;
+}
+.ptmt-colorizer-opacity input {
+  width: 100%;
+  min-width: 0;
+  flex: 1;
+  order: 0;
+}
+.ptmt-colorizer-opacity .ptmt-opacity-value {
+  min-width: 3ch;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.ptmt-colorizer-gradient {
+  flex-direction: column;
+  margin: 12px 0;
+  min-width: 0;
+}
+
+/* Scale first: the angle changes the bubble, never the stop editing axis. */
+.ptmt-char-colorizer-content .ptmt-gradient-editor {
+  gap: 12px;
+}
+.ptmt-char-colorizer-content .ptmt-ge-top-row {
+  flex-wrap: wrap;
+  order: 3;
+}
+.ptmt-char-colorizer-content .ptmt-ge-palette {
+  align-items: center;
+}
+.ptmt-char-colorizer-content .ptmt-ge-preview-bar {
+  height: 44px;
+  margin: 4px 12px 18px;
+  border-radius: 4px;
+}
+.ptmt-char-colorizer-content .ptmt-ge-thumb {
+  top: 100%;
+  min-width: 28px;
+  min-height: 40px;
+}
+.ptmt-char-colorizer-content .ptmt-ge-thumb-dot {
+  width: 18px;
+  height: 22px;
+  border-radius: 3px;
+}
+.ptmt-char-colorizer-content .ptmt-ge-thumb.selected {
+  z-index: 4;
+}
+.ptmt-char-colorizer-content .ptmt-ge-thumb.selected .ptmt-ge-thumb-dot {
+  outline: 2px solid var(--ptmt-adaptive-text, #fff);
+  outline-offset: 2px;
+}
+.ptmt-ge-selection {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px auto;
+  gap: 10px;
+  align-items: end;
+}
+.ptmt-ge-selection[hidden] {
+  display: none;
+}
+.ptmt-ge-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  font-size: 0.8em;
+}
+.ptmt-ge-color-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ptmt-ge-color-controls toolcool-color-picker {
+  flex: 0 0 32px;
+}
+.ptmt-ge-selection input {
+  min-width: 0;
+  width: 100%;
+  height: 32px;
+  margin: 0;
+  padding: 4px 6px;
+}
+.ptmt-ge-selection .ptmt-ge-color-input {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.ptmt-ge-remove-btn {
+  height: 32px;
+  padding: 4px 8px;
+  border: 1px solid var(--ST-UI-Border, #555);
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: 0.8em;
+}
+.ptmt-ge-remove-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+.ptmt-char-colorizer-content .ptmt-ge-controls {
+  display: flex;
+  flex: 1 1 100%;
+}
+.ptmt-char-colorizer-content .ptmt-ge-angle-slider {
+  flex: 1;
+  width: auto;
+  min-width: 40px;
+}
+.ptmt-char-colorizer-content .ptmt-ge-reset-btn {
+  font-size: 0.8em;
+  padding: 6px 8px;
+}
+.ptmt-char-colorizer-content .ptmt-ge-swatch {
+  opacity: 1;
+}
+.ptmt-char-colorizer-content :is(button, input, select):focus-visible {
+  outline: 2px solid var(--ptmt-adaptive-text, #fff);
+  outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+  .ptmt-ge-selection {
+    grid-template-columns: minmax(0, 1fr) 70px;
+  }
+  .ptmt-ge-remove-btn {
+    grid-column: 1 / -1;
+    justify-self: end;
+  }
 }
 
 /* World Info Status Bar */

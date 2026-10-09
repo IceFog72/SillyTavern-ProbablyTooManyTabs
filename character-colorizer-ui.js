@@ -12,6 +12,7 @@ import { GradientEditor } from './gradient-editor.js';
 import { extractAvatarFilenameFromUrl } from './colorizer-helpers.js';
 import {
     buildCharacterCustomColorizerKey,
+    buildColorizerCustomEntry,
     resolveCustomColorizerSettings,
     updateCustomColorizerSettings,
 } from './colorizer-settings.js';
@@ -125,7 +126,12 @@ function createColorizerUI({ persona = false } = {}) {
     const prefix = persona ? 'ptmt-pchar-col' : 'ptmt-char-col';
     const defaultColor = persona ? PERSONA_DEFAULT : CHARACTER_DEFAULT;
     const defaultAngle = persona ? PERSONA_ANGLE : CHARACTER_ANGLE;
-    const row = (...children) => el('div', { className: 'ptmt-setting-row' }, ...children);
+    const row = (...children) => el('div', { className: 'ptmt-colorizer-row' }, ...children);
+    const group = title => {
+        const node = el('section', { className: 'ptmt-colorizer-group' });
+        node.appendChild(el('h4', { className: 'ptmt-colorizer-heading' }, title));
+        return node;
+    };
     const label = (text, id) => el('label', { htmlFor: id }, text);
 
     const container = el('div', {
@@ -144,31 +150,36 @@ function createColorizerUI({ persona = false } = {}) {
     container.append(header, wrapper);
 
     const enable = el('input', { id: `${prefix}-enable`, type: 'checkbox' });
-    content.appendChild(row(enable, label('Enable Personal Dialogue Colorizer', enable.id)));
+    const enableRow = el('div', { className: 'ptmt-colorizer-enable' }, enable,
+        label('Use personal colors', enable.id));
+    content.appendChild(enableRow);
 
-    const section = el('div', { style: 'display:none;' });
+    const section = el('div', { className: 'ptmt-personal-colorizer-settings', style: 'display:none;' });
     const target = createSelect(`${prefix}-target`, targetOptions, '3');
-    section.appendChild(row(label('Colorize Target', target.id), target));
+    section.appendChild(row(label('Apply colors to', target.id), target));
+    const dialogueGroup = group('Dialogue');
+    const bubbleGroup = group('Bubble');
+    section.append(dialogueGroup, bubbleGroup);
 
     const dialogSource = createSelect(`${prefix}-dialog-src`, sourceOptions, 'avatar_vibrant');
-    section.appendChild(row(label('Dialogue Color Source', dialogSource.id), dialogSource));
+    dialogueGroup.appendChild(row(label('Color source', dialogSource.id), dialogSource));
 
     const dialogStatic = createPicker(`${prefix}-dialog-static`, defaultColor, 'Dialogue Static Color');
-    const dialogStaticRow = row(dialogStatic, label('Dialogue Static Color', dialogStatic.id));
-    section.appendChild(dialogStaticRow);
+    const dialogStaticRow = row(label('Speech color', dialogStatic.id), dialogStatic);
+    dialogueGroup.appendChild(dialogStaticRow);
 
     const bubbleMode = createSelect(`${prefix}-bubble-mode`, bubbleOptions, 'gradient');
     const bubbleSwatch = el('span', {
         className: 'ptmt-bubble-swatch',
         style: 'display:none;width:20px;height:20px;border-radius:3px;border:1px solid #888;margin-left:6px;vertical-align:middle;background:#888;',
     });
-    section.appendChild(row(label('Bubble Color Mode', bubbleMode.id), bubbleMode, bubbleSwatch));
+    bubbleGroup.appendChild(row(label('Background', bubbleMode.id), el('div', { className: 'ptmt-colorizer-mode' }, bubbleMode, bubbleSwatch)));
 
     const bubbleStatic = createPicker(`${prefix}-bubble-static-1`, defaultColor, 'Bubble Static Color');
-    const bubbleStaticRow = row(bubbleStatic, label('Bubble Static Color', bubbleStatic.id));
-    section.appendChild(bubbleStaticRow);
+    const bubbleStaticRow = row(label('Bubble color', bubbleStatic.id), bubbleStatic);
+    bubbleGroup.appendChild(bubbleStaticRow);
 
-    const gradientRow = el('div', { className: 'ptmt-setting-row', style: 'display:none;flex-direction:column;padding-left:0;' });
+    const gradientRow = el('div', { className: 'ptmt-colorizer-gradient', style: 'display:none;' });
     const gradientEditor = new GradientEditor({
         stops: [],
         angle: defaultAngle,
@@ -181,7 +192,7 @@ function createColorizerUI({ persona = false } = {}) {
         },
     });
     gradientEditor.mount(gradientRow);
-    section.appendChild(gradientRow);
+    bubbleGroup.appendChild(gradientRow);
 
     const opacityValue = el('span', { className: 'ptmt-opacity-value' }, '10%');
     const opacity = el('input', {
@@ -190,8 +201,14 @@ function createColorizerUI({ persona = false } = {}) {
     opacity.addEventListener('input', () => {
         opacityValue.textContent = `${Math.round(Number(opacity.value) * 100)}%`;
     });
-    section.appendChild(row(label(persona ? 'User Bubble Opacity' : 'Char Bubble Opacity', opacity.id), opacity, opacityValue));
+    bubbleGroup.appendChild(row(label('Opacity', opacity.id), el('div', { className: 'ptmt-colorizer-opacity' }, opacity, opacityValue)));
     content.appendChild(section);
+    const reset = el('button', {
+        id: `${prefix}-reset`, type: 'button', className: 'ptmt-colorizer-reset',
+        textContent: 'Reset all colors', title: 'Restore all personal color settings to defaults',
+    });
+    content.appendChild(el('div', { className: 'ptmt-colorizer-actions' }, reset));
+    reset.addEventListener('click', () => resetPersonalColors(persona));
 
     const ui = {
         persona, container, wrapper, section, enable, target, dialogSource, dialogStatic,
@@ -202,9 +219,12 @@ function createColorizerUI({ persona = false } = {}) {
     };
 
     const syncVisibility = () => {
-        section.style.display = enable.checked ? 'block' : 'none';
-        dialogStaticRow.style.display = dialogSource.value === 'static_color' ? 'flex' : 'none';
-        bubbleStaticRow.style.display = bubbleMode.value === 'static_color' ? 'flex' : 'none';
+        section.style.display = enable.checked ? 'flex' : 'none';
+        const selectedTarget = Number(target.value);
+        dialogueGroup.hidden = !(selectedTarget & 1);
+        bubbleGroup.hidden = !(selectedTarget & 2);
+        dialogStaticRow.style.display = dialogSource.value === 'static_color' ? 'grid' : 'none';
+        bubbleStaticRow.style.display = bubbleMode.value === 'static_color' ? 'grid' : 'none';
         gradientRow.style.display = bubbleMode.value === 'gradient' ? 'flex' : 'none';
         bubbleSwatch.style.display = ['avatar_light', 'avatar_dark'].includes(bubbleMode.value) ? 'inline-block' : 'none';
         if (bubbleSwatch.style.display !== 'none') refreshSwatch(ui);
@@ -212,7 +232,7 @@ function createColorizerUI({ persona = false } = {}) {
     ui.syncVisibility = syncVisibility;
 
     enable.addEventListener('change', () => { syncVisibility(); saveNow(persona); });
-    target.addEventListener('change', () => saveNow(persona));
+    target.addEventListener('change', () => { syncVisibility(); saveNow(persona); });
     dialogSource.addEventListener('change', () => { syncVisibility(); saveNow(persona); });
     bubbleMode.addEventListener('change', () => {
         if (bubbleMode.value === 'gradient' && gradientEditor.stops.length === 0) {
@@ -327,6 +347,23 @@ async function saveSnapshot(persona, key, snapshot) {
     return saved;
 }
 
+async function resetPersonalColors(persona) {
+    const ui = persona ? personaUI : charUI;
+    const key = persona ? currentPersonaKey : currentCharacterKey;
+    if (!ui || ui.loading || !key) return;
+    cancelScheduled(persona);
+    const type = persona ? 'persona' : 'character';
+    const saved = await updateCustomColorizerSettings(settings, type, key, {
+        patch: buildColorizerCustomEntry(type),
+    });
+    if (!saved) return;
+    if (key === (persona ? currentPersonaKey : currentCharacterKey)) {
+        if (persona) loadPersonaSettings();
+        else loadCharacterSettings();
+    }
+    window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: true } }));
+}
+
 function applyResolvedToUI(ui, resolved, img, defaultColor, defaultAngle) {
     const value = resolved.value;
     ui.loading = true;
@@ -415,6 +452,7 @@ function injectCharacterUI() {
     const target = document.getElementById('spoiler_free_desc');
     if (!target?.parentElement) return false;
     document.getElementById('ptmt-char-col-drawer')?.remove();
+    charUI?.gradientEditor.destroy();
     charUI = createColorizerUI({ persona: false });
     target.parentElement.insertBefore(charUI.container, target);
     loadCharacterSettings();
@@ -426,6 +464,7 @@ function injectPersonaUI() {
     const current = document.querySelector('#persona-management-block .persona_management_current_persona');
     if (!current) return false;
     document.getElementById('ptmt-pchar-col-drawer')?.remove();
+    personaUI?.gradientEditor.destroy();
     personaUI = createColorizerUI({ persona: true });
     current.prepend(personaUI.container);
     loadPersonaSettings();
@@ -468,6 +507,8 @@ export function cleanupCharacterColorizerUI() {
         window.removeEventListener('ptmt:settingsChanged', handleSettingsChanged);
     }
     initialized = false;
+    charUI?.gradientEditor.destroy();
+    personaUI?.gradientEditor.destroy();
     charUI?.container?.remove();
     personaUI?.container?.remove();
     charUI = null;
