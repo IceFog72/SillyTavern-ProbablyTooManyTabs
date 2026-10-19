@@ -27,7 +27,7 @@ const BASE_PALETTE_PROFILES = {
         accentMix: 0.5,
         chatAlpha: 0.5,
         panelAlpha: 0.3,
-        uiAlpha: 0.6,
+        uiAlpha: 0.7,
         inputAlpha: 0.82,
     },
     bright: {
@@ -43,7 +43,7 @@ const BASE_PALETTE_PROFILES = {
         accentMix: 0.22,
         chatAlpha: 0.5,
         panelAlpha: 0.3,
-        uiAlpha: 0.6,
+        uiAlpha: 0.7,
         inputAlpha: 0.9,
     },
     balanced: {
@@ -55,7 +55,7 @@ const BASE_PALETTE_PROFILES = {
         accentMix: 0.36,
         chatAlpha: 0.5,
         panelAlpha: 0.3,
-        uiAlpha: 0.6,
+        uiAlpha: 0.7,
         inputAlpha: 0.84,
     },
     vivid: {
@@ -67,7 +67,7 @@ const BASE_PALETTE_PROFILES = {
         accentMix: 0.18,
         chatAlpha: 0.5,
         panelAlpha: 0.3,
-        uiAlpha: 0.6,
+        uiAlpha: 0.7,
         inputAlpha: 0.8,
     },
     soft: {
@@ -79,7 +79,7 @@ const BASE_PALETTE_PROFILES = {
         accentMix: 0.62,
         chatAlpha: 0.5,
         panelAlpha: 0.3,
-        uiAlpha: 0.6,
+        uiAlpha: 0.7,
         inputAlpha: 0.84,
     },
 };
