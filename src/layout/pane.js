@@ -535,6 +535,7 @@ export function splitPaneWithPane(targetPane, movingPanel, vertical = true, newF
   existingTabs.forEach(t => destinationPaneForExisting._tabStrip.appendChild(t));
 
   parent.replaceChild(split, targetPane);
+  cleanupPaneObservers(targetPane);
 
   const resizer = el('splitter', { className: vertical ? SELECTORS.RESIZER_V.substring(1) : SELECTORS.RESIZER_H.substring(1) });
   split.append(pane1, resizer, pane2);
