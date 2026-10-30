@@ -5,6 +5,23 @@
 
 ## Unreleased
 
+*Layout, editor, colorizer and message rail fixes*
+
+- ✔ Fix · **Split Orientation Changes** — changing a split's orientation no longer throws an error that skipped column updates and the layout autosave. Only the split's own splitters change direction. Nested splits keep theirs, and disabled splitters stay disabled.
+- ✔ Fix · **Editor Split Orientation** — changing a split's Expanded orientation in the Layout Settings editor now saves the layout, so the choice survives a reload.
+- ✔ Fix · **Dropping Tabs on Splitters** — releasing a dragged tab over a splitter between panes no longer moves it into, or splits, an unrelated pane.
+- ✔ Fix · **Closing a Nested Split** — when the second-to-last pane in a nested split closes, the remaining pane takes the whole space of the removed split instead of shrinking to its old share.
+- ✔ Fix · **Layout Editor Drops** — dropping a pane tab or a file on the Layout Settings editor no longer throws an error.
+- ✔ Fix · **Personal Color Pickers** — dragging a personal dialogue or bubble color picker saves once after the drag settles instead of sending a full settings save for every color update. Switching to another character or persona now saves a pending personal color, opacity or gradient change instead of discarding it.
+- ✦ Performance · **Personal Colorizer Saves** — personal color changes no longer clear every author's cached avatar colors. Avatars are re-read only when the color source, bubble mode or gradient changes, or when personal colors are turned on or off.
+- ✦ Performance · **Drawer Pinning** — new chat content inside PTMT panels is checked for drawers without rescanning the whole panel for every inserted element, which removes repeated full-chat scans while messages stream.
+- ✦ Performance · **Colorizer Logging** — removed per-author console logging from colorizer restyles.
+- ✔ Fix · **Message Rail Listeners** — switching chats no longer adds another set of rail listeners and keeps the old rail in memory. A disabled rail no longer builds its hidden UI.
+- ✔ Fix · **Pane Observer Cleanup** — splitting a pane stops observing the replaced pane's tab strip.
+- ✦ Development · **Regression Checks** — added a small fake DOM to the test harness and regression tests for each fix above.
+
+## v0.13.4 — 2026-10-30
+
 *Theme generation, runtime fixes & source organization — manifest version v0.13.4*
 
 - ✦ Polish · **Generated Theme Palettes** — rebuilt image-based color generation around an OKLCH tonal scale for Dark, Bright, Balanced, Vivid, and Soft profiles, retaining their Alpha and Solid variants. Muted surfaces follow the image seed hue, quoted text uses that hue, italics use an analogous hue, and underlines use a split complementary accent. Warm images retain warm surfaces instead of being shifted toward blue, and neutral images remain neutral.
