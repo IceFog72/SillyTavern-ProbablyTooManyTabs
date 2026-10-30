@@ -12,14 +12,28 @@ let activeIndex = -1;
 let items = [];
 let initialized = false;
 const nativeCleanups = [];
+// Listeners on the current rail root. ST's clearChat() removes the root with
+// #chat's children, so these are released whenever the root is rebuilt.
+const rootCleanups = [];
 const sourceBindings = [];
 let momentumRaf = null;
 let centerRaf = null;
 
-function listen(target, type, handler, options) {
+function listen(target, type, handler, options, cleanups = nativeCleanups) {
     if (!target) return;
     target.addEventListener(type, handler, options);
-    nativeCleanups.push(() => target.removeEventListener(type, handler, options));
+    cleanups.push(() => target.removeEventListener(type, handler, options));
+}
+
+const listenRoot = (target, type, handler, options) => listen(target, type, handler, options, rootCleanups);
+
+function releaseRoot() {
+    for (const cleanup of rootCleanups.splice(0)) {
+        try { cleanup(); } catch {}
+    }
+    root?.remove();
+    root = null;
+    dotsContainer = null;
 }
 
 function bindSource(type, handler) {
@@ -71,6 +85,7 @@ function createUi() {
 
     chat.classList.add('gmr-chat-host');
     if (root && root.isConnected) return;
+    releaseRoot();
 
     root = document.createElement('div');
     root.id = 'gpt-message-rail';
@@ -88,7 +103,7 @@ function createUi() {
     let lastY = 0;
     let lastTime = 0;
 
-    listen(dotsContainer, 'mousedown', (e) => {
+    listenRoot(dotsContainer, 'mousedown', (e) => {
         if (e.button !== 0) return;
         e.preventDefault();
         if (momentumRaf) cancelAnimationFrame(momentumRaf);
@@ -124,7 +139,7 @@ function createUi() {
         momentumRaf = requestAnimationFrame(loop);
     }
 
-    listen(dotsContainer, 'mouseleave', () => {
+    listenRoot(dotsContainer, 'mouseleave', () => {
         if (isDown) {
             isDown = false;
             dotsContainer.style.cursor = '';
@@ -132,7 +147,7 @@ function createUi() {
         }
     });
 
-    listen(window, 'mouseup', () => {
+    listenRoot(window, 'mouseup', () => {
         if (isDown) {
             isDown = false;
             if (dotsContainer) dotsContainer.style.cursor = '';
@@ -141,7 +156,7 @@ function createUi() {
         }
     });
 
-    listen(dotsContainer, 'mousemove', (e) => {
+    listenRoot(dotsContainer, 'mousemove', (e) => {
         if (!isDown || !dotsContainer) return;
         const now = performance.now();
         const y = e.pageY - dotsContainer.offsetTop;
@@ -165,17 +180,17 @@ function createUi() {
         }
     });
 
-    listen(dotsContainer, 'click', (e) => {
+    listenRoot(dotsContainer, 'click', (e) => {
         if (isDragging) {
             e.preventDefault();
             e.stopPropagation();
         }
     }, true);
 
-    listen(root, 'mouseenter', scheduleCenterActiveDot);
-    listen(root, 'focusin', scheduleCenterActiveDot);
-    listen(root, 'mouseleave', scheduleCenterActiveDot);
-    listen(dotsContainer, 'transitionend', event => {
+    listenRoot(root, 'mouseenter', scheduleCenterActiveDot);
+    listenRoot(root, 'focusin', scheduleCenterActiveDot);
+    listenRoot(root, 'mouseleave', scheduleCenterActiveDot);
+    listenRoot(dotsContainer, 'transitionend', event => {
         if (event.target === dotsContainer && !isDown) scheduleCenterActiveDot();
     });
 
@@ -214,14 +229,13 @@ function getDotLabel(node, itemIndex) {
 
 function rebuildDots() {
     if (!initialized) return;
+    if (!settings.get('messageRailEnabled')) {
+        releaseRoot();
+        return;
+    }
     createUi();
     applyPosition();
     if (!root || !dotsContainer) return;
-
-    if (!settings.get('messageRailEnabled')) {
-        root.hidden = true;
-        return;
-    }
 
     items = getRenderedMessages();
     if (!items.length) {
@@ -459,9 +473,7 @@ export function cleanupMessageRail() {
         try { cleanup(); } catch {}
     }
 
-    root?.remove();
-    root = null;
-    dotsContainer = null;
+    releaseRoot();
     getChatContainer()?.classList.remove('gmr-chat-host');
     items = [];
     activeIndex = -1;
@@ -473,7 +485,6 @@ export function initMessageRail() {
     initialized = true;
     const chat = getChatContainer();
     chat?.classList.add('gmr-chat-host');
-    createUi();
     bindChatObserver();
     bindEvents();
     bindScrollEvents();
