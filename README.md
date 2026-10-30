@@ -95,7 +95,6 @@ SillyTavern-ProbablyTooManyTabs/
 │   ├── integrations/  # SillyTavern UI integrations and compatibility helpers
 │   └── ui/            # Context menus and injected controls
 ├── scripts/           # Development checks
-├── tests/             # Regression checks and palette preview
 ├── style.css
 ├── theme-overrides.css
 └── content/           # In-app Guide / What's New / More
@@ -126,7 +125,7 @@ Support my projects: [💸 PayPal](https://www.paypal.com/ncp/payment/ABWFG6Y3SR
 
 ## Development checks
 
-Run `npm test` for regression checks and `npm run check` for JavaScript syntax checks. No dependency install is needed. See [tests/README.md](tests/README.md) for requirements and coverage limits.
+Run `npm run check` for JavaScript syntax checks. No dependency install is needed.
 
 ## License
 

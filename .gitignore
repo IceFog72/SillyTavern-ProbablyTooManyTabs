@@ -22,8 +22,4 @@ run-theme-preview.sh
 .codegraph/
 .skills/
 .claude/
-tests/*
-!tests/*.test.mjs
-!tests/module-harness.mjs
-!tests/README.md
-!tests/palette-preview.html
+tests/
