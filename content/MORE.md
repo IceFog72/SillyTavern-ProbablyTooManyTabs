@@ -94,6 +94,18 @@ Adds a UI panel for managing custom CSS properties (variables) directly from wit
 
 ---
 
+## SillyTavern-LanguageTool
+
+[→ View on GitHub](https://github.com/IceFog72/SillyTavern-LanguageTool)
+
+---
+
+## SillyTavern-CodexPet
+
+[→ View on GitHub](https://github.com/IceFog72/SillyTavern-CodexPet)
+
+---
+
 # Support Development
 
 If PTMT helps your workflow, consider supporting further development:

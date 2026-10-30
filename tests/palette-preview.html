@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PTMT generated theme roles</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#141619;color:#eef0f2;font:15px/1.5 system-ui,sans-serif;padding:28px}h1{font-size:24px;margin:0 0 6px}p{margin:0 0 20px;color:#bfc4cb}main{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}article{padding:16px;border:1px solid;border-radius:8px}h2{font-size:14px;margin:0 0 10px;text-transform:capitalize}.tabs{padding:7px 10px;margin-bottom:10px}.chat{padding:12px;margin-bottom:10px}.chat p{color:inherit;margin:0}.input{padding:8px 10px}.swatches{display:flex;margin-top:12px;gap:4px}.swatches span{width:20px;height:12px;border-radius:2px}@media(max-width:700px){main{grid-template-columns:1fr}}
+</style>
+<h1>PTMT automatic themes</h1><p>Image hues, tonal surfaces, analogous italics, split complementary underlines. All five profiles, shown over their generated UI base.</p><main></main>
+<script type="module">
+import {buildThemeFromColors} from '../src/theme/palette-generator.js';
+const sources={Warm:['#775533','#aa7733','#dd9944'],Cool:['#051525','#144d81','#57cbd9'],Neutral:['#808080']};
+for(const profile of ['dark','bright','balanced','vivid','soft']) for(const [name,samples] of Object.entries(sources)) {
+ const t=buildThemeFromColors(samples,profile);const article=document.createElement('article');
+ article.style.cssText=`background:${t.blur_tint_color.replace(/, [\d.]+\)$/,', 1)')};color:${t.main_text_color};border-color:${t.border_color};box-shadow:0 3px 12px ${t.shadow_color}`;
+ const title=document.createElement('h2');title.textContent=`${profile} / ${name}`;
+ const tabs=document.createElement('div');tabs.className='tabs';tabs.textContent='Chat     Characters     World Info';tabs.style.cssText=`background:${t.ptmt_tabs_background};color:${t.ptmt_tabs_color}`;
+ const chat=document.createElement('div');chat.className='chat';chat.style.background=t.chat_tint_color;
+ const line=document.createElement('p');line.textContent='A readable base for the conversation.';
+ const quote=document.createElement('div');quote.textContent='“The image sets the mood.”';quote.style.color=t.quote_text_color;
+ const em=document.createElement('em');em.textContent='A related accent for narration.';em.style.color=t.italics_text_color;
+ const underline=document.createElement('div');underline.textContent='A contrasting accent';underline.style.cssText=`color:${t.underline_text_color};text-decoration:underline`;
+ chat.append(line,quote,em,underline);
+ const input=document.createElement('div');input.className='input';input.textContent='Write a message…';input.style.background=t.ptmt_textbox_background;
+ const swatches=document.createElement('div');swatches.className='swatches';for(const value of Object.values(t)){const swatch=document.createElement('span');swatch.style.background=value;swatches.append(swatch)}
+ article.append(title,tabs,chat,input,swatches);document.querySelector('main').append(article);
+}
+document.documentElement.dataset.preview='ready';
+</script></html>

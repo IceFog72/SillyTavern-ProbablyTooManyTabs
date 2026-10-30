@@ -1,0 +1,750 @@
+import { el } from '../core/utils.js';
+import { EVENTS } from '../core/constants.js';
+import { SettingsManager } from '../core/settings.js';
+import { moveBg1ToSheld, moveBg1BackToPtmtMain } from '../integrations/misc-helpers.js';
+import { GradientEditor } from '../colorizer/gradient-editor.js';
+import { applyColumnVisibility } from '../layout/layout.js';
+
+export function createSettingsPanel(manager) {
+    const { settings, appApi } = manager;
+    const panel = el('div', { className: 'ptmt-settings-panel' });
+    manager.rootElement = panel;
+    const settingCheckboxes = new Map();
+
+    const topSection = el('div', { className: 'ptmt-settings-top-section' });
+    const globalSettings = el('fieldset', { className: 'ptmt-settings-fieldset ptmt-layout-settings' }, el('legend', {}, 'Global Layout'));
+    const globalGrid = el('div', { className: 'ptmt-settings-grid' });
+    globalSettings.appendChild(globalGrid);
+
+    const createSettingCheckbox = (labelText, settingKey) => {
+        const id = `ptmt-global-${settingKey}`;
+        const wrapper = el('div', { className: 'ptmt-setting-row ptmt-setting-toggle' });
+        const checkbox = el('input', { type: 'checkbox', id, checked: settings.get(settingKey) });
+        const label = el('label', { for: id }, labelText);
+
+        checkbox.addEventListener('change', (e) => {
+            if (e.target.checked === false) {
+                const colName = settingKey === 'showLeftPane' ? 'left' : (settingKey === 'showRightPane' ? 'right' : null);
+                if (colName) {
+                    const refs = appApi._refs();
+                    const colEl = refs[`${colName}Body`];
+                    if (colEl && colEl.querySelector('[data-source-id="ptmt-settings-wrapper-content"]')) {
+                        alert("Cannot hide this column because it contains the Layout Settings tab. Move the tab to another column first.");
+                        e.target.checked = true;
+                        return;
+                    }
+                }
+            }
+
+            // Special handling for moveBg1ToSheld
+            if (settingKey === 'moveBg1ToSheld') {
+                if (e.target.checked) {
+                    moveBg1ToSheld();
+                } else {
+                    moveBg1BackToPtmtMain();
+                }
+            }
+
+            settings.update({ [settingKey]: e.target.checked });
+            if (settingKey === 'showLeftPane' || settingKey === 'showRightPane') {
+                applyColumnVisibility();
+                window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED, { detail: { reason: 'columnVisibilityChanged' } }));
+            }
+        });
+
+        wrapper.append(checkbox, label);
+        settingCheckboxes.set(settingKey, checkbox);
+        return wrapper;
+    };
+
+
+    // Avatar size dialog
+    const openAvatarDialog = () => {
+        const existing = document.getElementById('ptmt-avatar-settings-dialog');
+        if (existing) { existing.remove(); return; }
+
+        const createDimensionInput = (label, key) => {
+            const inp = el('input', {
+                type: 'text',
+                value: settings.get(key),
+                className: 'text_pole textarea_compact ptmt-vs-avatar-input',
+                title: 'Valid CSS units: px, vh, vw, %, em, rem, vmin, vmax',
+            });
+            const validateCss = (val) => /^-?\d*\.?\d+\s*(?:px|vh|vw|%|em|rem|vmin|vmax)$/i.test(val.trim());
+
+            const updateUI = (val) => {
+                if (validateCss(val)) {
+                    inp.style.borderColor = '';
+                    settings.update({ [key]: val.trim().toLowerCase() });
+                } else {
+                    inp.style.setProperty('border-color', 'red', 'important');
+                }
+            };
+
+            inp.addEventListener('input', (e) => updateUI(e.target.value));
+            return inp;
+        };
+
+        const createFactorInput = (label, key) => {
+            const inp = el('input', {
+                type: 'number',
+                value: settings.get(key),
+                step: '0.1',
+                min: '0.1',
+                max: '5',
+                className: 'text_pole textarea_compact ptmt-vs-avatar-input',
+                title: 'Multiplier (0.1 – 5)',
+            });
+
+            inp.addEventListener('change', (e) => {
+                const val = parseFloat(e.target.value);
+                if (val >= 0.1 && val <= 5) {
+                    inp.style.borderColor = '';
+                    settings.update({ [key]: val.toString() });
+                } else {
+                    inp.style.setProperty('border-color', 'red', 'important');
+                }
+            });
+            return inp;
+        };
+
+        const createField = (labelText, input) => {
+            return el('div', { className: 'ptmt-vs-avatar-field' },
+                el('label', { className: 'ptmt-vs-avatar-label' }, labelText),
+                input
+            );
+        };
+
+        // Dialog content sections
+        const chatSection = el('div', { className: 'ptmt-vs-section' },
+            el('h4', { className: 'ptmt-vs-section-title' },
+                el('i', { className: 'fa-solid fa-images ptmt-small-icon' }),
+                'Chat Messages (Big Avatars)'
+            ),
+            createField('Height (base)', createDimensionInput('Height (base)', 'avatarBaseHeight')),
+            createField('Width (base)', createDimensionInput('Width (base)', 'avatarBaseWidth')),
+            createField('Scale Width', createFactorInput('Scale Width', 'avatarScaleWidth')),
+            createField('Scale Height', createFactorInput('Scale Height', 'avatarScaleHeight'))
+        );
+
+        const normalSection = el('div', { className: 'ptmt-vs-section' },
+            el('h4', { className: 'ptmt-vs-section-title' },
+                el('i', { className: 'fa-solid fa-comments ptmt-small-icon' }),
+                'Chat Messages (Normal)'
+            ),
+            createField('Avatar Size', createDimensionInput('Avatar Size', 'normalAvatarSize'))
+        );
+
+        const charListSection = el('div', { className: 'ptmt-vs-section' },
+            el('h4', { className: 'ptmt-vs-section-title' },
+                el('i', { className: 'fa-solid fa-people-group ptmt-small-icon' }),
+                'Character List'
+            ),
+            createField('Avatar Width', createDimensionInput('Avatar Width', 'charListAvatarWidth')),
+            createField('Avatar Height', createDimensionInput('Avatar Height', 'charListAvatarHeight')),
+            createField('Scale', createFactorInput('Scale', 'charListAvatarScale'))
+        );
+
+        const resetBtn = el('button', {
+            className: 'ptmt-vs-button secondary',
+            type: 'button'
+        },
+            el('i', { className: 'fa-solid fa-rotate-right ptmt-small-icon' }),
+            'Reset All'
+        );
+
+        const closeBtn = el('button', {
+            className: 'ptmt-vs-button primary',
+            type: 'button'
+        },
+            el('i', { className: 'fa-solid fa-check ptmt-small-icon' }),
+            'Close'
+        );
+
+        const footer = el('div', { className: 'ptmt-vs-footer' }, resetBtn, closeBtn);
+
+        const dialog = el('div', {
+            id: 'ptmt-avatar-settings-dialog',
+            className: 'ptmt-view-settings-dialog'
+        },
+            el('div', { className: 'ptmt-vs-content' },
+                el('h3', { className: 'ptmt-vs-title' },
+                    el('i', { className: 'fa-solid fa-image ptmt-small-icon' }),
+                    'Avatar Size Settings'
+                ),
+                chatSection,
+                normalSection,
+                charListSection,
+                footer
+            )
+        );
+
+        closeBtn.addEventListener('click', () => dialog.remove());
+        resetBtn.addEventListener('click', () => {
+            const defaults = SettingsManager.defaultSettings;
+            settings.update({
+                avatarBaseHeight: defaults.avatarBaseHeight,
+                avatarBaseWidth: defaults.avatarBaseWidth,
+                normalAvatarSize: defaults.normalAvatarSize,
+                avatarScaleWidth: defaults.avatarScaleWidth,
+                avatarScaleHeight: defaults.avatarScaleHeight,
+                charListAvatarWidth: defaults.charListAvatarWidth,
+                charListAvatarHeight: defaults.charListAvatarHeight,
+                charListAvatarScale: defaults.charListAvatarScale
+            });
+            dialog.remove();
+            openAvatarDialog(); // Reopen to show reset values
+        });
+
+        document.body.appendChild(dialog);
+    };
+
+    const avatarDialogBtn = el('button', {
+        className: 'menu_button interactable ptmt-button-compact'
+    }, 'Avatar Sizes');
+    avatarDialogBtn.addEventListener('click', openAvatarDialog);
+
+    const syncVisibility = (_enabled) => { }; // visibility controlled by overridesFieldset below
+
+    // Background color picker (fallback matches defaultSettings.bodyBgColor)
+    const bodyBgColorValue = settings.get('bodyBgColor') || 'rgb(29, 29, 29)';
+
+    // Ensure toolcool-color-picker script is loaded
+    if (typeof customElements !== 'undefined' && !customElements.get('toolcool-color-picker')) {
+        const script = document.createElement('script');
+        script.src = '/lib/toolcool-color-picker.js';
+        document.head.appendChild(script);
+    }
+
+    const bgColorPicker = el('toolcool-color-picker', {
+        'popup-position': 'left',
+        'button-width': '60px',
+        'button-height': '32px'
+    });
+    bgColorPicker.setAttribute('color', bodyBgColorValue);
+
+    bgColorPicker.addEventListener('change', (evt) => {
+        const newColor = evt.detail?.hex8 || evt.detail?.hex || bodyBgColorValue;
+        settings.update({ bodyBgColor: newColor });
+        // Update CSS variable in real-time
+        document.documentElement.style.setProperty('--ptmt-body-bg-color', newColor);
+    });
+
+    // Apply color on initialization
+    document.documentElement.style.setProperty('--ptmt-body-bg-color', bodyBgColorValue);
+
+    const bgColorContainer = el('div',
+        {
+            className: 'ptmt-setting-row ptmt-full-width-container',
+            style: {
+                display: settings.get('moveBg1ToSheld') ? 'flex' : 'none'
+            }
+        },
+        bgColorPicker,
+        el('label', { className: 'ptmt-bg-color-label' }, 'Background Color')
+    );
+
+    // Create moveBg1ToSheld checkbox separately to control bgColorContainer visibility
+    const moveBg1Checkbox = createSettingCheckbox('Move BG under Chat', 'moveBg1ToSheld');
+    const moveBg1Input = moveBg1Checkbox.querySelector('input');
+
+    // Add listener to control bgColorContainer visibility
+    moveBg1Input.addEventListener('change', (e) => {
+        bgColorContainer.style.display = e.target.checked ? 'flex' : 'none';
+    });
+
+    // Tab Strip Mode dropdown (replaces old Auto-Hide checkbox)
+    const tabStripModeRow = (() => {
+        const id = 'ptmt-global-tabStripMode';
+        const wrapper = el('div', { className: 'ptmt-setting-row ptmt-setting-field' });
+        const select = el('select', { id, className: 'text_edit' });
+        const modes = { 'normal': 'Normal', 'auto-hide': 'Auto-Hide', 'shy': 'Shy' };
+        Object.entries(modes).forEach(([value, label]) => {
+            const opt = el('option', { value, selected: settings.get('tabStripMode') === value }, label);
+            select.appendChild(opt);
+        });
+        // Fall back: if legacy tabStripAutoHide is true and tabStripMode is 'normal', show auto-hide
+        if (settings.get('tabStripAutoHide') && settings.get('tabStripMode') === 'normal') {
+            select.value = 'auto-hide';
+        }
+        select.addEventListener('change', (e) => {
+            settings.update({ tabStripMode: e.target.value });
+        });
+        const label = el('label', { for: id }, 'Tab strip mode');
+        wrapper.append(label, select);
+        return wrapper;
+    })();
+
+    globalGrid.append(
+        createSettingCheckbox('Enable Message Rail', 'messageRailEnabled'),
+        createSettingCheckbox('Show Left Column', 'showLeftPane'),
+        createSettingCheckbox('Show Right Column', 'showRightPane'),
+        createSettingCheckbox('Auto-Open First Center Tab', 'autoOpenFirstCenterTab'),
+        createSettingCheckbox('Show Context Size Status Bar', 'showContextStatusBar'),
+        createSettingCheckbox('Show World Info Status Bar', 'showWorldInfoStatusBar'),
+        createSettingCheckbox('Sync Avatar with Expression', 'enableAvatarExpressionSync'),
+        createSettingCheckbox('Hide on resize (Chrome)', 'hideContentWhileResizing')
+    );
+
+    // ─── Global Style Fieldset ──────────────────────────────────────────
+    const overridesFieldset = el('fieldset', { className: 'ptmt-settings-fieldset ptmt-style-settings' }, el('legend', {}, 'Global Style'));
+    const overridesGrid = el('div', { className: 'ptmt-settings-grid' });
+    overridesFieldset.appendChild(overridesGrid);
+
+    const overridesCheckboxForFieldset = createSettingCheckbox('Enable CSS Overrides', 'enableOverride1');
+    overridesCheckboxForFieldset.style.gridColumn = 'span 1';
+
+    const avatarRowForFieldset = el('div', {
+        className: 'ptmt-setting-row ptmt-setting-sub-item ptmt-avatar-row'
+    },
+        el('label', { className: 'ptmt-avatar-label' }, 'Avatar Sizes:'),
+        avatarDialogBtn
+    );
+    avatarRowForFieldset.style.display = settings.get('enableOverride1') ? 'flex' : 'none';
+
+    const autoContrastCheckboxForFieldset = createSettingCheckbox('Auto Contrast Text Colors', 'enableAutoContrast');
+    autoContrastCheckboxForFieldset.classList.add('ptmt-setting-sub-item');
+    autoContrastCheckboxForFieldset.style.opacity = settings.get('enableOverride1') ? '1' : '0.5';
+    autoContrastCheckboxForFieldset.style.pointerEvents = settings.get('enableOverride1') ? 'auto' : 'none';
+    autoContrastCheckboxForFieldset.style.display = settings.get('enableOverride1') ? 'flex' : 'none';
+
+    const overridesCheckboxInputForFieldset = overridesCheckboxForFieldset.querySelector('input');
+    const syncFieldsetVisibility = (enabled) => {
+        avatarRowForFieldset.style.display = enabled ? 'flex' : 'none';
+        autoContrastCheckboxForFieldset.style.display = enabled ? 'flex' : 'none';
+        autoContrastCheckboxForFieldset.style.opacity = enabled ? '1' : '0.5';
+        autoContrastCheckboxForFieldset.style.pointerEvents = enabled ? 'auto' : 'none';
+    };
+    overridesCheckboxInputForFieldset.addEventListener('change', (e) => syncFieldsetVisibility(e.target.checked));
+
+    const animCheckbox = createSettingCheckbox('Animations', 'enableAnimations');
+    const shadowCheckbox = createSettingCheckbox('Shadows', 'enableShadows');
+
+
+    // ─── UI Theme Selector ───────────────────────────────────────────────────────
+    const themeSelector = el('select', {
+        id: 'ptmt-ui-theme-selector',
+        className: 'text_edit'
+    });
+
+    const themes = SettingsManager.getAvailableThemes?.() || [];
+    const defaultTheme = SettingsManager.themes ? Object.keys(SettingsManager.themes)[0] : 'sharp';
+    const currentTheme = settings.get('uiTheme') || defaultTheme;
+
+    themes.forEach(theme => {
+        const opt = el('option', {
+            value: theme.id,
+            selected: theme.id === currentTheme
+        }, `${theme.name} ${theme.description}`);
+        themeSelector.appendChild(opt);
+    });
+
+    themeSelector.addEventListener('change', (e) => {
+        const themeName = e.target.value;
+        settings.update({ uiTheme: themeName });
+        SettingsManager.applyTheme(themeName);
+    });
+
+    const themeSelectorRow = el('div', { className: 'ptmt-setting-row ptmt-setting-field' },
+        el('label', { for: 'ptmt-ui-theme-selector' }, 'UI Theme'),
+        themeSelector
+    );
+
+    // Final assembly of the Global Style section
+    const refreshStyleGrid = () => {
+        overridesGrid.innerHTML = '';
+        overridesGrid.append(
+            themeSelectorRow,
+            tabStripModeRow,
+            animCheckbox,
+            shadowCheckbox,
+            createSettingCheckbox('Show icons only', 'showIconsOnly'),
+            moveBg1Checkbox,
+            createSettingCheckbox('Use Wallpaper for Browser Tint', 'enableBrowserBackgroundTint'),
+            bgColorContainer,
+            overridesCheckboxForFieldset,
+            avatarRowForFieldset,
+            autoContrastCheckboxForFieldset,
+        );
+    };
+    refreshStyleGrid();
+
+
+
+    const isMobile = settings.get('isMobile');
+    const mobileToggleBtn = el('button', {
+        class: "menu_button menu_button_icon interactable ptmt-mobile-button ptmt-grid-span-1",
+        title: isMobile ? "Switch to Desktop Layout (Reloads page)" : "Switch to Mobile Layout (Reloads page)",
+        tabindex: "0",
+        role: "button"
+    }, isMobile ? 'Switch to Desktop Layout' : 'Switch to Mobile Layout');
+
+    mobileToggleBtn.addEventListener('click', () => appApi.toggleMobileMode());
+
+    const resetBtn = el('button', {
+        class: "menu_button menu_button_icon interactable ptmt-reset-button ptmt-grid-span-1",
+        title: "Reset all layout settings and reload the UI",
+        tabindex: "0",
+        role: "button"
+    }, 'Reset Layout to Default');
+
+    resetBtn.addEventListener('click', () => appApi.resetLayout());
+
+    const resetShortcutInfo = el('div', { className: 'ptmt-setting-notice ptmt-grid-span-1' },
+        el('i', { className: 'fa-solid fa-keyboard ptmt-small-icon' }),
+        'Shortcut: Alt+Shift+R — Reset layout to default.'
+    );
+
+    globalSettings.append(
+        el('div', { className: 'ptmt-settings-actions' }, mobileToggleBtn, resetBtn),
+        resetShortcutInfo,
+    );
+
+    const colorizerSettings = createDialogueColorizerSettings(settings);
+    topSection.append(globalSettings, overridesFieldset, colorizerSettings);
+    panel.append(topSection);
+
+    manager.renderUnifiedEditor();
+
+    const disclaimerContainer = el('div', { className: 'ptmt-disclaimer-container' },
+        el('span', { className: 'ptmt-disclaimer-icon' }, '⚠️'),
+        el('div', { className: 'ptmt-disclaimer-content' },
+            el('strong', {}, 'Please Note:'),
+            el('p', {}, 'To ensure compatibility, your custom layout may be automatically reset after major updates to the layout system.'),
+            el('p', {}, 'If you install a supported extension and its tab does not appear, you may need to reset the layout for it to be added.'),
+            el('p', {}, 'Pending Tabs lists extensions or panels available for columns that are not currently in active layout.'),
+            el('p', {}, 'For additional extension integration request as tabs, reach out to me on Discord.')
+        )
+    );
+    panel.appendChild(disclaimerContainer);
+
+    const supportLinksContainer = el('div', { className: 'ptmt-support-footer' }, 'Feedback/support');
+    const linksWrapper = el('div', { className: 'ptmt-support-links' });
+    const discordLink = el('a', { href: 'https://discord.gg/2tJcWeMjFQ', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, 'Discord (IceFog\'s AI Brew Bar)');
+    const patreonLink = el('a', { href: 'https://www.paypal.com/ncp/payment/ABWFG6Y3SRGE6', target: '_blank', rel: 'noopener noreferrer', className: 'ptmt-support-link' }, '💸 Support my projects (PayPal)');
+
+    // GitHub Star Badge (Shields.io) - Reliable & no script needed
+    const githubLink = el('a', {
+        href: 'https://github.com/IceFog72/SillyTavern-ProbablyTooManyTabs',
+        target: '_blank',
+        rel: 'noopener noreferrer',
+        style: 'display: inline-flex; align-items: center;'
+    },
+        el('img', {
+            src: 'https://img.shields.io/github/stars/IceFog72/SillyTavern-ProbablyTooManyTabs?style=social',
+            alt: 'GitHub stars',
+            style: 'height: 20px;'
+        })
+    );
+
+    linksWrapper.append(discordLink, patreonLink, githubLink);
+    supportLinksContainer.appendChild(linksWrapper);
+    panel.appendChild(supportLinksContainer);
+
+    if (manager._layoutChangeHandler) {
+        window.removeEventListener(EVENTS.LAYOUT_CHANGED, manager._layoutChangeHandler);
+    }
+    manager._layoutChangeHandler = () => manager.scheduleEditorRender();
+    manager.editorVisibilityObserver?.disconnect();
+    manager.editorVisibilityObserver = new ResizeObserver(() => {
+        if (manager.editorDirty && panel.getClientRects().length) manager.scheduleEditorRender();
+    });
+    manager.editorVisibilityObserver.observe(panel);
+    window.addEventListener(EVENTS.LAYOUT_CHANGED, manager._layoutChangeHandler);
+
+    if (manager._settingsCheckboxSyncHandler) {
+        window.removeEventListener(EVENTS.SETTINGS_CHANGED, manager._settingsCheckboxSyncHandler);
+    }
+    manager._settingsCheckboxSyncHandler = (event) => {
+        const changed = event.detail?.changed || [];
+        changed.forEach(key => {
+            const checkbox = settingCheckboxes.get(key);
+            if (checkbox) checkbox.checked = !!settings.get(key);
+        });
+    };
+    window.addEventListener(EVENTS.SETTINGS_CHANGED, manager._settingsCheckboxSyncHandler);
+
+    return panel;
+}
+
+export function createDialogueColorizerSettings(settings) {
+    const row = (children, extra = {}) =>
+        el('div', { className: `ptmt-setting-row${children.some(child => child.tagName === 'SELECT') ? ' ptmt-setting-field' : ''}`, ...extra }, ...children);
+
+    const lbl = (text, forId) => el('label', forId ? { for: forId } : {}, text);
+
+    const checkbox = (id, key) => {
+        const inp = el('input', { type: 'checkbox', id, checked: settings.get(key) });
+        inp.addEventListener('change', e => settings.update({ [key]: e.target.checked }));
+        return inp;
+    };
+
+    const dropdown = (id, key, options, { numeric = false } = {}) => {
+        const sel = el('select', { id });
+        const current = settings.get(key);
+        options.forEach(o => sel.appendChild(el('option', { value: o.value, selected: String(current) === String(o.value) }, o.label)));
+        sel.addEventListener('change', e => {
+            const value = numeric ? parseInt(e.target.value, 10) : e.target.value;
+            settings.update({ [key]: value });
+        });
+        return sel;
+    };
+
+    const colorPicker = (id, key) => {
+        const value = settings.get(key);
+
+        // Ensure toolcool-color-picker is loaded
+        if (typeof customElements !== 'undefined' && !customElements.get('toolcool-color-picker')) {
+            const script = document.createElement('script');
+            script.src = '/lib/toolcool-color-picker.js';
+            document.head.appendChild(script);
+        }
+
+        // Create toolcool-color-picker with base attributes
+        const pickerElement = el('toolcool-color-picker', {
+            id,
+            'popup-position': 'left',
+            'button-width': '40px',
+            'button-height': '32px'
+        });
+
+        // Explicitly set color attribute for proper initialization
+        pickerElement.setAttribute('color', value);
+
+        // Update settings when color changes (use hex8 to preserve alpha)
+        pickerElement.addEventListener('change', (e) => {
+            const newColor = e.detail.hex8 || e.detail.hex || value;
+            settings.update({ [key]: newColor });
+        });
+
+        return pickerElement;
+    };
+
+    const bubbleModeOptions = [
+        { value: 'avatar_light', label: 'Avatar Light' },
+        { value: 'avatar_dark', label: 'Avatar Dark' },
+        { value: 'static_color', label: 'Static' },
+        { value: 'gradient', label: 'Gradient' },
+    ];
+
+    const targetOptions = [
+        { value: '1', label: 'Quoted Text Only' },
+        { value: '2', label: 'Chat Bubbles Only' },
+        { value: '3', label: 'Both' },
+    ];
+
+    const sourceOptions = [
+        { value: 'avatar_vibrant', label: 'Avatar Vibrant' },
+        { value: 'static_color', label: 'Static Color' },
+    ];
+
+    const container = el('fieldset', { className: 'ptmt-settings-fieldset ptmt-colorizer-settings' }, el('legend', {}, 'Dialogue Colorizer'));
+    const grid = el('div', { className: 'ptmt-settings-grid' });
+    container.appendChild(grid);
+
+    const enableInput = checkbox('ptmt-col-enable', 'enableDialogueColorizer');
+    const wipeBtn = el('button', {
+        className: 'menu_button ptmt-colorizer-reset',
+        type: 'button',
+        title: 'Reset global and personal colorizer settings',
+        textContent: 'Reset colorizer',
+    });
+    wipeBtn.addEventListener('click', async () => {
+        if (!confirm('This will reset ALL Dialogue Colorizer settings, including per-character and per-persona overrides. Continue?')) return;
+        const defaults = SettingsManager.defaultSettings;
+        const resetSettings = Object.fromEntries(
+            Object.entries(defaults).filter(([key]) =>
+                key === 'enableDialogueColorizer' ||
+                key.startsWith('dialogueColorizer') ||
+                key.startsWith('charCustomColorizer') ||
+                key.startsWith('personaCustomColorizer')
+            )
+        );
+        await settings.update(resetSettings, true);
+        resetVisibleControls();
+        window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: true } }));
+    });
+    grid.appendChild(row([
+        enableInput,
+        lbl('Enable Dialogue Colorizer', 'ptmt-col-enable'),
+        wipeBtn,
+    ], { className: 'ptmt-setting-row ptmt-grid-full ptmt-colorizer-enable-row' }));
+
+    const opacityControl = (id, key, labelText) => {
+        const value = settings.get(key) ?? 0.1;
+        const valueLabel = el('span', { className: 'ptmt-opacity-value' }, `${Math.round(value * 100)}%`);
+        const slider = el('input', {
+            id,
+            type: 'range',
+            min: '0',
+            max: '1',
+            step: '0.01',
+            value,
+            className: 'ptmt-opacity-slider',
+        });
+        slider.addEventListener('input', () => {
+            const val = parseFloat(slider.value);
+            valueLabel.textContent = `${Math.round(val * 100)}%`;
+            settings.update({ [key]: val });
+        });
+        return row([lbl(labelText, id), slider, valueLabel], { className: 'ptmt-setting-row ptmt-setting-range' });
+    };
+
+    const gradientControl = ({ prefix, stopsKey, angleKey, modeSelect }) => {
+        const gradientRow = el('div', { className: 'ptmt-setting-row ptmt-gradient-row', style: 'display: none; flex-direction: column;' });
+        const gradientEditor = new GradientEditor({
+            stops: settings.get(stopsKey) ?? [],
+            angle: settings.get(angleKey) ?? 225,
+            showAngle: true,
+            showReset: false,
+            showPalette: false,
+            showTrack: false,
+            onChange: ({ stops, angle }) => settings.update({ [stopsKey]: stops, [angleKey]: angle }),
+            onReset: () => {
+                settings.update({ [stopsKey]: [], [angleKey]: 225 });
+                gradientEditor.stops = [];
+                gradientEditor.angle = 225;
+            },
+        });
+        gradientEditor.mount(gradientRow);
+        const angleId = `ptmt-col-${prefix}-gradient-angle`;
+        gradientRow.querySelector('.ptmt-ge-angle-slider').id = angleId;
+        gradientRow.querySelector('.ptmt-ge-controls').prepend(lbl('Gradient angle', angleId));
+
+        const sync = () => {
+            gradientRow.style.display = modeSelect.value === 'gradient' ? 'flex' : 'none';
+        };
+        modeSelect.addEventListener('change', sync);
+        sync();
+        gradientRow.dataset.gradientFor = prefix;
+        gradientRow.ptmtGradientEditor = gradientEditor;
+        return gradientRow;
+    };
+
+    const charSection = el('fieldset', { className: 'ptmt-colorizer-subsection' }, el('legend', {}, 'Characters'));
+    const charTarget = dropdown('ptmt-col-char-target', 'dialogueColorizerColorizeTarget', targetOptions, { numeric: true });
+    const charDialogSrc = row([lbl('Dialogue Color Source', 'ptmt-col-charsrc'), dropdown('ptmt-col-charsrc', 'dialogueColorizerSource', sourceOptions)]);
+    const charDialogStatic = row([colorPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-charstaticcolor')]);
+    const charBubbleMode = dropdown('ptmt-col-charbubblemode', 'dialogueColorizerBubbleMode', bubbleModeOptions);
+    const charGradient = gradientControl({
+        prefix: 'characters',
+        stopsKey: 'dialogueColorizerBubbleGradientStops',
+        angleKey: 'dialogueColorizerBubbleGradientAngle',
+        modeSelect: charBubbleMode,
+    });
+    const charBubbleStatic = row([
+        el('div', { className: 'ptmt-color-picker-pair' },
+            colorPicker('ptmt-col-charbubblestatic1', 'dialogueColorizerBubbleStaticColor1'),
+            colorPicker('ptmt-col-charbubblestatic2', 'dialogueColorizerBubbleStaticColor2')
+        ),
+        lbl('Bubble Static Colors', 'ptmt-col-charbubblestatic'),
+    ]);
+
+    const syncCharVis = () => {
+        charDialogStatic.style.display = charDialogSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
+        charBubbleStatic.style.display = charBubbleMode.value === 'static_color' ? 'flex' : 'none';
+    };
+    charDialogSrc.querySelector('select').addEventListener('change', syncCharVis);
+    charBubbleMode.addEventListener('change', syncCharVis);
+    syncCharVis();
+    const charOpacity = opacityControl('ptmt-bubble-opacity-bot', 'dialogueColorizerBubbleOpacityBot', 'Bubble Opacity');
+    charSection.append(
+        row([lbl('Colorize Target', 'ptmt-col-char-target'), charTarget]),
+        charDialogSrc,
+        charDialogStatic,
+        row([lbl('Bubble Color Mode', 'ptmt-col-charbubblemode'), charBubbleMode]),
+        charGradient,
+        charBubbleStatic,
+        charOpacity
+    );
+    grid.appendChild(charSection);
+
+    const personaSection = el('fieldset', { className: 'ptmt-colorizer-subsection' }, el('legend', {}, 'Personas (User)'));
+    const personaTarget = dropdown('ptmt-col-persona-target', 'dialogueColorizerPersonaColorizeTarget', targetOptions, { numeric: true });
+    const personaDialogSrc = row([lbl('Dialogue Color Source', 'ptmt-col-personasrc'), dropdown('ptmt-col-personasrc', 'dialogueColorizerPersonaSource', sourceOptions)]);
+    const personaDialogStatic = row([colorPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor'), lbl('Dialogue Static Color', 'ptmt-col-personastaticcolor')]);
+    const personaBubbleMode = dropdown('ptmt-col-personabubblemode', 'dialogueColorizerPersonaBubbleMode', bubbleModeOptions);
+    const personaGradient = gradientControl({
+        prefix: 'personas',
+        stopsKey: 'dialogueColorizerPersonaBubbleGradientStops',
+        angleKey: 'dialogueColorizerPersonaBubbleGradientAngle',
+        modeSelect: personaBubbleMode,
+    });
+    const personaBubbleStatic = row([
+        el('div', { className: 'ptmt-color-picker-pair' },
+            colorPicker('ptmt-col-personabubblestatic1', 'dialogueColorizerPersonaBubbleStaticColor1'),
+            colorPicker('ptmt-col-personabubblestatic2', 'dialogueColorizerPersonaBubbleStaticColor2')
+        ),
+        lbl('Bubble Static Colors', 'ptmt-col-personabubblestatic'),
+    ]);
+
+    const syncPersonaVis = () => {
+        personaDialogStatic.style.display = personaDialogSrc.querySelector('select').value === 'static_color' ? 'flex' : 'none';
+        personaBubbleStatic.style.display = personaBubbleMode.value === 'static_color' ? 'flex' : 'none';
+    };
+    personaDialogSrc.querySelector('select').addEventListener('change', syncPersonaVis);
+    personaBubbleMode.addEventListener('change', syncPersonaVis);
+    syncPersonaVis();
+    const personaOpacity = opacityControl('ptmt-bubble-opacity-user', 'dialogueColorizerBubbleOpacityUser', 'Bubble Opacity');
+    personaSection.append(
+        row([lbl('Colorize Target', 'ptmt-col-persona-target'), personaTarget]),
+        personaDialogSrc,
+        personaDialogStatic,
+        row([lbl('Bubble Color Mode', 'ptmt-col-personabubblemode'), personaBubbleMode]),
+        personaGradient,
+        personaBubbleStatic,
+        personaOpacity
+    );
+    grid.appendChild(personaSection);
+
+    const resetVisibleControls = () => {
+        const defaults = SettingsManager.defaultSettings;
+        const setPicker = (id, key) => document.getElementById(id)?.setAttribute('color', defaults[key]);
+        const setOpacity = (opacityRow, key) => {
+            const slider = opacityRow.querySelector('.ptmt-opacity-slider');
+            const valueLabel = opacityRow.querySelector('.ptmt-opacity-value');
+            const value = defaults[key];
+            if (slider) slider.value = value;
+            if (valueLabel) valueLabel.textContent = `${Math.round(value * 100)}%`;
+        };
+        const setGradient = (gradientRow, stopsKey, angleKey) => {
+            const editor = gradientRow.ptmtGradientEditor;
+            if (!editor) return;
+            editor.stops = defaults[stopsKey];
+            editor.angle = defaults[angleKey];
+        };
+
+        enableInput.checked = defaults.enableDialogueColorizer;
+        charTarget.value = String(defaults.dialogueColorizerColorizeTarget);
+        charDialogSrc.querySelector('select').value = defaults.dialogueColorizerSource;
+        charBubbleMode.value = defaults.dialogueColorizerBubbleMode;
+        setPicker('ptmt-col-charstaticcolor', 'dialogueColorizerStaticColor');
+        setPicker('ptmt-col-charbubblestatic1', 'dialogueColorizerBubbleStaticColor1');
+        setPicker('ptmt-col-charbubblestatic2', 'dialogueColorizerBubbleStaticColor2');
+        setGradient(charGradient, 'dialogueColorizerBubbleGradientStops', 'dialogueColorizerBubbleGradientAngle');
+        setOpacity(charOpacity, 'dialogueColorizerBubbleOpacityBot');
+
+        personaTarget.value = String(defaults.dialogueColorizerPersonaColorizeTarget);
+        personaDialogSrc.querySelector('select').value = defaults.dialogueColorizerPersonaSource;
+        personaBubbleMode.value = defaults.dialogueColorizerPersonaBubbleMode;
+        setPicker('ptmt-col-personastaticcolor', 'dialogueColorizerPersonaStaticColor');
+        setPicker('ptmt-col-personabubblestatic1', 'dialogueColorizerPersonaBubbleStaticColor1');
+        setPicker('ptmt-col-personabubblestatic2', 'dialogueColorizerPersonaBubbleStaticColor2');
+        setGradient(personaGradient, 'dialogueColorizerPersonaBubbleGradientStops', 'dialogueColorizerPersonaBubbleGradientAngle');
+        setOpacity(personaOpacity, 'dialogueColorizerBubbleOpacityUser');
+
+        syncCharVis();
+        syncPersonaVis();
+        syncEnabledVisibility();
+    };
+
+    const syncEnabledVisibility = () => {
+        const display = enableInput.checked ? '' : 'none';
+        charSection.style.display = display;
+        personaSection.style.display = display;
+    };
+    enableInput.addEventListener('change', syncEnabledVisibility);
+    syncEnabledVisibility();
+
+    return container;
+}

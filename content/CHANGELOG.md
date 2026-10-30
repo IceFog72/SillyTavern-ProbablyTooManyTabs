@@ -3,6 +3,25 @@
 
  **ANNOUNCEMENT:** Development of PTMT and other extensions is currently paused due to limited support. Existing installations will continue to work, but new features, updates, and further development depend on community support. If you use and enjoy these projects, please consider supporting or donating—every contribution helps make continued development possible.
 
+## Unreleased
+
+*Theme generation, runtime fixes & source organization — manifest version v0.13.4*
+
+- ✦ Polish · **Generated Theme Palettes** — rebuilt image-based color generation around an OKLCH tonal scale for Dark, Bright, Balanced, Vivid, and Soft profiles, retaining their Alpha and Solid variants. Muted surfaces follow the image seed hue, quoted text uses that hue, italics use an analogous hue, and underlines use a split complementary accent. Warm images retain warm surfaces instead of being shifted toward blue, and neutral images remain neutral.
+- ✔ Fix · **Generated Text Contrast** — generated main text targets at least 7:1 contrast and italics, quotes, and underlines target at least 4.5:1 against generated surfaces and their modeled blends. Translucent surfaces over arbitrary wallpaper can change visible contrast; the Guide now explains the generated color roles and recommends Auto Contrast Text Colors for those cases.
+- ✔ Fix · **Black and White Image Sampling** — retained near-black and near-white pixels during image color extraction so monochrome images produce neutral palettes instead of falling back to an unrelated color.
+- ✔ Fix · **Partial Theme Loading** — clears previous PTMT color overrides before applying a theme, including partial themes with top-level color values, so omitted colors do not retain stale overrides.
+- ✔ Fix · **Mobile Deferred Tabs** — mobile layout conversion now collects deferred tabs from all columns, deduplicates ID and class matches separately, and assigns them to the center pane so they remain available when their panels appear.
+- ✔ Fix · **Closing the Active Tab** — closing an active tab selects another open tab when available. If no open tab remains, it clears the active state instead of reopening a collapsed tab; the existing center-pane auto-open policy still applies.
+- ✔ Fix · **Avatar Expression Replacement** — removing a native expression image now triggers an avatar refresh, including animated replacements that remove the previous image.
+- ✔ Fix · **World Info Group Names** — World Info status grouping now accepts names such as `constructor` and `__proto__` without colliding with inherited object properties.
+- ✔ Fix · **Extension Shutdown Cleanup** — runtime shutdown now also cleans up the layout editor, character colorizer UI, dialogue colorizer and its generated styles, and tab actions when the extension is disabled, deleted, or initialized again.
+- ✦ Refactor · **Source Organization** — moved JavaScript into `src/` folders for core, layout, tabs, editor, theme, colorizer, integrations, and UI. Updated module imports, type references, the manifest entry point to `src/index.js`, and the README project tree. The manifest version is now v0.13.4, up from v0.13.2.
+- ✦ Refactor · **Theme Stylesheet Name** — renamed the global theme and adaptive contrast stylesheet to `theme-overrides.css` and updated its loader and documentation references. Removed unused palette helpers from the theme-color integration now that generation uses the shared palette module.
+- ✦ Development · **Regression Checks** — added a dependency-free Node regression suite and `npm test`, covering source imports, palette generation, theme loading, mobile layouts, tab closing, lifecycle cleanup, avatar expressions, World Info, browser tint, reload recovery, startup, colorizer settings and alpha, gradient editing, and performance behavior. Added `npm run check` for JavaScript syntax validation across `src/`.
+- ✦ Development · **Palette Preview & Check Documentation** — added a browser palette preview for warm, cool, and neutral samples across all five styles, documented Node requirements and the limits of module tests, and described optional live SillyTavern smoke checks. Updated the README development instructions and ignore rules to include the regression suite, harness, test documentation, and palette preview while keeping other local test artifacts ignored.
+- ✦ New · **More Extensions** — added LanguageTool and CodexPet to the More tab alongside Every Text Line Editor, MoreReasoning, PocketTTS WebSocket, Card Gallery Viewer, and Inline Assistant.
+
 ## v0.13.1 — 2026-10-09
 
 *Colorizer polish & cleanup*
@@ -112,7 +131,7 @@
 *Message Rail & UI Opacity*
 
 - ✦ New · **Integrated Message Rail** — ported and rebranded the GPT Message Rail extension into a built-in PTMT subsystem. It provides a sleek, vertical message indicator rail that expands on hover for rapid chat navigation.
-- ✔ Fix · **Panel Background Opacity** — forced background alpha to 1 (fully opaque) for drawers, popups, draggable panels, and zoomed avatars in `overrides-1.css`, ensuring text readability is preserved.
+- ✔ Fix · **Panel Background Opacity** — forced background alpha to 1 (fully opaque) for drawers, popups, draggable panels, and zoomed avatars in `theme-overrides.css`, ensuring text readability is preserved.
 
 ---
 

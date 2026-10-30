@@ -82,21 +82,23 @@ PTMT integrates with these SillyTavern extensions:
 
 ### Project Structure
 
-```
+```text
 SillyTavern-ProbablyTooManyTabs/
-├── index.js        # Entry point, API
-├── tabs.js         # Tab lifecycle
-├── pane.js         # Pane management
-├── layout.js       # Column layout
-├── resizer.js      # Resize handling
-├── drag-drop.js           # Drag and drop
-├── layout-transactions.js # User-visible layout mutations
-├── snapshot.js            # Layout persistence
-├── settings.js            # Settings management
-├── colorizer-settings.js  # Dialogue Colorizer settings schema
-├── st-mobile-styles.js    # Blocks ST mobile stylesheet while PTMT owns layout
-├── style.css              # Styles
-└── content/               # In-app Guide / What's New / More docs
+├── src/
+│   ├── index.js       # Entry point, public API and lifecycle
+│   ├── core/          # Settings, constants, shared helpers and reload recovery
+│   ├── layout/        # Panes, sizing, resizing, snapshots and transactions
+│   ├── tabs/          # Tab lifecycle, pending tabs, actions and drag-and-drop
+│   ├── editor/        # Layout editor, settings dialogs and Info panel
+│   ├── theme/         # Image palettes, theme colors and browser tint
+│   ├── colorizer/     # Dialogue colors, personal overrides and gradient editor
+│   ├── integrations/  # SillyTavern UI integrations and compatibility helpers
+│   └── ui/            # Context menus and injected controls
+├── scripts/           # Development checks
+├── tests/             # Regression checks and palette preview
+├── style.css
+├── theme-overrides.css
+└── content/           # In-app Guide / What's New / More
 ```
 
 ---
@@ -121,6 +123,10 @@ Support my projects: [💸 PayPal](https://www.paypal.com/ncp/payment/ABWFG6Y3SR
 [![Star History Chart](https://api.star-history.com/image?repos=IceFog72/SillyTavern-ProbablyTooManyTabs&type=date&legend=top-left)](https://www.star-history.com/?repos=IceFog72%2FSillyTavern-ProbablyTooManyTabs&type=date&legend=top-left)
 
 ---
+
+## Development checks
+
+Run `npm test` for regression checks and `npm run check` for JavaScript syntax checks. No dependency install is needed. See [tests/README.md](tests/README.md) for requirements and coverage limits.
 
 ## License
 

@@ -76,6 +76,7 @@ This section controls the visual aesthetic of the extension without affecting yo
 - **Move BG Under Chat** — moves the SillyTavern background image (#bg1) underneath the chat area instead of behind the whole UI. When enabled, reveals a **Background Color** colour picker to set the area outside the chat.
 - **Theme Colors** — extra PTMT colour pickers for UI Background 2, Text Box Background, Tabs Color, and Tabs Background.
 - **Generate colors from background** — the wand button in Theme Colors samples the active background image and fills the SillyTavern/PTMT theme colour pickers automatically.
+- **Generated color roles** — the image supplies a seed hue. Related muted surfaces use an OKLCH tonal scale. Quoted text keeps the seed hue, italics use an analogous hue, and underlines use a split complementary accent. Each profile controls tone and chroma. Neutral images stay neutral. Text roles target at least 4.5:1 contrast against generated surfaces, with 7:1 for main text. Translucent surfaces over arbitrary wallpaper can change the visible contrast. Keep Auto Contrast Text Colors enabled for those cases.
 - **Palette Profile** — the dropdown beside the wand controls the generated palette style. *Alpha* profiles keep the main UI tint translucent; *Solid* profiles make the main UI tint opaque while leaving supporting generated colours mostly translucent.
 
 ### Layout Actions
