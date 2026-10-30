@@ -771,6 +771,10 @@ export function initColorizer() {
             'dialogueColorizerBubbleOpacityBot', 'dialogueColorizerBubbleOpacityUser',
             'dialogueColorizerColorizeTarget', 'dialogueColorizerPersonaColorizeTarget',
             'dialogueColorizerBubbleGradientAngle', 'dialogueColorizerPersonaBubbleGradientAngle',
+            // Personal-colorizer writers dispatch ptmt:colorizer:refresh with
+            // fullRefresh set only when extraction inputs changed.
+            'charCustomColorizerEnabled', 'charCustomColorizerSettings',
+            'personaCustomColorizerEnabled', 'personaCustomColorizerSettings',
         ];
         if (keys.some(key => !noExtractionKeys.includes(key))) invalidateAllColorCache();
         updateStyles();

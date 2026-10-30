@@ -81,3 +81,16 @@ test('switching character saves a pending picker change to the previous characte
     f.timers.flush();
     assert.equal(f.saves.length, 1);
 });
+
+test('turning personal colours on or off requests a full colour refresh', async () => {
+    const f = await fixture();
+    f.enable.checked = false;
+    f.enable.dispatchEvent({ type: 'change' });
+    await new Promise(setImmediate);
+    assert.equal(f.refreshes.at(-1)?.fullRefresh, true);
+    f.resolved.enabled = false;
+    f.enable.checked = true;
+    f.enable.dispatchEvent({ type: 'change' });
+    await new Promise(setImmediate);
+    assert.equal(f.refreshes.at(-1)?.fullRefresh, true);
+});

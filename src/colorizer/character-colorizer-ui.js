@@ -337,7 +337,8 @@ async function saveSnapshot(persona, key, snapshot) {
     if (!snapshot.enabled) {
         if (!before.enabled) return true;
         const changed = await updateCustomColorizerSettings(settings, type, key, { enabled: false });
-        if (changed) window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: false } }));
+        // Falling back to global settings can change the extraction mode.
+        if (changed) window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', { detail: { fullRefresh: true } }));
         return changed;
     }
 
@@ -351,7 +352,7 @@ async function saveSnapshot(persona, key, snapshot) {
     if (saved) {
         const gradientChanged = JSON.stringify(old.bubbleGradientStops ?? []) !== JSON.stringify(patch.bubbleGradientStops ?? []);
         window.dispatchEvent(new CustomEvent('ptmt:colorizer:refresh', {
-            detail: { fullRefresh: extractionChanged || gradientChanged },
+            detail: { fullRefresh: !before.enabled || extractionChanged || gradientChanged },
         }));
     }
     return saved;
