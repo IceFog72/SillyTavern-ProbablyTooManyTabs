@@ -1,9 +1,9 @@
 # Changelog
 
 
- **ANNOUNCEMENT:** Development of PTMT and other extensions is currently paused due to limited support. Existing installations will continue to work, but new features, updates, and further development depend on community support. If you use and enjoy these projects, please consider supporting or donating—every contribution helps make continued development possible.
+ **ANNOUNCEMENT:** Active development of PTMT and other extensions is currently paused due to no support (update-fix only what pissed me off). New features, updates, and further development depend on community support. If you use and enjoy my extensions, please consider donating — every contribution helps make continued development possible.
 
-## Unreleased
+## v0.13.5 — 2026-10-30
 
 *Layout, editor, colorizer and message rail fixes*
 

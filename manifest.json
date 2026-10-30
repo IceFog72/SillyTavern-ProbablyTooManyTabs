@@ -4,7 +4,7 @@
     "js": "src/index.js",
     "css": "style.css",
     "author": "icefog72",
-    "version": "0.13.4",
+    "version": "0.13.5",
     "homePage": "https://github.com/IceFog72/SillyTavern-ProbablyTooManyTabs",
     "auto_update": true,
     "minimum_client_version": "1.18.0",
