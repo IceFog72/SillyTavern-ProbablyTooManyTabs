@@ -4,7 +4,7 @@
 // Zones: center (add as tab) | top | bottom | left | right (split directions)
 
 import { getPaneLayerCount, splitPaneWithPane, MAX_PANE_LAYERS } from '../layout/pane.js';
-import { openTab, getActivePane } from './tabs.js';
+import { openTab } from './tabs.js';
 import { moveTabTransaction } from '../layout/layout-transactions.js';
 import { getPanelById, throttle, getRefs, trackListener } from '../core/utils.js';
 
@@ -246,7 +246,8 @@ function getDragPidFromEvent(ev, isDropEvent = false) {
 function getDragContext(ev, elUnder, isDropEvent = false) {
   const pid = getDragPidFromEvent(ev, isDropEvent);
   if (!pid) return null;
-  const paneUnder    = elUnder?.closest('.ptmt-pane') || getActivePane();
+  // Splitters and gaps belong to no pane; never redirect them to another pane.
+  const paneUnder    = elUnder?.closest('.ptmt-pane') || null;
   const overTabStrip = !!(elUnder?.closest('.ptmt-tabStrip'));
   return { pid, elUnder, paneUnder, overTabStrip, clientX: ev.clientX, clientY: ev.clientY };
 }
@@ -281,7 +282,7 @@ function processDragEvent(ev, { performDrop = false } = {}) {
   }
 
   const ctx = getDragContext(ev, elUnder, performDrop);
-  if (!ctx || !ctx.pid) { hideDropIndicator(); hideCompass(); return; }
+  if (!ctx || !ctx.pid || !ctx.paneUnder) { hideDropIndicator(); hideCompass(); return; }
 
   const refs = getRefs();
   if (!dragSession || dragSession.pane !== ctx.paneUnder) {
