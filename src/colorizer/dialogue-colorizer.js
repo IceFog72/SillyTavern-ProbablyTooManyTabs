@@ -200,7 +200,6 @@ function getColorizerControlSettings(type, info) {
 
     if (resolved.enabled && resolved.raw) {
         const custom = resolved.value;
-        console.log(`[PTMT] ✓ Using CUSTOM colorizer for ${type} "${characterKey}" — opacity=${custom.bubbleOpacity} | full:`, custom);
         return {
             target: custom.colorizeTarget,
             bubbleMode: custom.bubbleMode,
@@ -208,7 +207,6 @@ function getColorizerControlSettings(type, info) {
         };
     }
 
-    console.log(`[PTMT] ⚠ Fallback to GLOBAL for ${type} "${characterKey}" — NOT in customSettingsMap`);
     return {
         target: isPersona
             ? (settings.get('dialogueColorizerPersonaColorizeTarget') ?? 3)
@@ -250,7 +248,6 @@ function getSettingsForType(type, info) {
             bubbleStatic1: custom.bubbleStatic1,
             bubbleStatic2: custom.bubbleStatic2,
         };
-        console.log(`[PTMT] getSettingsForType() using CUSTOM for ${characterKey}:`, result, '| full:', custom);
         return result;
     }
 
@@ -323,7 +320,6 @@ async function getCharacterColor(info) {
             try {
                 const hexes = extractColorsFromImage(domImg);
                 cacheColors(hexes);
-                console.log(`[PTMT] Extracted colors for ${info.uid}: ${hexes.join(', ')}`);
                 return hexes;
             } catch (e) {
                 console.warn(`[PTMT] DOM extraction failed for ${info.uid}, using static color`, e);
@@ -347,7 +343,6 @@ async function getCharacterColor(info) {
                 try {
                     const hexes = extractColorsFromImage(img);
                     cacheColors(hexes);
-                    console.log(`[PTMT] Extracted colors for ${info.uid} (fallback): ${hexes.join(', ')}`);
                     resolve(hexes);
                 } catch (e) {
                     console.warn(`[PTMT] Fallback extraction failed for ${info.uid}`, e);
