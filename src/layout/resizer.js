@@ -1,7 +1,7 @@
 // resizer.js
 import { $$, throttle, debounce, getRefs, invalidateMinWidthCache, calculateElementMinWidth, readPaneViewSettings, trackObserver } from '../core/utils.js';
 import { normalizeFlexBasis, setFlexBasisPercent, pxToPercent, applyIntelligentExpansion, recalculateAllSplitsRecursively, recalculateMultipleSubtreesOptimized } from './layout-math.js';
-import { setPaneCollapsedView } from './pane.js';
+import { setPaneCollapsedView, applyPaneOrientation } from './pane.js';
 import { recalculateColumnSizes } from './layout.js';
 import { SELECTORS, EVENTS, LAYOUT } from '../core/constants.js';
 import { settings } from '../core/settings.js';
@@ -344,13 +344,13 @@ export function setSplitOrientation(splitElement, newOrientation) {
 
     splitElement.classList.toggle('horizontal', isHorizontal);
 
-    const resizer = splitElement.querySelector(`${SELECTORS.RESIZER_V}, ${SELECTORS.RESIZER_H}`);
-    if (resizer) {
-        if (resizerControllers.has(resizer)) {
-            resizerControllers.get(resizer).detach();
-            resizerControllers.delete(resizer);
-        }
+    // Only this split's own splitters; nested splits keep their orientation.
+    const resizerSelector = `${SELECTORS.RESIZER_V}, ${SELECTORS.RESIZER_H}`;
+    for (const resizer of Array.from(splitElement.children).filter(child => child.matches(resizerSelector))) {
+        detachResizer(resizer);
+        const disabled = resizer.classList.contains('disabled');
         resizer.className = `ptmt-resizer-${newOrientation}`;
+        resizer.classList.toggle('disabled', disabled);
         attachResizer(resizer, newOrientation);
     }
 
