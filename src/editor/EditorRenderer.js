@@ -1,5 +1,5 @@
 import { el, createIconElement, hexToRgba, readPaneViewSettings } from '../core/utils.js';
-import { SELECTORS } from '../core/constants.js';
+import { SELECTORS, EVENTS } from '../core/constants.js';
 
 export function renderUnifiedEditor(manager) {
     let editorRoot = manager.rootElement.querySelector(SELECTORS.UNIFIED_EDITOR);
@@ -82,6 +82,8 @@ function renderSplit(manager, element) {
         element.dataset.orientationExpanded = e.target.value;
         if (e.target.value !== 'auto') element.dataset.naturalOrientation = e.target.value;
         manager.appApi.applySplitOrientation(element);
+        // Orientation lives in split datasets; LAYOUT_CHANGED drives the autosave.
+        window.dispatchEvent(new CustomEvent(EVENTS.LAYOUT_CHANGED, { detail: { reason: 'splitOrientationChanged' } }));
     });
 
     collapsedSelect.addEventListener('change', (e) => {
