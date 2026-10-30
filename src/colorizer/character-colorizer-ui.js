@@ -28,8 +28,8 @@ let personaUI = null;
 let currentCharacterKey = null;
 let currentCharacterAvatar = null;
 let currentPersonaKey = null;
-let characterSaveTimer = null;
-let personaSaveTimer = null;
+let characterPendingSave = null;
+let personaPendingSave = null;
 let initialized = false;
 
 const sourceOptions = [
@@ -243,13 +243,14 @@ function createColorizerUI({ persona = false } = {}) {
     });
     opacity.addEventListener('input', () => scheduleSave(persona));
 
+    // The picker fires change on every drag update; debounce like the slider.
     dialogStatic.addEventListener('change', event => {
         ui.values.dialogStatic = event.detail?.hex8 || event.detail?.hex || ui.values.dialogStatic;
-        saveNow(persona);
+        scheduleSave(persona);
     });
     bubbleStatic.addEventListener('change', event => {
         ui.values.bubbleStatic = event.detail?.hex8 || event.detail?.hex || ui.values.bubbleStatic;
-        saveNow(persona);
+        scheduleSave(persona);
     });
 
     syncVisibility();
@@ -287,26 +288,35 @@ function snapshotUI(ui) {
     };
 }
 
+function takeScheduled(persona) {
+    const pending = persona ? personaPendingSave : characterPendingSave;
+    if (pending) clearTimeout(pending.timer);
+    if (persona) personaPendingSave = null;
+    else characterPendingSave = null;
+    return pending;
+}
+
 function cancelScheduled(persona) {
-    const timer = persona ? personaSaveTimer : characterSaveTimer;
-    if (timer) clearTimeout(timer);
-    if (persona) personaSaveTimer = null;
-    else characterSaveTimer = null;
+    takeScheduled(persona);
+}
+
+// Save a debounced edit before the UI switches to another card or persona.
+function flushScheduled(persona) {
+    const pending = takeScheduled(persona);
+    if (pending) saveSnapshot(persona, pending.key, pending.snapshot);
 }
 
 function scheduleSave(persona) {
     const ui = persona ? personaUI : charUI;
     if (!ui || ui.loading) return;
     cancelScheduled(persona);
-    const key = persona ? currentPersonaKey : currentCharacterKey;
-    const snapshot = snapshotUI(ui);
-    const timer = setTimeout(() => {
-        if (persona) personaSaveTimer = null;
-        else characterSaveTimer = null;
-        saveSnapshot(persona, key, snapshot);
+    const pending = { key: persona ? currentPersonaKey : currentCharacterKey, snapshot: snapshotUI(ui) };
+    pending.timer = setTimeout(() => {
+        takeScheduled(persona);
+        saveSnapshot(persona, pending.key, pending.snapshot);
     }, SAVE_DELAY);
-    if (persona) personaSaveTimer = timer;
-    else characterSaveTimer = timer;
+    if (persona) personaPendingSave = pending;
+    else characterPendingSave = pending;
 }
 
 function saveNow(persona) {
@@ -403,7 +413,7 @@ function applyResolvedToUI(ui, resolved, img, defaultColor, defaultAngle) {
 
 function loadCharacterSettings() {
     if (!charUI) return;
-    cancelScheduled(false);
+    flushScheduled(false);
     currentCharacterKey = null;
     currentCharacterAvatar = null;
 
@@ -429,7 +439,7 @@ function loadCharacterSettings() {
 
 function loadPersonaSettings() {
     if (!personaUI) return;
-    cancelScheduled(true);
+    flushScheduled(true);
     currentPersonaKey = null;
     const key = getActivePersonaFilename();
     if (!key) return;
