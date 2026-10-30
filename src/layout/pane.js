@@ -454,6 +454,10 @@ export function removePaneIfEmpty(pane, depth = 0) {
       if (grand) {
         grand.replaceChild(remaining, parent);
         if (grand.classList.contains(SELECTORS.SPLIT.substring(1))) {
+          // The survivor takes the removed split's slot; its own size was relative to that split.
+          remaining.style.flex = parent.style.flex;
+          if (parent.dataset.lastFlex) remaining.dataset.lastFlex = parent.dataset.lastFlex;
+          else delete remaining.dataset.lastFlex;
           recalculateSplitSizes(grand);
         } else {
           normalizeLiftedElement(remaining);
