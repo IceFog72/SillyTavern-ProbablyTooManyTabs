@@ -54,6 +54,11 @@ function clearDragState(manager) {
 
 export function handleDragOver(manager, e) {
     e.preventDefault();
+    // Only editor tabs set draggedTabInfo; pane tabs and files are not editor drops.
+    if (!manager.draggedTabInfo) {
+        manager.indicator.remove();
+        return;
+    }
     let container = e.currentTarget;
 
     if (container.classList.contains('ptmt-editor-pane')) {
@@ -126,6 +131,11 @@ export function handleDragLeave(manager, e) {
 
 export function handleDrop(manager, e) {
     e.preventDefault();
+    if (!manager.draggedTabInfo) {
+        manager.indicator.remove();
+        clearDragState(manager);
+        return;
+    }
     e.stopPropagation();
     manager.rootElement.querySelectorAll('.dragging').forEach(el => el.classList.remove('dragging'));
     manager.rootElement.classList.remove('ptmt-dragging-pending-tab', 'ptmt-dragging-normal-tab');
