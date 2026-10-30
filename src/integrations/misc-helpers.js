@@ -71,8 +71,10 @@ export function initDrawerObserver() {
         if (mutation.type !== 'childList') continue;
         for (const node of mutation.addedNodes) {
           if (!(node instanceof Element)) continue;
+          // Scan the inserted subtree only: panels host #chat, so a whole-panel
+          // scan per streamed node is quadratic on long chats.
           if (node.closest?.('.ptmt-panel-content') || node.querySelector?.('.ptmt-panel-content')) {
-            pinPtmtDrawers(node.closest?.('.ptmt-panel-content') || node);
+            pinPtmtDrawers(node);
           }
         }
       }
