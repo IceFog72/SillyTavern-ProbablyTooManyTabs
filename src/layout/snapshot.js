@@ -600,7 +600,6 @@ const DEFAULT_MIN_SIZES = {
 };
 
 export function generateLayoutSnapshot() {
-    console.log("[PTMT Layout] 📸 Generating layout snapshot...");
     const refs = getRefs();
     if (!refs) return null;
     const buildNodeTree = (element, parentColumn = null) => {
@@ -789,7 +788,6 @@ export function generateLayoutSnapshot() {
         })()
     };
 
-    console.log("[PTMT Layout] ✅ Snapshot generated:", snapshot);
     return snapshot;
 }
 

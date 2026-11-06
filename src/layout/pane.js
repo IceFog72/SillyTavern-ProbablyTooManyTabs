@@ -888,10 +888,8 @@ export function applyIconsOnly(pane, enabled) {
   }
   if (enabled) {
     pane.classList.add('ptmt-icons-only');
-    console.log('[PTMT] Icons-Only mode enabled for pane:', pane.dataset.paneId);
   } else {
     pane.classList.remove('ptmt-icons-only');
-    console.log('[PTMT] Icons-Only mode disabled for pane:', pane.dataset.paneId);
   }
 }
 
@@ -906,7 +904,6 @@ export function toggleIconsOnly(pane) {
   }
   const vs = readPaneViewSettings(pane);
   const newState = !vs.iconOnly;
-  console.log('[PTMT] Toggling icons-only from', vs.iconOnly, 'to', newState, 'for pane:', pane.dataset.paneId);
   writePaneViewSettings(pane, {
     ...vs,
     iconOnly: newState

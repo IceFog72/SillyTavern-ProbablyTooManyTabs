@@ -319,7 +319,6 @@ export function attachColumnResizer(resizer) {
                 if (col && col.style.display !== 'none' && col.style.flex) {
                     if (col.dataset.isColumnCollapsed === 'true') return; // Do not overwrite healthy memory with tiny collapsed flex
                     col.dataset.lastFlex = col.style.flex;
-                    console.log(`[PTMT Layout] 📍 Fixated ${col.id} size to ${col.style.flex}`);
                 }
             });
         }
@@ -465,7 +464,6 @@ export function validateAndCorrectAllMinSizes(isResize = false) {
     }
 
     if (needsRecalculation) {
-        console.log('[PTMT] Layout corrected to enforce minimum panel sizes.');
         recalculateAllSplitsRecursively();
         recalculateColumnSizes();
     }
@@ -484,7 +482,6 @@ export function initGlobalResizeObserver() {
     }
 
     const debouncedResize = debounce(() => {
-        console.log('[PTMT] ResizeObserver triggered: Recalculating layout.');
         // Clear orientation cache so panes can adapt to new space
         document.querySelectorAll(SELECTORS.PANE).forEach(pane => delete pane.dataset.appliedOrientation);
 
