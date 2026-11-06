@@ -8,7 +8,9 @@ import { runTabAction } from './tab-actions.js';
 import { settings } from '../core/settings.js';
 import { showContextMenu } from '../ui/context-menu.js';
 
-const makeId = (prefix = 'ptmt') => `${prefix}-${Date.now().toString(36)}-${Math.floor(Math.random() * 1000)}`;
+// The counter keeps IDs unique when restore creates many panels in one millisecond.
+let idCounter = 0;
+const makeId = (prefix = 'ptmt') => `${prefix}-${Date.now().toString(36)}-${(idCounter++).toString(36)}`;
 const PANEL_SWITCH_ANIMATION_MS = 180;
 
 function shouldAnimatePanels() {
