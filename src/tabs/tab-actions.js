@@ -134,7 +134,7 @@ const tabActions = {
         onCollapse: (_panel) => {},
         onOpen: () => ensureQuickRepliesPopout(),
     },
-    'ptmt-main-content': {
+    sheld: {
         onInit: (panel) => {
             _mainContentAC?.abort();
             _mainContentAC = new AbortController();
