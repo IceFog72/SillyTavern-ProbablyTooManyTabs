@@ -26,7 +26,7 @@ import { initCharacterColorizerUI, cleanupCharacterColorizerUI } from './coloriz
 import { cleanupTabActions } from './tabs/tab-actions.js';
 import { initAvatarExpressionSync, cleanupAvatarExpressionSync } from './integrations/avatar-expression-sync.js';
 import { initInspectorScaleControl, cleanupInspectorScaleControl } from './ui/ui-injection.js';
-import { initThemeColors } from './theme/theme-colors.js';
+import { initThemeColors, cleanupThemeColors } from './theme/theme-colors.js';
 import { initMessageRail, cleanupMessageRail } from './integrations/message-rail.js';
 import { initStMobileStylesBlocker, cleanupStMobileStylesBlocker } from './integrations/st-mobile-styles.js';
 import { showStartupScreen, finishStartupScreen, cleanupStartupScreen } from './core/startup-screen.js';
@@ -489,6 +489,7 @@ function cleanupRuntimeSubsystems() {
     cleanupColorizer({ clearStyles: true });
     cleanupTabActions();
     themeEngine.cleanup();
+    cleanupThemeColors();
     cleanupInspectorScaleControl();
     cleanupAvatarExpressionSync();
     cleanupMessageRail();

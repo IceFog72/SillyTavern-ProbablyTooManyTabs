@@ -60,6 +60,10 @@ const COLOR_GENERATION_TARGETS = [
 ];
 
 let originalFetchForThemeColors = null;
+let ptmtThemeFetch = null;
+let themeSaveHookActive = false;
+let themeColorsAbort = null;
+const injectionRetryTimers = new Set();
 const programmaticPickerUpdates = new WeakSet();
 const initializingPickers = new WeakSet();
 
@@ -330,13 +334,15 @@ async function applySavedThemeColors(name = power_user.theme, options = {}) {
 }
 
 function initThemeColorSaveHook() {
+    themeSaveHookActive = true;
     if (originalFetchForThemeColors) return;
 
-    originalFetchForThemeColors = window.fetch.bind(window);
-    window.fetch = (input, init = {}) => {
+    const originalFetch = window.fetch;
+    originalFetchForThemeColors = originalFetch;
+    ptmtThemeFetch = (input, init = {}) => {
         const url = typeof input === 'string' ? input : input?.url;
-        const isThemeSave = url?.endsWith('/api/themes/save') && init?.body;
-        if (!isThemeSave) return originalFetchForThemeColors(input, init);
+        const isThemeSave = themeSaveHookActive && url?.endsWith('/api/themes/save') && init?.body;
+        if (!isThemeSave) return originalFetch.call(window, input, init);
 
         try {
             const body = JSON.parse(init.body);
@@ -349,8 +355,17 @@ function initThemeColorSaveHook() {
             console.warn('[PTMT] Failed to attach theme colors to theme save:', error);
         }
 
-        return originalFetchForThemeColors(input, init);
+        return originalFetch.call(window, input, init);
     };
+    window.fetch = ptmtThemeFetch;
+}
+
+function retryInjection(fn) {
+    const timer = setTimeout(() => {
+        injectionRetryTimers.delete(timer);
+        fn();
+    }, 1000);
+    injectionRetryTimers.add(timer);
 }
 
 function getActiveBackgroundUrl() {
@@ -496,7 +511,7 @@ function injectBackgroundPaletteButton() {
     const header = document.querySelector('#UI-Theme-Block [name="themeElements"] .inline-drawer-toggle.inline-drawer-header.userSettingsInnerExpandable');
     const title = header?.querySelector('b');
     if (!header || !title) {
-        setTimeout(injectBackgroundPaletteButton, 1000);
+        retryInjection(injectBackgroundPaletteButton);
         return;
     }
 
@@ -512,7 +527,7 @@ function injectCharacterPaletteControls() {
 
     const colorizer = document.querySelector('#ptmt-char-col-drawer');
     if (!colorizer) {
-        setTimeout(injectCharacterPaletteControls, 1000);
+        retryInjection(injectCharacterPaletteControls);
         return;
     }
 
@@ -540,7 +555,7 @@ function initThemeColorPickers() {
     const colorPickerBlock = document.querySelector('#color-picker-block');
     const customCss = document.querySelector('#custom-style');
     if (!colorPickerBlock || !customCss?.sheet) {
-        setTimeout(initThemeColorPickers, 1000);
+        retryInjection(initThemeColorPickers);
         return;
     }
     cleanupLegacyCustomCssRule(customCss);
@@ -587,6 +602,10 @@ function initThemeColorPickers() {
     applyStoredPowerUserThemeColors();
     stabilizeThemeColorsAfterLoad();
 
+    themeColorsAbort?.abort();
+    themeColorsAbort = new AbortController();
+    const { signal } = themeColorsAbort;
+
     const themesSelect = document.querySelector('#themes');
     themesSelect?.addEventListener('change', () => {
         setTimeout(async () => {
@@ -596,7 +615,7 @@ function initThemeColorPickers() {
                 setPickerColor(`#ptmt-theme-color-${color.property.slice(2)}`, value);
             }
         }, 0);
-    });
+    }, { signal });
 
     // Keep --ST-UI-Background in sync when the user manually changes the blur tint picker.
     // After color generation, PTMT pins --ST-UI-Background as an inline style;
@@ -607,7 +626,7 @@ function initThemeColorPickers() {
         const color = event.detail?.rgba;
         if (!color) return;
         applyColorProperty('--ST-UI-Background', color);
-    });
+    }, { signal });
 
 }
 
@@ -617,6 +636,25 @@ export function initThemeColors() {
     injectBackgroundPaletteButton();
     injectCharacterPaletteControls();
     cleanupLegacyCustomCssRule();
+}
+
+/** Undo initThemeColors. Applied theme colors stay: they belong to the user's theme. */
+export function cleanupThemeColors() {
+    themeSaveHookActive = false;
+    // Restore fetch only if no other extension wrapped it after PTMT. Otherwise the
+    // inactive wrapper stays in the chain and passes every request through.
+    if (ptmtThemeFetch && window.fetch === ptmtThemeFetch) {
+        window.fetch = originalFetchForThemeColors;
+        originalFetchForThemeColors = null;
+        ptmtThemeFetch = null;
+    }
+    injectionRetryTimers.forEach(clearTimeout);
+    injectionRetryTimers.clear();
+    themeColorsAbort?.abort();
+    themeColorsAbort = null;
+    for (const id of ['ptmt-theme-color-container', 'ptmt-bg-palette-button', 'ptmt-bg-palette-profile', 'ptmt-char-palette-header']) {
+        document.getElementById(id)?.remove();
+    }
 }
 
 // Reload recovery uses the same color ownership and picker synchronization as editing.

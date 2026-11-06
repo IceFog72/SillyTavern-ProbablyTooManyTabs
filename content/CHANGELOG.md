@@ -7,6 +7,7 @@
 
 - ✔ Fix · **Main Tab Auto-Open** — clicking a chat action button or the Edit Tags button while another tab is showing switches to the Main tab again. The handler had been registered under an ID that no longer exists.
 - ✔ Fix · **Duplicate Panel IDs** — panels created in the same millisecond during layout restore no longer risk sharing an ID, which could make one tab open another tab's panel.
+- ✔ Fix · **Theme Colors on Disable** — disabling PTMT now stops it adding PTMT colors to theme saves and removes its theme color pickers and palette controls. Colors already applied to a theme are kept.
 
 ## v0.13.5 — 2026-10-30
 
