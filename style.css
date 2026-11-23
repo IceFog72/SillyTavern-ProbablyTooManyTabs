@@ -5174,8 +5174,16 @@ body.ptmt-has-maximized-pane .ptmt-split {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  z-index: 4000;
+  z-index: 10020;
   overflow: hidden;
+}
+
+.ptmt-split-preview {
+  z-index: 10030;
+}
+
+.ptmt-split-compass {
+  z-index: 10040;
 }
 
 .ptmt-floating-window {
