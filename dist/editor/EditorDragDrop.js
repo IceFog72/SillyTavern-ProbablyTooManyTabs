@@ -14,8 +14,9 @@ function clearPaneDropHighlights(root) {
     root.querySelectorAll('.ptmt-editor-pane-drop-top, .ptmt-editor-pane-drop-bottom, .ptmt-editor-pane-drop-left, .ptmt-editor-pane-drop-right, .ptmt-editor-pane-drop-center')
         .forEach(el => el.classList.remove(...PANE_DROP_CLASSES));
 }
+const escapeAttr = (value) => typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(value) : value.replace(/"/g, '\\"');
 function paneContainsPtmtInternalTab(paneId) {
-    const livePane = document.querySelector(`${SELECTORS.PANE}[data-pane-id="${paneId}"]`);
+    const livePane = document.querySelector(`${SELECTORS.PANE}[data-pane-id="${escapeAttr(paneId)}"]`);
     if (!livePane)
         return false;
     return Boolean(livePane.querySelector(`${SELECTORS.PANEL}[data-source-id="ptmt-settings-wrapper-content"]`)
@@ -244,7 +245,7 @@ function handlePaneDrop(manager) {
     const dropTarget = manager.paneDropZone;
     if (!sourcePaneId || !dropTarget)
         return;
-    const sourcePane = document.querySelector(`${SELECTORS.PANE}[data-pane-id="${sourcePaneId}"]`);
+    const sourcePane = document.querySelector(`${SELECTORS.PANE}[data-pane-id="${escapeAttr(sourcePaneId)}"]`);
     if (!sourcePane?._tabStrip)
         return;
     const tabs = Array.from(sourcePane._tabStrip.querySelectorAll('.ptmt-tab:not(.ptmt-view-settings)'));
@@ -259,7 +260,7 @@ function handlePaneDrop(manager) {
         const targetPaneId = targetEl.dataset.paneId;
         if (!targetPaneId || targetPaneId === sourcePaneId)
             return;
-        const targetPane = document.querySelector(`${SELECTORS.PANE}[data-pane-id="${targetPaneId}"]`);
+        const targetPane = document.querySelector(`${SELECTORS.PANE}[data-pane-id="${escapeAttr(targetPaneId)}"]`);
         if (!targetPane)
             return;
         if (dockCtrl?.dockPanelsToTarget) {

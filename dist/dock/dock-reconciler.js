@@ -903,11 +903,25 @@ export class PTMTDockController {
         }
     }
     #bindGlobalListeners() {
-        // 1. Escape key restores maximized pane (or maximized floating window)
+        // 1. Escape key closes open PTMT context menu/dialogs first, then restores maximized pane/floating window
         const onKeyDown = (evt) => {
             const event = evt;
             if (event.key !== 'Escape')
                 return;
+            const openMenu = document.querySelector('.ptmt-context-menu');
+            if (openMenu) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                openMenu.remove();
+                return;
+            }
+            const openDialog = document.querySelector('.ptmt-view-settings-dialog');
+            if (openDialog) {
+                event.preventDefault();
+                event.stopImmediatePropagation();
+                openDialog.remove();
+                return;
+            }
             if (this.#maximizedPaneEl) {
                 event.preventDefault();
                 event.stopImmediatePropagation();
@@ -925,10 +939,27 @@ export class PTMTDockController {
         };
         document.addEventListener('keydown', onKeyDown, true);
         trackListener(document, 'keydown', onKeyDown, true);
-        // 2. Keep maximized pane bounds aligned to #ptmt-mainBody on viewport resize
+        // 2. Keep maximized pane bounds AND floating windows clamped inside #ptmt-mainBody on viewport resize
         const onWindowResize = () => {
             if (this.#maximizedPaneEl)
                 this.#syncMaximizedBounds();
+            const hostRect = getRefs().mainBody?.getBoundingClientRect();
+            if (hostRect && hostRect.width > 0 && hostRect.height > 0) {
+                for (const dom of this.#floatingDom.values()) {
+                    if (dom.windowEl.classList.contains('is-window-maximized'))
+                        continue;
+                    const clamped = clampFloatingGeometry({
+                        x: parseInt(dom.windowEl.style.left, 10) || 0,
+                        y: parseInt(dom.windowEl.style.top, 10) || 0,
+                        width: parseInt(dom.windowEl.style.width, 10) || 480,
+                        height: parseInt(dom.windowEl.style.height, 10) || 340,
+                    }, { width: hostRect.width, height: hostRect.height });
+                    dom.windowEl.style.left = `${clamped.x}px`;
+                    dom.windowEl.style.top = `${clamped.y}px`;
+                    dom.windowEl.style.width = `${clamped.width}px`;
+                    dom.windowEl.style.height = `${clamped.height}px`;
+                }
+            }
         };
         window.addEventListener('resize', onWindowResize);
         trackListener(window, 'resize', onWindowResize);

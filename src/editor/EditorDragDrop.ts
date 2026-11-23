@@ -44,8 +44,11 @@ function clearPaneDropHighlights(root: HTMLElement | null): void {
         .forEach(el => el.classList.remove(...PANE_DROP_CLASSES));
 }
 
+const escapeAttr = (value: string): string =>
+    typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(value) : value.replace(/"/g, '\\"');
+
 function paneContainsPtmtInternalTab(paneId: string): boolean {
-    const livePane = document.querySelector<HTMLElement>(`${SELECTORS.PANE}[data-pane-id="${paneId}"]`);
+    const livePane = document.querySelector<HTMLElement>(`${SELECTORS.PANE}[data-pane-id="${escapeAttr(paneId)}"]`);
     if (!livePane) return false;
     return Boolean(
         livePane.querySelector(`${SELECTORS.PANEL}[data-source-id="ptmt-settings-wrapper-content"]`)
@@ -274,7 +277,7 @@ function handlePaneDrop(manager: LayoutManager): void {
     const dropTarget = manager.paneDropZone;
     if (!sourcePaneId || !dropTarget) return;
 
-    const sourcePane = document.querySelector<HTMLElement>(`${SELECTORS.PANE}[data-pane-id="${sourcePaneId}"]`);
+    const sourcePane = document.querySelector<HTMLElement>(`${SELECTORS.PANE}[data-pane-id="${escapeAttr(sourcePaneId)}"]`);
     if (!sourcePane?._tabStrip) return;
 
     const tabs = Array.from(sourcePane._tabStrip.querySelectorAll<HTMLElement>('.ptmt-tab:not(.ptmt-view-settings)'));
@@ -289,7 +292,7 @@ function handlePaneDrop(manager: LayoutManager): void {
     if (targetEl.classList.contains('ptmt-editor-pane')) {
         const targetPaneId = targetEl.dataset.paneId;
         if (!targetPaneId || targetPaneId === sourcePaneId) return;
-        const targetPane = document.querySelector<HTMLElement>(`${SELECTORS.PANE}[data-pane-id="${targetPaneId}"]`);
+        const targetPane = document.querySelector<HTMLElement>(`${SELECTORS.PANE}[data-pane-id="${escapeAttr(targetPaneId)}"]`);
         if (!targetPane) return;
 
         if (dockCtrl?.dockPanelsToTarget) {

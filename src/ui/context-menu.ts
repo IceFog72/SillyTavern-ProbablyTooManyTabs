@@ -19,12 +19,18 @@ export type ContextMenuItem = ContextMenuSeparator | ContextMenuAction;
 
 let currentMenu: HTMLDivElement | null = null;
 let outsideHandler: ((event: Event) => void) | null = null;
+let escapeHandler: ((event: KeyboardEvent) => void) | null = null;
 
 function removeOutsideHandler(): void {
-    if (!outsideHandler) return;
-    document.removeEventListener('pointerdown', outsideHandler);
-    document.removeEventListener('mousedown', outsideHandler);
-    outsideHandler = null;
+    if (outsideHandler) {
+        document.removeEventListener('pointerdown', outsideHandler);
+        document.removeEventListener('mousedown', outsideHandler);
+        outsideHandler = null;
+    }
+    if (escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+    }
 }
 
 export function showContextMenu(event: MouseEvent, items: ContextMenuItem[]): void {
@@ -68,8 +74,12 @@ export function showContextMenu(event: MouseEvent, items: ContextMenuItem[]): vo
     outsideHandler = (pointerEvent: Event) => {
         if (!menu.contains(pointerEvent.target as Node | null)) hideContextMenu();
     };
+    escapeHandler = (keyEvent: KeyboardEvent) => {
+        if (keyEvent.key === 'Escape') hideContextMenu();
+    };
     document.addEventListener('pointerdown', outsideHandler);
     document.addEventListener('mousedown', outsideHandler);
+    document.addEventListener('keydown', escapeHandler);
 }
 
 export function hideContextMenu(): void {

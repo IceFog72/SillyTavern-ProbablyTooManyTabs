@@ -829,7 +829,10 @@ export function openViewSettingsDialog(pane) {
     cancelBtn.addEventListener('click', () => dialog.remove());
     saveBtn.addEventListener('click', () => {
         const minVal = dialog.querySelector('#ptmt-vs-minimal-panel').value;
-        const minimal = Math.max(20, parseInt(minVal, 10)) || defaultViewSettings.minimalPanelSize;
+        const parsedMin = parseInt(minVal, 10);
+        const minimal = Number.isFinite(parsedMin)
+            ? Math.min(1200, Math.max(40, parsedMin))
+            : defaultViewSettings.minimalPanelSize;
         const def = (dialog.querySelector('#ptmt-vs-default').value || 'auto');
         const col = (dialog.querySelector('#ptmt-vs-collapsed').value || 'auto');
         const flow = (dialog.querySelector('#ptmt-vs-flow').value || 'default');

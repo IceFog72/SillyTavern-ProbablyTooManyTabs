@@ -2,12 +2,17 @@
 import { el } from '../core/utils.js';
 let currentMenu = null;
 let outsideHandler = null;
+let escapeHandler = null;
 function removeOutsideHandler() {
-    if (!outsideHandler)
-        return;
-    document.removeEventListener('pointerdown', outsideHandler);
-    document.removeEventListener('mousedown', outsideHandler);
-    outsideHandler = null;
+    if (outsideHandler) {
+        document.removeEventListener('pointerdown', outsideHandler);
+        document.removeEventListener('mousedown', outsideHandler);
+        outsideHandler = null;
+    }
+    if (escapeHandler) {
+        document.removeEventListener('keydown', escapeHandler);
+        escapeHandler = null;
+    }
 }
 export function showContextMenu(event, items) {
     event.preventDefault();
@@ -54,8 +59,13 @@ export function showContextMenu(event, items) {
         if (!menu.contains(pointerEvent.target))
             hideContextMenu();
     };
+    escapeHandler = (keyEvent) => {
+        if (keyEvent.key === 'Escape')
+            hideContextMenu();
+    };
     document.addEventListener('pointerdown', outsideHandler);
     document.addEventListener('mousedown', outsideHandler);
+    document.addEventListener('keydown', escapeHandler);
 }
 export function hideContextMenu() {
     removeOutsideHandler();

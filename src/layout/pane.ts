@@ -986,7 +986,10 @@ export function openViewSettingsDialog(pane: HTMLElement | null | undefined): vo
     cancelBtn.addEventListener('click', () => dialog.remove());
     saveBtn.addEventListener('click', () => {
         const minVal = dialog.querySelector<HTMLInputElement>('#ptmt-vs-minimal-panel')!.value;
-        const minimal = Math.max(20, parseInt(minVal, 10)) || defaultViewSettings.minimalPanelSize;
+        const parsedMin = parseInt(minVal, 10);
+        const minimal = Number.isFinite(parsedMin)
+            ? Math.min(1200, Math.max(40, parsedMin))
+            : defaultViewSettings.minimalPanelSize;
         const def = (dialog.querySelector<HTMLSelectElement>('#ptmt-vs-default')!.value || 'auto') as ViewOrientationSetting;
         const col = (dialog.querySelector<HTMLSelectElement>('#ptmt-vs-collapsed')!.value || 'auto') as ViewOrientationSetting;
         const flow = (dialog.querySelector<HTMLSelectElement>('#ptmt-vs-flow')!.value || 'default') as ContentFlow;

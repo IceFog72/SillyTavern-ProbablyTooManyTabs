@@ -3,6 +3,17 @@
 
 > **Note:** PTMT and my other extensions are currently in maintenance mode, updated only as I run into issues myself. Ongoing features and active development depend on community support. If you find these extensions useful, consider donating — or at least starring on GitHub — to help keep them moving.
 
+## v0.14.1 — 2026-11-23
+
+*Layering, animation smoothness & safety hardening*
+
+- ✔ Fix · **Floating Window & Split Layering** — raised floating windows (`10020`), split preview (`10030`), and Split Compass (`10040`) above column/pane splitters (`9999`) so floating windows never render behind splitters.
+- ✔ Fix · **World Info Open/Close Jump** — removed redundant `0fr` collapsed grid overrides that conflicted with pane `flex` transitions, restoring smooth open/close animations on vertical `flow-reversed` panes.
+- ✦ Performance · **Zero-Lag Splitter & Floating Drags** — added `ptmt-resizer-dragging` and `.ptmt-floating-window.is-dragging` transition suppression so live drags track the cursor 1:1 even when Animations are enabled and Hide on Resize is off.
+- ✔ Fix · **Shy / Auto-Hide Action Bar Hover** — kept minimized tab strips open smoothly when moving the cursor onto the 3 pane action buttons, and expanded `prefers-reduced-motion` coverage to all dock/floating/compass elements.
+- ✔ Fix · **Floating Viewport Clamp & `Esc` Layering** — re-clamped open floating windows inside `#ptmt-mainBody` on viewport resize so they cannot be stranded off-screen, and layered `Esc` to close open PTMT context menus and settings dialogs before restoring a maximized pane.
+- ✔ Fix · **Input & Selector Hardening** — clamped `Minimum Panel Width (px)` to `40–1200px` and escaped dynamic `[data-pane-id]` / `[data-source-id]` selectors in the Layout Editor with `CSS.escape`.
+
 ## v0.14.0 — 2026-11-23
 
 *Unified Dock Engine, floating windows, new tab themes, editor pane dragging, touch support & strict TypeScript port*
@@ -14,10 +25,10 @@
 - ✦ New · **Layout Settings Editor Upgrades** — drag whole panes by their header (`☰`) inside Layout Settings to split or merge across columns, cycle Split Container Expanded/Collapsed/Sizing modes with compact icon buttons, and toggle **Left / Right Column** visibility inline in each column header.
 - ✦ New · **Touch Screen & Phone Support** — added 550ms long-press context menu fallback (iOS & Android), touch-scroll blocking during tab drags, viewport-clamped context menus with tap-outside dismiss, touch whole-pane dragging in Layout Settings, `touch-action: none` on drag/resize handles, and wider resize edges on coarse pointers.
 - ✔ Fix · **Auto-Open Collapsed Split Sibling** — pulling an open pane out of a split now automatically opens a surviving collapsed sibling pane instead of collapsing the split.
-- ✔ Fix · **Collapsed `Auto` & `flow-reversed` Layout** — fixed `Auto` orientation on all-collapsed nested splits and column collapse transitions, and fixed `flow-reversed` grid tracks on collapsed vertical/horizontal panes so tab strips never clip or leave empty gaps.
+- ✔ Fix · **Collapsed `Auto` & `flow-reversed` Layout** — fixed `Auto` orientation on all-collapsed nested splits and column collapse transitions, and fixed `flow-reversed` grid tracks on collapsed vertical/horizontal panes.
 - ✔ Fix · **Split Compass & Empty Center Pane** — prevented collapsed or zero-size panel containers from placing the Split Compass at `(0, 0)`, hid unused action buttons on 0-tab panes, and hardened tab reorder/drag-drop edge cases.
 - ✦ Performance · **Smooth Column & Pane Splitters** — coalesced splitter drags with `requestAnimationFrame`, fixed collapsed column width math so active columns track the cursor 1:1, ignored collapsed children during expansion, and eliminated redundant nested reflows.
-- ✔ Fix · **Dropdown Contrast & Support Icon** — fixed semi-transparent `<select>` option popups blending into light grey on native OS surfaces, and updated the Support My Projects button icon to a piggy bank.
+- ✔ Fix · **Dropdown Contrast & Support Links** — fixed semi-transparent `<select>` option popups blending into light grey on native OS surfaces, updated the Support My Projects icon to a piggy bank, and added the support buttons to What's New.
 - ✔ Fix · **Main Tab Auto-Open** — clicking a chat action button or the Edit Tags button while another tab is showing switches to the Main tab again. The handler had been registered under an ID that no longer exists.
 - ✔ Fix · **Duplicate Panel IDs** — panels created in the same millisecond during layout restore no longer risk sharing an ID, which could make one tab open another tab's panel.
 - ✔ Fix · **Theme Colors on Disable** — disabling PTMT now stops it adding PTMT colors to theme saves and removes its theme color pickers and palette controls. Colors already applied to a theme are kept.

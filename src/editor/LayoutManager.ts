@@ -119,7 +119,8 @@ export class LayoutManager {
             }
         }
         if (this.rootElement) {
-            const editorBtns = this.rootElement.querySelectorAll<HTMLElement>(`${SELECTORS.EDITOR_TAB}[data-source-id="${sourceId}"] ${SELECTORS.ICON_PICKER_BTN}`);
+            const escaped = typeof CSS !== 'undefined' && typeof CSS.escape === 'function' ? CSS.escape(sourceId) : sourceId.replace(/"/g, '\\"');
+            const editorBtns = this.rootElement.querySelectorAll<HTMLElement>(`${SELECTORS.EDITOR_TAB}[data-source-id="${escaped}"] ${SELECTORS.ICON_PICKER_BTN}`);
             editorBtns.forEach(btn => this.updateIconBtn(btn, iconName));
         }
     }
