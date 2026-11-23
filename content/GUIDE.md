@@ -16,27 +16,41 @@ Each column can contain one or more **panes** — stacked or split-view containe
 
 ---
 
-## Moving Tabs
+## Moving Tabs, Panes & Floating Windows
 
 Every tab bar is interactive:
 
 - **Click a tab** to switch to it.
-- **Click the active tab** to collapse/expand the pane. When all panes in a column are collapsed, the column auto-shrinks to a narrow strip.
-- **Right-click a tab** to open the context menu (Edit Tab).
+- **Click the active tab** to collapse/expand the pane. When all panes in a column are collapsed, the column auto-shrinks to a narrow strip. Pulling an open pane out of a split automatically opens a surviving collapsed sibling pane.
+- **Ctrl/Cmd + Click tabs** to multi-select a group of tabs and drag or float them together.
+- **Right-click a tab** (or **long-press** on touch screens) to open the tab context menu.
 - **Drag a tab** to reorder it within the same pane, or move it to a different pane or column.
-- **Drag a tab over a pane body** (not the tab strip) to open the **Split Compass** — a cross-shaped widget that lets you choose exactly where to place the tab.
+- **Pane Action Buttons** (at the end of each tab bar):
+  - **▾ All Tabs** — quick dropdown listing every tab in the pane with its icon.
+  - **⛶ Maximize / Restore** — expands the pane over the workspace (above splitters); press `Esc` or click again to restore.
+  - **⋮ Undock Handle** — grab and drag to pull the entire pane out into a **Floating Window**.
+- **Drag Reveal** — starting any tab or floating window drag temporarily reveals hidden/empty Left and Right columns and expands Auto-Hide/Shy tab strips so you can drop into them easily.
+
+### Floating Windows
+
+- **Create** — drag a pane's `⋮` undock handle, or right-click its tab bar and choose **Float Entire Pane**.
+- **Move & Resize** — drag the floating window's tab bar to move it, drag any edge or corner to resize it, or double-click empty space on its tab bar to maximize/restore.
+- **Dock & Split** — drag a floating window onto any docked pane's tab bar to split that pane, onto another floating window to merge them, or onto a **Split Compass** zone to dock back. Docking restores the pane's original view settings from before it was floated.
+- **Auto-Cleanup** — floating windows close automatically when their last tab is removed, and stay clamped inside the viewport if you resize the browser window.
 
 ---
 
 ## Split Compass
 
-When you drag a tab over the content area of a pane (below the tab strip), a **Split Compass** appears centred on that pane:
+When you drag a tab or floating window over the content area of a pane (below the tab strip), a **Split Compass** appears centred on that pane:
 
-- **Center** — drop the tab into the same pane as an additional tab.
+- **Center** — drop into the same pane as additional tab(s).
 - **▲ Top / ▼ Bottom** — split the pane horizontally; new pane appears above or below.
 - **◄ Left / ► Right** — split the pane vertically; new pane appears to the left or right.
+- **Outer Edge Arrows** — dock at the top, bottom, left, or right outer edge of the entire column.
+- **Neighbor Targets** — when adjacent split panes exist, extra target buttons let you drop directly into a neighbouring pane.
 
-A blue preview overlay shows exactly which half of the pane the new split will occupy. Hover over a zone to see the preview, then release to confirm.
+A blue preview overlay shows exactly where the dropped tab or floating window will land. Hover over a zone to see the preview, then release to confirm.
 
 ---
 
@@ -44,23 +58,24 @@ A blue preview overlay shows exactly which half of the pane the new split will o
 
 Open the **Layout Settings** tab (🔧 wrench icon) to access all global controls.
 
-### 1. Columns & Behaviour
+### 1. Global Layout
 
-- **Show Left Column** — toggles the left column on/off.
-- **Show Right Column** — toggles the right column on/off.
-
-> You cannot hide a column that contains the Layout Settings tab itself. Move the tab to another column first.
-
+- **Enable Message Rail** — shows a clickable navigation dot rail along the chat edge.
 - **Auto-Open First Center Tab** — when all center-column tabs are collapsed, PTMT automatically opens the first one rather than leaving the center empty.
 - **Show Context Size Status Bar** — shows a coloured progress bar at the top of the center column indicating how many tokens are used (system, prompt, world info, chat, anchors, remaining).
-- **Sync Avatar with Expression** — mirrors the expression image updates to the character's tab icon.
-- **Hide on Resize** — hides heavy content during column/pane resize to prevent browser rendering lag.
+- **Show World Info Status Bar** — displays active World Info entries in a compact status bar.
+- **Sync Avatar with Expression** — mirrors expression image updates to the character's tab icon.
+- **Hide on Resize (Chrome)** — hides heavy content during column/pane resize to prevent browser rendering lag.
+- **Flip Tab Direction (Right/Bottom)** — reverses tab order and places the action bar on the opposite end of tab strips globally.
+- **Show All Tabs Button / Show Maximize Button / Show Undock Handle** — globally show or hide each of the 3 pane action buttons (can also be overridden per pane).
+
+> **Show Left Column** and **Show Right Column** toggles live directly in the `LEFT COLUMN` and `RIGHT COLUMN` headers of the Layout Editor below. You cannot hide a column that contains the Layout Settings tab itself — move the tab to another column first.
 
 ### 2. Global Style
 
 This section controls the visual aesthetic of the extension without affecting your structural layout.
 
-- **UI Theme** — Choose between **Sharp** (classic, tight corners) and **Smooth** (modern, rounded glassmorphism).
+- **UI Theme** — Choose between **Sharp** (classic 0px corners with bottom glow), **Smooth** (rounded glassmorphism pills), **Minimal** (borderless transparent tabs with a 2px accent underline), and **Compact IDE** (dense 30px matte strip with an outer accent stripe).
 - **Tab Strip Mode** — Sets how tab strips behave. 
   - *Normal*: Tabs are always visible.
   - *Auto-Hide*: Tabs minimize to a thin line when the pane is expanded and reveal on hover.
@@ -162,22 +177,24 @@ At the bottom of Layout Settings is the **Layout Editor** — a visual map of al
 
 ### Columns
 
-Each column (Left, Center, Right) is shown as a labelled box. If a column is hidden, it's shown as dimmed with "(Hidden)".
+Each column (Left, Center, Right) is shown as a labelled box. **Left Column** and **Right Column** include an inline toggle switch right in the column header to show or hide that column (dimmed with `(Hidden)` when off).
 
 ### Panes
 
-Each pane appears as a box inside its column. The pane title displays a row of status icons showing its active settings at a glance, alongside a **⚙ gear button** that opens the **Pane Settings popup**:
-- **Minimum Panel Width (px)** — smallest width the pane may shrink to during column resize.
+Each pane appears as a box inside its column. Drag a pane by its **☰ header handle** to move or split the entire pane onto another pane (top/bottom/left/right edge = split, center = merge) or into an empty column. The header also displays status icons alongside a **⚙ gear button** that opens **Pane Settings**:
+- **Minimum Panel Width (px)** — smallest width the pane may shrink to during resize (`40–1200px`).
 - **When Expanded** — tab strip orientation while the pane is open: Auto, Horizontal, or Vertical.
 - **When Collapsed** — tab strip orientation while the pane is collapsed: Auto, Horizontal, or Vertical.
 - **Content Order** — whether the tab strip appears before (*Tabs First*) or after (*Content First*) the panel body.
-- **Icons Only** checkbox — hide tab labels in just this pane to save space.
-- **Tab Strip Mode** dropdown — override the global visibility behavior for this specific pane (Normal, Auto-Hide, or Shy).
+- **Tab Direction** — Start → End (default) or End → Start (flipped).
+- **Icons Only** — hide tab labels in just this pane to save space.
+- **Tab Strip Mode** — override the global visibility behavior for this specific pane (Normal, Auto-Hide, or Shy).
+- **Action Button Toggles** — individually show or hide the All Tabs button, Maximize button, and Undock Handle for this pane.
 
 ### Tabs in the Editor
 
 Each tab in a pane is shown as a draggable chip with:
-- **☰ drag handle** — drag to reorder within the pane, or drag to a different pane/column.
+- **☰ drag handle** — drag to reorder within the pane, or drag to a different pane/column (works with both mouse and touch).
 - **Icon button** — click to open an emoji/icon picker so you can change the tab icon.
 - **Tab name** — the current label.
 - **⚙ gear button** — opens the **Tab Settings popup**:
@@ -186,9 +203,10 @@ Each tab in a pane is shown as a draggable chip with:
 
 ### Split Containers
 
-When a column has a split (two panes stacked or side-by-side), you'll see a **Split Container** box with orientation dropdowns:
-- *Expanded*: layout direction when the split is open (Auto, Vertical, Horizontal).
-- *Collapsed*: layout direction when the split is collapsed.
+When a column has a split (two panes stacked or side-by-side), you'll see a **Split Container** box with 3 compact cycle icon buttons:
+- **Expanded** — layout direction when the split is open (Auto, Vertical, Horizontal).
+- **Collapsed** — layout direction when the split is collapsed (Auto, Vertical, Horizontal).
+- **Sizing Strategy** — how new splits divide space (Split Reference 50/50, Equal Distribution, or Proportional).
 
 ### Pending Tabs
 
@@ -214,10 +232,10 @@ A **Hidden Tabs** storage section at the bottom holds tabs you've intentionally 
 
 ## Right-Click Context Menu
 
-Right-clicking within PTMT opens context menus:
+Right-clicking (or **long-pressing** on phones/tablets) opens PTMT context menus. Press `Esc` or tap outside to close.
 
-- **Right-click a tab** → **Edit Tab** — opens the Tab Settings popup (rename, icon, colour). **Hide Tab** — removes the tab from the layout and sends it to the Hidden Tabs storage in the Layout Editor. Drag it back to any pane to restore it.
-- **Right-click an empty area of the tab strip** → **Edit Pane** (opens Pane Settings), **Icons Only / Show Labels** toggle, and **Cycle Tab Strip Mode** (cycles between Normal → Auto-Hide → Shy for that pane).
+- **Right-click a tab** → **Edit Tab** (rename, icon, colour) or **Hide Tab** (sends the tab to Hidden Tabs in the Layout Editor; drag it back to restore).
+- **Right-click an empty area of the tab strip or the action buttons** → **Edit Pane**, **Maximize / Restore Pane**, **Float Entire Pane**, **Tab Direction**, **Icons Only / Show Labels**, and **Tab Strip Mode** (cycles Normal → Auto-Hide → Shy for that pane).
 
 ---
 
