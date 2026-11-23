@@ -112,6 +112,7 @@ function createResizer<TState>(resizer: HTMLElement, orientation: Orientation | 
         }
         startClient = e[clientProp];
 
+        document.body.classList.add('ptmt-resizer-dragging');
         if (settings.get('hideContentWhileResizing')) {
             document.body.classList.add('ptmt-is-resizing');
         }
@@ -146,6 +147,7 @@ function createResizer<TState>(resizer: HTMLElement, orientation: Orientation | 
         }
         pointerId = null;
         document.body.style.userSelect = '';
+        document.body.classList.remove('ptmt-resizer-dragging');
         if (settings.get('hideContentWhileResizing')) {
             document.body.classList.remove('ptmt-is-resizing');
         }

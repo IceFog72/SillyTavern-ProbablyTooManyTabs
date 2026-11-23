@@ -59,6 +59,7 @@ function createResizer(resizer, orientation, config) {
             console.warn('[PTMT] Failed to set pointer capture:', err);
         }
         startClient = e[clientProp];
+        document.body.classList.add('ptmt-resizer-dragging');
         if (settings.get('hideContentWhileResizing')) {
             document.body.classList.add('ptmt-is-resizing');
         }
@@ -95,6 +96,7 @@ function createResizer(resizer, orientation, config) {
         }
         pointerId = null;
         document.body.style.userSelect = '';
+        document.body.classList.remove('ptmt-resizer-dragging');
         if (settings.get('hideContentWhileResizing')) {
             document.body.classList.remove('ptmt-is-resizing');
         }

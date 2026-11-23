@@ -5000,22 +5000,6 @@ body.ptmt-enable-animations #gpt-message-rail .gmr-dot::before {
     "content actions";
 }
 
-.ptmt-pane.view-collapsed .ptmt-pane-grid.grid-horizontal {
-  grid-template-rows: var(--ptmt-collapsed-width) 0fr;
-}
-
-.ptmt-pane.view-collapsed .ptmt-pane-grid.grid-horizontal.flow-reversed {
-  grid-template-rows: 0fr var(--ptmt-collapsed-width);
-}
-
-.ptmt-pane.view-collapsed .ptmt-pane-grid.grid-vertical {
-  grid-template-columns: var(--ptmt-collapsed-width) 0fr;
-}
-
-.ptmt-pane.view-collapsed .ptmt-pane-grid.grid-vertical.flow-reversed {
-  grid-template-columns: 0fr var(--ptmt-collapsed-width);
-}
-
 .ptmt-tabstrip-actions {
   grid-area: actions;
   display: inline-flex;
@@ -5603,5 +5587,86 @@ body.ptmt-Theme-CompactIde .ptmt-tabstrip-action-btn {
   .ptmt-floating-resize-sw {
     width: 18px;
     height: 18px;
+  }
+}
+
+/* Animation hardening: disable flex/grid transitions during live splitter & floating drags */
+body.ptmt-resizer-dragging .ptmt-body-column,
+body.ptmt-resizer-dragging .ptmt-pane,
+body.ptmt-resizer-dragging .ptmt-split,
+body.ptmt-resizer-dragging .ptmt-pane-grid,
+.ptmt-floating-window.is-dragging {
+  transition: none !important;
+}
+
+body.ptmt-enable-animations .ptmt-tabstrip-actions {
+  transition: opacity 120ms ease;
+}
+
+body.ptmt-enable-animations .ptmt-tabstrip-action-btn,
+body.ptmt-enable-animations .ptmt-editor-split-btn {
+  transition: background-color 120ms ease, border-color 120ms ease, opacity 120ms ease, color 120ms ease;
+}
+
+body.ptmt-enable-animations .ptmt-pane.ptmt-pane-maximized {
+  transition: opacity 120ms ease;
+}
+
+body.ptmt-enable-animations .ptmt-floating-window {
+  transition: opacity 120ms ease, box-shadow 120ms ease;
+}
+
+/* Keep shy/auto-hide tab strips open when hovering the dedicated actions bar */
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabstrip-actions:hover) .ptmt-tabStrip {
+  flex: initial !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  overflow: visible;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  transform: translate(0, 0) !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabstrip-actions:hover) .ptmt-pane-grid.grid-horizontal {
+  grid-template-rows: var(--ptmt-collapsed-width) 1fr !important;
+  max-height: none !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabstrip-actions:hover) .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-rows: 1fr var(--ptmt-collapsed-width) !important;
+  max-height: none !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabstrip-actions:hover) .ptmt-pane-grid.grid-vertical {
+  grid-template-columns: var(--ptmt-collapsed-width) 1fr !important;
+  max-width: none !important;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabstrip-actions:hover) .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-columns: 1fr var(--ptmt-collapsed-width) !important;
+  max-width: none !important;
+}
+
+body.ptmt-enable-animations .ptmt-body-column[data-is-column-collapsed="true"]:has(.ptmt-tabstrip-actions:hover) {
+  transition: flex 120ms ease, min-width 120ms ease;
+}
+
+body.ptmt-enable-animations .ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabstrip-actions:hover) .ptmt-pane-grid {
+  transition: opacity 120ms ease, grid-template-columns 120ms ease, grid-template-rows 120ms ease, gap 120ms ease, padding 120ms ease !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ptmt-body-column,
+  .ptmt-pane-grid,
+  .ptmt-floating-window,
+  .ptmt-tabstrip-actions,
+  .ptmt-tabstrip-action-btn,
+  .ptmt-editor-split-btn,
+  .ptmt-split-preview,
+  .ptmt-compass-zone,
+  .ptmt-context-menu {
+    transition: none !important;
+    animation: none !important;
   }
 }
