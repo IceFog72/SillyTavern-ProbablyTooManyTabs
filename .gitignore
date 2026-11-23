@@ -23,3 +23,5 @@ run-theme-preview.sh
 .skills/
 .claude/
 tests/
+node_modules/
+graphify-out/

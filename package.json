@@ -2,8 +2,15 @@
   "name": "sillytavern-probably-too-many-tabs",
   "private": true,
   "type": "module",
+  "main": "dist/index.js",
   "scripts": {
-    "test": "node --experimental-vm-modules --test tests/*.test.mjs",
-    "check": "node scripts/check.mjs"
+    "build": "tsc -p tsconfig.json",
+    "watch": "tsc -p tsconfig.json --watch",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --experimental-vm-modules --test tests/*.test.mjs",
+    "check": "tsc -p tsconfig.json --noEmit && node scripts/check.mjs"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
   }
 }

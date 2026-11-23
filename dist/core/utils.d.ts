@@ -1,0 +1,48 @@
+import type { HSL, PTMTRefs, RGB, ViewSettings } from './types.js';
+export interface BodyObserverFilter {
+    childList?: boolean;
+    attributes?: boolean;
+    attributeFilter?: string[];
+    subtree?: boolean;
+}
+export declare function hexToRgb(hex: string): RGB;
+export declare const rgba: ({ r, g, b }: RGB, alpha?: number) => string;
+export declare const clampColorChannel: (value: number) => number;
+export declare const mixRgb: (color: RGB, mixWith: RGB, amount: number) => RGB;
+export declare const rgbDistance: (a: RGB, b: RGB) => number;
+export declare function relativeLuminance({ r, g, b }: RGB): number;
+export declare function contrastRatio(a: RGB, b: RGB): number;
+export declare function ensureTextContrastToward(color: RGB, backgrounds: RGB[], target?: 'light' | 'dark', minRatio?: number): RGB;
+export declare function rgbObjectToHsl({ r, g, b }: RGB): HSL;
+export declare const isElement: (v: unknown) => v is Element | Document;
+export declare function hexToRgba(hex: string): string;
+export declare function sortColorsByLightness(hexColors: string[]): string[];
+export declare function getRefs(): PTMTRefs;
+export declare const getPanelById: (pid: string) => HTMLElement | null;
+export declare const getTabById: (pid: string) => HTMLElement | null;
+export declare function debounce<T extends (...args: any[]) => unknown>(func: T, wait: number): (...args: Parameters<T>) => void;
+export declare function throttle<T extends (...args: any[]) => any>(func: T, wait: number): (...args: Parameters<T>) => ReturnType<T> | undefined;
+export declare function qs<T extends Element = HTMLElement>(sel: string | T | Document | null | undefined, root?: ParentNode | null): T | null;
+export declare function $$<T extends Element = HTMLElement>(sel: string | null | undefined, root?: ParentNode | null): T[];
+type ElChildItem = Node | string | null | undefined | false;
+type ElChild = ElChildItem | ElChildItem[];
+export declare function el<K extends keyof HTMLElementTagNameMap>(tag: K, props?: Record<string, any> | null, ...children: ElChild[]): HTMLElementTagNameMap[K];
+export declare function el(tag: string, props?: Record<string, any> | null, ...children: ElChild[]): HTMLElement;
+export declare const getSplitOrientation: (splitEl: Element | null | undefined) => "horizontal" | "vertical";
+export declare const getPanelBySourceId: (id: string) => HTMLElement | null;
+export declare function getElementDepth(element: Element): number;
+export declare function createIconElement(icon: string | null | undefined, className?: string): HTMLSpanElement | null;
+export declare const defaultViewSettings: ViewSettings;
+export declare function readPaneViewSettings(pane: HTMLElement | null | undefined): ViewSettings;
+export declare function writePaneViewSettings(pane: HTMLElement, newPaneSettings: Partial<ViewSettings>): void;
+export declare function invalidateMinWidthCache(element: Element | null | undefined): void;
+export declare function calculateElementMinWidth(element: Element | null | undefined): number;
+export declare function clearDropIndicators(element: ParentNode | null | undefined): void;
+export declare function trackObserver<T extends {
+    disconnect(): void;
+}>(observer: T): T;
+export declare function trackListener(target: EventTarget, event: string, handler: EventListenerOrEventListenerObject, options?: boolean | AddEventListenerOptions): void;
+export declare function cleanupAllObservers(): void;
+export declare function registerBodyObserver(id: string, filter: BodyObserverFilter, callback: (mutations: MutationRecord[]) => void): () => void;
+export declare function extractColorsFromImage(img: HTMLImageElement, numColors?: number): string[];
+export {};

@@ -1,14 +1,28 @@
 # Changelog
 
 
- **ANNOUNCEMENT:** Active development of PTMT and other extensions is currently paused due to no support (update-fix only what pissed me off). New features, updates, and further development depend on community support. If you use and enjoy my extensions, please consider donating — every contribution helps make continued development possible.
+> **Note:** PTMT and my other extensions are currently in maintenance mode, updated only as I run into issues myself. Ongoing features and active development depend on community support. If you find these extensions useful, consider donating — or at least starring on GitHub — to help keep them moving.
 
-## Unreleased
+## v0.14.0 — 2026-11-23
 
+*Unified Dock Engine, floating windows, new tab themes, editor pane dragging, touch support & strict TypeScript port*
+
+- ✦ New · **Unified Dock Engine & Floating Windows** — pull any pane's 3-dot undock handle (`⋮`) or right-click its tab bar to float it into a unified single-bar window. Drag floating windows onto any docked pane's tab bar to split it, onto another floating window to merge them, or onto the Split Compass to dock back while remembering original pane view settings. Empty floating windows close automatically.
+- ✦ New · **13-Zone Split Compass & Outer Edge Docking** — added outer column edge docking zones (`outer-top`, `outer-bottom`, `outer-left`, `outer-right`), multi-tab Ctrl/Cmd+Click group dragging, drag-reveal for hidden/empty side columns and auto-hide/shy tab strips, and full-pane drop preview on empty panes.
+- ✦ New · **Pane Action Buttons & Visibility Toggles** — added a dedicated non-overlapping action bar after the tab strip with **All Tabs** dropdown (showing real tab icons), **Maximize / Restore** (`Esc` to exit, rendered above splitters), and **3-Dot Undock Handle**. Each button has global and per-pane hide toggles, and right-clicking the action bar opens the pane context menu.
+- ✦ New · **Tab Themes: Minimal & Compact IDE** — added **Minimal** (borderless transparent tabs with 2px content-edge accent bar) and **Compact IDE** (dense 30px matte strip with outer-edge accent stripe and hairline dividers), plus a **Flip Tab Direction** toggle (`Right/Bottom`) globally and per-pane.
+- ✦ New · **Layout Settings Editor Upgrades** — drag whole panes by their header (`☰`) inside Layout Settings to split or merge across columns, cycle Split Container Expanded/Collapsed/Sizing modes with compact icon buttons, and toggle **Left / Right Column** visibility inline in each column header.
+- ✦ New · **Touch Screen & Phone Support** — added 550ms long-press context menu fallback (iOS & Android), touch-scroll blocking during tab drags, viewport-clamped context menus with tap-outside dismiss, touch whole-pane dragging in Layout Settings, `touch-action: none` on drag/resize handles, and wider resize edges on coarse pointers.
+- ✔ Fix · **Auto-Open Collapsed Split Sibling** — pulling an open pane out of a split now automatically opens a surviving collapsed sibling pane instead of collapsing the split.
+- ✔ Fix · **Collapsed `Auto` & `flow-reversed` Layout** — fixed `Auto` orientation on all-collapsed nested splits and column collapse transitions, and fixed `flow-reversed` grid tracks on collapsed vertical/horizontal panes so tab strips never clip or leave empty gaps.
+- ✔ Fix · **Split Compass & Empty Center Pane** — prevented collapsed or zero-size panel containers from placing the Split Compass at `(0, 0)`, hid unused action buttons on 0-tab panes, and hardened tab reorder/drag-drop edge cases.
+- ✦ Performance · **Smooth Column & Pane Splitters** — coalesced splitter drags with `requestAnimationFrame`, fixed collapsed column width math so active columns track the cursor 1:1, ignored collapsed children during expansion, and eliminated redundant nested reflows.
+- ✔ Fix · **Dropdown Contrast & Support Icon** — fixed semi-transparent `<select>` option popups blending into light grey on native OS surfaces, and updated the Support My Projects button icon to a piggy bank.
 - ✔ Fix · **Main Tab Auto-Open** — clicking a chat action button or the Edit Tags button while another tab is showing switches to the Main tab again. The handler had been registered under an ID that no longer exists.
 - ✔ Fix · **Duplicate Panel IDs** — panels created in the same millisecond during layout restore no longer risk sharing an ID, which could make one tab open another tab's panel.
 - ✔ Fix · **Theme Colors on Disable** — disabling PTMT now stops it adding PTMT colors to theme saves and removes its theme color pickers and palette controls. Colors already applied to a theme are kept.
 - ✦ Performance · **Layout Logging** — removed console logging that ran on every layout save, window resize, splitter drag and icons-only change. Layout saves no longer keep a copy of each snapshot in the browser console.
+- ✦ Refactor · **Strict TypeScript Port** — ported all `src/` modules to strict TypeScript compiling to `dist/` (`manifest.json` now loads `dist/index.js`) with 82 passing unit tests.
 
 ## v0.13.5 — 2026-10-30
 

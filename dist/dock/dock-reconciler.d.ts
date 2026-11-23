@@ -1,0 +1,42 @@
+import { DockEngine } from './dock-engine.js';
+import { type DockFloatingGeometry, type DockingSizeStrategy, type DockZone, type SerializedDockExtensionState } from './dock-types.js';
+import type { ColumnName } from '../core/types.js';
+export declare class PTMTDockController {
+    #private;
+    readonly engine: DockEngine;
+    constructor(engine?: DockEngine);
+    init(): void;
+    cleanup(): void;
+    get dockingSizeStrategy(): DockingSizeStrategy;
+    setDockingSizeStrategy(strategy: DockingSizeStrategy): void;
+    togglePaneTabAlign(paneEl: HTMLElement): boolean;
+    beginDragReveal(): void;
+    endDragReveal(force?: boolean): void;
+    toggleTabSelection(panelId: string, additive?: boolean): string[];
+    getSelectedTabIdsInPane(paneEl: HTMLElement | null | undefined): string[];
+    getDragGroupForPanel(panelId: string): string[];
+    clearTabSelection(paneEl?: HTMLElement | null): void;
+    dockPanelsToTarget(panelIds: readonly string[], targetPaneEl: HTMLElement | null, zone?: DockZone, options?: {
+        index?: number;
+        activePanelId?: string;
+        column?: ColumnName;
+    }): HTMLElement | null;
+    floatTab(panelId: string, geometry?: Partial<DockFloatingGeometry>): string | null;
+    floatTabGroup(panelIds: readonly string[], geometry?: Partial<DockFloatingGeometry>, activePanelId?: string): string | null;
+    floatPane(paneOrId: HTMLElement | string | null | undefined, geometry?: Partial<DockFloatingGeometry>): string | null;
+    mergeFloatingContainers(sourceContainerId: string, targetContainerId: string): boolean;
+    dockFloatingContainer(containerId: string, targetPaneEl?: HTMLElement | null, zone?: DockZone, column?: ColumnName): HTMLElement | null;
+    cleanupEmptyFloatingWindows(): void;
+    get maximizedPaneElement(): HTMLElement | null;
+    maximizePane(paneOrId: HTMLElement | string | null): boolean;
+    decorateAllPanes(): void;
+    decoratePane(paneEl: HTMLElement | null | undefined): void;
+    syncFromDOM(): void;
+    exportDockExtensionState(): SerializedDockExtensionState;
+    applyDockExtensionState(dockState: SerializedDockExtensionState | null | undefined): void;
+    getPaneElementById(paneId: string): HTMLElement | null;
+}
+export declare const ptmtDock: PTMTDockController;
+export declare function initDock(): PTMTDockController;
+export declare function cleanupDock(): void;
+export declare function getDockController(): PTMTDockController;

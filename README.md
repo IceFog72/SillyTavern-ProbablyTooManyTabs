@@ -84,9 +84,10 @@ PTMT integrates with these SillyTavern extensions:
 
 ```text
 SillyTavern-ProbablyTooManyTabs/
-├── src/
-│   ├── index.js       # Entry point, public API and lifecycle
-│   ├── core/          # Settings, constants, shared helpers and reload recovery
+├── src/               # TypeScript sources
+│   ├── index.ts       # Entry point, public API and lifecycle
+│   ├── globals.d.ts   # SillyTavern host and browser ambient types
+│   ├── core/          # Settings, constants, types, shared helpers and reload recovery
 │   ├── layout/        # Panes, sizing, resizing, snapshots and transactions
 │   ├── tabs/          # Tab lifecycle, pending tabs, actions and drag-and-drop
 │   ├── editor/        # Layout editor, settings dialogs and Info panel
@@ -94,6 +95,7 @@ SillyTavern-ProbablyTooManyTabs/
 │   ├── colorizer/     # Dialogue colors, personal overrides and gradient editor
 │   ├── integrations/  # SillyTavern UI integrations and compatibility helpers
 │   └── ui/            # Context menus and injected controls
+├── dist/              # Compiled browser ESM loaded by SillyTavern
 ├── scripts/           # Development checks
 ├── style.css
 ├── theme-overrides.css
@@ -125,7 +127,7 @@ Support my projects: [💸 PayPal](https://www.paypal.com/ncp/payment/ABWFG6Y3SR
 
 ## Development checks
 
-Run `npm run check` for JavaScript syntax checks. No dependency install is needed.
+Install dev dependencies with `npm install`, then run `npm run build` to compile `src/` to `dist/` and `npm run check` for TypeScript typechecking and syntax checks.
 
 ## License
 

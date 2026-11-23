@@ -4345,11 +4345,49 @@ body.ptmt-enable-animations .ptmt-split-preview {
   color: #fff !important;
 }
 
+/* Outer column/root dock wheel targets (from dock-spawn-ts DockWheel) */
+.ptmt-compass-outer {
+  --compass-size: 30px;
+  position: absolute;
+  display: flex;
+  font-size: 12px;
+  background: rgba(95, 72, 175, 0.84);
+  border-color: rgba(175, 150, 255, 0.6);
+  color: #efe8ff;
+}
+
+.ptmt-compass-outer-top {
+  left: calc(50% - 15px);
+  top: -76px;
+}
+
+.ptmt-compass-outer-bottom {
+  left: calc(50% - 15px);
+  bottom: -76px;
+}
+
+.ptmt-compass-outer-left {
+  left: -76px;
+  top: calc(50% - 15px);
+}
+
+.ptmt-compass-outer-right {
+  right: -76px;
+  top: calc(50% - 15px);
+}
+
+.ptmt-compass-outer.ptmt-compass-zone-active {
+  background: rgba(125, 95, 230, 0.98) !important;
+  border-color: rgba(215, 198, 255, 0.95) !important;
+  color: #fff !important;
+}
+
 /* When splitting is disabled (max layers reached), hide directional zones */
 .ptmt-compass-no-split .ptmt-compass-top,
 .ptmt-compass-no-split .ptmt-compass-bottom,
 .ptmt-compass-no-split .ptmt-compass-left,
-.ptmt-compass-no-split .ptmt-compass-right {
+.ptmt-compass-no-split .ptmt-compass-right,
+.ptmt-compass-no-split .ptmt-compass-outer {
   opacity: 0.28;
   pointer-events: none;
 }
@@ -4920,4 +4958,642 @@ body.ptmt-enable-animations #gpt-message-rail .gmr-dot::before {
 .sd_settings {
   gap: 5px !important;
   display: grid;
+}
+
+/* ==========================================================================
+   PTMT DOCK ENGINE — Unified Floating Windows, Maximize, Tab Order & Drag Reveal
+   ========================================================================== */
+
+/* Multi-selected tab highlight (Ctrl/Cmd+Click tab group move/float) */
+.ptmt-tab.ptmt-tab-selected {
+  outline: 2px solid var(--SmartThemeQuoteColor, #7aa2f7);
+  outline-offset: -2px;
+  background-color: color-mix(in srgb, var(--SmartThemeQuoteColor, #7aa2f7) 22%, transparent) !important;
+}
+
+/* Dedicated grid area for pane actions — keeps scrollable .ptmt-tabStrip & scroll arrows strictly BEFORE buttons */
+.ptmt-pane-grid.grid-horizontal {
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "tabs actions"
+    "content content";
+}
+
+.ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-columns: 1fr auto;
+  grid-template-areas:
+    "content content"
+    "tabs actions";
+}
+
+.ptmt-pane-grid.grid-vertical {
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "tabs content"
+    "actions content";
+}
+
+.ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    "content tabs"
+    "content actions";
+}
+
+.ptmt-pane.view-collapsed .ptmt-pane-grid.grid-horizontal {
+  grid-template-rows: var(--ptmt-collapsed-width) 0fr;
+}
+
+.ptmt-pane.view-collapsed .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-rows: 0fr var(--ptmt-collapsed-width);
+}
+
+.ptmt-pane.view-collapsed .ptmt-pane-grid.grid-vertical {
+  grid-template-columns: var(--ptmt-collapsed-width) 0fr;
+}
+
+.ptmt-pane.view-collapsed .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-columns: 0fr var(--ptmt-collapsed-width);
+}
+
+.ptmt-tabstrip-actions {
+  grid-area: actions;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding: 0 4px;
+  background: var(--ST-UI-Background, transparent);
+  z-index: 5;
+}
+
+.ptmt-pane-grid.grid-vertical > .ptmt-tabstrip-actions {
+  flex-direction: column;
+  padding: 4px 0;
+}
+
+/* Hide actions alongside minimized auto-hide/shy tab strips until hovered or dragging */
+.ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabstrip-actions {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-shy-indicator:hover) .ptmt-tabstrip-actions,
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabStrip:hover) .ptmt-tabstrip-actions,
+.ptmt-pane.ptmt-tabstrip-minimized:has(.ptmt-tabstrip-actions:hover) .ptmt-tabstrip-actions,
+body.ptmt-drag-active .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabstrip-actions {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Optional Tab Direction Flip (global body.ptmt-tabs-align-end or per-pane .ptmt-pane.ptmt-tabs-align-end) */
+body.ptmt-tabs-align-end .ptmt-tabStrip:not(.vertical),
+.ptmt-pane.ptmt-tabs-align-end .ptmt-tabStrip:not(.vertical) {
+  flex-direction: row-reverse;
+}
+
+body.ptmt-tabs-align-end .ptmt-pane-grid.grid-horizontal,
+.ptmt-pane.ptmt-tabs-align-end .ptmt-pane-grid.grid-horizontal {
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "actions tabs"
+    "content content";
+}
+
+body.ptmt-tabs-align-end .ptmt-pane-grid.grid-horizontal.flow-reversed,
+.ptmt-pane.ptmt-tabs-align-end .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    "content content"
+    "actions tabs";
+}
+
+body.ptmt-tabs-align-end .ptmt-tabStrip.vertical,
+.ptmt-pane.ptmt-tabs-align-end .ptmt-tabStrip.vertical {
+  flex-direction: column-reverse;
+}
+
+body.ptmt-tabs-align-end .ptmt-pane-grid.grid-vertical,
+.ptmt-pane.ptmt-tabs-align-end .ptmt-pane-grid.grid-vertical {
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "actions content"
+    "tabs content";
+}
+
+body.ptmt-tabs-align-end .ptmt-pane-grid.grid-vertical.flow-reversed,
+.ptmt-pane.ptmt-tabs-align-end .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    "content actions"
+    "content tabs";
+}
+
+.ptmt-tabstrip-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--SmartThemeBodyColor, #ccc);
+  opacity: 0.65;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.ptmt-tabstrip-action-btn:hover,
+.ptmt-tabstrip-action-btn.active {
+  opacity: 1;
+  background: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 14%, transparent);
+  border-color: var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.2));
+}
+
+body.ptmt-hide-tablist-btn .ptmt-tabstrip-menu-btn,
+.ptmt-pane.ptmt-pane-hide-tablist-btn .ptmt-tabstrip-menu-btn {
+  display: none !important;
+}
+
+body.ptmt-hide-maximize-btn .ptmt-pane-maximize-btn,
+.ptmt-pane.ptmt-pane-hide-maximize-btn .ptmt-pane-maximize-btn {
+  display: none !important;
+}
+
+.ptmt-pane-undock-handle {
+  cursor: grab;
+}
+
+.ptmt-pane-undock-handle:active {
+  cursor: grabbing;
+}
+
+body.ptmt-hide-undock-handle .ptmt-pane-undock-handle,
+.ptmt-pane.ptmt-pane-hide-undock-handle .ptmt-pane-undock-handle {
+  display: none !important;
+}
+
+body.ptmt-hide-tablist-btn.ptmt-hide-maximize-btn.ptmt-hide-undock-handle .ptmt-tabstrip-actions,
+.ptmt-pane.ptmt-pane-hide-tablist-btn.ptmt-pane-hide-maximize-btn.ptmt-pane-hide-undock-handle .ptmt-tabstrip-actions {
+  display: none !important;
+}
+
+/* Container Fullscreen / Pane Maximize — fixed to #ptmt-mainBody rect so columns/splits never clip it */
+body.ptmt-has-maximized-pane .ptmt-body-column,
+body.ptmt-has-maximized-pane .ptmt-split {
+  overflow: visible !important;
+  contain: none !important;
+  transform: none !important;
+  filter: none !important;
+  backdrop-filter: none !important;
+}
+
+.ptmt-pane.ptmt-pane-maximized {
+  position: fixed !important;
+  top: var(--ptmt-max-top, 0px) !important;
+  left: var(--ptmt-max-left, 0px) !important;
+  width: var(--ptmt-max-width, 100vw) !important;
+  height: var(--ptmt-max-height, 100vh) !important;
+  max-width: none !important;
+  max-height: none !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  z-index: 10050 !important;
+  display: flex !important;
+  background: var(--SmartThemeBlurTintColor, #1a1b26) !important;
+}
+
+.ptmt-context-menu {
+  z-index: 10100;
+}
+
+/* Unified Floating Windows — single tab strip bar (no separate titlebar, no duplicate buttons) */
+.ptmt-floating-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4000;
+  overflow: hidden;
+}
+
+.ptmt-floating-window {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  min-width: 240px;
+  min-height: 160px;
+  pointer-events: auto;
+  background: var(--SmartThemeBlurTintColor, rgba(24, 25, 34, 0.96));
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.24));
+  border-radius: 6px;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+}
+
+.ptmt-floating-window > .ptmt-pane {
+  flex: 1 1 0;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.ptmt-floating-window > .ptmt-pane .ptmt-tabStrip {
+  cursor: move;
+  user-select: none;
+  background: color-mix(in srgb, var(--SmartThemeBlurTintColor, #1f2335) 85%, #000 15%);
+  border-bottom: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.14));
+}
+
+.ptmt-floating-window > .ptmt-pane .ptmt-tabStrip .ptmt-tab {
+  cursor: pointer;
+}
+
+.ptmt-floating-window.is-dragging {
+  opacity: 0.88;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.72);
+}
+
+.ptmt-floating-window.is-window-maximized {
+  left: 0 !important;
+  top: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  border-radius: 0;
+}
+
+.ptmt-floating-window.ptmt-floating-drop-target {
+  outline: 2px solid #58a6ff;
+  box-shadow: 0 0 0 3px rgba(88, 166, 255, 0.35), 0 12px 32px rgba(0, 0, 0, 0.65);
+}
+
+.ptmt-floating-resize-handle {
+  position: absolute;
+  z-index: 15;
+}
+.ptmt-floating-resize-n { top: 0; left: 6px; right: 6px; height: 5px; cursor: ns-resize; }
+.ptmt-floating-resize-s { bottom: 0; left: 6px; right: 6px; height: 5px; cursor: ns-resize; }
+.ptmt-floating-resize-e { top: 6px; bottom: 6px; right: 0; width: 5px; cursor: ew-resize; }
+.ptmt-floating-resize-w { top: 6px; bottom: 6px; left: 0; width: 5px; cursor: ew-resize; }
+.ptmt-floating-resize-ne { top: 0; right: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+.ptmt-floating-resize-nw { top: 0; left: 0; width: 10px; height: 10px; cursor: nwse-resize; }
+.ptmt-floating-resize-se { bottom: 0; right: 0; width: 10px; height: 10px; cursor: nwse-resize; }
+.ptmt-floating-resize-sw { bottom: 0; left: 0; width: 10px; height: 10px; cursor: nesw-resize; }
+
+/* Drag Reveal: show hidden/empty left/right columns AND auto-hide/shy tab strips during any drag */
+.ptmt-body-column.ptmt-column-drag-target {
+  display: flex !important;
+  background: color-mix(in srgb, var(--SmartThemeQuoteColor, #58a6ff) 12%, rgba(20, 22, 32, 0.72));
+  border: 2px dashed color-mix(in srgb, var(--SmartThemeQuoteColor, #58a6ff) 60%, transparent);
+  box-sizing: border-box;
+}
+
+/* Empty 0-tab pane (e.g. center column after floating its only pane): hide useless action buttons and show clean drop target */
+.ptmt-pane:not(:has(.ptmt-tab)) .ptmt-tabstrip-actions {
+  display: none !important;
+}
+
+.ptmt-pane:not(:has(.ptmt-tab)) .ptmt-tabStrip {
+  border: none;
+  background: transparent;
+}
+
+body.ptmt-drag-active .ptmt-pane:not(:has(.ptmt-tab)) .ptmt-panelContainer {
+  border: 2px dashed color-mix(in srgb, var(--SmartThemeQuoteColor, #58a6ff) 60%, transparent);
+  background: color-mix(in srgb, var(--SmartThemeQuoteColor, #58a6ff) 8%, transparent);
+}
+
+body.ptmt-drag-active .ptmt-pane:not(:has(.ptmt-tab)) .ptmt-panelContainer::after {
+  content: "Drop here to dock";
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: color-mix(in srgb, var(--SmartThemeBodyColor, #e5e7eb) 80%, transparent);
+  pointer-events: none;
+}
+
+body.ptmt-drag-active .ptmt-pane.ptmt-tabstrip-minimized .ptmt-tabStrip {
+  flex: initial !important;
+  min-width: auto !important;
+  min-height: auto !important;
+  overflow: visible;
+  opacity: 1 !important;
+  pointer-events: auto !important;
+  visibility: visible !important;
+  transform: translate(0, 0) !important;
+}
+
+body.ptmt-drag-active .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal {
+  grid-template-rows: var(--ptmt-collapsed-width) 1fr !important;
+  max-height: none !important;
+}
+
+body.ptmt-drag-active .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-horizontal.flow-reversed {
+  grid-template-rows: 1fr var(--ptmt-collapsed-width) !important;
+  max-height: none !important;
+}
+
+body.ptmt-drag-active .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical {
+  grid-template-columns: var(--ptmt-collapsed-width) 1fr !important;
+  max-width: none !important;
+}
+
+body.ptmt-drag-active .ptmt-pane.ptmt-tabstrip-minimized .ptmt-pane-grid.grid-vertical.flow-reversed {
+  grid-template-columns: 1fr var(--ptmt-collapsed-width) !important;
+  max-width: none !important;
+}
+
+body.ptmt-drag-active .ptmt-pane.ptmt-tabstrip-minimized .ptmt-shy-indicator {
+  opacity: 0 !important;
+  pointer-events: none;
+}
+
+body.ptmt-drag-active .ptmt-body-column[data-is-column-collapsed="true"] {
+  flex: 0 0 calc(var(--ptmt-shy-hover-panes, 1) * var(--ptmt-collapsed-width) + var(--ptmt-shy-hover-splitters, 0px)) !important;
+  min-width: calc(var(--ptmt-shy-hover-panes, 1) * var(--ptmt-collapsed-width) + var(--ptmt-shy-hover-splitters, 0px)) !important;
+}
+
+/* Compact cycle icon buttons in Layout Editor Split Container headers (matching Pane icon row) */
+.ptmt-editor-split-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.ptmt-editor-split-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 1px solid var(--SmartThemeBorderColor, rgba(255, 255, 255, 0.16));
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--SmartThemeBodyColor, #ddd);
+  cursor: pointer;
+  font-size: 12px;
+}
+
+.ptmt-editor-split-btn:hover {
+  background: color-mix(in srgb, var(--SmartThemeQuoteColor, #7aa2f7) 25%, transparent);
+  border-color: var(--SmartThemeQuoteColor, #7aa2f7);
+  color: #fff;
+}
+
+/* Fix semi-transparent select dropdown popups blending into light grey on native OS surfaces */
+select {
+  color-scheme: dark;
+}
+
+select option,
+select optgroup {
+  background-color: #1a1b26 !important;
+  background-color: rgb(from var(--ptmt-ui-composite, #1a1b26) r g b / 1) !important;
+  color: var(--ST-Main-Text, #e5e7eb) !important;
+}
+
+select option:checked,
+select option:hover {
+  background-color: color-mix(in srgb, var(--ptmt-adaptive-quote, #58a6ff) 32%, rgb(from var(--ptmt-ui-composite, #1a1b26) r g b / 1)) !important;
+  color: var(--ST-Main-Text, #ffffff) !important;
+}
+
+/* ==========================================================================
+   TAB THEME: Minimal (Borderless Underline)
+   ========================================================================== */
+body.ptmt-Theme-Minimal {
+  --ptmt-radius: 4px;
+  --ptmt-tab-radius: 4px;
+  --ptmt-pane-radius: 4px;
+  --ptmt-button-radius: 4px;
+  --ptmt-tab-size: 36px;
+  --ptmt-collapsed-width: 36px;
+  --ptmt-icons-only-tab-size: 40px;
+  --ptmt-tab-margin: 0px;
+  --ptmt-tab-margin-offset: 0px;
+  --ptmt-grid-gap: 0px;
+}
+
+body.ptmt-Theme-Minimal .ptmt-tab::after,
+body.ptmt-Theme-Minimal .ptmt-tab:hover::after,
+body.ptmt-Theme-Minimal .ptmt-tab.active::after {
+  display: none;
+}
+
+body.ptmt-Theme-Minimal .ptmt-tab,
+body.ptmt-Theme-Minimal .ptmt-tab * {
+  text-shadow: none !important;
+}
+
+body.ptmt-Theme-Minimal .ptmt-tabStrip {
+  background: transparent;
+  border-color: color-mix(in srgb, var(--ST-UI-Border) 45%, transparent);
+}
+
+body.ptmt-Theme-Minimal .ptmt-tab {
+  background: transparent !important;
+  border: none !important;
+  border-radius: 0;
+  opacity: 0.72;
+  box-shadow: none;
+}
+
+body.ptmt-Theme-Minimal .ptmt-tab:hover:not(.active) {
+  opacity: 0.96;
+  background: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 8%, transparent) !important;
+  filter: none;
+}
+
+body.ptmt-Theme-Minimal .ptmt-tab.active {
+  opacity: 1;
+  background: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 4%, transparent) !important;
+  box-shadow: inset 0 -2px 0 0 var(--ptmt-adaptive-quote, #7aa2f7);
+}
+
+body.ptmt-Theme-Minimal .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tab.active {
+  box-shadow: inset 0 2px 0 0 var(--ptmt-adaptive-quote, #7aa2f7);
+}
+
+body.ptmt-Theme-Minimal .ptmt-pane-grid.grid-vertical .ptmt-tab.active {
+  box-shadow: inset -2px 0 0 0 var(--ptmt-adaptive-quote, #7aa2f7);
+}
+
+body.ptmt-Theme-Minimal .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tab.active {
+  box-shadow: inset 2px 0 0 0 var(--ptmt-adaptive-quote, #7aa2f7);
+}
+
+/* ==========================================================================
+   TAB THEME: Compact IDE (Dense 30px Matte Strip + Outer Accent Stripe)
+   ========================================================================== */
+body.ptmt-Theme-CompactIde {
+  --ptmt-radius: 0px;
+  --ptmt-tab-radius: 0px;
+  --ptmt-pane-radius: 0px;
+  --ptmt-button-radius: 2px;
+  --ptmt-tab-size: 30px;
+  --ptmt-collapsed-width: 30px;
+  --ptmt-icons-only-tab-size: 34px;
+  --ptmt-tab-margin: 0px;
+  --ptmt-tab-margin-offset: 0px;
+  --ptmt-grid-gap: 0px;
+}
+
+body.ptmt-Theme-CompactIde .ptmt-tab::after,
+body.ptmt-Theme-CompactIde .ptmt-tab:hover::after,
+body.ptmt-Theme-CompactIde .ptmt-tab.active::after {
+  display: none;
+}
+
+body.ptmt-Theme-CompactIde .ptmt-tab,
+body.ptmt-Theme-CompactIde .ptmt-tab * {
+  text-shadow: none !important;
+}
+
+body.ptmt-Theme-CompactIde .ptmt-tabStrip,
+body.ptmt-Theme-CompactIde .ptmt-tabstrip-actions {
+  background: color-mix(in srgb, var(--ST-UI-Background, #1a1b26) 86%, #000 14%);
+}
+
+body.ptmt-Theme-CompactIde .ptmt-tab {
+  font-size: 0.86em;
+  padding: 0 8px;
+  border-radius: 0;
+  border: none;
+  border-right: 1px solid color-mix(in srgb, var(--ST-UI-Border) 50%, transparent);
+  background: transparent;
+  opacity: 0.78;
+}
+
+body.ptmt-Theme-CompactIde .ptmt-tabStrip.vertical .ptmt-tab {
+  padding: 8px 0;
+  border-right: none;
+  border-bottom: 1px solid color-mix(in srgb, var(--ST-UI-Border) 50%, transparent);
+}
+
+body.ptmt-Theme-CompactIde .ptmt-tab:hover:not(.active) {
+  opacity: 0.96;
+  background: color-mix(in srgb, var(--SmartThemeBodyColor, #fff) 7%, transparent);
+  filter: none;
+}
+
+body.ptmt-Theme-CompactIde .ptmt-tab.active {
+  opacity: 1;
+  background: var(--ptmt-panel-bg, var(--ST-UI-Background)) !important;
+  box-shadow: inset 0 2px 0 0 var(--ptmt-adaptive-quote, #7aa2f7);
+}
+
+body.ptmt-Theme-CompactIde .ptmt-pane-grid.grid-horizontal.flow-reversed .ptmt-tab.active {
+  box-shadow: inset 0 -2px 0 0 var(--ptmt-adaptive-quote, #7aa2f7);
+}
+
+body.ptmt-Theme-CompactIde .ptmt-pane-grid.grid-vertical .ptmt-tab.active {
+  box-shadow: inset 2px 0 0 0 var(--ptmt-adaptive-quote, #7aa2f7);
+}
+
+body.ptmt-Theme-CompactIde .ptmt-pane-grid.grid-vertical.flow-reversed .ptmt-tab.active {
+  box-shadow: inset -2px 0 0 0 var(--ptmt-adaptive-quote, #7aa2f7);
+}
+
+body.ptmt-Theme-CompactIde .ptmt-tabstrip-action-btn {
+  width: 20px;
+  height: 20px;
+  font-size: 10px;
+}
+
+/* Layout Settings: Whole-pane drag & drop indicators */
+.ptmt-editor-pane-header {
+  cursor: grab;
+  user-select: none;
+}
+
+.ptmt-editor-pane-header:active {
+  cursor: grabbing;
+}
+
+.ptmt-editor-pane-drag-handle {
+  margin-right: 6px;
+  opacity: 0.65;
+}
+
+.ptmt-editor-pane-header:hover .ptmt-editor-pane-drag-handle {
+  opacity: 1;
+}
+
+.ptmt-editor-pane.dragging {
+  opacity: 0.45;
+}
+
+.ptmt-editor-pane-drop-top {
+  box-shadow: inset 0 4px 0 0 var(--ptmt-adaptive-quote, #7aa2f7) !important;
+}
+
+.ptmt-editor-pane-drop-bottom {
+  box-shadow: inset 0 -4px 0 0 var(--ptmt-adaptive-quote, #7aa2f7) !important;
+}
+
+.ptmt-editor-pane-drop-left {
+  box-shadow: inset 4px 0 0 0 var(--ptmt-adaptive-quote, #7aa2f7) !important;
+}
+
+.ptmt-editor-pane-drop-right {
+  box-shadow: inset -4px 0 0 0 var(--ptmt-adaptive-quote, #7aa2f7) !important;
+}
+
+.ptmt-editor-pane-drop-center {
+  outline: 2px dashed var(--ptmt-adaptive-quote, #7aa2f7) !important;
+  outline-offset: -2px;
+  background: color-mix(in srgb, var(--ptmt-adaptive-quote, #7aa2f7) 10%, transparent) !important;
+}
+
+/* Inline Show Left / Show Right Column toggles inside column legends */
+.ptmt-editor-column > legend.ptmt-editor-column-legend {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ptmt-editor-column-legend-label {
+  cursor: pointer;
+  user-select: none;
+  margin: 0;
+}
+
+.ptmt-editor-column-toggle {
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Touch screen / phone drag & resize support */
+.ptmt-pane-undock-handle,
+.ptmt-floating-resize-handle,
+.ptmt-floating-window > .ptmt-pane .ptmt-tabStrip,
+.ptmt-editor-pane-drag-handle {
+  touch-action: none;
+}
+
+@media (pointer: coarse) {
+  .ptmt-floating-resize-n,
+  .ptmt-floating-resize-s {
+    height: 12px;
+  }
+  .ptmt-floating-resize-e,
+  .ptmt-floating-resize-w {
+    width: 12px;
+  }
+  .ptmt-floating-resize-ne,
+  .ptmt-floating-resize-nw,
+  .ptmt-floating-resize-se,
+  .ptmt-floating-resize-sw {
+    width: 18px;
+    height: 18px;
+  }
 }

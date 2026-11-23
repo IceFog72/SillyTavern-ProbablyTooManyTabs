@@ -1,10 +1,10 @@
 {
     "display_name": "ProbablyTooManyTabs",
     "loading_order": 101,
-    "js": "src/index.js",
+    "js": "dist/index.js",
     "css": "style.css",
     "author": "icefog72",
-    "version": "0.13.6",
+    "version": "0.14.0",
     "homePage": "https://github.com/IceFog72/SillyTavern-ProbablyTooManyTabs",
     "auto_update": true,
     "minimum_client_version": "1.18.0",
